@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Optional notebook/code hygiene tools
+nbformat>=5.10
+nbconvert>=7.16
