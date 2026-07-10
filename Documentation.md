@@ -453,7 +453,7 @@ Cột chính:
 
 Lưu ý: file gốc `category_platform.csv` không có cột `country_code`; preprocessing lưu quốc gia vào `path_country_code` lấy từ đường dẫn.
 
-# Giải thích về sự khác nhau giữa category_platform.category_id, category_list.shop_category_id, product_categories.category_id
+### Giải thích về sự khác nhau giữa `category_platform.category_id`, `category_list.shop_category_id`, `product_categories.category_id`
 
 Ba cột này dễ nhầm vì đều có chữ `category_id`, nhưng chúng thuộc **hai hệ danh mục khác nhau**:
 
@@ -467,7 +467,7 @@ Ba cột này dễ nhầm vì đều có chữ `category_id`, nhưng chúng thu�
    -> product_categories.category_id
 ```
 
-## 3.1. `category_platform.category_id`: ID ngành hàng chuẩn của Shopee
+#### `category_platform.category_id`: ID ngành hàng chuẩn của Shopee
 
 `category_platform.category_id` là ID trong hệ thống phân loại chính thức của Shopee. Hệ này dùng chung trên toàn sàn, không phụ thuộc vào shop nào.
 
@@ -521,7 +521,7 @@ products.global_catids = [100629, 100646, 100794]
 - Dùng để phân tích doanh thu theo taxonomy chuẩn của Shopee.
 - Dùng để gom sản phẩm cùng ngành, dù mỗi shop tự đặt tên danh mục nội bộ khác nhau.
 
-## 3.2. `category_list.shop_category_id`: ID kệ/danh mục nội bộ của shop
+#### `category_list.shop_category_id`: ID kệ/danh mục nội bộ của shop
 
 `category_list.shop_category_id` là ID của danh mục do **chính shop tự tạo** trong trang shop.
 
@@ -560,7 +560,7 @@ country_code + shop_id + shop_category_id + date
 - Dùng để phân tích kệ nào có nhiều sản phẩm, kệ nào tạo doanh thu ước tính cao.
 - Dùng để hiểu chiến lược merchandising của shop.
 
-## 3.3. `product_categories.category_id`: ID kệ nội bộ mà sản phẩm được gắn vào
+#### `product_categories.category_id`: ID kệ nội bộ mà sản phẩm được gắn vào
 
 Tên cột này gây nhầm nhất. Trong dataset này, `product_categories.category_id` **không phải** ID ngành hàng chuẩn của Shopee.
 
@@ -611,7 +611,7 @@ item_id = 123 -> category_id = 777 -> Best Seller
 
 Điều này không mâu thuẫn. Nó giống một sản phẩm trong siêu thị vừa nằm ở kệ chính, vừa được đặt ở khu khuyến mãi.
 
-## 3.4. Không join nhầm hai hệ category
+#### Không join nhầm hai hệ category
 
 Không nên join:
 
@@ -627,7 +627,7 @@ Lý do: hai cột này thuộc hai hệ ID khác nhau.
 | `category_list.shop_category_id` | Danh mục nội bộ shop | Kệ/danh mục shop tự tạo | `product_categories.category_id` |
 | `product_categories.category_id` | Danh mục nội bộ shop | Kệ mà sản phẩm được gắn vào | `category_list.shop_category_id` |
 
-## 3.5. Ví dụ dễ nhớ
+#### Ví dụ dễ nhớ
 
 Giả sử có một sản phẩm bánh Oreo.
 
