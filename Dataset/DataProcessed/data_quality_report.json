@@ -1,0 +1,974 @@
+{
+  "input_dir": "Dataset/DataRaw",
+  "file_count": 82,
+  "files": [
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=1112776376/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "1112776376",
+      "rows": 12,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=1368540320/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "1368540320",
+      "rows": 24,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=1379527329/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "1379527329",
+      "rows": 12,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=187405886/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "187405886",
+      "rows": 6,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=200048291/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "200048291",
+      "rows": 18,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=430940247/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "430940247",
+      "rows": 18,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=697604885/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "697604885",
+      "rows": 3,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=779266191/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "779266191",
+      "rows": 36,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=809769142/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "809769142",
+      "rows": 96,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_list/shop_id=859233628/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "id",
+      "shop_id": "859233628",
+      "rows": 12,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=category_platform/category_platform.csv",
+      "dataset": "category_platform",
+      "country_code": "id",
+      "shop_id": "",
+      "rows": 2241,
+      "columns": 9
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=1112776376/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "1112776376",
+      "rows": 54,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=1368540320/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "1368540320",
+      "rows": 138,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=1379527329/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "1379527329",
+      "rows": 37,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=187405886/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "187405886",
+      "rows": 24,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=200048291/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "200048291",
+      "rows": 77,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=430940247/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "430940247",
+      "rows": 69,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=697604885/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "697604885",
+      "rows": 9,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=779266191/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "779266191",
+      "rows": 252,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=809769142/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "809769142",
+      "rows": 1011,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=product_categories/shop_id=859233628/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "id",
+      "shop_id": "859233628",
+      "rows": 30,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=1112776376/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "1112776376",
+      "rows": 144,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=1368540320/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "1368540320",
+      "rows": 198,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=1379527329/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "1379527329",
+      "rows": 55,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=187405886/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "187405886",
+      "rows": 21,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=200048291/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "200048291",
+      "rows": 68,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=430940247/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "430940247",
+      "rows": 120,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=697604885/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "697604885",
+      "rows": 9,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=779266191/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "779266191",
+      "rows": 117,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=809769142/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "809769142",
+      "rows": 660,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=products/shop_id=859233628/products.csv",
+      "dataset": "products",
+      "country_code": "id",
+      "shop_id": "859233628",
+      "rows": 30,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=1112776376/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "1112776376",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=1368540320/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "1368540320",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=1379527329/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "1379527329",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=187405886/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "187405886",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=200048291/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "200048291",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=430940247/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "430940247",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=697604885/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "697604885",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=779266191/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "779266191",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=809769142/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "809769142",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=id/dataset=shop_info/shop_id=859233628/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "id",
+      "shop_id": "859233628",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=108166524/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "108166524",
+      "rows": 24,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=1145316676/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "1145316676",
+      "rows": 45,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=140360136/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "140360136",
+      "rows": 27,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=1546895026/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "1546895026",
+      "rows": 14,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=173513432/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "173513432",
+      "rows": 27,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=213989179/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "213989179",
+      "rows": 24,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=289646907/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "289646907",
+      "rows": 39,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=430972539/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "430972539",
+      "rows": 12,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=438905996/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "438905996",
+      "rows": 33,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_list/shop_id=464391416/category_list.csv",
+      "dataset": "category_list",
+      "country_code": "vn",
+      "shop_id": "464391416",
+      "rows": 9,
+      "columns": 11
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=category_platform/category_platform.csv",
+      "dataset": "category_platform",
+      "country_code": "vn",
+      "shop_id": "",
+      "rows": 2241,
+      "columns": 9
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=108166524/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "108166524",
+      "rows": 394,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=1145316676/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "1145316676",
+      "rows": 285,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=140360136/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "140360136",
+      "rows": 223,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=1546895026/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "1546895026",
+      "rows": 240,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=173513432/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "173513432",
+      "rows": 180,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=213989179/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "213989179",
+      "rows": 284,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=289646907/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "289646907",
+      "rows": 213,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=430972539/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "430972539",
+      "rows": 39,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=438905996/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "438905996",
+      "rows": 468,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=product_categories/shop_id=464391416/product_categories.csv",
+      "dataset": "product_categories",
+      "country_code": "vn",
+      "shop_id": "464391416",
+      "rows": 27,
+      "columns": 5
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=108166524/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "108166524",
+      "rows": 226,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=1145316676/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "1145316676",
+      "rows": 259,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=140360136/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "140360136",
+      "rows": 103,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=1546895026/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "1546895026",
+      "rows": 140,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=173513432/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "173513432",
+      "rows": 213,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=213989179/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "213989179",
+      "rows": 287,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=289646907/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "289646907",
+      "rows": 256,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=430972539/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "430972539",
+      "rows": 66,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=438905996/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "438905996",
+      "rows": 363,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=products/shop_id=464391416/products.csv",
+      "dataset": "products",
+      "country_code": "vn",
+      "shop_id": "464391416",
+      "rows": 36,
+      "columns": 44
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=108166524/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "108166524",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=1145316676/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "1145316676",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=140360136/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "140360136",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=1546895026/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "1546895026",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=173513432/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "173513432",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=213989179/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "213989179",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=289646907/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "289646907",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=430972539/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "430972539",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=438905996/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "438905996",
+      "rows": 1,
+      "columns": 17
+    },
+    {
+      "file": "Dataset/DataRaw/country_code=vn/dataset=shop_info/shop_id=464391416/shop_info.csv",
+      "dataset": "shop_info",
+      "country_code": "vn",
+      "shop_id": "464391416",
+      "rows": 1,
+      "columns": 17
+    }
+  ],
+  "schemas": {
+    "category_list": [
+      {
+        "columns": [
+          "shop_id",
+          "shop_category_id",
+          "display_name",
+          "total",
+          "is_parent_category",
+          "is_sub_category",
+          "parent_shop_category_id",
+          "image",
+          "category_type",
+          "country_code",
+          "date"
+        ],
+        "file_count": 20
+      }
+    ],
+    "category_platform": [
+      {
+        "columns": [
+          "platform",
+          "client",
+          "key",
+          "category_id",
+          "parent_category_id",
+          "original_category_name",
+          "display_category_name",
+          "has_children",
+          "debug_message"
+        ],
+        "file_count": 2
+      }
+    ],
+    "product_categories": [
+      {
+        "columns": [
+          "shop_id",
+          "date",
+          "item_id",
+          "category_slug",
+          "category_id"
+        ],
+        "file_count": 20
+      }
+    ],
+    "products": [
+      {
+        "columns": [
+          "platform",
+          "key",
+          "country_code",
+          "date",
+          "shop_id",
+          "shop_slug",
+          "shop_name",
+          "location",
+          "item_id",
+          "product_name",
+          "url",
+          "image_url",
+          "images",
+          "seller_flag",
+          "seller_flag_hash",
+          "image_overlay",
+          "image_overlay_hash",
+          "is_ad",
+          "is_sold_out",
+          "shopee_verified",
+          "ctime",
+          "price",
+          "price_original",
+          "price_before_promo",
+          "discount_percent",
+          "promotion_id",
+          "voucher_code",
+          "voucher_discount",
+          "voucher_start_time",
+          "voucher_end_time",
+          "voucher_min_spend",
+          "history_sold_value",
+          "monthly_sold_value",
+          "rating",
+          "rating_count",
+          "rating_count_detail",
+          "vouchers",
+          "brand",
+          "brand_id",
+          "catid",
+          "global_catids",
+          "liked_count",
+          "tier_variation_name",
+          "tier_variation_options"
+        ],
+        "file_count": 20
+      }
+    ],
+    "shop_info": [
+      {
+        "columns": [
+          "shop_id",
+          "shop_name",
+          "username",
+          "rating_star",
+          "follower_count",
+          "item_count",
+          "is_official_shop",
+          "response_rate",
+          "response_time",
+          "rating_good",
+          "rating_normal",
+          "rating_bad",
+          "cancellation_rate",
+          "created_at",
+          "vacation",
+          "country_code",
+          "date"
+        ],
+        "file_count": 20
+      }
+    ]
+  },
+  "path_mismatches": [],
+  "dataset_stats": {
+    "category_list": {
+      "rows": 491,
+      "columns": 21,
+      "countries": {
+        "id": 237,
+        "vn": 254
+      },
+      "shops": 20,
+      "date_range": {
+        "min": "2026-07-01",
+        "max": "2026-07-03",
+        "unique_count": 3
+      },
+      "duplicate_rows_by_key": 0,
+      "missing_counts_core": {
+        "country_code": 0,
+        "shop_id": 0,
+        "shop_category_id": 0,
+        "date": 0
+      }
+    },
+    "category_platform": {
+      "rows": 4482,
+      "columns": 18,
+      "countries": {
+        "id": 2241,
+        "vn": 2241
+      },
+      "shops": 0,
+      "date_range": {
+        "min": "",
+        "max": "",
+        "unique_count": 0
+      },
+      "duplicate_rows_by_key": 0,
+      "missing_counts_core": {
+        "path_country_code": 0,
+        "category_id": 0
+      }
+    },
+    "product_categories": {
+      "rows": 4054,
+      "columns": 13,
+      "countries": {
+        "id": 1701,
+        "vn": 2353
+      },
+      "shops": 20,
+      "date_range": {
+        "min": "2026-07-01",
+        "max": "2026-07-03",
+        "unique_count": 3
+      },
+      "duplicate_rows_by_key": 0,
+      "missing_counts_core": {
+        "country_code": 0,
+        "shop_id": 0,
+        "item_id": 0,
+        "category_id": 0,
+        "date": 0
+      }
+    },
+    "products": {
+      "rows": 3341,
+      "columns": 79,
+      "countries": {
+        "id": 1422,
+        "vn": 1919
+      },
+      "shops": 20,
+      "date_range": {
+        "min": "2026-07-01",
+        "max": "2026-07-03",
+        "unique_count": 3
+      },
+      "duplicate_rows_by_key": 0,
+      "missing_counts_core": {
+        "country_code": 0,
+        "shop_id": 0,
+        "item_id": 0,
+        "date": 0,
+        "product_name": 0,
+        "price": 0,
+        "rating": 0
+      }
+    },
+    "shop_info": {
+      "rows": 20,
+      "columns": 32,
+      "countries": {
+        "id": 10,
+        "vn": 10
+      },
+      "shops": 20,
+      "date_range": {
+        "min": "2026-07-03",
+        "max": "2026-07-03",
+        "unique_count": 1
+      },
+      "duplicate_rows_by_key": 0,
+      "missing_counts_core": {
+        "country_code": 0,
+        "shop_id": 0,
+        "date": 0
+      }
+    }
+  },
+  "raw_rows_by_dataset": {
+    "category_list": 491,
+    "category_platform": 4482,
+    "product_categories": 4054,
+    "products": 3371,
+    "shop_info": 20
+  },
+  "exact_duplicate_rows_removed": {
+    "category_list": 0,
+    "category_platform": 0,
+    "product_categories": 0,
+    "products": 30,
+    "shop_info": 0
+  },
+  "countries": [
+    "id",
+    "vn"
+  ],
+  "shop_ids": [
+    "108166524",
+    "1112776376",
+    "1145316676",
+    "1368540320",
+    "1379527329",
+    "140360136",
+    "1546895026",
+    "173513432",
+    "187405886",
+    "200048291",
+    "213989179",
+    "289646907",
+    "430940247",
+    "430972539",
+    "438905996",
+    "464391416",
+    "697604885",
+    "779266191",
+    "809769142",
+    "859233628"
+  ],
+  "generated_at": "2026-07-09T17:39:18Z",
+  "product_checks": {
+    "unique_platforms": [
+      "Shopee"
+    ],
+    "unique_top_level_catid": [
+      "100001",
+      "100013",
+      "100015",
+      "100016",
+      "100533",
+      "100629",
+      "100630",
+      "100632",
+      "100633",
+      "100636",
+      "100637",
+      "100638",
+      "100639"
+    ],
+    "sold_out_values": {
+      "False": 3341
+    },
+    "ad_values": {
+      "False": 3341
+    },
+    "verified_values": {
+      "False": 2756,
+      "True": 585
+    },
+    "price_999999999_count": 3
+  },
+  "outputs": [
+    "Dataset/DataProcessed/category_list_clean.csv",
+    "Dataset/DataProcessed/category_platform_clean.csv",
+    "Dataset/DataProcessed/product_categories_clean.csv",
+    "Dataset/DataProcessed/product_dataset_ready.csv",
+    "Dataset/DataProcessed/products_clean.csv",
+    "Dataset/DataProcessed/shop_info_clean.csv"
+  ]
+}
