@@ -453,9 +453,266 @@ Cột chính:
 
 Lưu ý: file gốc `category_platform.csv` không có cột `country_code`; preprocessing lưu quốc gia vào `path_country_code` lấy từ đường dẫn.
 
+# Giải thích về sự khác nhau giữa category_platform.category_id, category_list.shop_category_id, product_categories.category_id
+
+Ba cột này dễ nhầm vì đều có chữ `category_id`, nhưng chúng thuộc **hai hệ danh mục khác nhau**:
+
+```text
+1. Hệ danh mục chuẩn của Shopee toàn sàn
+   -> category_platform.category_id
+   -> products.catid / products.global_catids
+
+2. Hệ danh mục/kệ nội bộ do từng shop tự tạo
+   -> category_list.shop_category_id
+   -> product_categories.category_id
+```
+
+## 3.1. `category_platform.category_id`: ID ngành hàng chuẩn của Shopee
+
+`category_platform.category_id` là ID trong hệ thống phân loại chính thức của Shopee. Hệ này dùng chung trên toàn sàn, không phụ thuộc vào shop nào.
+
+Ví dụ logic:
+
+```text
+100629 = Food & Beverages
+100646 = Snacks
+100794 = Biscuits / Candy / Chocolate
+```
+
+Cột này trả lời câu hỏi:
+
+```text
+Sản phẩm này thuộc ngành hàng chuẩn nào trên Shopee?
+```
+
+Trong bảng `products`, hệ ID này nằm ở:
+
+```text
+products.catid
+products.global_catids
+```
+
+Join đúng:
+
+```text
+products.country_code = category_platform.path_country_code
+products.catid        = category_platform.category_id
+```
+
+Hoặc nếu muốn đọc đầy đủ cây danh mục, parse từng ID trong `products.global_catids` rồi map từng ID đó sang:
+
+```text
+category_platform.category_id
+```
+
+Ví dụ:
+
+```text
+products.global_catids = [100629, 100646, 100794]
+
+100629 -> Food & Beverages
+100646 -> Snacks
+100794 -> Biscuits / Candy / Chocolate
+```
+
+Ý nghĩa phân tích:
+
+- Dùng để so sánh ngành hàng giữa nhiều shop.
+- Dùng để phân tích doanh thu theo taxonomy chuẩn của Shopee.
+- Dùng để gom sản phẩm cùng ngành, dù mỗi shop tự đặt tên danh mục nội bộ khác nhau.
+
+## 3.2. `category_list.shop_category_id`: ID kệ/danh mục nội bộ của shop
+
+`category_list.shop_category_id` là ID của danh mục do **chính shop tự tạo** trong trang shop.
+
+Nó giống như “kệ hàng” trong cửa hàng:
+
+```text
+Best Seller
+Combo tiết kiệm
+Bánh quy
+Flash Sale
+Hàng mới
+Quà tặng
+```
+
+Cột này trả lời câu hỏi:
+
+```text
+Shop này có những kệ/danh mục nội bộ nào?
+```
+
+Điểm quan trọng:
+
+- ID này chỉ có ý nghĩa trong phạm vi shop.
+- Hai shop khác nhau có thể có `shop_category_id` giống nhau về mặt số, nhưng không nên coi là cùng một danh mục nếu khác `shop_id`.
+- Vì vậy khi join luôn phải dùng kèm `shop_id`, `country_code`, và thường cả `date`.
+
+Khóa đúng của một danh mục nội bộ shop:
+
+```text
+country_code + shop_id + shop_category_id + date
+```
+
+Ý nghĩa phân tích:
+
+- Dùng để biết shop đang trưng bày sản phẩm theo kệ nào.
+- Dùng để phân tích kệ nào có nhiều sản phẩm, kệ nào tạo doanh thu ước tính cao.
+- Dùng để hiểu chiến lược merchandising của shop.
+
+## 3.3. `product_categories.category_id`: ID kệ nội bộ mà sản phẩm được gắn vào
+
+Tên cột này gây nhầm nhất. Trong dataset này, `product_categories.category_id` **không phải** ID ngành hàng chuẩn của Shopee.
+
+Nó là ID danh mục/kệ nội bộ shop mà sản phẩm được gắn vào, nên nó map với:
+
+```text
+category_list.shop_category_id
+```
+
+`product_categories` trả lời câu hỏi:
+
+```text
+Sản phẩm nào được đặt vào kệ nội bộ nào của shop?
+```
+
+Join đúng:
+
+```text
+product_categories.country_code = category_list.country_code
+product_categories.shop_id      = category_list.shop_id
+product_categories.category_id  = category_list.shop_category_id
+product_categories.date         = category_list.date
+```
+
+Ví dụ logic:
+
+```text
+product_categories:
+item_id = 123
+category_id = 555
+
+category_list:
+shop_category_id = 555
+display_name = "Combo tiết kiệm"
+
+Kết luận:
+Sản phẩm 123 đang nằm trong kệ "Combo tiết kiệm" của shop đó.
+```
+
+Một sản phẩm có thể xuất hiện ở nhiều dòng trong `product_categories`, nghĩa là nó được đặt vào nhiều kệ nội bộ cùng lúc.
+
+Ví dụ:
+
+```text
+item_id = 123 -> category_id = 555 -> Combo tiết kiệm
+item_id = 123 -> category_id = 777 -> Best Seller
+```
+
+Điều này không mâu thuẫn. Nó giống một sản phẩm trong siêu thị vừa nằm ở kệ chính, vừa được đặt ở khu khuyến mãi.
+
+## 3.4. Không join nhầm hai hệ category
+
+Không nên join:
+
+```text
+product_categories.category_id = category_platform.category_id
+```
+
+Lý do: hai cột này thuộc hai hệ ID khác nhau.
+
+| Cột | Hệ danh mục | Ý nghĩa | Join đúng với |
+| --- | --- | --- | --- |
+| `category_platform.category_id` | Danh mục chuẩn Shopee | Ngành hàng toàn sàn | `products.catid` hoặc từng ID trong `products.global_catids` |
+| `category_list.shop_category_id` | Danh mục nội bộ shop | Kệ/danh mục shop tự tạo | `product_categories.category_id` |
+| `product_categories.category_id` | Danh mục nội bộ shop | Kệ mà sản phẩm được gắn vào | `category_list.shop_category_id` |
+
+## 3.5. Ví dụ dễ nhớ
+
+Giả sử có một sản phẩm bánh Oreo.
+
+Trong hệ Shopee platform:
+
+```text
+products.catid = 100794
+category_platform.category_id = 100794
+display_category_name = "Bánh quy / Kẹo / Chocolate"
+```
+
+Điều này nói rằng:
+
+```text
+Oreo thuộc ngành hàng chuẩn "Bánh quy / Kẹo / Chocolate" trên Shopee.
+```
+
+Trong hệ shop nội bộ:
+
+```text
+product_categories.category_id = 555
+category_list.shop_category_id = 555
+category_list.display_name = "Combo tiết kiệm"
+```
+
+Điều này nói rằng:
+
+```text
+Shop đang đặt sản phẩm Oreo vào kệ "Combo tiết kiệm".
+```
+
+Cùng một sản phẩm có thể đồng thời có:
+
+```text
+Shopee category: Bánh quy / Kẹo / Chocolate
+Shop category: Combo tiết kiệm, Best Seller, Flash Sale
+```
+
+Hai lớp category này phục vụ hai mục đích khác nhau:
+
+- Shopee category giúp khách tìm sản phẩm theo ngành hàng toàn sàn.
+- Shop category giúp shop trưng bày sản phẩm trong trang shop của riêng họ.
+
 ## 4. Quan hệ giữa các bảng
 
-Quan hệ nên dùng khi phân tích:
+### Cách nhìn tổng thể
+
+Trong dataset này, bảng trung tâm là `products`. Mỗi dòng trong `products` là một sản phẩm tại một shop trong một ngày snapshot. Các bảng còn lại bổ sung thêm ngữ cảnh cho sản phẩm đó:
+
+```text
+shop_info
+  cho biết shop là ai, uy tín thế nào, vận hành ra sao
+        |
+        | country_code + shop_id
+        v
+products
+  sản phẩm, giá, voucher, rating, lượt bán, ảnh
+        |
+        | country_code + shop_id + item_id + date
+        v
+product_categories
+  sản phẩm này được shop đặt vào kệ/danh mục nội bộ nào
+        |
+        | country_code + shop_id + category_id + date
+        v
+category_list
+  tên kệ/danh mục nội bộ của shop là gì
+
+products
+  catid/global_catids
+        |
+        v
+category_platform
+  ngành hàng chính thức của Shopee
+```
+
+Nói ngắn gọn:
+
+- `products`: bán cái gì, giá bao nhiêu, bán được bao nhiêu, rating thế nào.
+- `shop_info`: ai bán, shop lớn hay nhỏ, official hay không, phản hồi tốt không.
+- `product_categories`: sản phẩm được đặt vào danh mục/kệ nào của shop.
+- `category_list`: danh mục/kệ đó tên gì, là kệ cha hay kệ con.
+- `category_platform`: sản phẩm thuộc ngành hàng chuẩn nào trên Shopee.
+
+### Quan hệ join chính
 
 | Từ bảng | Sang bảng | Điều kiện join |
 | --- | --- | --- |
@@ -463,6 +720,125 @@ Quan hệ nên dùng khi phân tích:
 | `products` | `product_categories` | `country_code + shop_id + item_id + date` |
 | `product_categories` | `category_list` | `country_code + shop_id + category_id = shop_category_id + date` |
 | `products` | `category_platform` | `country_code = path_country_code` và `catid/global_catids` với `category_id` |
+
+### Ví dụ truy vết một sản phẩm
+
+Giả sử có một dòng trong `products`:
+
+```text
+country_code = vn
+shop_id      = 108166524
+item_id      = 123
+date         = 2026-07-03
+product_name = Bánh/Kẹo A
+price        = 50,000
+monthly_sold_value = 1,000
+```
+
+Từ dòng này, có thể nối sang các bảng khác để trả lời các câu hỏi khác nhau.
+
+1. Nối sang `shop_info`
+
+```text
+products.country_code = shop_info.country_code
+products.shop_id      = shop_info.shop_id
+```
+
+Trả lời được:
+
+- Shop này tên gì?
+- Có phải official shop không?
+- Có bao nhiêu follower?
+- Rating shop thế nào?
+- Response rate/time có tốt không?
+
+Ý nghĩa phân tích: biết sản phẩm bán tốt là do bản thân sản phẩm, hay nằm trong shop mạnh/có uy tín cao.
+
+2. Nối sang `product_categories`
+
+```text
+products.country_code = product_categories.country_code
+products.shop_id      = product_categories.shop_id
+products.item_id      = product_categories.item_id
+products.date         = product_categories.date
+```
+
+Trả lời được:
+
+- Sản phẩm này được shop đặt vào những kệ/danh mục nội bộ nào?
+- Một sản phẩm có thể nằm trong nhiều kệ không?
+
+Ý nghĩa phân tích: biết sản phẩm được shop trưng bày ở đâu, ví dụ `Best Seller`, `Combo`, `Khuyến mãi`, `Bánh quy`.
+
+3. Nối tiếp sang `category_list`
+
+```text
+product_categories.country_code = category_list.country_code
+product_categories.shop_id      = category_list.shop_id
+product_categories.category_id  = category_list.shop_category_id
+product_categories.date         = category_list.date
+```
+
+Trả lời được:
+
+- Tên kệ/danh mục là gì?
+- Kệ đó là danh mục cha hay con?
+- Kệ đó có bao nhiêu sản phẩm?
+
+Ý nghĩa phân tích: tính doanh thu/lượt bán theo từng kệ nội bộ của shop.
+
+4. Nối sang `category_platform`
+
+```text
+products.country_code = category_platform.path_country_code
+products.catid        = category_platform.category_id
+```
+
+Hoặc đọc từng ID trong `products.global_catids` rồi map sang `category_platform.category_id`.
+
+Trả lời được:
+
+- Sản phẩm thuộc ngành hàng chuẩn nào của Shopee?
+- Danh mục cha/con của ngành đó là gì?
+- Có thể so sánh sản phẩm giữa nhiều shop trong cùng một ngành hàng không?
+
+Ý nghĩa phân tích: gom sản phẩm về taxonomy chung của Shopee để so sánh thị trường, thay vì phụ thuộc vào tên kệ tự đặt của từng shop.
+
+### Tại sao cần cả `category_list`, `product_categories`, `category_platform`?
+
+Ba bảng này dễ nhầm, nhưng vai trò khác nhau:
+
+| Bảng | Trả lời câu hỏi | Ví dụ |
+| --- | --- | --- |
+| `category_list` | Shop có những kệ/danh mục nội bộ nào? | `Combo tiết kiệm`, `Best Seller`, `Bánh quy` |
+| `product_categories` | Sản phẩm nào nằm trong kệ nào? | Sản phẩm A nằm trong `Best Seller` và `Combo` |
+| `category_platform` | Sản phẩm thuộc ngành hàng chuẩn nào trên Shopee? | `Food & Beverages -> Snacks -> Biscuits` |
+
+Nếu chỉ có `category_list`, ta biết shop có kệ gì nhưng không biết sản phẩm nào nằm trong kệ đó.
+Nếu chỉ có `product_categories`, ta biết sản phẩm nối với category ID nào nhưng chưa biết tên category dễ đọc.
+Nếu chỉ có `category_platform`, ta biết ngành hàng chuẩn của Shopee nhưng không biết shop đang trưng bày sản phẩm thế nào trong trang shop.
+
+### Quan hệ với doanh thu
+
+Dataset không có cột doanh thu trực tiếp, nhưng có thể ước tính bằng:
+
+```text
+estimated_recent_revenue = price * monthly_sold_value
+```
+
+Sau đó có thể phân tích theo nhiều hướng:
+
+- Theo sản phẩm: dùng trực tiếp `products`.
+- Theo shop: join `products` với `shop_info`, group by `shop_id/shop_name`.
+- Theo kệ nội bộ shop: join `products -> product_categories -> category_list`, group by `display_name`.
+- Theo ngành hàng Shopee: join `products -> category_platform`, group by `display_category_name`.
+
+Lưu ý khi tính doanh thu theo category nội bộ:
+
+- Một sản phẩm có thể nằm trong nhiều `category_list`.
+- Nếu group theo category nội bộ, sản phẩm đó có thể được tính ở nhiều category.
+- Điều này phù hợp nếu mục tiêu là xem từng kệ trưng bày đóng góp thế nào.
+- Nhưng nếu muốn tính tổng doanh thu toàn shop/toàn dataset, cần deduplicate theo `country_code + shop_id + item_id + date`.
 
 Bảng nên dùng cho phân tích nhanh là:
 
@@ -482,22 +858,11 @@ Bảng này đã merge `products` với thông tin shop và gom danh mục nội
 
 ## 5. Preprocessing đã thực hiện
 
-Script preprocessing:
-
-```bash
-python3 scripts/preprocess_dataset.py
-```
-
-Input mặc định:
+Chi tiết preprocessing được tách riêng tại:
 
 ```text
-Dataset/DataRaw
-```
-
-Output mặc định:
-
-```text
-Dataset/DataProcessed
+Preprocessing/preprocessing.md
+Preprocessing/preprocess_dataset.ipynb
 ```
 
 Các bước xử lý:
@@ -515,17 +880,24 @@ Các bước xử lý:
 11. Xuất các bảng clean và bảng phân tích đã merge.
 12. Xuất report chất lượng dữ liệu tại `Dataset/DataProcessed/data_quality_report.json`.
 
-## 6. File đầu ra
+## 6. Cấu trúc folder
 
-| File | Dòng dữ liệu | Mục đích |
-| --- | ---: | --- |
-| `Dataset/DataProcessed/products_clean.csv` | 3,341 | Sản phẩm đã clean, chưa merge |
-| `Dataset/DataProcessed/product_dataset_ready.csv` | 3,341 | Bảng phân tích chính, đã merge shop/category |
-| `Dataset/DataProcessed/shop_info_clean.csv` | 20 | Shop info đã clean |
-| `Dataset/DataProcessed/category_list_clean.csv` | 491 | Danh mục nội bộ shop đã clean |
-| `Dataset/DataProcessed/product_categories_clean.csv` | 4,054 | Mapping sản phẩm-danh mục đã clean |
-| `Dataset/DataProcessed/category_platform_clean.csv` | 4,482 | Taxonomy Shopee đã clean |
-| `Dataset/DataProcessed/data_quality_report.json` | - | Report schema, số dòng, missing, duplicate, output |
+```text
+Dataset/
+  DataRaw/            Dữ liệu gốc theo country_code/dataset/shop_id
+  DataProcessed/      Dữ liệu sau preprocessing
+
+Preprocessing/
+  preprocessing.md    Tài liệu riêng cho preprocessing
+  preprocess_dataset.ipynb
+
+Research/
+  research.md         Câu hỏi nghiên cứu, giả thuyết, hướng insight
+  research.ipynb      Notebook vẽ biểu đồ kiểm định giả thuyết
+
+Documentation.md      Tài liệu bối cảnh dataset và quan hệ bảng
+README.md
+```
 
 ## 7. Gợi ý sử dụng
 
@@ -546,3 +918,204 @@ Một số hướng phân tích phù hợp:
 Khi phân tích giá, nên xử lý riêng 3 dòng có `price = 999999999` vì nhiều khả năng là sentinel/outlier.
 
 Khi phân tích theo thời gian, lưu ý dataset chỉ có 3 ngày snapshot (`2026-07-01` đến `2026-07-03`), không đủ dài để suy luận trend dài hạn.
+
+## 8. Định hướng nghiên cứu và phạm vi phát triển
+
+Phần nghiên cứu insight được tách riêng trong:
+
+```text
+Research/research.md
+Research/research.ipynb
+```
+
+Mục này giúp người dùng sau hiểu các hướng đã được định hình, tránh đào trùng, đồng thời biết hướng nào có thể phát triển tiếp.
+
+### 8.1. Các hướng đã được đặt trong `Research/research.md`
+
+`Research/research.md` đã đặt câu hỏi nghiên cứu trung tâm:
+
+```text
+Các yếu tố về giá, khuyến mãi, uy tín shop, danh mục, hình ảnh và nội dung sản phẩm ảnh hưởng như thế nào đến doanh thu ước tính trên Shopee, và các yếu tố này khác nhau ra sao giữa Việt Nam và Indonesia?
+```
+
+Các nhóm hướng đã được nêu:
+
+| Nhóm nghiên cứu | Mục tiêu | Trạng thái |
+| --- | --- | --- |
+| So sánh thị trường `vn` vs `id` | Hiểu khác biệt về giá, lượt bán, voucher/promo, rating giữa hai nước | Nên triển khai trước |
+| Yếu tố liên quan tới doanh thu | Kiểm tra quan hệ giữa giá, rating, liked count, images, follower với doanh thu ước tính | Nên triển khai trước |
+| Hiệu quả voucher/promo | So sánh sản phẩm có/không có voucher/promo, discount bucket, promo group | Nên triển khai trước |
+| Shop trust và vận hành shop | Official shop, follower, rating shop, response rate/time ảnh hưởng thế nào | Nên triển khai nếu cần insight về shop |
+| Category và cách trưng bày | Category nền tảng và kệ nội bộ shop đóng góp gì vào doanh thu | Nên triển khai, nhưng cần chú ý double count |
+| Hình ảnh và nội dung sản phẩm | `images_count`, brand, keyword trong tên sản phẩm có liên quan tới performance không | Có thể triển khai mở rộng |
+
+### 8.2. Hướng nên tiếp tục đào sâu
+
+Các hướng dưới đây phù hợp với dataset hiện tại và có thể phát triển thành insight tốt:
+
+1. **So sánh VN và ID**
+
+Nên làm vì dataset có 2 quốc gia và mỗi quốc gia có 10 shop. Đây là góc nhìn tự nhiên nhất.
+
+Câu hỏi nên trả lời:
+
+- Thị trường nào có doanh thu ước tính cao hơn?
+- Thị trường nào có giá median cao hơn?
+- Voucher/promo phổ biến hơn ở nước nào?
+- `monthly_sold_value` khác nhau ra sao giữa hai nước?
+
+2. **Promotion effectiveness**
+
+Nên làm vì dataset có đủ các cột:
+
+- `discount_percent`
+- `promotion_id`
+- `voucher_discount`
+- `voucher_min_spend`
+- `price`
+- `price_before_promo`
+- `monthly_sold_value`
+
+Câu hỏi nên trả lời:
+
+- Nhóm `voucher + promo` có bán tốt hơn nhóm không có ưu đãi không?
+- Discount bucket nào có doanh thu ước tính tốt nhất?
+- Promo/voucher hiệu quả khác nhau giữa VN và ID không?
+
+3. **Shop trust**
+
+Nên làm vì `shop_info` có đủ các tín hiệu:
+
+- `shop_follower_count`
+- `shop_rating_star`
+- `shop_is_official_shop`
+- `shop_response_rate`
+- `shop_response_time`
+
+Câu hỏi nên trả lời:
+
+- Official shop có performance tốt hơn không?
+- Shop nhiều follower có tạo doanh thu ước tính cao hơn không?
+- Rating shop có còn quan trọng khi đã xét price/promo không?
+
+4. **Category nội bộ và merchandising**
+
+Nên làm vì dataset có `category_list` và `product_categories`, giúp nhìn cách shop trưng bày sản phẩm.
+
+Câu hỏi nên trả lời:
+
+- Kệ nội bộ nào có doanh thu ước tính cao?
+- Các kệ có từ khóa như `Combo`, `Best Seller`, `Flash Sale`, `Khuyến mãi` có performance tốt hơn không?
+- Sản phẩm nằm trong nhiều kệ nội bộ có bán tốt hơn không?
+
+Lưu ý: hướng này dễ bị double count vì một sản phẩm có thể nằm trong nhiều kệ. Nếu tính tổng toàn shop/toàn thị trường, phải deduplicate theo `country_code + shop_id + item_id + date`.
+
+5. **Presentation: ảnh, brand, keyword sản phẩm**
+
+Có thể làm để bổ sung insight mềm về listing quality.
+
+Câu hỏi nên trả lời:
+
+- Sản phẩm có nhiều ảnh hơn có bán tốt hơn không?
+- Sản phẩm có brand rõ ràng có performance tốt hơn không?
+- Tên sản phẩm có keyword `combo`, `official`, `new`, `gift`, `sale` có khác biệt không?
+
+### 8.3. Hướng tạm thời không nên đào sâu quá mức
+
+Các hướng dưới đây không nên đi quá sâu nếu chỉ dùng dataset hiện tại:
+
+1. **Trend dài hạn theo thời gian**
+
+Dataset chỉ có snapshot từ `2026-07-01` đến `2026-07-03`, tức 3 ngày. Không đủ để kết luận trend dài hạn, seasonality, tăng trưởng theo tháng/quý.
+
+Có thể làm:
+
+- So sánh snapshot 3 ngày rất nhẹ.
+- Kiểm tra data consistency.
+
+Không nên làm:
+
+- Forecast doanh thu.
+- Kết luận xu hướng tăng/giảm dài hạn.
+- Phân tích seasonality.
+
+2. **Causal inference: khẳng định voucher/promo gây tăng doanh thu**
+
+Dataset là observational data, không phải A/B test. Sản phẩm có voucher có thể vốn đã là sản phẩm chiến lược hoặc sản phẩm bán tốt.
+
+Có thể nói:
+
+```text
+Sản phẩm có voucher/promo có liên quan tới performance cao/thấp hơn.
+```
+
+Không nên nói chắc:
+
+```text
+Voucher/promo là nguyên nhân trực tiếp làm tăng doanh thu.
+```
+
+3. **Profit/margin**
+
+Dataset không có cost, margin, phí sàn, phí ads, phí vận chuyển, chiết khấu thật.
+
+Không nên kết luận:
+
+- Sản phẩm nào lợi nhuận cao nhất.
+- Discount nào tối ưu profit.
+- Voucher nào tối ưu margin.
+
+Chỉ nên kết luận về:
+
+```text
+estimated_recent_revenue = price * monthly_sold_value
+```
+
+4. **Hiệu quả quảng cáo**
+
+Cột `is_ad` hiện toàn `False` trong processed data. Vì vậy không có đủ variation để phân tích quảng cáo.
+
+Không nên đào sâu:
+
+- Ads có hiệu quả không.
+- Sponsored listing ảnh hưởng doanh thu thế nào.
+
+5. **Chất lượng ảnh bằng computer vision**
+
+Dataset có link ảnh, nhưng hiện preprocessing chưa download/cache ảnh và chưa trích xuất feature thị giác.
+
+Có thể làm sau nếu mở rộng:
+
+- Download ảnh.
+- OCR chữ trên ảnh.
+- Chấm chất lượng ảnh.
+- Trích màu chủ đạo, số object, ảnh lifestyle vs packshot.
+
+Nhưng chưa nên đưa vào core analysis nếu chưa tạo pipeline ảnh riêng.
+
+### 8.4. Hướng mới có thể phát triển sau
+
+Nếu muốn phát triển project lên thêm, có thể đi các hướng sau:
+
+| Hướng mới | Cần thêm gì | Giá trị |
+| --- | --- | --- |
+| Image analysis | Script download/cache ảnh, feature ảnh | Hiểu ảnh sản phẩm ảnh hưởng performance thế nào |
+| Text/NLP sản phẩm | Keyword extraction, text length, brand/entity parsing | Hiểu title/product copy ảnh hưởng bán hàng thế nào |
+| Category platform deep dive | Parse `global_catids` thành từng cấp category | So sánh ngành hàng chuẩn Shopee sâu hơn |
+| Simple predictive model | Feature engineering + model target `log1p(estimated_recent_revenue)` | Ước lượng yếu tố nào quan trọng nhất |
+| Country-specific recommendation | Tách model/EDA riêng cho VN và ID | Đề xuất chiến lược khác nhau theo thị trường |
+| Data collection extension | Thêm nhiều ngày snapshot hơn | Phân tích trend, seasonality, trước/sau campaign |
+
+### 8.5. Khuyến nghị cho người phát triển tiếp
+
+Nếu là người mới mở repo, nên đi theo thứ tự:
+
+1. Đọc `Documentation.md` để hiểu bảng và quan hệ.
+2. Đọc `Preprocessing/preprocessing.md` để hiểu dữ liệu đã được xử lý thế nào.
+3. Chạy/đọc `Research/research.ipynb` để xem chart cơ bản.
+4. Nếu muốn mở rộng, ưu tiên một trong ba hướng:
+   - So sánh VN vs ID.
+   - Promotion/voucher effectiveness.
+   - Shop/category strategy.
+
+Không nên bắt đầu bằng model phức tạp ngay. Dataset nhỏ và chỉ có 3 ngày snapshot, nên EDA kỹ và giải thích business rõ ràng sẽ có giá trị hơn.
