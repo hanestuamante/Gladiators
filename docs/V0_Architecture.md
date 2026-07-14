@@ -1,9 +1,9 @@
 # Agent Architecture V0 (Historical)
 
 > **Status:** Historical / superseded V0 design.
-> Tài liệu này không phải đặc tả kiến trúc hiện hành. Không tái sử dụng các assumption hoặc feature cũ nếu chưa đối chiếu Data Context và audit Task 13.
+> Tài liệu này không phải đặc tả kiến trúc hiện hành. Không tái sử dụng các assumption hoặc feature cũ nếu chưa đối chiếu Data Context và pipeline hiện tại.
 
-Nguồn hiện hành về dữ liệu là [Data Context and Analysis Notes](Data_Context_and_Analysis_Notes.md) và [Data Grain & Quality Audit](<Task 13/7/data_grain_quality_audit.md>). Tài liệu này chỉ lưu lại mục tiêu, quyết định và bài học của thiết kế V0.
+Nguồn hiện hành về dữ liệu là [Data Context and Analysis Notes](Data_Context_and_Analysis_Notes.md), [pipeline contract](data-pipeline.md) và các quality artifacts trong `data/processed`. Tài liệu này chỉ lưu lại mục tiêu, quyết định và bài học của thiết kế V0.
 
 ## 1. Bài toán và mục tiêu lịch sử
 
@@ -122,7 +122,7 @@ Bảng này thay thế mọi claim cũ trong V0. Các token hoặc công thức 
 | `shop_info` là thuộc tính đồng thời với mọi product snapshot | Shop table chỉ có snapshot mới nhất trong phạm vi audit | Khi enrich ngày trước, gọi là latest hoặc static shop enrichment |
 | Repo chỉ có image URL, hoặc ngược lại đã có sẵn local image và embedding | Repo có downloader và manifest, nhưng image files không được version-control và chưa có visual feature đáng tin cậy | Không giả định file ảnh tồn tại; mọi image claim cần coverage, model, version và timestamp |
 | Từ association có thể kết luận promotion, giá, content hoặc rating “gây ra” thay đổi sales | Dữ liệu quan sát ngắn hạn không có experiment, control hay order-level evidence | Dùng “liên hệ”, “so sánh mô tả” hoặc “possible explanation” |
-| File processed nằm ở `Preprocessing/product_dataset_ready.csv` | Đây là đường dẫn sai | Artifact nằm dưới `Dataset/DataProcessed/`; đường dẫn và schema hiện hành phải tra trong Data Context |
+| File processed nằm ở `Preprocessing/product_dataset_ready.csv` | Đây là đường dẫn sai | Artifact nằm dưới `data/processed/`; đường dẫn và schema hiện hành phải tra trong Data Context |
 | Các folder như `KnowledgeGraph/`, `Similarity/` hoặc bộ `Agent/skills` đề xuất đã tồn tại | Đây từng là roadmap giả định, không phải filesystem fact | Không giữ folder tree giả định và không dùng V0 để thiết kế V1 |
 
 ## 8. Vì sao V0 bị supersede
@@ -141,8 +141,7 @@ Tài liệu này không đề xuất kiến trúc V1 hoặc thay thế kiến tr
 ## 9. Tài liệu cần dùng thay cho V0
 
 - [Data Context and Analysis Notes](Data_Context_and_Analysis_Notes.md): source of truth tổng hợp về dataset, key, semantics, data quality và analysis guardrails.
-- [Data Grain & Quality Audit](<Task 13/7/data_grain_quality_audit.md>): kiểm định grain, snapshot coverage, voucher population và anomaly.
-- [Agent workflow](Agent/agent_workflow.md): workflow và contract của Agent ở tài liệu chuyên trách.
-- [Agent evaluation](Agent/evaluation.md): tiêu chí evaluation và regression checks.
+- [Pipeline contract](data-pipeline.md): xử lý dữ liệu, metric và quality policy hiện hành.
+- [Code graph](codegraph.md): luồng gọi hàm và dependency metric có thể triển khai.
 
 Khi các nguồn này mâu thuẫn, phải ưu tiên artifact hiện tại và audit, nêu rõ filter, grain cùng dataset scope, và không dùng V0 để tự chọn một cách diễn giải.

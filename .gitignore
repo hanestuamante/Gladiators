@@ -5,4 +5,4 @@ __pycache__/
 .venv/
 venv/
 env/
-Dataset/ImageCache/files/
+data/image-cache/

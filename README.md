@@ -1,182 +1,81 @@
 # Gladiators
 
-Shopee dataset analysis project for Vietnam (`vn`) and Indonesia (`id`). The repo contains raw CSV data, processed analysis-ready tables, preprocessing documentation/notebook, and a research notebook for insight exploration.
+Shopee product-listing snapshot pipeline for Vietnam (`vn`) and Indonesia (`id`). The current repository focuses on auditable preprocessing, snapshot validation and reproducible business metrics.
 
-## Project Structure
+## Repository structure
 
 ```text
-Dataset/
-  DataRaw/            Raw CSV files partitioned by country_code/dataset/shop_id
-  DataProcessed/      Cleaned and analysis-ready CSV files
-
-Preprocessing/
-  preprocessing.md    Detailed preprocessing documentation
-  preprocess_dataset.ipynb
-
-Research/
-  research.md         Research questions, hypotheses, and insight roadmap
-  research.ipynb      Charts and EDA notebook
-
-Agent/
-  agent_workflow.md    Local Agent workflow and tool contracts
-  mvp_app.py           Local Product Knowledge MVP
-  evaluation.md        Evaluation contract and regression checks
-
-Documentation.md      Dataset context, table definitions, and relationships
-requirements.txt      Runtime dependencies
-requirements-dev.txt  Optional notebook/dev dependencies
+Gladiators/
+├── data/
+│   ├── raw/                    # 82 source CSV files, partitioned by country/dataset/shop
+│   └── processed/              # Generated clean tables, metrics and quality reports
+├── notebooks/
+│   ├── pipeline/
+│   │   └── data_pipeline.ipynb
+│   └── tests/
+│       └── test_data_pipeline.ipynb
+├── docs/
+│   ├── Data_Context_and_Analysis_Notes.md
+│   ├── data-pipeline.md        # Pipeline contract, metrics and run instructions
+│   ├── codegraph.md            # Data flow, function graph and metric dependencies
+│   └── V0_Architecture.md      # Superseded architecture retained for history
+├── requirements.txt
+└── requirements-dev.txt
 ```
+
+Task/date folders are intentionally avoided. Artifacts live with the capability they implement, so there is one maintained pipeline and one maintained test notebook.
 
 ## Setup
 
-Recommended Python version: `3.11+`.
-
-Create and activate a virtual environment:
+Recommended Python version: 3.11 or newer.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
-```
-
-For optional notebook conversion/validation tools:
-
-```bash
 pip install -r requirements-dev.txt
 ```
 
-Register the environment as a Jupyter kernel:
+Run the pipeline from the repository root:
 
 ```bash
-python -m ipykernel install --user --name gladiators --display-name "Python (Gladiators)"
+jupyter notebook notebooks/pipeline/data_pipeline.ipynb
 ```
 
-## Data
+Open the notebook and select **Run All**. It reads `data/raw` and writes `data/processed`.
 
-Raw data is stored in:
+Run the notebook test suite in the same way:
 
-```text
-Dataset/DataRaw
+```bash
+jupyter notebook notebooks/tests/test_data_pipeline.ipynb
 ```
 
-Processed data is stored in:
+## Outputs
 
-```text
-Dataset/DataProcessed
-```
+| Artifact | Grain or role |
+| --- | --- |
+| `data/processed/products_clean.csv` | Clean product-listing snapshots |
+| `data/processed/*_clean.csv` | Clean source tables with typed columns and provenance |
+| `data/processed/product_snapshot_metrics.csv` | One row per listing snapshot |
+| `data/processed/product_transition_metrics.csv` | One row per pair of consecutive observed snapshots |
+| `data/processed/data_quality_issues.csv` | Row-level warnings/errors with source evidence |
+| `data/processed/pipeline_report.json` | Key checks, snapshot coverage and issue summary |
 
-Main analysis table:
-
-```text
-Dataset/DataProcessed/product_dataset_ready.csv
-```
-
-Suggested target metric:
+Important metric semantics:
 
 ```text
 estimated_recent_revenue = price_num * monthly_sold_value_num
 ```
 
-Important caveats:
-
-- `price` is treated as the displayed final price after visible voucher/promo effects in this dataset.
-- `monthly_sold_value` is a Shopee-displayed recent/monthly sold metric; the exact day window is not confirmed.
-- The dataset has only 3 snapshot dates (`2026-07-01` to `2026-07-03`), so avoid long-term trend or seasonality claims.
-- `price = 999999999` appears in 3 rows and should be handled as an outlier/sentinel before price analysis.
-
-## Preprocessing
-
-Read the detailed preprocessing documentation:
-
-```text
-Preprocessing/preprocessing.md
-```
-
-Run preprocessing by opening and executing:
-
-```text
-Preprocessing/preprocess_dataset.ipynb
-```
-
-The notebook:
-
-- reads all raw CSV files,
-- adds metadata from paths,
-- normalizes numeric/boolean/array fields,
-- removes exact duplicates,
-- creates clean per-table CSVs,
-- creates `product_dataset_ready.csv`,
-- writes `data_quality_report.json`.
-
-## Research
-
-Read the research roadmap:
-
-```text
-Research/research.md
-```
-
-Run charts and EDA in:
-
-```text
-Research/research.ipynb
-```
-
-Core research themes:
-
-- Vietnam vs Indonesia market comparison.
-- Revenue drivers.
-- Voucher/promo effectiveness.
-- Shop trust and shop performance.
-- Category and merchandising strategy.
-- Product presentation: images, brand, and title keywords.
+This is a snapshot revenue proxy, not GMV, net revenue or profit. `monthly_sold_value` is a recent-window proxy with an unknown exact window. Do not aggregate it across the three snapshot dates.
 
 ## Documentation
 
-Start with:
+Read in this order:
 
-```text
-Documentation.md
-```
+1. [Data context](docs/Data_Context_and_Analysis_Notes.md)
+2. [Pipeline and metrics](docs/data-pipeline.md)
+3. [Code graph](docs/codegraph.md)
+4. [Historical V0 architecture](docs/V0_Architecture.md)
 
-It explains:
-
-- table meanings,
-- column definitions,
-- category ID differences,
-- table relationships,
-- preprocessing summary,
-- folder structure,
-- research scope and limitations.
-
-## Git Notes
-
-Ignored files include:
-
-- Python cache files,
-- `.DS_Store`,
-- notebook checkpoint folders,
-- local virtual environments.
-
-Do not commit downloaded product images unless there is a deliberate data-storage plan. If image analysis is added later, prefer a separate cache/download script and document whether images should be versioned.
-
-## Local MVP
-
-Run the deterministic local question-answering MVP:
-
-```bash
-python3 Agent/mvp_app.py
-```
-
-Open:
-
-```text
-http://127.0.0.1:8765
-```
-
-The MVP supports product lookup, short-term sales comparison, baseline similar-product search, promotion-group comparison, category relation lookup, evidence, and limitations. It does not require an LLM API key or MCP server.
+The first three are current. `V0_Architecture.md` is retained only to explain superseded decisions.

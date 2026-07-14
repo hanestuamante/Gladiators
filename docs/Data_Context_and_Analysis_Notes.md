@@ -1,9 +1,10 @@
 # Data Context and Analysis Notes
 
 > **Status:** Current data-context and analysis-notes entry point.
-> Với grain, voucher và anomaly đã kiểm định, ưu tiên `Task 13/7/data_grain_quality_audit.md`.
 > Nếu dùng `business-dictionary.md` làm system prompt cho Agent, **bắt buộc đọc [mục 9](#9-business-dictionary-chuẩn-hóa-đối-chiếu-business-dictionarymd) trước** — file đó có 4 lỗi/thiếu caveat đã kiểm chứng và sửa ở mục 9.
-> Lần cuối cập nhật: 15h 14/7/26 — bổ sung đầy đủ số liệu voucher/promotion_id/tier_variation từ Task 13 audit, đối chiếu và sửa lỗi `business-dictionary.md` (mục 9). Tất cả đã kiểm tra trực tiếp lại trên artifact hiện tại (không chỉ chép lại audit).
+> Lần cuối cập nhật: 14/7/2026 — đồng bộ theo cấu trúc repo hiện hành và pipeline tái lập trong `notebooks/pipeline`.
+
+> **Quy ước code:** pipeline và kiểm thử chỉ duy trì dưới dạng `.ipynb` trong `notebooks/`; không tạo bản `.py` song song để tránh hai nguồn logic lệch nhau.
 
 ## 1. Status và source hierarchy
 
@@ -12,17 +13,16 @@ Tài liệu này là điểm vào hiện hành để hiểu dữ liệu và gi�
 Thứ tự ưu tiên khi nguồn mâu thuẫn:
 
 1. CSV hiện tại và logic preprocessing: schema, số dòng và artifact thực tế.
-2. [Data grain quality audit](<Task%2013/7/data_grain_quality_audit.md>): grain, kiểm định voucher, anomaly và guardrail. Notebook tái lập nằm tại [data_grain_quality_audit.ipynb](<Task%2013/7/data_grain_quality_audit.ipynb>).
-3. Filesystem hiện tại: cấu trúc và file thực sự tồn tại.
-4. Tài liệu này: bản tổng hợp hiện hành.
-5. [V0 Architecture](V0_Architecture.md): lịch sử thiết kế đã superseded, không phải source of truth cho dữ liệu hiện tại.
-6. `business-dictionary.md`: nghiên cứu độc lập, **không dùng trực tiếp làm system prompt** — 4 điểm đã xác nhận sai/thiếu caveat (Metric 2, Metric 8, Metric 12, Intent 3) được liệt kê và sửa ở [mục 9](#9-business-dictionary-chuẩn-hóa-đối-chiếu-business-dictionarymd) của tài liệu này; phần còn lại của `business-dictionary.md` đã đối chiếu đúng.
+2. `data/processed/pipeline_report.json` và `data_quality_issues.csv`: kết quả kiểm định có thể tái lập.
+3. Tài liệu này: grain, semantics, anomaly và guardrail đã tổng hợp.
+4. [Pipeline documentation](data-pipeline.md): contract xử lý và metric hiện hành.
+5. [V0 Architecture](V0_Architecture.md): lịch sử thiết kế đã superseded, không phải source of truth.
 
 Các số liệu ghi là “kiểm tra trực tiếp” bên dưới được đối soát read-only trên:
 
-- `Dataset/DataProcessed/product_dataset_ready.csv` cho grain, coverage và metric snapshot;
-- `Dataset/DataRaw/**/products.csv` và `Dataset/DataProcessed/product_dataset_ready.csv` cho ba population voucher, cho phân phối giá trị voucher, duration hiệu lực và transition voucher qua snapshot;
-- `Dataset/DataProcessed/products_clean.csv` cho cardinality `promotion_id` và thống kê `tier_variation`;
+- `data/processed/products_clean.csv` cho grain, coverage và field snapshot;
+- `data/raw/**/products.csv` và `data/processed/products_clean.csv` cho ba population voucher, phân phối giá trị voucher, duration hiệu lực và transition voucher qua snapshot;
+- `data/processed/products_clean.csv` cho cardinality `promotion_id` và thống kê `tier_variation`;
 - các bảng `*_clean.csv` cho khóa, số cột raw/processed và referential coverage;
 - `category_platform_clean.csv` cùng `global_catids` đã parse cho category path.
 
@@ -40,7 +40,7 @@ Dataset là dữ liệu Shopee của hai thị trường:
 Có 82 CSV raw, 20 shop, mỗi quốc gia 10 shop. Raw data được phân vùng:
 
 ```text
-Dataset/DataRaw/
+data/raw/
   country_code=<vn|id>/
     dataset=<dataset_name>/
       shop_id=<shop_id>/
@@ -67,20 +67,19 @@ Kiểm tra trực tiếp số cột từng file:
 
 | Bảng | Cột raw | Cột processed | Cột thêm chính |
 | --- | ---: | ---: | --- |
-| `products` → `products_clean` | 44 | 79 | metadata path/source; cột `_num` (giá, rating, sold, voucher, thời gian…); cột `_bool` (`is_ad`, `is_sold_out`, `shopee_verified`); cột `_count` cho JSON array (`images`, `vouchers`, `global_catids`, `tier_variation_options`…); `product_name_clean`; `discount_amount_num` |
-| `shop_info` → `shop_info_clean` | 17 | 32 | metadata path/source; cột `_num` (follower, rating, response…); cột `_bool` (`is_official_shop`, `vacation`) |
-| `category_list` → `category_list_clean` | 11 | 21 | metadata path/source; cột `_num` (ID, `total`); cột `_bool` (`is_parent_category`, `is_sub_category`) |
-| `product_categories` → `product_categories_clean` | 5 | 13 | `country_code` bổ sung từ path; metadata path/source; cột `_num` cho ID |
-| `category_platform` → `category_platform_clean` | 9 | 18 | `country_code` bổ sung từ path; metadata path/source; cột `_num` cho ID; `has_children_bool` |
-| `product_dataset_ready` | — | 94 | `products_clean` làm trung tâm, merge thêm cột `shop_*` từ `shop_info_clean` và `shop_category_ids/names/count` từ `product_categories_clean` + `category_list_clean`; **chưa merge** `category_platform` |
+| `products` → `products_clean` | 44 | 80 | metadata path/source row; cột `_num` (giá, rating, sold, voucher, thời gian…); cột `_bool`; cột `_count` cho JSON array; clean name và listing/snapshot keys |
+| `shop_info` → `shop_info_clean` | 17 | 33 | metadata path/source row; cột `_num` (follower, rating, response…); cột `_bool` (`is_official_shop`, `vacation`) |
+| `category_list` → `category_list_clean` | 11 | 22 | metadata path/source row; cột `_num` (ID, `total`); cột `_bool` (`is_parent_category`, `is_sub_category`) |
+| `product_categories` → `product_categories_clean` | 5 | 14 | `country_code` bổ sung từ path; metadata path/source row; cột `_num` cho ID |
+| `category_platform` → `category_platform_clean` | 9 | 20 | `country_code` bổ sung từ path; metadata path/source row; cột `_num` cho ID; `has_children_bool` |
 
-Chi tiết từng cột và lý do xử lý (tại sao tách `_num`/`_bool`/`_count`, cách JSON array được parse) nằm ở [preprocessing.md](Preprocessing/preprocessing.md); tài liệu này chỉ giữ số lượng cột đã đối soát để biết “dataset có gì” ở mức tổng quan.
+Chi tiết từng cột và lý do xử lý (tại sao tách `_num`/`_bool`/`_count`, cách JSON array được parse) nằm ở [data-pipeline.md](data-pipeline.md); tài liệu này chỉ giữ số lượng cột đã đối soát để biết “dataset có gì” ở mức tổng quan.
 
-Ba dòng `price_num = 999999999` (raw sentinel/outlier, xem mục 5) và toàn bộ 3.341 dòng `is_ad_bool = False`, `is_sold_out_bool = False` cũng nằm trong `products_clean`/`product_dataset_ready`; hai cờ này không có variation nên không dùng để phân nhóm.
+Ba dòng `price_num = 999999999` (raw sentinel/outlier, xem mục 5) và toàn bộ 3.341 dòng `is_ad_bool = False`, `is_sold_out_bool = False` nằm trong `products_clean`; hai cờ này không có variation nên không dùng để phân nhóm.
 
 ### Phân bổ theo shop
 
-Kiểm tra trực tiếp trên `product_dataset_ready.csv`, khớp 100% với số liệu trong `data_grain_quality_audit.md` §2.2:
+Kiểm tra trực tiếp trên `products_clean.csv`:
 
 | Country | Shop ID | Shop | Rows | Listings |
 | --- | --- | --- | ---: | ---: |
@@ -140,7 +139,7 @@ Kiểm tra trực tiếp trên snapshot mới nhất của 1.157 listing:
 
 Panel cân bằng cần `1.157 × 3 = 3.471` ô; dữ liệu hiện có 3.341 ô, thiếu 130 snapshot. Vì vậy không được ngầm coi đây là balanced panel.
 
-Chi tiết pattern thiếu snapshot, kiểm tra trực tiếp trên `product_dataset_ready.csv`:
+Chi tiết pattern thiếu snapshot, kiểm tra trực tiếp trên `products_clean.csv`:
 
 | Country | Các ngày có mặt | Ngày bị thiếu | Số listing | Snapshot thiếu |
 | --- | --- | --- | ---: | ---: |
@@ -168,7 +167,6 @@ Tổng case không đầy đủ: 116 listing VN (127 snapshot thiếu) + 2 listi
 | `category_list_clean`      | `country_code + shop_id + shop_category_id + date`                                                    |
 | `product_categories_clean` | `country_code + shop_id + item_id + category_id + date`                                               |
 | `category_platform_clean`  | `path_country_code + category_id`                                                                     |
-| `product_dataset_ready`    | Giữ grain của`products_clean`: 3.341 snapshot; shop và shop-category đã được enrich/aggregate |
 
 Kiểm tra trực tiếp cho thấy mỗi khóa trên có 0 duplicate-key group trong bảng tương ứng.
 
@@ -489,32 +487,17 @@ Cho tới khi có các trường trên, mọi kết quả trong tài liệu này
 
 ```text
 Gladiators/
-├── Agent/
-│   ├── agent_workflow.md
-│   ├── evaluation.md
-│   └── mvp_app.py
-├── Dataset/
-│   ├── DataRaw/
-│   ├── DataProcessed/
-│   └── ImageCache/
-│       └── manifest.csv
-├── Preprocessing/
-│   ├── preprocessing.md
-│   └── preprocess_dataset.ipynb
-├── Research/
-│   ├── research.md
-│   └── research.ipynb
-├── scripts/
-│   └── download_images.py
-├── Task 13/
-│   └── 7/
-│       ├── data_grain_quality_audit.md
-│       ├── data_grain_quality_audit.ipynb
-│       ├── product_listing_variations.csv
-│       └── product_listing_variations_by_count.md
-├── Data_Context_and_Analysis_Notes.md
-├── V0_Architecture.md
-├── business-dictionary.md
+├── data/
+│   ├── raw/
+│   └── processed/
+├── notebooks/
+│   ├── pipeline/data_pipeline.ipynb
+│   └── tests/test_data_pipeline.ipynb
+├── docs/
+│   ├── Data_Context_and_Analysis_Notes.md
+│   ├── data-pipeline.md
+│   ├── codegraph.md
+│   └── V0_Architecture.md
 ├── README.md
 ├── requirements.txt
 └── requirements-dev.txt
@@ -523,23 +506,17 @@ Gladiators/
 Điểm vào theo nhu cầu:
 
 - Context, grain, semantics và guardrail: tài liệu này (mục 1–7).
-- Business dictionary cho AI Agent (đã sửa lỗi): [mục 9](#9-business-dictionary-chuẩn-hóa-đối-chiếu-business-dictionarymd) của tài liệu này — **đọc trước khi dùng trực tiếp `business-dictionary.md`**.
-- Kiểm định chi tiết và số liệu anomaly: [data_grain_quality_audit.md](<Task%2013/7/data_grain_quality_audit.md>).
-- Pipeline và output columns: [preprocessing.md](Preprocessing/preprocessing.md).
-- Phân tích nhanh: `Dataset/DataProcessed/product_dataset_ready.csv`.
-- Platform taxonomy: `Dataset/DataProcessed/category_platform_clean.csv`.
+- Pipeline và output columns: [data-pipeline.md](data-pipeline.md).
+- Luồng code và dependency metric: [codegraph.md](codegraph.md).
+- Phân tích snapshot nhanh: `data/processed/product_snapshot_metrics.csv`.
+- Evidence chất lượng: `data/processed/data_quality_issues.csv` và `pipeline_report.json`.
 - Thiết kế V0 để tra cứu lịch sử: [V0_Architecture.md](V0_Architecture.md), không dùng làm data source of truth.
 
-Trạng thái ảnh hiện tại:
-
-- Có `scripts/download_images.py`.
-- Có `Dataset/ImageCache/manifest.csv` với 454 record mang status `downloaded`.
-- Checkout hiện tại không có image binary nào trong `Dataset/ImageCache`; chỉ `manifest.csv` được version-control. Manifest không chứng minh file ảnh còn sẵn cục bộ.
-- Chưa có visual feature hoặc embedding đáng tin cậy. Không giả định ảnh có sẵn nếu chưa kiểm tra filesystem và không đưa image analysis vào core result hiện tại.
+Image download không còn thuộc phạm vi code hiện hành. Nếu bổ sung lại sau này, cache binary phải tách khỏi artifact phân tích lõi và có kiểm tra coverage riêng.
 
 ## 9. Business dictionary chuẩn hóa (đối chiếu `business-dictionary.md`)
 
-`business-dictionary.md` là nghiên cứu độc lập của một thành viên khác, dùng làm Data Contract cho AI Agent. Mục này đối chiếu toàn bộ nội dung đó với artifact thực tế — mọi công thức và số liệu bên dưới đều đã recompute trực tiếp bằng pandas trên `Dataset/DataProcessed/product_dataset_ready.csv` (và `products_clean.csv`), không chỉ đọc lại file gốc. Khi có mâu thuẫn với `business-dictionary.md`, mục này ghi rõ bên nào đúng và bằng chứng.
+`business-dictionary.md` là nghiên cứu độc lập trước đây của một thành viên khác. File nguồn không còn nằm trong cấu trúc hiện hành; mục này giữ phần đối chiếu đã xác minh để tránh tái sử dụng các định nghĩa sai. Các công thức và số liệu được kiểm tra trên `data/processed/products_clean.csv` và metric outputs hiện hành.
 
 ### 9.1. Kết luận kiểm tra tính đúng đắn
 
@@ -560,7 +537,7 @@ Trạng thái ảnh hiện tại:
 
 ### 9.2. Data grain & keys (giữ nguyên, đã xác nhận đúng)
 
-Một dòng của `product_dataset_ready.csv` là một product listing của một shop, tại một quốc gia, ở một ngày snapshot — không phải cấp SKU.
+Một dòng của `products_clean.csv` là một product listing của một shop, tại một quốc gia, ở một ngày snapshot — không phải cấp SKU.
 
 ```text
 product_listing_key   = country_code + ':' + shop_id + ':' + item_id
@@ -583,7 +560,7 @@ merchandising_key      = country_code + ':' + shop_id + ':' + shop_category_id +
 snapshot_sales_delta = history_sold_value_num(T) - history_sold_value_num(T-1)
 ```
 
-`business-dictionary.md` mô tả field này “phản ánh lượng bán mới phát sinh” vì `history_sold_value` được kỳ vọng lũy kế. Về công thức thì đúng, nhưng thiếu caveat bắt buộc: trên 2.136 transition hợp lệ, có 88 lần (4,12%) `history_sold_value` **giảm**, toàn bộ ở VN — trái với giả định lũy kế, và audit `Task 13` đã xếp đây là anomaly, không phải tín hiệu kinh doanh sạch. Quy tắc bắt buộc khi dùng metric này:
+Định nghĩa cũ mô tả field này “phản ánh lượng bán mới phát sinh” vì `history_sold_value` được kỳ vọng lũy kế. Về công thức thì đúng, nhưng thiếu caveat bắt buộc: trên 2.136 transition có đủ history values, có 88 lần (4,12%) `history_sold_value` **giảm**, toàn bộ ở VN. Pipeline hiện hành xếp đây là anomaly, không phải tín hiệu kinh doanh sạch. Quy tắc bắt buộc khi dùng metric này:
 
 ```text
 history_sold_decrease_flag = history_sold_value_num(T) < history_sold_value_num(T-1)
