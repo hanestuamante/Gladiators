@@ -1,0 +1,14 @@
+[
+  {"id":"p01","question":"Doanh số của \"SCORA Sheer Glow Tone Up Cream 30 Gr\" có giảm không?","expected_intent":"sales_decline","expected_action":"clarify"},
+  {"id":"p02","question":"Kiểm tra lượt bán \"SCORA Honey Glow Tone Up Cream 30 Gr [TWINPACK]\"","expected_intent":"sales_decline","expected_action":"allow","expected_listing_key":"id:1112776376:46456356622"},
+  {"id":"p03","question":"Analisis penjualan \"Scora Hydra Calm Cica Soothing Moisturizer 40ml\"","expected_intent":"sales_decline","expected_action":"allow","expected_listing_key":"id:1112776376:49510914017"},
+  {"id":"p04","question":"Tìm sản phẩm tương tự \"SCORA Sheer Glow Tone Up Cream 30 Gr\"","expected_intent":"similar_product","expected_action":"clarify"},
+  {"id":"p05","question":"Cari produk serupa \"Scora Hydra Calm Cica Soothing Moisturizer 40ml\"","expected_intent":"similar_product","expected_action":"allow","expected_listing_key":"id:1112776376:49510914017"},
+  {"id":"p06","question":"Voucher ở VN có hiệu quả không?","expected_intent":"promotion_effectiveness","expected_action":"allow"},
+  {"id":"p07","question":"Voucher ID có hiệu quả không?","expected_intent":"promotion_effectiveness","expected_action":"abstain"},
+  {"id":"p08","question":"Lợi nhuận sản phẩm nào cao nhất?","expected_intent":"unsupported:profit","expected_action":"abstain"},
+  {"id":"p09","question":"Ramalan penjualan bulan depan","expected_intent":"unsupported:forecast","expected_action":"abstain"},
+  {"id":"p10","question":"SKU nào bán tốt nhất?","expected_intent":"unsupported:sku","expected_action":"abstain"},
+  {"id":"p11","question":"Dampak iklan ke penjualan?","expected_intent":"unsupported:ads","expected_action":"abstain"},
+  {"id":"p12","question":"Tỷ lệ chuyển đổi là bao nhiêu?","expected_intent":"unsupported:conversion","expected_action":"abstain"}
+]

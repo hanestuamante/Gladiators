@@ -5,4 +5,13 @@ __pycache__/
 .venv/
 venv/
 env/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+artifacts/
+data/external_cache/
+models/cache/
 data/image-cache/

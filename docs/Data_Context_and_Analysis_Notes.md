@@ -495,6 +495,9 @@ Gladiators/
 │   └── tests/test_data_pipeline.ipynb
 ├── docs/
 │   ├── Data_Context_and_Analysis_Notes.md
+│   ├── V1_Architecture.md
+│   ├── Architecture-spec.md
+│   ├── V1_Implementation_Limitations.md
 │   ├── data-pipeline.md
 │   ├── codegraph.md
 │   └── V0_Architecture.md
@@ -506,6 +509,8 @@ Gladiators/
 Điểm vào theo nhu cầu:
 
 - Context, grain, semantics và guardrail: tài liệu này (mục 1–7).
+- Kiến trúc Agent mục tiêu hiện hành: [V1_Architecture.md](V1_Architecture.md).
+- Thiết kế tham chiếu chi tiết và các capability còn bị chặn: [Architecture-spec.md](Architecture-spec.md) và [V1_Implementation_Limitations.md](V1_Implementation_Limitations.md).
 - Pipeline và output columns: [data-pipeline.md](data-pipeline.md).
 - Luồng code và dependency metric: [codegraph.md](codegraph.md).
 - Phân tích snapshot nhanh: `data/processed/product_snapshot_metrics.csv`.

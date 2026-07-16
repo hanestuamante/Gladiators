@@ -1,0 +1,10 @@
+{
+  "provider": "gemini",
+  "model": "gemini-3.5-flash",
+  "prompt_version": "v1.0.0",
+  "fixture": "eval/judge_reliability.json",
+  "n": 10,
+  "accuracy": 0.9,
+  "cohen_kappa": 0.75,
+  "run_date": "2026-07-16"
+}

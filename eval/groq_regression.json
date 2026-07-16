@@ -1,0 +1,8 @@
+[
+  {"id":"q14","question":"Có món nào giống \"SCORA Honey Glow Tone Up Cream 30 Gr [TWINPACK]\"?","expected_intent":"similar_product","expected_action":"allow","expected_listing_key":"id:1112776376:46456356622"},
+  {"id":"q22","question":"Produk yang mirip \"SCORA Honey Glow Tone Up Cream 30 Gr [TWINPACK]\"","expected_intent":"similar_product","expected_action":"allow"},
+  {"id":"q23","question":"Gợi ý sản phẩm giống \"Scora Hydra Calm Cica Soothing Moisturizer 40ml\"","expected_intent":"similar_product","expected_action":"allow"},
+  {"id":"q31","question":"Phân tích promotion tại Việt Nam","expected_intent":"promotion_effectiveness","expected_action":"allow"},
+  {"id":"q51","question":"Tinh hinh ban \"Scora Hydra Calm Cica Soothing Moisturizer 40ml\"","expected_intent":"sales_decline","expected_action":"allow"},
+  {"id":"q60","question":"So sánh voucher tại Việt Nam","expected_intent":"promotion_effectiveness","expected_action":"allow"}
+]

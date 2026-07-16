@@ -140,8 +140,10 @@ Tài liệu này không đề xuất kiến trúc V1 hoặc thay thế kiến tr
 
 ## 9. Tài liệu cần dùng thay cho V0
 
+- [Kiến trúc Agent V1](V1_Architecture.md): kiến trúc Agent mục tiêu hiện hành, đã hiệu chỉnh theo artifact và Data Context.
 - [Data Context and Analysis Notes](Data_Context_and_Analysis_Notes.md): source of truth tổng hợp về dataset, key, semantics, data quality và analysis guardrails.
 - [Pipeline contract](data-pipeline.md): xử lý dữ liệu, metric và quality policy hiện hành.
 - [Code graph](codegraph.md): luồng gọi hàm và dependency metric có thể triển khai.
+- [Các phần V1 chưa thể thực hiện đầy đủ](V1_Implementation_Limitations.md): capability còn bị dữ liệu, external evaluation hoặc ground truth chặn.
 
 Khi các nguồn này mâu thuẫn, phải ưu tiên artifact hiện tại và audit, nêu rõ filter, grain cùng dataset scope, và không dùng V0 để tự chọn một cách diễn giải.

@@ -16,6 +16,9 @@ Gladiators/
 │       └── test_data_pipeline.ipynb
 ├── docs/
 │   ├── Data_Context_and_Analysis_Notes.md
+│   ├── V1_Architecture.md      # Kiến trúc Agent mục tiêu hiện hành
+│   ├── Architecture-spec.md    # Kiến trúc tham chiếu chi tiết
+│   ├── V1_Implementation_Limitations.md
 │   ├── data-pipeline.md        # Pipeline contract, metrics and run instructions
 │   ├── codegraph.md            # Data flow, function graph and metric dependencies
 │   └── V0_Architecture.md      # Superseded architecture retained for history
@@ -76,6 +79,60 @@ Read in this order:
 1. [Data context](docs/Data_Context_and_Analysis_Notes.md)
 2. [Pipeline and metrics](docs/data-pipeline.md)
 3. [Code graph](docs/codegraph.md)
-4. [Historical V0 architecture](docs/V0_Architecture.md)
+4. [Kiến trúc Agent V1 hiện hành](docs/V1_Architecture.md)
+5. [Architecture Spec chi tiết](docs/Architecture-spec.md)
+6. [Các phần V1 chưa thể thực hiện đầy đủ](docs/V1_Implementation_Limitations.md)
+7. [Historical V0 architecture](docs/V0_Architecture.md)
 
-The first three are current. `V0_Architecture.md` is retained only to explain superseded decisions.
+Data Context and current artifacts remain the source of truth for data. `V1_Architecture.md` is the current target Agent architecture; `Architecture-spec.md` supplies detailed design patterns subject to the documented implementation gaps. `V0_Architecture.md` is retained only to explain superseded decisions.
+# Gladiators V1
+
+Thiết lập và kiểm thử runtime:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+bash scripts/configure_secrets.sh       # nhập key ẩn, chỉ lưu local
+.venv/bin/python -m pytest
+PYTHONPATH=src .venv/bin/python scripts/run_evaluation.py --runs 3
+```
+
+Để chọn Gemini và thay key an toàn:
+
+```bash
+bash scripts/configure_gemini.sh
+```
+
+Để chọn Groq và nhập key an toàn:
+
+```bash
+bash scripts/configure_groq.sh
+```
+
+Lệnh trên chạy end-to-end offline, không gửi dữ liệu ra ngoài. Chỉ chạy Gemini sau khi đã duyệt nội dung được gửi:
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/run_evaluation.py --runs 3 --provider gemini
+```
+
+Build BGE-M3 có version và CPU benchmark:
+
+```bash
+PYTHONPATH=src .venv/bin/python scripts/build_embeddings.py
+```
+
+Kiến trúc chuẩn: [docs/V1_Architecture.md](docs/V1_Architecture.md). Các giới hạn còn lại: [docs/V1_Implementation_Limitations.md](docs/V1_Implementation_Limitations.md).
+
+Chạy API demo nội bộ:
+
+```bash
+PYTHONPATH=src .venv/bin/uvicorn gladiators.api:app --host 127.0.0.1 --port 8000
+```
+
+CLI offline, Hugging Face hoặc Gemini:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m gladiators.cli 'Phân tích voucher tại VN'
+PYTHONPATH=src .venv/bin/python -m gladiators.cli --provider huggingface 'Phân tích voucher tại VN'
+PYTHONPATH=src .venv/bin/python -m gladiators.cli --provider gemini 'Phân tích voucher tại VN'
+```

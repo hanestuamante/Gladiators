@@ -3,3 +3,7 @@
 # Optional notebook/code hygiene tools
 nbformat>=5.10
 nbconvert>=7.16
+pytest>=8.2,<10
+pytest-cov>=5,<8
+scikit-learn>=1.5,<2
+psutil>=6,<8

@@ -1,0 +1,20 @@
+data_dir: data/processed
+artifact_dir: artifacts
+llm:
+  provider: groq
+  model: openai/gpt-oss-20b
+  judge_model: openai/gpt-oss-20b
+  prompt_version: v1.1.0
+  timeout_ms: 30000
+  retry_attempts: 3
+  circuit_breaker_failures: 3
+  min_interval_seconds: 6.5
+  groq_min_interval_seconds: 15
+embedding:
+  model_id: BAAI/bge-m3
+  batch_size: 8
+  max_seq_length: 128
+  lexical_top_k: 20
+trace:
+  retention_days: 30
+  redact_fields: [api_key, authorization, password, token, email]

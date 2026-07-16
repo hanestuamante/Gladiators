@@ -1,0 +1,26 @@
+{
+  "provider": "groq",
+  "mode": "full",
+  "completed_cases": 1,
+  "rows": [
+    {
+      "id": "q14",
+      "run": 1,
+      "intent": "similar_product",
+      "action": "allow",
+      "trace_id": "ea335dae7e3f",
+      "parse_fallback": false,
+      "generation_fallback": true,
+      "intent_action": true,
+      "entity": true,
+      "trajectory": true,
+      "evidence": true,
+      "citation_recall": 1.0,
+      "citation_precision": 1.0,
+      "verifier": true,
+      "mutation_detected": true,
+      "llm_path": false,
+      "passed": false
+    }
+  ]
+}
