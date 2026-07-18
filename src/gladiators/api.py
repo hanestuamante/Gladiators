@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from gladiators.contracts import AgentResponse
 from gladiators.runtime_factory import create_runtime
 from gladiators.ui import MVP_UI
+from gladiators.ui_flow import FLOW_UI
 
 
 class AskRequest(BaseModel):
@@ -20,6 +21,11 @@ runtime = create_runtime()
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def ui() -> str:
     return MVP_UI
+
+
+@app.get("/flow", response_class=HTMLResponse, include_in_schema=False)
+def ui_flow() -> str:
+    return FLOW_UI
 
 
 @app.get("/health")
