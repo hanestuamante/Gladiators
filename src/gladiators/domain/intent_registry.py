@@ -7,6 +7,7 @@ class IntentSpec:
     required_slots: tuple[str, ...]
     tool_plan: tuple[str, ...]
     required_capabilities: tuple[str, ...] = ()
+    macro_name: str | None = None
 
 
 class IntentRegistry:
@@ -26,9 +27,16 @@ class IntentRegistry:
 
 
 def default_registry() -> IntentRegistry:
-    r = IntentRegistry()
-    r.register(IntentSpec("sales_decline", ("entity_text",), ("resolve_entity", "get_sales_transitions"), ("monthly_sales_proxy",)))
-    r.register(IntentSpec("similar_product", ("entity_text",), ("resolve_entity", "find_similar"), ("product_titles",)))
-    r.register(IntentSpec("promotion_effectiveness", ("country",), ("compare_voucher_groups",), ("voucher_observation",)))
-    return r
+    from gladiators.planner.macros import default_macro_registry
 
+    r = IntentRegistry()
+    macros = default_macro_registry()
+    for macro_name in macros.names():
+        macro = macros.get(macro_name)
+        r.register(IntentSpec(
+            macro.name, macro.required_slots, macro.tool_plan,
+            macro.required_capabilities, macro_name=macro.name,
+        ))
+    r.register(IntentSpec("analytical_query", (), ("execute_analytical_plan",), ("analytical_planner",)))
+    r.register(IntentSpec("open_analytical", (), ("execute_analytical_plan",), ("semantic_parser", "analytical_planner")))
+    return r

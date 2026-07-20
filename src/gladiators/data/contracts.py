@@ -6,6 +6,8 @@ from pathlib import Path
 import pandas as pd
 import pandera.pandas as pa
 
+from .coverage import validate_manifest
+
 
 SCHEMAS: dict[str, pa.DataFrameSchema] = {
     "products_clean.csv": pa.DataFrameSchema({
@@ -34,6 +36,7 @@ SCHEMAS: dict[str, pa.DataFrameSchema] = {
 
 def validate_artifacts(data_dir: str | Path) -> dict[str, dict[str, object]]:
     root = Path(data_dir)
+    coverage = validate_manifest(root)
     report_path = root / "pipeline_report.json"
     if not report_path.exists():
         raise FileNotFoundError(f"Thiếu {report_path}")
@@ -48,4 +51,5 @@ def validate_artifacts(data_dir: str | Path) -> dict[str, dict[str, object]]:
         schema.validate(frame, lazy=True)
         result[name] = {"rows": len(frame), "columns": list(frame.columns)}
     result["pipeline_report.json"] = {"status": pipeline.get("status", "unknown")}
+    result["semantic_coverage_manifest.json"] = coverage
     return result

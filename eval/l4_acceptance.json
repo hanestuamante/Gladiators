@@ -1,0 +1,8 @@
+[
+  {"id":"l4c01","kind":"scenario_acceptance","question":"So sánh price và rating theo brand tại VN","country":"vn","measures":["measure.price","measure.rating"],"coverage":{"scenarios":["composite_l4"]}},
+  {"id":"l4c02","kind":"scenario_acceptance","question":"Bandingkan penjualan monthly sold dan rating theo brand di Indonesia","country":"id","measures":["measure.monthly_sold","measure.rating"],"coverage":{"scenarios":["composite_l4"]}},
+  {"id":"l4c03","kind":"scenario_acceptance","question":"Compare discount percent và liked count theo brand tại VN","country":"vn","measures":["measure.discount_percent","measure.liked_count"],"coverage":{"scenarios":["composite_l4"]}},
+  {"id":"l4c04","kind":"scenario_acceptance","question":"Bandingkan price original dan rating count theo brand di Indonesia","country":"id","measures":["measure.price_original","measure.rating_count"],"coverage":{"scenarios":["composite_l4"]}},
+  {"id":"l4c05","kind":"scenario_acceptance","question":"So sánh images count và variation options count theo brand tại VN","country":"vn","measures":["measure.images_count","measure.variation_options_count"],"coverage":{"scenarios":["composite_l4"]}},
+  {"id":"l4c06","kind":"scenario_acceptance","question":"Compare history sold và monthly sold theo brand tại Indonesia","country":"id","measures":["measure.history_sold","measure.monthly_sold"],"coverage":{"scenarios":["composite_l4"]}}
+]

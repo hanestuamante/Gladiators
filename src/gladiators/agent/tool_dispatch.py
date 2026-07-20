@@ -29,6 +29,7 @@ class ToolContext:
     clarify: GateDecision | None = None
     evidence: list[Evidence] = field(default_factory=list)
     calls: list[ToolCall] = field(default_factory=list)
+    logical_plan: object | None = None
 
 
 ToolHandler = Callable[[ToolContext], None]
@@ -69,6 +70,16 @@ def _resolve_entity(ctx: ToolContext) -> None:
 def _get_sales_transitions(ctx: ToolContext) -> None:
     if not ctx.resolved_listing_key:
         return
+    snapshots = ctx.tools.repo.products.loc[
+        ctx.tools.repo.products.product_listing_key.astype(str) == str(ctx.resolved_listing_key)
+    ]
+    if snapshots.date.astype(str).nunique() < 2:
+        _record(ctx, "get_sales_transitions", {"listing_key": ctx.resolved_listing_key}, [])
+        ctx.clarify = GateDecision(
+            action="abstain", rule_id="A-INSUFFICIENT-SNAPSHOTS",
+            reason="Listing chỉ có một snapshot; cần ít nhất hai snapshot hợp lệ để tính biến động.",
+        )
+        return
     evidence = ctx.tools.sales_decline(ctx.resolved_listing_key)
     _record(ctx, "get_sales_transitions", {"listing_key": ctx.resolved_listing_key}, evidence)
 
@@ -87,6 +98,15 @@ def _compare_voucher_groups(ctx: ToolContext) -> None:
         return
     evidence = ctx.tools.promotion_observation(ctx.request.country)
     _record(ctx, "compare_voucher_groups", {"country": ctx.request.country}, evidence)
+
+
+@tool("execute_analytical_plan")
+def _execute_analytical_plan(ctx: ToolContext) -> None:
+    if ctx.logical_plan is None:
+        ctx.calls.append(ToolCall(name="execute_analytical_plan", status="error", error="Thiếu validated LogicalQueryPlan"))
+        return
+    evidence = ctx.tools.execute_analytical_plan(ctx.logical_plan)
+    _record(ctx, "execute_analytical_plan", {"plan_id": ctx.logical_plan.plan_id}, evidence)
 
 
 def dispatch(tool_plan: Iterable[str], ctx: ToolContext) -> None:

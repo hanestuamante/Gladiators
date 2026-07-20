@@ -53,12 +53,14 @@ details{margin-top:12px;color:var(--muted)}
 pre{overflow:auto;white-space:pre-wrap;font-size:11.5px}
 @media(max-width:720px){form{display:block}button{width:100%;height:44px;margin-top:8px}.node{min-width:130px}}
 </style></head><body><main>
-<header><div class="muted">GLADIATORS V1 · LUỒNG XỬ LÝ LIVE</div><h1>Xem agent chạy qua từng cổng.</h1>
+<header><div class="muted">GLADIATORS V2 · LUỒNG XỬ LÝ LIVE</div><h1>Xem agent chạy qua từng cổng.</h1>
 <p>Gõ câu hỏi — sơ đồ diễn lại đúng dữ liệu thật trả về từ <code>/ask</code>: parser trích được gì, gate cho qua hay chặn, tool nào chạy, evidence nào thu được, verifier có chặn số bịa không. Xem trang form đơn giản tại <a href="/">/</a>.</p>
 </header>
 
 <section class="card"><form id="ask"><textarea id="question" maxlength="4000" autofocus placeholder="Ví dụ: Voucher ở VN có hiệu quả không?"></textarea><button id="submit">Chạy</button></form>
 <div class="examples" id="examples">
+<span class="chip">Ngày nào doanh thu cao nhất tại VN?</span>
+<span class="chip">Có bao nhiêu listing tại VN?</span>
 <span class="chip">Voucher ở VN có hiệu quả không?</span>
 <span class="chip">Voucher ở Indonesia có hiệu quả không?</span>
 <span class="chip">Lợi nhuận công ty là bao nhiêu?</span>

@@ -62,3 +62,121 @@ class AnalyticsTools:
                 Evidence(evidence_id=self.evidence_id(), metric=f"{label}_median_monthly_sold_proxy", value=round(float(group.monthly_sold_value_num.median()), 6), unit="items", source_path="monthly_sold_value_num", **common),
             ])
         return result
+
+    def execute_analytical_plan(self, plan) -> list[Evidence]:
+        from gladiators.planner.compiler import compile_plan
+        from gladiators.planner.executor import QueryExecutor
+        from gladiators.domain.catalog import CATALOG
+
+        compiled = compile_plan(plan)
+        executor = QueryExecutor(self.repo)
+        try:
+            result = executor.execute(compiled)
+        finally:
+            executor.close()
+        parts = plan.plan_id.split(":")
+        known_kinds = {
+            "highest_revenue_day", "listing_count", "highest_price_listing",
+            "highest_monthly_sold_listing", "top_shop_by_listing_count",
+        }
+        kind = parts[1] if len(parts) == 4 and parts[0] == "analytical" else "open"
+        country = parts[2] if kind in known_kinds else next(
+            (
+                str(predicate.value) for node in plan.nodes for predicate in node.predicates
+                if predicate.ref == "dim.country" and predicate.op == "eq"
+            ),
+            "unknown",
+        )
+        if result.frame.empty:
+            observed_date = str(plan.time_scope[-1]) if plan.time_scope else "unknown"
+            return [Evidence(
+                evidence_id=self.evidence_id(), metric="result_count", value=0, unit="rows",
+                source_tier="btc_dataset",
+                source_locator=SourceLocator(kind="internal", value="compiled_semantic_plan"),
+                source_path="result.row_count", dataset_version=self.repo.dataset_version,
+                attrs={"country": country, "observed_date": observed_date,
+                       "plan_hash": compiled.plan_hash, "empty_result": True, "row_index": 0},
+            )]
+        row = result.frame.iloc[0]
+        observed_date = str(row["date"]) if "date" in row else "2026-07-03"
+        currency = "VND" if country == "vn" else "IDR"
+        common = dict(
+            source_tier="btc_dataset",
+            source_locator=SourceLocator(
+                kind="internal",
+                value="product_snapshot_metrics" if kind == "highest_revenue_day" else "products_clean",
+            ),
+            dataset_version=self.repo.dataset_version,
+            attrs={"country": country, "observed_date": observed_date, "plan_hash": compiled.plan_hash,
+                   "proxy_only": True},
+        )
+        if kind not in known_kinds:
+            output = {field.name: field for field in plan.requested_output_shape}
+            evidence: list[Evidence] = []
+            for row_index, result_row in result.frame.head(10).iterrows():
+                for column, field in output.items():
+                    if column not in result_row:
+                        continue
+                    value = result_row[column]
+                    if hasattr(value, "item"):
+                        value = value.item()
+                    if field.type == "date" and value is not None:
+                        value = str(value)
+                    semantic = CATALOG.get(field.semantic_ref or "")
+                    unit = semantic.unit if semantic else field.type
+                    if unit == "local_currency":
+                        unit = currency
+                    evidence.append(Evidence(
+                        evidence_id=self.evidence_id(), metric=column, value=value,
+                        unit=unit, source_path=field.semantic_ref or column,
+                        source_tier="btc_dataset",
+                        source_locator=SourceLocator(kind="internal", value="compiled_semantic_plan"),
+                        dataset_version=self.repo.dataset_version,
+                        attrs={"country": country, "observed_date": observed_date,
+                               "plan_hash": compiled.plan_hash, "row_index": int(row_index)},
+                    ))
+            return evidence
+        if kind == "highest_revenue_day":
+            return [
+                Evidence(
+                    evidence_id=self.evidence_id(), metric="highest_revenue_proxy_date", value=observed_date,
+                    unit="date", source_path="date", **common,
+                ),
+                Evidence(
+                    evidence_id=self.evidence_id(), metric="estimated_recent_revenue", value=float(row["estimated_recent_revenue"]),
+                    unit=currency, source_path="estimated_recent_revenue", **common,
+                ),
+            ]
+        if kind == "listing_count":
+            return [Evidence(
+                evidence_id=self.evidence_id(), metric="listing_count", value=int(row["listing_count"]),
+                unit="listings", source_path="product_listing_key", **common,
+            )]
+        if kind == "top_shop_by_listing_count":
+            shop_name = str(row["shop_name"])
+            shop_id = str(row["shop_id"])
+            common["source_locator"] = SourceLocator(kind="internal", value="products_clean+shop_info")
+            common["attrs"] = {**common["attrs"], "shop_name": shop_name, "shop_id": shop_id}
+            return [
+                Evidence(
+                    evidence_id=self.evidence_id(), metric="shop_name", value=shop_name,
+                    unit="shop_name", source_path="shop_name", **common,
+                ),
+                Evidence(
+                    evidence_id=self.evidence_id(), metric="listing_count", value=int(row["listing_count"]),
+                    unit="listings", source_path="product_listing_key", **common,
+                ),
+            ]
+        product_name = str(row["product_name"])
+        common["attrs"] = {**common["attrs"], "product_name": product_name}
+        metric, unit = ("price", currency) if kind == "highest_price_listing" else ("monthly_sold", "units_recent_window")
+        return [
+            Evidence(
+                evidence_id=self.evidence_id(), metric="product_name", value=product_name,
+                unit="listing_name", source_path="product_name", **common,
+            ),
+            Evidence(
+                evidence_id=self.evidence_id(), metric=metric, value=float(row[metric]),
+                unit=unit, source_path=f"{metric}_num", **common,
+            ),
+        ]

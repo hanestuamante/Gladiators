@@ -1,0 +1,20 @@
+[
+  {"id":"rel_observed_at_vn","kind":"relation_acceptance","country":"vn","relation":"observed_at","coverage":{"relations":["observed_at"],"semantic_refs":["entity.date_snapshot","dim.date"]}},
+  {"id":"rel_observed_at_id","kind":"relation_acceptance","country":"id","relation":"observed_at","coverage":{"relations":["observed_at"],"semantic_refs":["entity.date_snapshot","dim.date"]}},
+  {"id":"rel_platform_vn","kind":"relation_acceptance","country":"vn","relation":"in_platform_category","coverage":{"relations":["in_platform_category"],"semantic_refs":["entity.platform_category","dim.platform_category_name"],"grains":["category"]}},
+  {"id":"rel_platform_id","kind":"relation_acceptance","country":"id","relation":"in_platform_category","coverage":{"relations":["in_platform_category"],"semantic_refs":["entity.platform_category","dim.platform_category_name"],"grains":["category"]}},
+  {"id":"rel_shelf_vn","kind":"relation_acceptance","country":"vn","relation":"in_shop_category","coverage":{"relations":["in_shop_category"],"semantic_refs":["entity.shop_category","dim.shop_category_name"],"grains":["shelf"]}},
+  {"id":"rel_shelf_id","kind":"relation_acceptance","country":"id","relation":"in_shop_category","coverage":{"relations":["in_shop_category"],"semantic_refs":["entity.shop_category","dim.shop_category_name"],"grains":["shelf"]}},
+  {"id":"rel_brand_vn","kind":"relation_acceptance","country":"vn","relation":"has_brand","coverage":{"relations":["has_brand"],"semantic_refs":["entity.brand","dim.brand"]}},
+  {"id":"rel_brand_id","kind":"relation_acceptance","country":"id","relation":"has_brand","coverage":{"relations":["has_brand"],"semantic_refs":["entity.brand","dim.brand"]}},
+  {"id":"rel_promotion_vn","kind":"relation_acceptance","country":"vn","relation":"observed_promotion_id","coverage":{"relations":["observed_promotion_id"],"semantic_refs":["entity.promotion_id_observation"],"traps":["19"]}},
+  {"id":"rel_promotion_id","kind":"relation_acceptance","country":"id","relation":"observed_promotion_id","coverage":{"relations":["observed_promotion_id"],"semantic_refs":["entity.promotion_id_observation"],"traps":["19"]}},
+  {"id":"rel_voucher_vn","kind":"relation_acceptance","country":"vn","relation":"observed_structured_voucher","coverage":{"relations":["observed_structured_voucher"],"semantic_refs":["entity.voucher_observation"],"traps":["19"]}},
+  {"id":"rel_voucher_id","kind":"relation_acceptance","country":"id","relation":"observed_structured_voucher","coverage":{"relations":["observed_structured_voucher"],"semantic_refs":["entity.voucher_observation"],"traps":["19"]}},
+  {"id":"rel_content_vn","kind":"relation_acceptance","country":"vn","relation":"has_content","coverage":{"relations":["has_content"],"semantic_refs":["entity.content","measure.images_count"],"traps":["18"]}},
+  {"id":"rel_content_id","kind":"relation_acceptance","country":"id","relation":"has_content","coverage":{"relations":["has_content"],"semantic_refs":["entity.content","measure.images_count"],"traps":["18"]}},
+  {"id":"rel_variation_vn","kind":"relation_acceptance","country":"vn","relation":"has_display_variation","coverage":{"relations":["has_display_variation"],"semantic_refs":["dim.display_variation"],"traps":["13"]}},
+  {"id":"rel_variation_id","kind":"relation_acceptance","country":"id","relation":"has_display_variation","coverage":{"relations":["has_display_variation"],"semantic_refs":["dim.display_variation"],"traps":["13"]}},
+  {"id":"rel_sales_metric_vn","kind":"relation_acceptance","country":"vn","relation":"has_sales_metric","coverage":{"relations":["has_sales_metric"],"semantic_refs":["entity.sales_metric","derived.estimated_recent_revenue"],"traps":["4","12"]}},
+  {"id":"rel_sales_metric_id","kind":"relation_acceptance","country":"id","relation":"has_sales_metric","coverage":{"relations":["has_sales_metric"],"semantic_refs":["entity.sales_metric","derived.estimated_recent_revenue"],"traps":["4","12"]}}
+]

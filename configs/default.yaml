@@ -18,3 +18,20 @@ embedding:
 trace:
   retention_days: 30
   redact_fields: [api_key, authorization, password, token, email]
+planner:
+  ir_version: "1.0"
+  budget:
+    max_nodes: 12
+    max_depth: 6
+    max_subplans: 4
+  risk_thresholds:
+    tau1: 3
+    tau2: 6
+  enable_critic: false
+  enable_nversion: false
+executor:
+  engine: duckdb
+  memory_limit: 1GB
+  threads: 2
+  timeout_s: 10
+  max_result_rows: 10000

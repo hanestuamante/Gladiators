@@ -9,9 +9,14 @@ from collections import Counter
 from datetime import date
 from pathlib import Path
 
-from gladiators.agent.llm import GeminiLLMClient, GroqLLMClient, HuggingFaceLLMClient
+from gladiators.agent.llm import FakeLLMClient, GeminiLLMClient, GroqLLMClient, HuggingFaceLLMClient
 from gladiators.agent.verifier import verify_numeric_claims
 from gladiators.agent.workflow import AgentRuntime
+
+
+INDEPENDENT_GOLDEN = json.loads(
+    (Path(__file__).resolve().parents[1] / "eval" / "independent" / "golden_v2.json").read_text(encoding="utf-8")
+)
 
 
 def div(a, b): return a / b if b else 0.0
@@ -27,7 +32,8 @@ def trajectory_correct(case, response, runtime) -> bool:
     if case["expected_action"] == "allow":
         return actual == expected_plan(runtime, case["expected_intent"]) and all(call.status == "ok" for call in response.tool_calls)
     if case["expected_action"] == "abstain":
-        return actual == []
+        plan = expected_plan(runtime, case["expected_intent"])
+        return actual == [] or (actual == plan[:len(actual)] and all(call.status in {"ok", "empty"} for call in response.tool_calls))
     plan = expected_plan(runtime, case["expected_intent"])
     return actual == [] or actual == plan[:1]
 
@@ -55,6 +61,33 @@ def evidence_correct(case, response, runtime) -> bool:
             label = "with_voucher" if bool(flag) else "without_voucher"
             expected.update({f"{label}_listing_count": len(group), f"{label}_mean_monthly_sold_proxy": group.monthly_sold_value_num.mean(), f"{label}_median_monthly_sold_proxy": group.monthly_sold_value_num.median()})
         return all(math.isclose(float(e.value), float(expected[e.metric]), rel_tol=1e-6, abs_tol=1e-6) for e in response.evidence)
+    if case["expected_intent"] == "analytical_query":
+        kind = response.request.slots.get("analytical_kind")
+        country = response.request.country
+        gold = INDEPENDENT_GOLDEN.get("results", {}).get(country, {}).get(kind)
+        if gold is None:
+            return False
+        if kind == "highest_revenue_day":
+            values = {e.metric: e.value for e in response.evidence}
+            return (
+                set(values) == {"highest_revenue_proxy_date", "estimated_recent_revenue"}
+                and values["highest_revenue_proxy_date"] == gold["date"]
+                and math.isclose(float(values["estimated_recent_revenue"]), gold["estimated_recent_revenue"])
+            )
+        values = {e.metric: e.value for e in response.evidence}
+        if kind == "listing_count":
+            return set(values) == {"listing_count"} and int(values["listing_count"]) == gold["listing_count"]
+        if kind == "highest_price_listing":
+            return set(values) == {"product_name", "price"} and values["product_name"] == gold["product_name"] and math.isclose(float(values["price"]), gold["price"])
+        if kind == "highest_monthly_sold_listing":
+            return set(values) == {"product_name", "monthly_sold"} and values["product_name"] == gold["product_name"] and math.isclose(float(values["monthly_sold"]), gold["monthly_sold"])
+        if kind == "top_shop_by_listing_count":
+            return (
+                set(values) == {"shop_name", "listing_count"}
+                and values["shop_name"] == gold["shop_name"]
+                and int(values["listing_count"]) == gold["listing_count"]
+            )
+        return False
     return False
 
 
@@ -68,6 +101,7 @@ def citation_metrics(response) -> tuple[float, float]:
 def run_case(case, runtime):
     response = runtime.run(case["question"])
     intent_action = response.request.intent == case["expected_intent"] and response.gate.action == case["expected_action"]
+    gate_rule = not case.get("expected_rule") or response.gate.rule_id == case["expected_rule"]
     entity = not case.get("expected_listing_key") or response.resolved_listing_key == case["expected_listing_key"]
     trajectory = trajectory_correct(case, response, runtime)
     evidence = evidence_correct(case, response, runtime)
@@ -76,18 +110,24 @@ def run_case(case, runtime):
     mutation = verify_numeric_claims(response.answer + " Giá trị kiểm tra 987654.321.", response.evidence)
     mutation_detected = runtime.enable_verifier and not mutation["passed"]
     llm_path = runtime.llm_client is None or (not response.llm.get("parse_fallback") and not response.llm.get("generation", {}).get("fallback"))
-    passed = all((intent_action, entity, trajectory, evidence, citation_recall == 1.0, citation_precision == 1.0, verifier, mutation_detected, llm_path))
-    return response, {"intent_action": intent_action, "entity": entity, "trajectory": trajectory, "evidence": evidence, "citation_recall": citation_recall, "citation_precision": citation_precision, "verifier": verifier, "mutation_detected": mutation_detected, "llm_path": llm_path, "passed": passed}
+    passed = all((intent_action, gate_rule, entity, trajectory, evidence, citation_recall == 1.0, citation_precision == 1.0, verifier, mutation_detected, llm_path))
+    return response, {"intent_action": intent_action, "gate_rule": gate_rule, "entity": entity, "trajectory": trajectory, "evidence": evidence, "citation_recall": citation_recall, "citation_precision": citation_precision, "verifier": verifier, "mutation_detected": mutation_detected, "llm_path": llm_path, "passed": passed}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", default="eval/questions.json"); ap.add_argument("--runs", type=int, default=3); ap.add_argument("--output", default="eval/reports")
     ap.add_argument("--mode", choices=["direct", "gated", "full"], default="full"); ap.add_argument("--provider", choices=["offline", "gemini", "huggingface", "groq"], default="offline")
+    ap.add_argument("--enable-critic", action="store_true", help="Bật escalation critic; offline dùng deterministic acceptance stub")
     ap.add_argument("--resume", action="store_true", help="Tiếp tục từ checkpoint.json trong output directory")
     args = ap.parse_args(); cases = json.loads(Path(args.suite).read_text(encoding="utf-8"))
     llm = GeminiLLMClient() if args.provider == "gemini" else HuggingFaceLLMClient() if args.provider == "huggingface" else GroqLLMClient() if args.provider == "groq" else None
-    runtime = AgentRuntime(enable_gate=args.mode != "direct", enable_verifier=args.mode == "full", llm_client=llm, use_llm_parser=llm is not None, use_llm_generation=llm is not None)
+    critic = llm if llm is not None else FakeLLMClient() if args.enable_critic else None
+    runtime = AgentRuntime(
+        enable_gate=args.mode != "direct", enable_verifier=args.mode == "full",
+        llm_client=llm, critic_client=critic, enable_critic=args.enable_critic,
+        use_llm_parser=llm is not None, use_llm_generation=llm is not None,
+    )
     checkpoint = Path(args.output) / "checkpoint.json"
     rows = json.loads(checkpoint.read_text(encoding="utf-8")).get("rows", []) if args.resume and checkpoint.exists() else []
     crashes = sum(1 for row in rows if "error" in row); completed_pairs = {(row["id"], row["run"]) for row in rows}; stop_reason = None
@@ -97,7 +137,19 @@ def main():
             if (case["id"], run + 1) in completed_pairs: continue
             try:
                 response, checks = run_case(case, runtime)
-                row = {"id": case["id"], "run": run + 1, "intent": response.request.intent, "action": response.gate.action, "trace_id": response.trace_id, "parse_fallback": bool(response.llm.get("parse_fallback")), "generation_fallback": bool(response.llm.get("generation", {}).get("fallback")), **checks}
+                row = {
+                    "id": case["id"], "run": run + 1, "intent": response.request.intent,
+                    "action": response.gate.action, "gate_rule_id": response.gate.rule_id,
+                    "trace_id": response.trace_id,
+                    "planning_mode": response.planning.get("mode", "none"),
+                    "plan_id": response.planning.get("plan_id"),
+                    "complexity_level": response.planning.get("complexity_level"),
+                    "expected_complexity_level": case.get("complexity_level"),
+                    "escalation_mode": response.planning.get("escalation_mode"),
+                    "parse_fallback": bool(response.llm.get("parse_fallback")),
+                    "generation_fallback": bool(response.llm.get("generation", {}).get("fallback")),
+                    **checks,
+                }
             except Exception as exc:
                 crashes += 1; row = {"id": case["id"], "run": run + 1, "passed": False, "error": type(exc).__name__}
             rows.append(row); passes.append(row["passed"])
@@ -109,6 +161,18 @@ def main():
         if stop_reason: break
     expected_abstain = {c["id"] for c in cases if c["expected_action"] == "abstain"}; actual_abstain = {r["id"] for r in rows if r["run"] == 1 and r.get("action") == "abstain"}
     tp = len(expected_abstain & actual_abstain); precision = div(tp, len(actual_abstain)); recall = div(tp, len(expected_abstain))
+    planned = [
+        row for row in rows
+        if row.get("planning_mode") in {"deterministic_template", "llm_semantic_plan"}
+    ]
+    plan_ids_by_case = {
+        case["id"]: {row.get("plan_id") for row in rows if row["id"] == case["id"] and row.get("plan_id")}
+        for case in cases
+    }
+    stability_cases = [ids for ids in plan_ids_by_case.values() if ids]
+    complexity_rows = [row for row in rows if row.get("expected_complexity_level") and row.get("complexity_level")]
+    a19_rows = [row for row in rows if str(row.get("gate_rule_id", "")).startswith("A19")]
+    expected_a19_rows = [row for row in rows if any(case["id"] == row["id"] and case.get("expected_rule", "").startswith("A19") for case in cases)]
     metrics = {
         "mode": args.mode, "provider": args.provider, "cases": len(cases), "completed_cases": len({r["id"] for r in rows}), "runs": args.runs, "stop_reason": stop_reason,
         "end_to_end_accuracy": div(sum(r["passed"] for r in rows), len(rows)), "pass_pow_runs": div(sum(c.get("pass_all", False) for c in cases), len(cases)),
@@ -116,6 +180,14 @@ def main():
         "citation_recall": div(sum(r.get("citation_recall", 0) for r in rows), len(rows)), "citation_precision": div(sum(r.get("citation_precision", 0) for r in rows), len(rows)),
         "verifier_pass_rate": div(sum(r.get("verifier", False) for r in rows), len(rows)), "verifier_mutation_detection": div(sum(r.get("mutation_detected", False) for r in rows), len(rows)),
         "parse_fallback_rate": div(sum(r.get("parse_fallback", False) for r in rows), len(rows)), "generation_fallback_rate": div(sum(r.get("generation_fallback", False) for r in rows), len(rows)),
+        "routing_accuracy": div(sum(r.get("intent_action", False) for r in rows), len(rows)),
+        "a19_rule_accuracy": div(sum(r.get("gate_rule", False) for r in expected_a19_rows), len(expected_a19_rows)) if expected_a19_rows else None,
+        "a19_distribution": dict(Counter(r["gate_rule_id"] for r in a19_rows)),
+        "a19_plan_fallback_rate": div(sum(r.get("gate_rule_id") == "A19-PLAN" for r in rows), len(rows)),
+        "semantic_plan_success_rate": div(sum(bool(r.get("plan_id")) for r in planned), len(planned)) if planned else None,
+        "plan_stability_rate": div(sum(len(ids) == 1 for ids in stability_cases), len(stability_cases)) if stability_cases else None,
+        "complexity_classification_accuracy": div(sum(r["complexity_level"] == r["expected_complexity_level"] for r in complexity_rows), len(complexity_rows)) if complexity_rows else None,
+        "escalation_rate": div(sum(r.get("escalation_mode") in {"critic", "nversion"} for r in rows), len(rows)),
         "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)),
         "failures": Counter(r["id"] for r in rows if not r["passed"]),
     }

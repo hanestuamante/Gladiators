@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from gladiators.contracts import GateDecision, StructuredRequest
 from gladiators.domain.intent_registry import IntentRegistry
+from gladiators.planner.semantic_parser import AnalyticalRequest, classify_a19
 
 
 class ContractDrivenGate:
@@ -12,6 +13,18 @@ class ContractDrivenGate:
         spec = registry.get(request.intent)
         if spec is None:
             return GateDecision(action="abstain", rule_id="A-UNKNOWN-INTENT", reason="Intent chưa được đăng ký.")
+        if request.intent == "open_analytical":
+            if not request.analytical:
+                return GateDecision(action="abstain", rule_id="A19-PLAN", reason="Thiếu AnalyticalRequest cho open analytical path.")
+            admission = classify_a19(AnalyticalRequest.model_validate(request.analytical))
+            if admission:
+                action, rule_id, reason = admission
+                return GateDecision(action=action, rule_id=rule_id, reason=reason)
+        if request.intent == "analytical_query" and not request.country:
+            return GateDecision(
+                action="clarify", rule_id="A-CROSS-CURRENCY-SCOPE",
+                reason="Cần chọn thị trường VN hoặc ID để không cộng/so sánh trực tiếp VND với IDR.",
+            )
         values = {"entity_text": request.entity_text, "country": request.country, **request.slots}
         missing = [slot for slot in spec.required_slots if not values.get(slot)]
         if missing:
@@ -21,4 +34,3 @@ class ContractDrivenGate:
         if request.intent == "promotion_effectiveness" and request.country == "id" and capabilities["voucher_structured_by_country"].get("id", 0) == 0:
             return GateDecision(action="abstain", rule_id="A-VOUCHER-ID", reason="Indonesia không có voucher structured để so sánh.")
         return GateDecision(action="allow", rule_id="A-ALLOW", reason="Contract và slot đáp ứng yêu cầu.")
-

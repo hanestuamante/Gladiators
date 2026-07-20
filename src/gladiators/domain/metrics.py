@@ -11,7 +11,7 @@ traceability mục 5.4.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 Grain = Literal["snapshot", "transition", "group", "pair"]
@@ -32,11 +32,7 @@ class MetricSpec:
     formula: str = ""                          # mô tả công thức (tài liệu; compute ở analytics layer)
 
 
-def _m(spec: MetricSpec) -> MetricSpec:
-    return spec
-
-
-METRICS: dict[str, MetricSpec] = {m.name: m for m in [
+_METRIC_SPECS = [
     MetricSpec(
         name="monthly_sold_delta", grain="transition", unit="units_recent_window",
         dedupe="none", traps=(4, 15, 20), depends_on=("monthly_sold_value_num",),
@@ -50,6 +46,18 @@ METRICS: dict[str, MetricSpec] = {m.name: m for m in [
         formula="hsv(T) - hsv(T-1); flag khi <0; clean = raw nếu ≥0, ngược lại null",
         caveats=("proxy lũy kế hiển thị; history_sold_decrease_flag đánh dấu anomaly (88/2136, toàn VN)",
                  "khi flag=True cấm diễn giải 'lượng bán mới phát sinh'; loại khỏi phép cộng incremental"),
+    ),
+    MetricSpec(
+        name="history_sold_decrease_flag", grain="transition", unit="bool",
+        dedupe="none", traps=(4,), depends_on=("history_sold_value_num",),
+        formula="history_sold_delta_raw < 0",
+        caveats=("data-quality anomaly, không phải bằng chứng lượt bán thực tế giảm",),
+    ),
+    MetricSpec(
+        name="history_sold_delta_clean", grain="transition", unit="units_cumulative",
+        dedupe="none", traps=(4,), depends_on=("history_sold_value_num",),
+        formula="history_sold_delta_raw nếu >= 0, ngược lại null",
+        caveats=("transition có history_sold_decrease_flag=True bị loại khỏi phép cộng incremental",),
     ),
     MetricSpec(
         name="price_change", grain="transition", unit="local_currency",
@@ -80,6 +88,16 @@ METRICS: dict[str, MetricSpec] = {m.name: m for m in [
         name="rating_change", grain="transition", unit="rating_point",
         dedupe="none", traps=(), depends_on=("rating_num",),
         formula="rating(T) - rating(T-1)", caveats=("NaN → loại transition",),
+    ),
+    MetricSpec(
+        name="rating_count_delta", grain="transition", unit="ratings",
+        dedupe="none", traps=(), depends_on=("rating_count_num",),
+        formula="rating_count(T) - rating_count(T-1)", caveats=("NaN → loại transition",),
+    ),
+    MetricSpec(
+        name="liked_delta", grain="transition", unit="likes",
+        dedupe="none", traps=(), depends_on=("liked_count_num",),
+        formula="liked_count(T) - liked_count(T-1)", caveats=("NaN → loại transition",),
     ),
     MetricSpec(
         name="estimated_recent_revenue", grain="snapshot", unit="local_currency",
@@ -143,13 +161,57 @@ METRICS: dict[str, MetricSpec] = {m.name: m for m in [
         caveats=("wording thuần quan sát 'khác biệt mô tả'; CẤM 'hiệu quả/gây ra/tác động'",),
     ),
     MetricSpec(
+        name="text_sim", grain="pair", unit="score_0_1",
+        dedupe="one_snapshot_per_listing", traps=(16,), depends_on=("product_name_clean",),
+        formula="cosine similarity trên embedding title đã kiểm chứng",
+        caveats=("điểm gần nhau theo title, không chứng minh cùng sản phẩm",),
+    ),
+    MetricSpec(
+        name="category_overlap_depth", grain="pair", unit="score_0_1",
+        dedupe="one_snapshot_per_listing", traps=(2,), depends_on=("global_catids",),
+        formula="|path_a ∩ path_b| / max(|path_a|, |path_b|)",
+        caveats=("chỉ dùng platform category path cùng country; không nối shop category",),
+    ),
+    MetricSpec(
+        name="brand_match", grain="pair", unit="score_0_1",
+        dedupe="one_snapshot_per_listing", traps=(), depends_on=("brand",),
+        formula="1 nếu raw brand bằng nhau; 0 nếu khác; 0.5 nếu thiếu",
+        caveats=("brand là raw attribute, không phải canonical brand identity",),
+    ),
+    MetricSpec(
+        name="price_distance", grain="pair", unit="score_0_1",
+        dedupe="one_snapshot_per_listing", traps=(5,), depends_on=("price_num",),
+        formula="1 - min(1, abs(pa-pb)/pa)",
+        caveats=("pa null, <=0 hoặc sentinel thì loại candidate ở blocking",),
+    ),
+    MetricSpec(
+        name="same_shelf_bonus", grain="pair", unit="score_0_1",
+        dedupe="one_snapshot_per_listing", traps=(2, 3),
+        formula="overlap shop shelf khi hai listing cùng shop",
+        caveats=("membership qua in_shop_category; không đồng nhất shop shelf với platform category",),
+    ),
+    MetricSpec(
         name="similarity_score", grain="pair", unit="score_0_1",
         dedupe="one_snapshot_per_listing", traps=(16,),
         depends_on=("product_name_clean", "global_catids", "price_num", "brand"),
         formula="Σ wᵢ·(text_sim, category_overlap_depth, brand_match, price_distance, same_shelf_bonus)",
         caveats=("'tương tự' theo thành phần điểm — không khẳng định cùng mẫu (không có nhãn same-product)",),
     ),
-]}
+]
+
+
+def _build_registry(specs: list[MetricSpec]) -> dict[str, MetricSpec]:
+    registry: dict[str, MetricSpec] = {}
+    for spec in specs:
+        if spec.name in registry:
+            raise ValueError(f"Metric trùng tên: {spec.name}")
+        if not spec.name or not spec.unit or not spec.formula or not spec.caveats:
+            raise ValueError(f"MetricSpec thiếu contract bắt buộc: {spec.name!r}")
+        registry[spec.name] = spec
+    return registry
+
+
+METRICS: dict[str, MetricSpec] = _build_registry(_METRIC_SPECS)
 
 
 def get(name: str) -> MetricSpec | None:

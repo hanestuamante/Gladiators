@@ -13,6 +13,7 @@ class StructuredRequest(BaseModel):
     country: str | None = None
     date_range: list[str] = Field(default_factory=list)
     slots: dict[str, Any] = Field(default_factory=dict)
+    analytical: dict[str, Any] | None = None
     language: Literal["vi", "id", "unknown"] = "unknown"
 
     @field_validator("country")
@@ -68,5 +69,6 @@ class AgentResponse(BaseModel):
     resolved_listing_key: str | None = None
     verification: dict[str, Any] = Field(default_factory=dict)
     llm: dict[str, Any] = Field(default_factory=dict)
+    planning: dict[str, Any] = Field(default_factory=dict)
     degraded: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

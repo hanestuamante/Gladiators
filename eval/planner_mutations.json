@@ -1,0 +1,23 @@
+[
+  {"id":"mut01","kind":"mutation","layer":"validator","mutation":"unknown semantic ref","expected_issue":"missing_semantic_object","coverage":{"ops":["Scan"],"traps":["2"]}},
+  {"id":"mut02","kind":"mutation","layer":"validator","mutation":"contains filter on numeric price","expected_issue":"wrong_filter","coverage":{"ops":["Filter"],"semantic_refs":["measure.price"],"traps":["5"]}},
+  {"id":"mut03","kind":"mutation","layer":"validator","mutation":"cross join platform category to shop category","expected_issue":"wrong_join_path","coverage":{"ops":["Join"],"traps":["2"]}},
+  {"id":"mut04","kind":"mutation","layer":"validator","mutation":"join grain differs from registry","expected_issue":"grain_mismatch","coverage":{"ops":["Join"],"relations":["belongs_to"],"grains":["shop"],"traps":["7"]}},
+  {"id":"mut05","kind":"mutation","layer":"validator","mutation":"N:M shelf join without dedupe","expected_issue":"fanout_risk","coverage":{"ops":["Join","Aggregate"],"relations":["in_shop_category"],"grains":["shelf"],"traps":["3"]}},
+  {"id":"mut06","kind":"mutation","layer":"validator","mutation":"mix VND and IDR in one node","expected_issue":"unit_mismatch","coverage":{"ops":["Union"],"traps":["6"]}},
+  {"id":"mut07","kind":"mutation","layer":"validator","mutation":"aggregate revenue over three snapshots","expected_issue":"temporal_mismatch","coverage":{"ops":["Aggregate"],"semantic_refs":["derived.estimated_recent_revenue"],"traps":["4","12"]}},
+  {"id":"mut08","kind":"mutation","layer":"validator","mutation":"causal claim invariant","expected_issue":"unsupported_claim","coverage":{"ops":["DeriveMetric"],"traps":["19"]}},
+  {"id":"mut09","kind":"mutation","layer":"validator","mutation":"plan node budget exceeded","expected_issue":"budget_exceeded","coverage":{"ops":["Project"]}},
+  {"id":"mut10","kind":"mutation","layer":"validator","mutation":"cycle in plan DAG","expected_issue":"schema_invalid","coverage":{"ops":["Project"]}},
+  {"id":"mut11","kind":"mutation","layer":"compiler","mutation":"SQL injection supplied as predicate value","expected":"parameterized","coverage":{"ops":["Filter"]}},
+  {"id":"mut12","kind":"mutation","layer":"executor","mutation":"DDL/COPY/ATTACH/network SQL bypass","expected":"read_only_reject","coverage":{"ops":["Scan"],"traps":["20"]}},
+  {"id":"mut13","kind":"mutation","layer":"gate","mutation":"free expression UDF","expected_rule":"A19-OP","coverage":{"traps":["13"]}},
+  {"id":"mut14","kind":"mutation","layer":"gate","mutation":"ungoverned effectiveness metric","expected_rule":"A19-METRIC","coverage":{"traps":["17"]}},
+  {"id":"mut15","kind":"mutation","layer":"gate","mutation":"semantic catalog gap","expected_rule":"A19-CAT","coverage":{"traps":["18"]}},
+  {"id":"mut16","kind":"mutation","layer":"validator","mutation":"ResolveValue receives a measure instead of entity","expected_issue":"schema_invalid","coverage":{"ops":["ResolveValue"]}},
+  {"id":"mut17","kind":"mutation","layer":"validator","mutation":"Dedupe omits allow-listed policy","expected_issue":"schema_invalid","coverage":{"ops":["Dedupe"]}},
+  {"id":"mut18","kind":"mutation","layer":"validator","mutation":"TemporalCompare has one snapshot","expected_issue":"temporal_mismatch","coverage":{"ops":["TemporalCompare"]}},
+  {"id":"mut19","kind":"mutation","layer":"validator","mutation":"Rank omits rank_by and limit","expected_issue":"schema_invalid","coverage":{"ops":["Rank"]}},
+  {"id":"mut20","kind":"mutation","layer":"validator","mutation":"Similarity omits governed score ref","expected_issue":"schema_invalid","coverage":{"ops":["Similarity"]}},
+  {"id":"mut21","kind":"mutation","layer":"validator","mutation":"aggregate promotion observations across snapshots","expected_issue":"temporal_mismatch","coverage":{"ops":["Join","Aggregate"],"relations":["observed_promotion_id"],"traps":["9","19"]}}
+]

@@ -14,7 +14,7 @@ class AskRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
 
 
-app = FastAPI(title="Gladiators V1", version="1.1.0")
+app = FastAPI(title="Gladiators V2", version="2.0.0-alpha")
 runtime = create_runtime()
 
 
@@ -35,7 +35,17 @@ def health() -> dict:
 
 @app.get("/capabilities")
 def capabilities() -> dict:
-    return {"intents": runtime.registry.names(), "data": runtime.repo.capability_profile(), "unsupported_policy": "abstain"}
+    return {
+        "intents": runtime.registry.names(),
+        "certified_macros": runtime.macros.names(),
+        "analytical_templates": (
+            "highest_revenue_day", "listing_count",
+            "highest_price_listing", "highest_monthly_sold_listing", "top_shop_by_listing_count",
+        ),
+        "planner": {"ir_version": "1.0", "critic_enabled": runtime.enable_critic, "nversion_enabled": False},
+        "data": runtime.repo.capability_profile(),
+        "unsupported_policy": "clarify_or_abstain",
+    }
 
 
 @app.post("/ask", response_model=AgentResponse)

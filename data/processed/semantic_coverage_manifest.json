@@ -1,0 +1,1758 @@
+{
+  "schema_version": "1.0",
+  "review_status": "pending_dr1",
+  "entries": [
+    {
+      "table": "products_clean.csv",
+      "column": "platform",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "key",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "country_code",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.country",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "date",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.date",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "shop_id",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "entity.shop",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "shop_slug",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "shop_name",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "location",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "item_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "product_name",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.product_name",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "url",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "image_url",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "images",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "seller_flag",
+      "status": "uninterpretable",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không có bảng giải mã/ngữ nghĩa đủ tin cậy."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "seller_flag_hash",
+      "status": "uninterpretable",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không có bảng giải mã/ngữ nghĩa đủ tin cậy."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "image_overlay",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "image_overlay_hash",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "is_ad",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "is_sold_out",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "shopee_verified",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "ctime",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "price",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "price_original",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "price_before_promo",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "discount_percent",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "promotion_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_code",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_discount",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_start_time",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_end_time",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_min_spend",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "history_sold_value",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "monthly_sold_value",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "rating",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "rating_count",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "rating_count_detail",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "vouchers",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "brand",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.brand",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "brand_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "catid",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "global_catids",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "liked_count",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "tier_variation_name",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.display_variation",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "tier_variation_options",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.display_variation",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "source_file",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "source_row",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "path_country_code",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "path_dataset",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "path_shop_id",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "ctime_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "price_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.price",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "price_original_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.price_original",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "price_before_promo_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "discount_percent_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.discount_percent",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "promotion_id_num",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_discount_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.voucher_discount",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_start_time_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.voucher_start_time",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_end_time_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.voucher_end_time",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "voucher_min_spend_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.voucher_min_spend",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "history_sold_value_num",
+      "status": "proxy_only",
+      "catalog_ref": "measure.history_sold",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "monthly_sold_value_num",
+      "status": "proxy_only",
+      "catalog_ref": "measure.monthly_sold",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "rating_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.rating",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "rating_count_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.rating_count",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "brand_id_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "catid_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "liked_count_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.liked_count",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "is_ad_bool",
+      "status": "zero_variance",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không có phương sai trong artifact hiện hành; route qua Gate A6/A7."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "is_sold_out_bool",
+      "status": "zero_variance",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không có phương sai trong artifact hiện hành; route qua Gate A6/A7."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "shopee_verified_bool",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.shopee_verified",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "images_count",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.images_count",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "seller_flag_count",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "seller_flag_hash_count",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "rating_count_detail_count",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "vouchers_count",
+      "status": "raw_but_unsafe",
+      "catalog_ref": "measure.vouchers_count",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "global_catids_count",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "tier_variation_options_count",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.variation_options_count",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "product_name_clean",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.product_name",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "product_listing_key",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "product_snapshot_key",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "products_clean.csv",
+      "column": "snapshot_gap_flag",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "shop_id",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "entity.shop",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "shop_name",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.shop_name",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "username",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "rating_star",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "follower_count",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "item_count",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "is_official_shop",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "response_rate",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "response_time",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "rating_good",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "rating_normal",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "rating_bad",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "cancellation_rate",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "created_at",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "vacation",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "country_code",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.country",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "date",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.date",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "source_file",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "source_row",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "path_country_code",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "path_dataset",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "path_shop_id",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "rating_star_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_rating",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "follower_count_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_followers",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "item_count_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_items",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "response_rate_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_response_rate",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "response_time_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_response_time",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "rating_good_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_rating_good",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "rating_normal_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_rating_normal",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "rating_bad_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_rating_bad",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "cancellation_rate_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_cancellation_rate",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "is_official_shop_bool",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.shop_official",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "shop_info_clean.csv",
+      "column": "vacation_bool",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.shop_vacation",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "shop_id",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "entity.shop",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "shop_category_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "display_name",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.shop_category_name",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "total",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "is_parent_category",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "is_sub_category",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "parent_shop_category_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "image",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "category_type",
+      "status": "uninterpretable",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không có bảng giải mã/ngữ nghĩa đủ tin cậy."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "country_code",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.country",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "date",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.date",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "source_file",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "source_row",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "path_country_code",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "path_dataset",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "path_shop_id",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "shop_category_id_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "total_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.shop_category_total",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "parent_shop_category_id_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "category_type_num",
+      "status": "uninterpretable",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không có bảng giải mã/ngữ nghĩa đủ tin cậy."
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "is_parent_category_bool",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.shop_category_parent",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "category_list_clean.csv",
+      "column": "is_sub_category_bool",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.shop_category_child",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "shop_id",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "entity.shop",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "date",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.date",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "item_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "category_slug",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "category_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "source_file",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "source_row",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "path_country_code",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "path_dataset",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "path_shop_id",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "country_code",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.country",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "item_id_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "category_slug_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_categories_clean.csv",
+      "column": "category_id_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "platform",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "client",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "key",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "category_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "parent_category_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "original_category_name",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "display_category_name",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.platform_category_name",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "has_children",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "debug_message",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "source_file",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "source_row",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "path_country_code",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "path_dataset",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "path_shop_id",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "country_code",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.country",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "shop_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "client_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "category_id_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "parent_category_id_num",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "category_platform_clean.csv",
+      "column": "has_children_bool",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.platform_category_has_children",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "product_listing_key",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "product_snapshot_key",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "country_code",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.country",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "shop_id",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "entity.shop",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "item_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "date",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.date",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "product_name",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.product_name",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "snapshot_gap_flag",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "price_sentinel_flag",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "price_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.price",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "price_original_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.price_original",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "monthly_sold_value_num",
+      "status": "proxy_only",
+      "catalog_ref": "measure.monthly_sold",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "history_sold_value_num",
+      "status": "proxy_only",
+      "catalog_ref": "measure.history_sold",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "rating_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.rating",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "rating_count_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.rating_count",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "liked_count_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.liked_count",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "estimated_recent_revenue",
+      "status": "proxy_only",
+      "catalog_ref": "derived.estimated_recent_revenue",
+      "reviewed_by": "pending:DR1",
+      "notes": "luôn label 'ước tính'; không phải doanh thu/GMV; monthly_sold là proxy; CẤM cộng qua 3 snapshot; loại sentinel trước"
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "discount_amount",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "discount_percent_analysis",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "pre_final_reduction_proxy",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "has_displayed_discount",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "has_structured_voucher",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.has_structured_voucher",
+      "reviewed_by": "pending:DR1",
+      "notes": "1580/1580 dòng True đều thuộc VN; ID=0 → so VN-ID nhóm voucher = abstain (A11)"
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "promotion_id_clean",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "voucher_discount_num",
+      "status": "exposed_as_measure",
+      "catalog_ref": "measure.voucher_discount",
+      "reviewed_by": "pending:DR1",
+      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "is_sold_out_bool",
+      "status": "zero_variance",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không có phương sai trong artifact hiện hành; route qua Gate A6/A7."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "source_file",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "product_snapshot_metrics.csv",
+      "column": "source_row",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "product_listing_key",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "country_code",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.country",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "shop_id",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "entity.shop",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "item_id",
+      "status": "identifier_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Chỉ dùng định danh/join exact; không aggregate."
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "previous_date",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.date",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "date",
+      "status": "exposed_as_dimension",
+      "catalog_ref": "dim.date",
+      "reviewed_by": "pending:DR1",
+      "notes": ""
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "days_since_previous",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "transition_metric_eligible",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "price_change",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.price_change",
+      "reviewed_by": "pending:DR1",
+      "notes": "loại 3 dòng sentinel price=999999999 trước khi tính"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "price_change_percent",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.price_change_pct",
+      "reviewed_by": "pending:DR1",
+      "notes": "loại sentinel trước; chia-0 trả null có flag"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "discount_point_change",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.discount_point_change",
+      "reviewed_by": "pending:DR1",
+      "notes": "missing chỉ fill 0 khi price == price_original (307 dòng); ngược lại giữ null + flag"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "monthly_sold_delta",
+      "status": "proxy_only",
+      "catalog_ref": "derived.monthly_sold_delta",
+      "reviewed_by": "pending:DR1",
+      "notes": "lượt bán gần đây theo Shopee hiển thị, cửa sổ chưa xác nhận; cần ≥2 snapshot hợp lệ của cùng listing; giảm không tự động là lỗi"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "history_sold_delta_raw",
+      "status": "proxy_only",
+      "catalog_ref": "derived.history_sold_delta_raw",
+      "reviewed_by": "pending:DR1",
+      "notes": "proxy lũy kế hiển thị; history_sold_decrease_flag đánh dấu anomaly (88/2136, toàn VN); khi flag=True cấm diễn giải 'lượng bán mới phát sinh'; loại khỏi phép cộng incremental"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "history_sold_decrease_flag",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.history_sold_decrease_flag",
+      "reviewed_by": "pending:DR1",
+      "notes": "data-quality anomaly, không phải bằng chứng lượt bán thực tế giảm"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "snapshot_sales_delta_clean",
+      "status": "proxy_only",
+      "catalog_ref": "derived.history_sold_delta_clean",
+      "reviewed_by": "pending:DR1",
+      "notes": "transition có history_sold_decrease_flag=True bị loại khỏi phép cộng incremental"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "rating_change",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.rating_change",
+      "reviewed_by": "pending:DR1",
+      "notes": "NaN → loại transition"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "new_rating_count",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.rating_count_delta",
+      "reviewed_by": "pending:DR1",
+      "notes": "NaN → loại transition"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "like_delta",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.liked_delta",
+      "reviewed_by": "pending:DR1",
+      "notes": "NaN → loại transition"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "previous_has_structured_voucher",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.has_structured_voucher",
+      "reviewed_by": "pending:DR1",
+      "notes": "1580/1580 dòng True đều thuộc VN; ID=0 → so VN-ID nhóm voucher = abstain (A11)"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "has_structured_voucher",
+      "status": "exposed_as_measure",
+      "catalog_ref": "derived.has_structured_voucher",
+      "reviewed_by": "pending:DR1",
+      "notes": "1580/1580 dòng True đều thuộc VN; ID=0 → so VN-ID nhóm voucher = abstain (A11)"
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "stock_status",
+      "status": "intentionally_hidden",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Không nằm trong contract projection vòng hiện tại; cần review trước khi expose."
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "source_file",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    },
+    {
+      "table": "product_transition_metrics.csv",
+      "column": "source_row",
+      "status": "provenance_only",
+      "catalog_ref": null,
+      "reviewed_by": "pending:DR1",
+      "notes": "Pipeline provenance; không expose cho planner."
+    }
+  ]
+}

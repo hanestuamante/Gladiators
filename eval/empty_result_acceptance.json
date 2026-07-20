@@ -1,0 +1,5 @@
+[
+  {"id":"empty01","kind":"scenario_acceptance","question":"Rating theo brand không tồn tại tại VN","country":"vn","coverage":{"scenarios":["empty_result"]}},
+  {"id":"empty02","kind":"scenario_acceptance","question":"Rating theo brand không tồn tại tại Indonesia","country":"id","coverage":{"scenarios":["empty_result"]}},
+  {"id":"empty03","kind":"scenario_acceptance","question":"Price theo brand không tồn tại tại VN","country":"vn","coverage":{"scenarios":["empty_result"]}}
+]
