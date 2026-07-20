@@ -40,7 +40,7 @@ class GateDecision(BaseModel):
 
 class Evidence(BaseModel):
     evidence_id: str
-    source_tier: Literal["T1", "T2", "T3"]
+    source_tier: Literal["btc_dataset", "reference", "external"]
     metric: str
     value: int | float | str | bool | None
     unit: str | None = None

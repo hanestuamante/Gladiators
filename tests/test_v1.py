@@ -7,7 +7,7 @@ from gladiators.agent.workflow import AgentRuntime
 from gladiators.agent.parser import MultilingualIntentParser
 from gladiators.agent.trace import TraceStore
 from gladiators.agent.verifier import verify_numeric_claims
-from gladiators.contracts import Evidence
+from gladiators.contracts import Evidence, StructuredRequest, ToolCall
 from gladiators.data.contracts import validate_artifacts
 from gladiators.domain.intent_registry import default_registry
 from gladiators.external.contracts import SourceLocator
@@ -32,14 +32,14 @@ def test_gate_is_contract_driven():
 
 
 def test_numeric_verifier_blocks_invented_number():
-    ev = Evidence(evidence_id="e1", source_tier="T1", metric="x", value=10, source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1")
+    ev = Evidence(evidence_id="e1", source_tier="btc_dataset", metric="x", value=10, source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1")
     assert verify_numeric_claims("Giá trị là 10", [ev])["passed"]
     assert not verify_numeric_claims("Giá trị là 12", [ev])["passed"]
 
 
 def test_numeric_verifier_ignores_overlapping_product_names():
-    short = Evidence(evidence_id="e1", source_tier="T1", metric="score", value=.9, source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1", attrs={"product_name":"Cream 30 Gr"})
-    long = Evidence(evidence_id="e2", source_tier="T1", metric="score", value=.8, source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1", attrs={"product_name":"Set Cream 30 Gr + Sunscreen 40 ml"})
+    short = Evidence(evidence_id="e1", source_tier="btc_dataset", metric="score", value=.9, source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1", attrs={"product_name":"Cream 30 Gr"})
+    long = Evidence(evidence_id="e2", source_tier="btc_dataset", metric="score", value=.8, source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1", attrs={"product_name":"Set Cream 30 Gr + Sunscreen 40 ml"})
     answer = "Cream 30 Gr điểm 0.9 [e1]; Set Cream 30 Gr + Sunscreen 40 ml điểm 0.8 [e2]"
     assert verify_numeric_claims(answer, [short, long])["passed"]
 
@@ -87,6 +87,27 @@ def test_llm_numeric_failure_falls_back_to_verified_answer(tmp_path):
     assert response.llm["generation"]["fallback"] is True
     assert response.verification["passed"] is True
     assert "987654.321" not in response.answer
+
+
+def test_generic_dispatch_drives_tools_by_tool_plan():
+    """Thêm tool mới + dispatch theo tool_plan không cần sửa workflow core (V2 mục 7.3)."""
+    from gladiators.agent import tool_dispatch as td
+
+    @td.tool("_test_echo_tool")
+    def _echo(ctx):
+        ctx.calls.append(ToolCall(name="_test_echo_tool", args={"country": ctx.request.country}, status="ok"))
+
+    try:
+        ctx = td.ToolContext(request=StructuredRequest(intent="x", country="vn"), tools=None, resolver=None)
+        td.dispatch(("_test_echo_tool",), ctx)
+        assert [c.name for c in ctx.calls] == ["_test_echo_tool"]
+        assert ctx.calls[0].args == {"country": "vn"}
+        # tool_plan tham chiếu tool chưa đăng ký → error ToolCall, không crash
+        ctx2 = td.ToolContext(request=StructuredRequest(intent="x"), tools=None, resolver=None)
+        td.dispatch(("khong_ton_tai",), ctx2)
+        assert ctx2.calls[0].status == "error"
+    finally:
+        td._HANDLERS.pop("_test_echo_tool", None)
 
 
 def test_three_tools_produce_typed_evidence(tmp_path):

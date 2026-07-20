@@ -15,6 +15,7 @@ from .embedding import BGEIndex
 from .entity_resolution import EntityResolver
 from .gate import ContractDrivenGate
 from .parser import MultilingualIntentParser, UNSUPPORTED
+from .tool_dispatch import ToolContext, dispatch
 from .trace import TraceStore
 from .verifier import verify_numeric_claims
 
@@ -132,25 +133,17 @@ class AgentRuntime:
         resolved_key = None
         tools = AnalyticsTools(self.repo, self.resolver, evidence_id)
 
-        if decision.action == "allow" and request.entity_text:
-            candidates = self.resolver.resolve(request.entity_text)
-            calls.append(ToolCall(name="resolve_entity", args={"entity_text": request.entity_text}, status="ok" if candidates else "empty"))
-            if self.resolver.ambiguous(candidates):
-                decision = GateDecision(action="clarify", rule_id="A-AMBIGUOUS", reason="Có nhiều listing gần giống; cần listing key hoặc URL chính xác hơn.")
-            else:
-                resolved_key = candidates[0].listing_key
-
+        # Generic dispatch: đọc tool_plan từ Intent Registry rồi gọi tool theo tên,
+        # không còn nhánh if/elif cứng theo từng intent (V2 mục 7.3).
         if decision.action == "allow":
-            if request.intent == "sales_decline" and resolved_key:
-                evidence = tools.sales_decline(resolved_key); tool_name = "get_sales_transitions"; args = {"listing_key": resolved_key}
-            elif request.intent == "similar_product" and resolved_key:
-                evidence = tools.similar_products(resolved_key); tool_name = "find_similar"; args = {"listing_key": resolved_key, "top_k": 5}
-            elif request.intent == "promotion_effectiveness" and request.country:
-                evidence = tools.promotion_observation(request.country); tool_name = "compare_voucher_groups"; args = {"country": request.country}
-            else:
-                evidence, tool_name, args = [], "unsupported_tool_plan", {"intent": request.intent}
-            calls.append(ToolCall(name=tool_name, args=args, status="ok" if evidence else "empty", evidence_ids=[e.evidence_id for e in evidence]))
-            if not evidence and self.enable_gate:
+            spec = self.registry.get(request.intent)
+            ctx = ToolContext(request=request, tools=tools, resolver=self.resolver)
+            dispatch(spec.tool_plan if spec else (), ctx)
+            evidence, resolved_key = ctx.evidence, ctx.resolved_listing_key
+            calls.extend(ctx.calls)
+            if ctx.clarify is not None:
+                decision = ctx.clarify
+            elif not evidence and self.enable_gate:
                 decision = GateDecision(action="abstain", rule_id="A-NO-EVIDENCE", reason="Tool không tạo được evidence đủ điều kiện từ artifact hiện tại.")
 
         answer, generation_meta = self._generate(decision, request, evidence, llm_meta)

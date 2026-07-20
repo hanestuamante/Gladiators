@@ -17,7 +17,7 @@ class AnalyticsTools:
         if rows.empty:
             return []
         row = rows.iloc[-1]
-        common = dict(source_tier="T1", source_locator=SourceLocator(kind="internal", value="product_transition_metrics"), dataset_version=self.repo.dataset_version, attrs={"listing_key": listing_key, "previous_date": str(row.previous_date), "date": str(row.date)})
+        common = dict(source_tier="btc_dataset", source_locator=SourceLocator(kind="internal", value="product_transition_metrics"), dataset_version=self.repo.dataset_version, attrs={"listing_key": listing_key, "previous_date": str(row.previous_date), "date": str(row.date)})
         return [
             Evidence(evidence_id=self.evidence_id(), metric="monthly_sold_delta", value=float(row.monthly_sold_delta), unit="items", source_path="monthly_sold_delta", **common),
             Evidence(evidence_id=self.evidence_id(), metric="days_since_previous", value=int(row.days_since_previous), unit="days", source_path="days_since_previous", **common),
@@ -32,7 +32,7 @@ class AnalyticsTools:
         result = []
         for candidate in (c for c in candidates if c.listing_key != listing_key):
             result.append(Evidence(
-                evidence_id=self.evidence_id(), source_tier="T1", metric="similarity_score",
+                evidence_id=self.evidence_id(), source_tier="btc_dataset", metric="similarity_score",
                 value=round(candidate.final_score, 6), unit="cosine_fusion_score",
                 source_locator=SourceLocator(kind="internal", value="products_clean"), source_path="product_name_clean",
                 dataset_version=self.repo.dataset_version,
@@ -55,7 +55,7 @@ class AnalyticsTools:
         for has_voucher, group in valid.groupby("has_structured_voucher", observed=True):
             label = "with_voucher" if bool(has_voucher) else "without_voucher"
             attrs = {"country": country, "snapshot_date": latest_date, "group": label, "observational_only": True}
-            common = dict(source_tier="T1", source_locator=SourceLocator(kind="internal", value="product_snapshot_metrics"), dataset_version=self.repo.dataset_version, attrs=attrs)
+            common = dict(source_tier="btc_dataset", source_locator=SourceLocator(kind="internal", value="product_snapshot_metrics"), dataset_version=self.repo.dataset_version, attrs=attrs)
             result.extend([
                 Evidence(evidence_id=self.evidence_id(), metric=f"{label}_listing_count", value=int(len(group)), unit="listings", source_path="has_structured_voucher", **common),
                 Evidence(evidence_id=self.evidence_id(), metric=f"{label}_mean_monthly_sold_proxy", value=round(float(group.monthly_sold_value_num.mean()), 6), unit="items", source_path="monthly_sold_value_num", **common),
