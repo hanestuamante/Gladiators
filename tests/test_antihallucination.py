@@ -56,6 +56,49 @@ def test_verifier_ignores_digits_inside_string_evidence_values():
     assert result["passed"]
 
 
+# ---- 13.7+ locale number normalization (thousands grouping bị tách thành nhiều token) ----
+
+def test_verifier_merges_space_separated_thousands_grouping():
+    ev = _ev("ev:t:0001", 298219517806.0)
+    result = verify_numeric_claims("Tổng 298 219 517 806 VND [ev:t:0001]", [ev])
+    assert result["passed"]
+    assert result["unsupported"] == []
+
+
+def test_verifier_merges_comma_separated_thousands_grouping():
+    ev = _ev("ev:t:0001", 298219517806.0)
+    result = verify_numeric_claims("Tổng 298, 219, 517, 806 VND [ev:t:0001]", [ev])
+    assert result["passed"]
+
+
+def test_verifier_still_rejects_single_group_decimal_ambiguity():
+    # "745.078" chỉ có 1 nhóm-3-chữ-số — vẫn coi là số thập phân, KHÔNG gộp
+    # thành 745078, giữ nguyên hành vi display-rounding cũ.
+    ev = _ev("ev:t:0001", 745.077922)
+    assert not verify_numeric_claims("Giá trị 750 [ev:t:0001]", [ev])["passed"]
+
+
+def test_verifier_accepts_date_with_alternate_separator():
+    ev = _ev("ev:t:0001", "2026-07-03")
+    result = verify_numeric_claims("Ngày cao nhất là 2026/07/03 [ev:t:0001]", [ev])
+    assert result["passed"]
+
+
+def test_verifier_accepts_typographic_dash_and_narrow_space():
+    # LLM Groq đôi khi sinh dau gach noi khong ngat dong (U+2011) va khoang
+    # trang hep (U+202F) thay vi ASCII thuong.
+    date_ev = _ev("ev:t:0001", "2026-07-03")
+    amount_ev = _ev("ev:t:0002", 298219517806.0)
+    text = (
+        "Ngay cao nhat la 2026" + chr(0x2011) + "07" + chr(0x2011) + "03 [ev:t:0001]"
+        + " voi tong 298" + chr(0x202F) + "219" + chr(0x202F) + "517" + chr(0x202F)
+        + "806 VND [ev:t:0002]"
+    )
+    result = verify_numeric_claims(text, [date_ev, amount_ev])
+    assert result["passed"]
+    assert result["unsupported"] == []
+
+
 # ---- 13.2.4 wording gate ----
 
 @pytest.mark.parametrize("answer,expect_violation", [

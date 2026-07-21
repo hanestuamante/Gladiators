@@ -530,3 +530,22 @@ Ngoài 9 fix hallucination, đợt này dọn thêm test-code hygiene để suit
 
 - `test_independent_oracle_matches_frozen_gold_and_imports_no_production_code`: `artifact_hash` mismatch — golden `89a9b19ba967b8e9` (đóng băng trong `eval/independent/golden_v2.json`) ≠ hash hiện tại `2e2e835c0818cbf9` của `(products_clean, product_snapshot_metrics, shop_info_clean)`. **CSV là LF (không phải CRLF), working tree không sửa CSV nào** → đây là golden **stale so với lần regenerate CSV gần nhất** (pipeline thêm cột derived cho transition metrics sau khi golden được freeze). Trước đợt này lỗi bị che bởi `UnicodeDecodeError` của `read_text()` trên Windows; giờ encoding đã fix nên lộ ra assertion thật — nó cũng đỏ trên Mac/Linux ở state 155e1e5.
 - **KHÔNG regenerate golden để ép xanh** (đúng cảnh báo mục 9: "không chỉnh tay để làm xanh coverage"). Việc đúng: DR2 chạy lại `eval/independent/build_golden.py` và **human review** trước khi re-freeze — đúng definition-of-done mục 12 ("Human review phần gold semantics"). Ghi vào backlog, không thuộc đợt chống-hallucination.
+
+### 13.8. Locale number normalization — bug thật bắt được live qua Groq (21/07)
+
+Sau khi UI `/flow` deploy (13.6/13.7), test tay qua Groq thật (`gpt-oss-120b`, query "cửa hàng nào bán mỹ phẩm có doanh thu cao nhất...") cho thấy **generation fallback về deterministic template mọi lần**, dù câu trả lời LLM sinh ra đúng nội dung. Mục 13.4 đã liệt "locale number normalization" là hoãn — bug này chứng minh nó không chỉ lý thuyết, đã xảy ra live và tốn thêm 1 lượt gọi Groq mỗi request.
+
+**Nguyên nhân (xác nhận bằng cách trace raw text trước verify):** Groq sinh câu trả lời dùng ký tự "typographic" thay vì ASCII thường:
+- Dấu gạch nối ngày tháng `2026‑07‑03` dùng **non-breaking hyphen U+2011**, không phải `-` (U+002D) — evidence value `"2026-07-03"` không match theo string-replace cũ → cả 3 phần ngày (`2026`, `07`, `03`) bị bộ quét số tách thành 3 "số bịa" riêng.
+- Số lớn `298 219 517 806` phân cách bằng **narrow no-break space U+202F** — không rơi vào token liền, verifier tách thành 4 số riêng (298, 219, 517, 806) không khớp evidence `298219517806`.
+
+Cả hai đều bị `verify_numeric_claims` chặn đúng thiết kế (fail-closed, không hallucinate số), nhưng gây fallback không cần thiết cho một câu trả lời vốn đã đúng.
+
+**Fix trong `src/gladiators/agent/verifier.py`:**
+1. `_normalize_unicode_punctuation()` — map các biến thể Unicode dash (`‐‑‒–—−`) về `-` ASCII và các biến thể Unicode space (nbsp, narrow no-break space, figure space, thin space) về ` ` thường, chạy đầu tiên trong `verify_numeric_claims` trước mọi bước khác.
+2. `_normalize_thousands_grouping()` — gộp cụm số bị dấu phân cách nghìn (`,`, `.`, khoảng trắng) tách thành nhiều token rời thành một số liền, **chỉ khi ≥2 lần lặp nhóm-3-chữ-số** (tránh nhầm với số thập phân dạng `745.078` — chỉ 1 lần lặp, giữ nguyên hành vi display-rounding cũ).
+3. `_date_variants()` — evidence value dạng ISO date (`YYYY-MM-DD`) được so khớp thêm với biến thể `/` và `.` trước khi loại khỏi vùng quét số.
+
+**Test:** 5 case mới trong `tests/test_antihallucination.py` (gộp space-separated, comma-separated, không gộp nhầm single-group decimal, date đổi separator ASCII, và case tái hiện đúng bug thật với `chr(0x2011)`/`chr(0x202F)`). Full suite: **162 passed / 1 failed** (giữ nguyên đúng golden-stale ở 13.7, không regression).
+
+**Verify live:** chạy lại đúng câu hỏi qua Groq thật sau fix — `generation.fallback=False`, `attempts=1`, không còn `errors` key (pass verify ngay lần đầu).
