@@ -151,7 +151,14 @@ def main():
                     **checks,
                 }
             except Exception as exc:
-                crashes += 1; row = {"id": case["id"], "run": run + 1, "passed": False, "error": type(exc).__name__}
+                import traceback as _traceback
+                crashes += 1
+                row = {
+                    "id": case["id"], "run": run + 1, "passed": False,
+                    "error": type(exc).__name__,
+                    "error_message": str(exc)[:500],
+                    "traceback": "".join(_traceback.format_exception(exc, limit=6))[-2000:],
+                }
             rows.append(row); passes.append(row["passed"])
             if runtime.llm_client and any(key.endswith(":429") for key in runtime.llm_client.telemetry().get("error_counts", {})):
                 stop_reason = f"{args.provider}_quota_429"; break

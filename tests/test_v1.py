@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 from fastapi.testclient import TestClient
 
@@ -282,7 +283,7 @@ def test_highest_monthly_sold_template_preserves_proxy_caveat(tmp_path):
 
 
 def test_v2_analytical_eval_suite_has_unique_cases():
-    suite = json.loads(Path("eval/questions_v2.json").read_text())
+    suite = json.loads(Path("eval/questions_v2.json").read_text(encoding="utf-8"))
     assert len(suite) == 9
     assert len({case["id"] for case in suite}) == len(suite)
 
@@ -381,9 +382,11 @@ def test_numeric_verifier_ignores_overlapping_product_names():
 
 def test_trace_redaction_and_permissions(tmp_path):
     store=TraceStore(tmp_path); path=store.write("abc", {"api_key":"secret","nested":{"token":"x"},"raw_text":"mail me at user@example.com Bearer abc.def"})
-    content = path.read_text()
+    content = path.read_text(encoding="utf-8")
     assert "secret" not in content and "user@example.com" not in content and "abc.def" not in content
-    assert (path.stat().st_mode & 0o777) == 0o600
+    if sys.platform != "win32":
+        # Unix permission bits không áp dụng trên Windows (không có chmod POSIX).
+        assert (path.stat().st_mode & 0o777) == 0o600
 
 
 def test_locator_variants():
@@ -392,7 +395,7 @@ def test_locator_variants():
 
 
 def test_eval_has_exactly_60_cases():
-    suite=json.loads(Path("eval/questions.json").read_text())
+    suite=json.loads(Path("eval/questions.json").read_text(encoding="utf-8"))
     assert len(suite) == 60 and len({x["id"] for x in suite}) == 60
 
 

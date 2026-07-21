@@ -25,6 +25,7 @@ from .parser import MultilingualIntentParser, UNSUPPORTED
 from .tool_dispatch import ToolContext, dispatch
 from .trace import TraceStore
 from .verifier import verify_numeric_claims
+from .wording import check_wording
 
 
 class AgentRuntime:
@@ -205,10 +206,24 @@ class AgentRuntime:
         deterministic = self._deterministic_answer(decision, request, evidence)
         if decision.action != "allow" or not (self.use_llm_generation and self.llm_client):
             return deterministic, {"attempts": 0, "fallback": False}
+        # Caveats từ metric registry là phần bắt buộc của payload (V2 mục 5.1),
+        # không phải tùy chọn của generator — đưa thẳng vào context.
+        from gladiators.domain.metrics import METRICS
+        caveats = sorted({
+            caveat for item in evidence
+            if (spec := METRICS.get(item.metric)) is not None for caveat in spec.caveats
+        })
         context = {
             "request": request.model_dump(), "gate": decision.model_dump(),
             "evidence": [e.model_dump(mode="json") for e in evidence],
-            "rules": ["Chỉ dùng số trong evidence", "Gắn evidence_id ngay sau claim", "Không khẳng định nhân quả"],
+            "caveats": caveats,
+            "rules": [
+                "Chỉ dùng số trong evidence", "Gắn evidence_id ngay sau claim",
+                "Không khẳng định nhân quả (cấm 'gây ra/làm tăng/làm giảm/tác động')",
+                "Không dự báo/forecast", "Doanh thu proxy luôn kèm chữ 'ước tính'",
+                "Kết quả ở cấp listing, không phải SKU; cấm 'cùng mẫu/cùng SKU'",
+                "Giữ nguyên các caveat trong trường caveats khi diễn giải",
+            ],
             "deterministic_answer": deterministic,
         }
         errors = []
@@ -216,9 +231,15 @@ class AgentRuntime:
             try:
                 answer = self.llm_client.generate(context)
                 verdict = verify_numeric_claims(answer, evidence)
-                if verdict["passed"]:
+                wording_violations = check_wording(answer)
+                if verdict["passed"] and not wording_violations:
                     return answer, {"attempts": attempt + 1, "fallback": False}
-                errors.append({"type": "numeric_verification", "unsupported": verdict["unsupported"]})
+                errors.append({
+                    "type": "verification",
+                    "unsupported": verdict["unsupported"],
+                    "unknown_citations": verdict.get("unknown_citations", []),
+                    "wording": wording_violations,
+                })
                 context["verifier_feedback"] = errors[-1]
             except (ValueError, RuntimeError, KeyError, json.JSONDecodeError) as exc:
                 errors.append({"type": type(exc).__name__})
@@ -316,6 +337,12 @@ class AgentRuntime:
                             "provider": getattr(self.plan_critic.llm_client, "provider", "unavailable"),
                             "issues": [issue.model_dump() for issue in critique.issues],
                         }
+                        if critique.dropped:
+                            # Issue LLM báo nhưng máy chứng minh được là sai (cq03) —
+                            # ghi trace, không cho phép chặn plan đúng.
+                            planning_meta["critic"]["dropped"] = [
+                                issue.model_dump() for issue in critique.dropped
+                            ]
                         if critique.issues:
                             details = "; ".join(f"{issue.code}: {issue.message}" for issue in critique.issues)
                             raise AnalyticalPlanError(f"Plan Critic từ chối plan: {details}")

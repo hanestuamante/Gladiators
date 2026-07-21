@@ -42,7 +42,7 @@ def capabilities() -> dict:
             "highest_revenue_day", "listing_count",
             "highest_price_listing", "highest_monthly_sold_listing", "top_shop_by_listing_count",
         ),
-        "planner": {"ir_version": "1.0", "critic_enabled": runtime.enable_critic, "nversion_enabled": False},
+        "planner": {"ir_version": "1.0", "critic_enabled": runtime.enable_critic, "nversion_enabled": runtime.enable_nversion},
         "data": runtime.repo.capability_profile(),
         "unsupported_policy": "clarify_or_abstain",
     }

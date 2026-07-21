@@ -361,6 +361,15 @@ class GroqLLMClient:
                 code=getattr(exc,"status_code",None) or "unknown"; error_key=f"{type(exc).__name__}:{code}"; self._telemetry["error_counts"][error_key]=self._telemetry["error_counts"].get(error_key,0)+1
                 raise RuntimeError(f"Groq request thất bại: {error_key}") from exc
         content=response.choices[0].message.content
+        if not content:
+            # cq02 (smoke 20/07): Groq đôi khi trả response rỗng transient — một
+            # bounded retry trước khi fail-closed, có đếm telemetry riêng.
+            self._telemetry["empty_retries"] = self._telemetry.get("empty_retries", 0) + 1
+            try:
+                response = self._complete(client, target_model, effective_prompt, response_format, reasoning_effort)
+                content = response.choices[0].message.content
+            except Exception:
+                content = None
         self._last_call[role] = time.monotonic()
         if not content: raise RuntimeError("Groq trả response rỗng.")
         content = _strip_reasoning(content)

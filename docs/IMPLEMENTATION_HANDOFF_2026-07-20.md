@@ -383,3 +383,150 @@ Phase 5 chỉ được đánh dấu hoàn tất khi có report versioned chứng
 
 Sau Phase 5, Phase 6 vẫn là conditional external integration. Không tự động chuyển sang Phase 6 chỉ vì Phase 5 code đã có.
 
+
+---
+
+## 13. Review chống-hallucination 21/07 — kết quả audit + kế hoạch sửa (ĐÃ thực thi — xem 13.6)
+
+Ngày review: 21/07/2026. Phạm vi: toàn bộ đường sinh câu trả lời (`workflow._generate` → `verifier`), planner stack (`open_planner`, `critic`, `consensus`, `risk`, `validator`, `compiler`, `executor`), LLM adapters, và đối chiếu với `docs/V2_Unified_Architecture.md` (v2.3). Mục này là **kế hoạch được duyệt trước khi code** — mỗi fix dưới đây đã được thiết kế ở mức implementation-ready (file, hàm, hành vi, edge case, test contract) nhưng **chưa merge dòng nào**.
+
+### 13.1. Mô hình mối đe dọa — 4 lớp hallucination của hệ này
+
+| Lớp | Mô tả | Lá chắn hiện có | Trạng thái |
+| --- | --- | --- | --- |
+| H1. Số bịa trong answer | LLM generation viết số không có trong evidence | `verify_numeric_claims` full-answer scan + fallback deterministic | **Có nhưng thủng** (13.2.1–13.2.3) |
+| H2. Kết luận bịa (không phải số) | Câu chữ nhân quả/forecast/cùng-SKU/gọi proxy là doanh thu thật | KHÔNG có — chỉ dặn trong prompt | **Trống hoàn toàn** (13.2.4) |
+| H3. LLM hallucinate trong planner path | Critic bịa issue → false-reject plan đúng (cq03); adjudicator chọn phe không lý do; planner sinh ref ngoài catalog | Validator + catalog slice chặn planner tốt; critic/adjudicator hở | **Hở ở critic/adjudicator** (13.2.6–13.2.7) |
+| H4. Provider failure biến thành abstain sai | Groq trả rỗng → A19-PLAN dù plan đúng (cq02) | Fail-closed nhưng không retry | **Availability bug** (13.2.8) |
+
+Điểm mạnh đã xác nhận (không cần sửa): LLM không bao giờ tính số (quyết định #2 giữ đúng ở mọi đường); planner chỉ chọn semantic refs, ref ngoài catalog slice bị reject kèm bounded repair; compiler sinh SQL từ AST whitelist + parameterize, executor read-only + postconditions; plan invalid không được escalation bypass (`risk.py` trả blocked); relation registry không có edge nối 2 hệ category — join chéo là structurally impossible.
+
+### 13.2. Gap chi tiết + thiết kế fix
+
+#### 13.2.1. [P0] Verifier tolerance quá lỏng — số sai-nhưng-gần đi lọt
+
+- **File:** `src/gladiators/agent/verifier.py`
+- **Vấn đề:** `rel_tol=0.011` (1,1%) — ví dụ thật: evidence `745.078`, LLM viết `750` → chênh 0,67% → **PASS dù sai**. Đây là cửa hallucination số im lặng nhất hiện nay.
+- **Thiết kế:** thay bằng display-rounding tolerance đúng V2 §9.2: token hiển thị `d` chữ số thập phân pass khi `|shown − true| ≤ max(0.5×10^(−d), 1e-9×max(1,|true|))`. Cần hàm mới `scan_number_tokens(text) -> list[(value, decimals)]` (mở rộng `scan_numbers` hiện có; `decimals` = độ dài phần thập phân của token sau khi đổi `,`→`.`).
+- **Đã kiểm tương thích:** deterministic answers dùng `:g`/`:.0f` không sinh thousand-separator; `745.078` (d=3, tol 5e-4) khớp `745.077922`; `2059.66` (d=2) khớp `2059.660617`; `2060` (d=0, tol 0.5) khớp — làm tròn đúng vẫn pass; `750` fail. Cặp test hiện hành (10 pass / 12 fail) và cặp 0.9/0.8 không đổi hành vi.
+- **Giữ tham số `tolerance` làm escape hatch** (`None` = strict mới, giá trị cụ thể = legacy isclose) để không phá caller bên ngoài.
+- **Giới hạn ghi nhận:** số kiểu VN `1.580` (chấm nghìn) sẽ parse thành 1.58 → fail-closed về deterministic. Locale normalization là target §9.2, chưa làm vòng này.
+
+#### 13.2.2. [P0] Fake citation không bị bắt
+
+- **File:** `verifier.py`
+- **Vấn đề:** LLM có thể bịa `[ev:abc:0007]`; hiện chỉ evidence_id THẬT bị strip khỏi vùng scan, citation bịa chỉ fail "tình cờ" nếu digit bên trong không khớp evidence nào.
+- **Thiết kế:** regex `\[(ev:[^\[\]\s]+)\]` bắt mọi citation token; token không thuộc tập `{e.evidence_id}` → thêm vào `unknown_citations` → `passed=False`. Sau khi bắt, strip toàn bộ citation token (kể cả lạ) khỏi vùng scan số để không sinh nhiễu kép. Thêm key `unknown_citations` vào dict trả về (additive, không phá consumer).
+- **Cẩn trọng:** chỉ match prefix `ev:` — KHÔNG validate bracket bất kỳ, vì product name thật chứa bracket (`[Tặng Quạt Đơn 180k]...`) và test hiện dùng id ngắn `[e1]` (không match pattern → bỏ qua, đúng ý).
+
+#### 13.2.3. [P0] String evidence values gây degraded oan
+
+- **File:** `verifier.py`
+- **Vấn đề:** `allowed` chỉ nhận int/float; evidence dạng chuỗi (shop_name `"Glad2Glow Official Store"` chứa digit `2`, date `"2026-07-01"`, product_name) khi xuất hiện trong answer bị scan thành "số bịa" → `degraded=True` oan. Đường open-analytical trả string evidence thường xuyên.
+- **Thiết kế:** thêm `item.value` (khi là str, non-empty) vào `ignored_strings` (hiện chỉ strip `attrs`) — giá trị evidence dạng chuỗi LÀ text có bằng chứng, phải loại khỏi vùng scan trước khi quét số.
+
+#### 13.2.4. [P0] Wording gate — lớp H2 đang trống hoàn toàn
+
+- **File mới:** `src/gladiators/agent/wording.py`; tích hợp tại `workflow._generate`.
+- **Vấn đề:** V2 §11.3 quy định 13 wording rules enforce bằng "regex list + P4 + judge" — hiện KHÔNG có dòng code nào. LLM nói "voucher làm tăng doanh số" (nhân quả bịa) → không gì chặn; numeric verifier chỉ nhìn số.
+- **Thiết kế `check_wording(answer) -> list[violation]`:**
+  - So khớp trên văn bản đã fold dấu (tái dùng logic normalize hiện có) để bắt cả có-dấu lẫn không-dấu.
+  - **Negation-aware:** loại mệnh đề phủ định trước khi quét — regex dạng `\b(khong|chua|not|no)\b[^.;:\n]{0,90}` xóa từ từ-phủ-định đến hết cụm. Bắt buộc, vì caveat chuẩn của chính hệ thống chứa từ cấm ("**không** chứng minh khuyến mãi **gây ra** thay đổi").
+  - Rule set khởi điểm (conservative để không chặn oan, mở rộng dần theo eval):
+    1. `causal_language`: "gay ra", "lam tang", "lam giam", "khien", "nho voucher", "nho khuyen mai", "tac dong lam", "hieu qua ro ret", "chung minh hieu qua", "cho thay hieu qua" (KHÔNG cấm "hiệu quả" trần — xuất hiện hợp lệ khi diễn đạt lại câu hỏi).
+    2. `same_sku_claim`: "cung mau", "cung sku", "chinh xac cung loai".
+    3. `forecast_claim`: "du bao", "se tang", "se giam", "thang sau se".
+    4. `revenue_missing_estimate_label` (positive requirement): answer nhắc "doanh thu/revenue" mà thiếu "uoc tinh"/"proxy"/"estimated" → violation (V2 rule 2).
+- **Tích hợp:** trong `_generate`, sau numeric verify: `verdict.passed AND not check_wording(answer)` mới nhận answer; violation → ghi vào `verifier_feedback` cho vòng retry; 2 lần fail → deterministic fallback (đúng ladder V2 §9.3). **Chỉ gate answer do LLM sinh** — deterministic template đã được review theo contract (đã kiểm: template promotion chứa cụm phủ định vẫn qua gate an toàn nhờ negation-strip nếu sau này muốn gate cả hai).
+- **Test cases:** "Voucher làm tăng doanh số" → violation; "không chứng minh khuyến mãi gây ra thay đổi" → sạch; "Doanh thu ngày 03/07 là X" (thiếu "ước tính") → violation; "doanh thu proxy ước tính" → sạch.
+
+#### 13.2.5. [P0] Caveats không đi vào generation context
+
+- **File:** `workflow._generate`.
+- **Vấn đề:** V2 §5.1: caveat là "bắt buộc chèn vào evidence payload — không phải tùy chọn của generator". Metric registry đã có caveats đầy đủ nhưng `_generate` không đưa vào context → LLM không có nguyên liệu để giữ nhãn "ước tính"/"proxy"/"không nhân quả".
+- **Thiết kế:** `caveats = sorted({c for e in evidence if (spec := METRICS.get(e.metric)) for c in spec.caveats})` → `context["caveats"]`; mở rộng `context["rules"]` khớp wording gate (cấm nhân quả/forecast/cùng-SKU, bắt buộc "ước tính", giữ caveats khi diễn giải). Import `METRICS` cục bộ trong hàm để tránh import cycle.
+
+#### 13.2.6. [P1] Critic false-reject — LLM hallucinate issue chặn plan đúng (cq03)
+
+- **File:** `src/gladiators/planner/critic.py` (+ 1 nhánh nhỏ trong `workflow`).
+- **Vấn đề thật từ smoke Groq 20/07:** critic phán `entity.shop` "không map vào products_clean.csv" và `listing_count` "không được có trong expected_schema" — cả hai SAI, vì critic không được cấp catalog/physical mapping, tự suy đoán rồi bịa issue → plan đúng bị A19-PLAN. Critic hallucinate chính là một dạng hallucination phải trị.
+- **Thiết kế 2 lớp:**
+  1. **Input đủ ngữ cảnh** — thay vì gửi `(question, plan)` trần, `PlanCritic` tự dựng payload: `{plan, catalog_slice (đúng các ref plan dùng, KÈM physical mapping), relations (spec của các Join trong plan), guidance}`. Guidance nêu rõ: validator đã xác nhận refs/filter-op/join-path/budget/schema — không báo lại; `expected_schema` là semantic output contract được phép chứa field phục vụ downstream node; không suy đoán physical columns (mapping nằm trong `catalog_slice.physical`); chỉ báo issue có `node_id` tồn tại + invariant kiểm được. Giữ nguyên signature `critique_plan(question, payload)` ở mọi client (payload là dict opaque → không phải sửa 4 adapter).
+  2. **Lọc issue sai kiểm chứng được** — với plan đã qua deterministic validator: issue thuộc nhóm validator phủ đầy đủ `{missing_semantic_object, wrong_filter, wrong_join_path, budget_exceeded, schema_invalid}` → **drop** (máy chứng minh được là phán sai — đúng lớp lỗi cq03); issue có `node_id` không tồn tại trong plan → drop. Chỉ giữ nhóm semantic ngoài khả năng kiểm cơ học: `grain_mismatch, fanout_risk, unit_mismatch, temporal_mismatch, unsupported_claim`. Issue bị drop ghi vào `planning_meta["critic"]["dropped"]` (chỉ thêm key khi non-empty — xem guardrail 13.5).
+- **Kiểu trả về:** đổi `review()` → `CriticReview(issues, dropped)` (dataclass mới); `CriticOutput` pydantic giữ nguyên làm schema structured-output cho LLM (không thêm field vào schema gửi model).
+
+#### 13.2.7. [P1] Adjudicator chọn phe không cần lý do
+
+- **File:** `src/gladiators/planner/consensus.py`.
+- **Vấn đề:** V2 §7.9: P11 "chỉ chọn khi nêu được issue định danh". Schema có `reason_issue_type` nhưng code không bắt buộc — LLM chọn `primary` với `reason_issue_type=null` vẫn được nhận = phán bừa không kiểm được.
+- **Thiết kế:** sau `model_validate`, nếu `verdict != "unresolved"` và `not reason_issue_type` → raise `ConsensusError` (fail-closed như unresolved → A19-PLAN). Test hiện hành trả `"wrong_filter"` → không regression.
+
+#### 13.2.8. [P1] Groq empty response → abstain oan (cq02)
+
+- **File:** `src/gladiators/agent/llm.py` (`GroqLLMClient._chat`).
+- **Thiết kế:** content rỗng → đúng 1 bounded retry cùng tham số (đếm `telemetry["empty_retries"]`), vẫn rỗng → raise như cũ. Không retry vô hạn, không thay đổi ladder fail-closed. Kèm theo (đúng next-step #4 mục 8): kiểm hành vi `max_tokens`/reasoning-token của `openai/gpt-oss-20b` — codebase đã có sẵn `reasoning_effort="none"` cho model Qwen; cân nhắc nâng `max_tokens` cho call site critic/planner nếu đo thấy truncation là nguyên nhân response rỗng.
+
+#### 13.2.9. [P2] Ops nhỏ đúng next-steps mục 8
+
+- `/capabilities`: `"nversion_enabled": runtime.enable_nversion` thay vì hard-code `False` (`api.py` dòng 45).
+- Evaluator crash: ghi thêm `error_message` (cắt 500 ký tự) + `traceback` rút gọn (format_exception limit≈6, cắt 2000 ký tự cuối) tại `scripts/run_evaluation.py` khối `except` (~dòng 153) — mở khóa chẩn đoán cq04 (`ValidationError` chưa rõ nguồn).
+
+### 13.3. Thứ tự thực thi đề nghị + phụ thuộc
+
+1. **Verifier (13.2.1–13.2.3)** — một file, tự chứa; chạy lại toàn suite ngay sau đó vì mọi đường đều đi qua verifier.
+2. **Wording gate + caveats context (13.2.4–13.2.5)** — phụ thuộc verifier mới (dùng chung shape `verifier_feedback` trong `_generate`).
+3. **Critic + adjudicator + Groq retry (13.2.6–13.2.8)** — độc lập với nhau, có thể làm song song.
+4. **Ops (13.2.9)** — bất kỳ lúc nào.
+5. **Tests mới đi cùng từng bước:** verifier (fake citation fail; string value không degraded; 750-vs-745.078 FAIL; "745.08" PASS), wording (4 case ở 13.2.4), critic filter (issue thiếu node_id bị drop; nhóm deterministic-covered bị drop khi plan valid; `grain_mismatch` vẫn chặn), adjudicator fail-closed khi thiếu reason, Groq empty-retry (mock client).
+6. Sau khi xanh: chạy lại **60 câu V1 parity + mutation suite offline** trước khi ghi nhận hoàn thành; các fix KHÔNG đổi contract API (`AgentResponse` chỉ thêm key additive trong `verification`/`planning`).
+
+### 13.4. Nhận diện nhưng CHỦ ĐỘNG HOÃN (target, không thuộc đợt này)
+
+- **Claims JSON + binding path/unit/tier** (V2 §9.1–9.2 Pass 2 đầy đủ): cần Response Generator xuất `{answer_vi, claims}` — thay đổi lớn ở P2 prompt + verifier; làm sau khi wording gate ổn định. Đây là mảnh lớn nhất còn lại giữa verifier hiện tại và target §9.
+- **Locale number normalization** (kiểu VN `1.580,5`): thuộc Pass 1 target; hiện fail-closed là chấp nhận được.
+- **Machine-generated gate rules từ quality report + đủ 19 rule A1–A19**: đúng lộ trình build order 21/07 của DS1, không gộp vào đợt chống-hallucinate.
+- **Human review gold semantics + real-provider eval pass³**: điều kiện đóng Phase 5 (mục 12), không thay đổi.
+
+### 13.5. Guardrails regression đã xác minh trong test suite hiện hành
+
+- `test_top_shop_join_runs_after_critic_acceptance`: assert **exact dict** `planning["critic"] == {"provider": "fake", "issues": []}` → mọi key mới trong critic meta phải conditional (chỉ xuất hiện khi non-empty).
+- `test_plan_critic_issue_blocks_execution_without_tool_call`: issue `grain_mismatch` node `n4` phải tiếp tục chặn plan (thuộc nhóm GIỮ của filter — không được drop).
+- `test_numeric_verifier_blocks_invented_number` và `test_numeric_verifier_ignores_overlapping_product_names`: giữ nguyên hành vi với tolerance mới.
+- N-version test dùng adjudicator trả `reason_issue_type="wrong_filter"` → tương thích fail-closed mới.
+- Test id kiểu `[e1]` không match pattern citation `ev:` → không bị chặn oan.
+
+### 13.6. Trạng thái thực thi 21/07 — ĐÃ MERGE (regression-free)
+
+Toàn bộ 9 fix ở 13.2 đã được hiện thực đúng thiết kế. Test: **153 passed / 5 failed**; 5 lỗi còn lại **đều pre-existing, không phải regression** (2 Windows cp1252 `read_text()` thiếu `encoding="utf-8"`: `test_eval_has_exactly_60_cases`, `test_independent_oracle...`; 1 Windows permission `0600`: `test_trace_redaction_and_permissions`; 2 classifier gap L4→L2: `test_composite_l4...[l4c01/l4c05]` — đúng next-step #8 mục 8, gold semantics chưa đủ chặt). Trên Linux/CI 3 lỗi encoding/permission sẽ xanh; 2 lỗi L4 là việc riêng của gold-semantics.
+
+**File thay đổi:**
+
+| File | Nội dung |
+| --- | --- |
+| `src/gladiators/agent/verifier.py` | Viết lại: `scan_number_tokens` (value+decimals), display-rounding tolerance, `CITATION` regex + `unknown_citations`, string evidence values vào ignored. `tolerance` param giữ làm escape hatch (`None`=strict mới). Dict trả về thêm key `unknown_citations` (additive). |
+| `src/gladiators/agent/wording.py` | **File mới**: `check_wording(answer)`, negation-aware, 4 nhóm rule (causal/same-sku/forecast/revenue-label). |
+| `src/gladiators/agent/workflow.py` | `_generate`: inject `context["caveats"]` từ METRICS + mở rộng `rules`; gate `verdict.passed AND not check_wording(...)`; feedback gộp numeric+citation+wording. Nhánh critic: thêm key `planning["critic"]["dropped"]` (conditional). |
+| `src/gladiators/planner/critic.py` | Viết lại: `_critic_payload` (catalog slice + physical + relations + guidance), `CriticReview(issues, dropped)`, lọc issue nhóm `_DETERMINISTIC_COVERED` và node_id không tồn tại. `CriticOutput` giữ nguyên làm schema LLM. |
+| `src/gladiators/planner/consensus.py` | Adjudicator: `verdict != unresolved` mà thiếu `reason_issue_type` → `ConsensusError` fail-closed. |
+| `src/gladiators/agent/llm.py` | `GroqLLMClient._chat`: empty content → 1 bounded retry + `telemetry["empty_retries"]`. |
+| `src/gladiators/api.py` | `/capabilities`: `nversion_enabled` đọc `runtime.enable_nversion`. |
+| `scripts/run_evaluation.py` | Khối crash ghi thêm `error_message` (≤500) + `traceback` rút gọn (≤2000). |
+| `tests/test_antihallucination.py` | **File mới**: 16 test phủ 13.2.1–13.2.8 (verifier ×4, wording ×7 param, critic filter ×3, adjudicator fail-closed ×1, Groq empty-retry ×1). |
+
+**Guardrail regression đã xác minh xanh:** `test_top_shop_join_runs_after_critic_acceptance` (exact dict `{"provider":"fake","issues":[]}` — key `dropped` chỉ xuất hiện khi non-empty); `test_plan_critic_issue_blocks_execution_without_tool_call` (`grain_mismatch`/`n4` vẫn chặn); N-version adjudicator test cũ (`reason_issue_type="wrong_filter"`) vẫn pass; 3 cặp `test_numeric_verifier_*` giữ hành vi.
+
+**Contract API additive-only:** `AgentResponse` không đổi field; chỉ thêm key trong `verification` (`unknown_citations`) và `planning["critic"]` (`dropped`) — an toàn cho consumer/UI hiện có.
+
+**Còn nợ (chủ động hoãn — xem 13.4):** claims JSON + binding path/unit/tier (Pass 2 đầy đủ §9) là mảnh lớn nhất còn lại; locale number normalization; 19-rule gate machine-generated; human review gold + real-provider pass³. Đây KHÔNG phải điều kiện của đợt chống-hallucinate này nhưng là mục tiêu Phase-5-close.
+
+### 13.7. Dọn test hygiene cross-platform + phát hiện golden stale (21/07)
+
+Ngoài 9 fix hallucination, đợt này dọn thêm test-code hygiene để suite chạy được nhất quán mọi OS (không đổi logic sản phẩm):
+
+- Thêm `encoding="utf-8"` vào **toàn bộ** `Path(...).read_text()` trong `tests/test_v1.py` và `tests/test_planner_mutations.py` (11 call site). Đây là anti-pattern tiềm ẩn: trên Windows default codec là cp1252 → file fixture tiếng Việt bị méo/crash. Sau fix: 2 case `test_composite_l4[l4c01/l4c05]` từng `assert 'L2'=='L4'` **tự khỏi** — nguyên nhân thật là fixture `l4_acceptance.json` bị đọc sai encoding làm câu hỏi tiếng Việt méo → classifier ra L2, KHÔNG phải gold-semantics gap như phỏng đoán ban đầu ở mục 8 #8.
+- Guard assert Unix-permission `0o600` bằng `sys.platform != "win32"` (Windows không có chmod POSIX).
+
+**Kết quả suite: 157 passed / 1 failed** (từ 137/5). 1 lỗi còn lại là **pre-existing, không phải regression và ngoài scope hallucination**:
+
+- `test_independent_oracle_matches_frozen_gold_and_imports_no_production_code`: `artifact_hash` mismatch — golden `89a9b19ba967b8e9` (đóng băng trong `eval/independent/golden_v2.json`) ≠ hash hiện tại `2e2e835c0818cbf9` của `(products_clean, product_snapshot_metrics, shop_info_clean)`. **CSV là LF (không phải CRLF), working tree không sửa CSV nào** → đây là golden **stale so với lần regenerate CSV gần nhất** (pipeline thêm cột derived cho transition metrics sau khi golden được freeze). Trước đợt này lỗi bị che bởi `UnicodeDecodeError` của `read_text()` trên Windows; giờ encoding đã fix nên lộ ra assertion thật — nó cũng đỏ trên Mac/Linux ở state 155e1e5.
+- **KHÔNG regenerate golden để ép xanh** (đúng cảnh báo mục 9: "không chỉnh tay để làm xanh coverage"). Việc đúng: DR2 chạy lại `eval/independent/build_golden.py` và **human review** trước khi re-freeze — đúng definition-of-done mục 12 ("Human review phần gold semantics"). Ghi vào backlog, không thuộc đợt chống-hallucination.

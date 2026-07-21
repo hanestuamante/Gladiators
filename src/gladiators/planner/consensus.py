@@ -115,6 +115,13 @@ class NVersionResolver:
             raise ConsensusError(f"P11 trả verdict không hợp lệ: {exc}") from exc
         if verdict.verdict == "unresolved":
             raise ConsensusError(f"P11 unresolved: {verdict.detail}")
+        if not verdict.reason_issue_type:
+            # V2 mục 7.9/2.9b: adjudicator chỉ được chọn phe khi nêu được issue định
+            # danh kiểm được; chọn không lý do = phán đoán không kiểm chứng được →
+            # fail-closed như unresolved.
+            raise ConsensusError(
+                "P11 chọn plan nhưng không nêu reason_issue_type kiểm được; fail-closed unresolved."
+            )
         selected = primary if verdict.verdict == "primary" else alternate
         return ConsensusResult(
             selected, verdict.verdict, True, True, True,

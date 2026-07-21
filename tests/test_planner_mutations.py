@@ -138,7 +138,7 @@ def test_coverage_matrix_is_generated_from_executable_registries():
 
 
 def test_mutation_manifest_ids_and_expectations_are_unique():
-    cases = json.loads(Path("eval/planner_mutations.json").read_text())
+    cases = json.loads(Path("eval/planner_mutations.json").read_text(encoding="utf-8"))
     assert len(cases) == 21
     assert len({case["id"] for case in cases}) == len(cases)
     assert all(case.get("expected_issue") or case.get("expected_rule") or case.get("expected") for case in cases)
@@ -185,15 +185,15 @@ def test_promotion_observations_cannot_be_aggregated_across_snapshots():
 
 
 def test_independent_oracle_matches_frozen_gold_and_imports_no_production_code():
-    source = Path("eval/independent/oracle.py").read_text()
+    source = Path("eval/independent/oracle.py").read_text(encoding="utf-8")
     assert "from gladiators" not in source and "import gladiators" not in source
-    frozen = json.loads(Path("eval/independent/golden_v2.json").read_text())
+    frozen = json.loads(Path("eval/independent/golden_v2.json").read_text(encoding="utf-8"))
     assert build_oracle("data/processed") == frozen
 
 
 @pytest.mark.parametrize(
     "case",
-    json.loads(Path("eval/semantic_linking.json").read_text()),
+    json.loads(Path("eval/semantic_linking.json").read_text(encoding="utf-8")),
     ids=lambda case: case["id"],
 )
 def test_semantic_linking_cases_resolve_only_expected_catalog_objects(case):
@@ -353,7 +353,7 @@ def test_resolve_and_similarity_delegated_operators_execute_via_certified_macro(
 
 
 def test_operator_acceptance_manifest_has_three_positive_cases_per_target_operator():
-    cases = json.loads(Path("eval/operator_acceptance.json").read_text())
+    cases = json.loads(Path("eval/operator_acceptance.json").read_text(encoding="utf-8"))
     counts = {}
     for case in cases:
         for op in case["coverage"]["ops"]:
@@ -464,7 +464,7 @@ def test_has_sales_metric_relation_joins_listing_to_governed_snapshots(country):
 
 
 def test_relation_acceptance_manifest_has_two_cases_per_implemented_edge():
-    cases = json.loads(Path("eval/relation_acceptance.json").read_text())
+    cases = json.loads(Path("eval/relation_acceptance.json").read_text(encoding="utf-8"))
     counts = {}
     for case in cases:
         counts[case["relation"]] = counts.get(case["relation"], 0) + 1
@@ -505,7 +505,7 @@ def _empty_brand_plan(country: str, metric: str) -> LogicalQueryPlan:
 
 @pytest.mark.parametrize(
     "case",
-    json.loads(Path("eval/empty_result_acceptance.json").read_text()),
+    json.loads(Path("eval/empty_result_acceptance.json").read_text(encoding="utf-8")),
     ids=lambda case: case["id"],
 )
 def test_empty_analytical_result_is_valid_zero_row_evidence(case, tmp_path):
@@ -555,7 +555,7 @@ def _l4_brand_plan(country: str, measures: list[str]) -> LogicalQueryPlan:
 
 @pytest.mark.parametrize(
     "case",
-    json.loads(Path("eval/l4_acceptance.json").read_text()),
+    json.loads(Path("eval/l4_acceptance.json").read_text(encoding="utf-8")),
     ids=lambda case: case["id"],
 )
 def test_composite_l4_runs_two_blinded_agreeing_planners(case, tmp_path):
