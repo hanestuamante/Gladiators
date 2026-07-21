@@ -51,18 +51,28 @@ button:disabled{opacity:.55;cursor:wait}
 .evidence strong{color:var(--accent);font-size:12px}
 details{margin-top:12px;color:var(--muted)}
 pre{overflow:auto;white-space:pre-wrap;font-size:11.5px}
+.gbox{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:#0b1728;padding:12px}
+.gbox h4{margin:0 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.grow{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;margin-bottom:4px}
+.gtag{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:11px}
+.gtag.ok{background:#183b35;color:var(--accent)}
+.gtag.bad{background:#452020;color:var(--danger)}
+.gtag.warn{background:#45351c;color:var(--warn)}
+.gitem{font-size:12px;color:var(--text);margin:2px 0 2px 4px}
+.gitem.bad{color:var(--danger)}
+.gitem.mut{color:var(--muted)}
 @media(max-width:720px){form{display:block}button{width:100%;height:44px;margin-top:8px}.node{min-width:130px}}
 </style></head><body><main>
 <header><div class="muted">GLADIATORS V2 · LUỒNG XỬ LÝ LIVE</div><h1>Xem agent chạy qua từng cổng.</h1>
-<p>Gõ câu hỏi — sơ đồ diễn lại đúng dữ liệu thật trả về từ <code>/ask</code>: parser trích được gì, gate cho qua hay chặn, tool nào chạy, evidence nào thu được, verifier có chặn số bịa không. Xem trang form đơn giản tại <a href="/">/</a>.</p>
+<p>Gõ câu hỏi — sơ đồ diễn lại đúng dữ liệu thật trả về từ <code>/ask</code>: parser, gate, tool, evidence, và guardrail chống-hallucination (bộ kiểm số, cổng từ ngữ, fallback). Câu analytical còn hiện <b>Planner path</b>: risk score → critic/N-version. Xem trang form đơn giản tại <a href="/">/</a>.</p>
 </header>
 
 <section class="card"><form id="ask"><textarea id="question" maxlength="4000" autofocus placeholder="Ví dụ: Voucher ở VN có hiệu quả không?"></textarea><button id="submit">Chạy</button></form>
 <div class="examples" id="examples">
 <span class="chip">Ngày nào doanh thu cao nhất tại VN?</span>
 <span class="chip">Có bao nhiêu listing tại VN?</span>
+<span class="chip">Shop nào có nhiều listing nhất tại VN?</span>
 <span class="chip">Voucher ở VN có hiệu quả không?</span>
-<span class="chip">Voucher ở Indonesia có hiệu quả không?</span>
 <span class="chip">Lợi nhuận công ty là bao nhiêu?</span>
 </div></section>
 
@@ -89,7 +99,7 @@ pre{overflow:auto;white-space:pre-wrap;font-size:11.5px}
   </div>
 </section>
 
-<section id="answerbox" class="card"><span id="status" class="status"></span><p id="answer"></p><h3 style="margin-bottom:4px">Evidence</h3><div id="evidence" class="grid"></div><details><summary>JSON đầy đủ</summary><pre id="raw"></pre></details></section>
+<section id="answerbox" class="card"><span id="status" class="status"></span><p id="answer"></p><div id="guardrails"></div><div id="planning"></div><h3 style="margin:14px 0 4px">Evidence</h3><div id="evidence" class="grid"></div><details><summary>JSON đầy đủ</summary><pre id="raw"></pre></details></section>
 
 </main><script>
 const $=s=>document.querySelector(s);
@@ -117,6 +127,15 @@ function skipArrow(id){$('#'+id).className='arrow skipped'}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function esc(s){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function gateCls(action){return action==='allow'?'':(action==='clarify'?'warn':'danger')}
+function caughtFrom(gen){
+  const out={unsupported:[],unknown_citations:[],wording:[]};
+  (gen.errors||[]).forEach(e=>{
+    (e.unsupported||[]).forEach(x=>out.unsupported.push(x));
+    (e.unknown_citations||[]).forEach(x=>out.unknown_citations.push(x));
+    (e.wording||[]).forEach(x=>out.wording.push(x.rule?(x.rule+' ('+x.term+')'):x));
+  });
+  return out;
+}
 
 async function run(text){
   resetFlow();
@@ -183,15 +202,27 @@ async function run(text){
 
   const gen=(data.llm&&data.llm.generation)||{};
   const provider=(data.llm&&data.llm.provider)||'deterministic';
-  setNode('generation',null,'provider=<b>'+esc(provider)+'</b>'+(provider==='deterministic'?'<br>dùng template có sẵn':'<br>attempts='+esc(gen.attempts)+' fallback='+esc(gen.fallback)));
+  const caught=caughtFrom(gen);
+  const nCaught=caught.unsupported.length+caught.unknown_citations.length+caught.wording.length;
+  const genFact=provider==='deterministic'
+    ? 'provider=<b>'+esc(provider)+'</b><br>dùng template có sẵn'
+    : 'provider=<b>'+esc(provider)+'</b><br>attempts='+esc(gen.attempts)+' fallback=<b>'+esc(gen.fallback)+'</b>'
+      +(gen.fallback?'<br>→ rơi về deterministic':'');
+  setNode('generation',gen.fallback?'warn':null,genFact);
   setArrow('a-7');
   await wait(300);
 
   const v=data.verification||{};
-  const vcls=v.passed===false?'danger':null;
-  setNode('verifier',vcls,'passed=<b>'+esc(v.passed)+'</b><br>coverage='+esc(v.coverage));
-  if(gen.attempts>1||v.passed===false){
-    $('#loop-note').textContent='⟲ generation ↔ verifier lặp lại '+(gen.attempts||1)+' lần trước khi chốt câu trả lời';
+  const uc=v.unknown_citations||[],us=v.unsupported||[];
+  const vBad=v.passed===false||uc.length||us.length;
+  let vFact='passed=<b>'+esc(v.passed)+'</b><br>coverage='+esc(v.coverage);
+  if(uc.length)vFact+='<br><b>citation bịa:</b> '+esc(uc.join(', '));
+  if(us.length)vFact+='<br><b>số không có evidence:</b> '+esc(us.join(', '));
+  if(nCaught&&v.passed!==false)vFact+='<br>đã chặn '+nCaught+' claim trước khi chốt';
+  setNode('verifier',vBad?'danger':(nCaught?'warn':null),vFact);
+  if(gen.attempts>1||vBad||nCaught){
+    $('#loop-note').textContent='⟲ generation ↔ verifier lặp lại '+(gen.attempts||1)+' lần'
+      +(nCaught?(' — chặn '+nCaught+' claim (số/citation/wording)'):'')+' trước khi chốt câu trả lời';
     $('#loop-note').className='loop-note active';
   }
   await wait(280);
@@ -215,8 +246,75 @@ function renderAnswer(data){
     box.appendChild(el);
   });
   if(!data.evidence?.length)box.innerHTML='<span class="muted">Không có evidence cho phản hồi này.</span>';
+  renderGuardrails(data);
+  renderPlanning(data);
   $('#raw').textContent=JSON.stringify(data,null,2);
   $('#answerbox').style.display='block';
+}
+
+function tag(cls,text){return '<span class="gtag '+cls+'">'+esc(text)+'</span>'}
+
+function renderGuardrails(data){
+  const el=$('#guardrails'); el.innerHTML='';
+  const v=data.verification||{};
+  if(v.disabled){return}
+  const gen=(data.llm&&data.llm.generation)||{};
+  const caught=caughtFrom(gen);
+  const rows=[];
+  // Numeric verifier
+  const numTag=v.passed===false?tag('bad','FAIL'):tag('ok','PASS');
+  rows.push('<div class="grow">Bộ kiểm số: '+numTag
+    +' <span class="mut">coverage='+esc(v.coverage)+'</span></div>');
+  (v.unsupported||[]).forEach(x=>rows.push('<div class="gitem bad">• số không có evidence: '+esc(x)+'</div>'));
+  (v.unknown_citations||[]).forEach(x=>rows.push('<div class="gitem bad">• citation bịa: '+esc(x)+'</div>'));
+  // Wording gate
+  if(caught.wording.length){
+    rows.push('<div class="grow">Cổng từ ngữ: '+tag('warn','ĐÃ CHẶN '+caught.wording.length)+'</div>');
+    caught.wording.forEach(x=>rows.push('<div class="gitem bad">• '+esc(x)+'</div>'));
+  }else{
+    rows.push('<div class="grow">Cổng từ ngữ: '+tag('ok','SẠCH')+' <span class="mut">không có câu nhân quả/forecast/cùng-SKU</span></div>');
+  }
+  // Generation fallback
+  if(gen.fallback){
+    rows.push('<div class="grow">Sinh câu trả lời: '+tag('warn','FALLBACK')
+      +' <span class="mut">LLM bị từ chối sau '+esc(gen.attempts)+' lần → dùng câu deterministic đã verify</span></div>');
+  }else if(gen.attempts>0){
+    rows.push('<div class="grow">Sinh câu trả lời: '+tag('ok','LLM qua verify')+' <span class="mut">attempts='+esc(gen.attempts)+'</span></div>');
+  }
+  el.innerHTML='<div class="gbox"><h4>Guardrails chống-hallucination</h4>'+rows.join('')+'</div>';
+}
+
+function renderPlanning(data){
+  const el=$('#planning'); el.innerHTML='';
+  const p=data.planning||{};
+  if(!p.mode||p.mode==='none'){return}
+  const rows=[];
+  rows.push('<div class="grow">mode=<b>'+esc(p.mode)+'</b>'
+    +(p.complexity_level?(' · complexity='+esc(p.complexity_level)):'')
+    +(p.plan_id?(' · <span class="mut">'+esc(p.plan_id)+'</span>'):'')+'</div>');
+  if(p.risk_score!==undefined){
+    rows.push('<div class="grow">risk_score=<b>'+esc(p.risk_score)+'</b>'
+      +' · yêu cầu=<b>'+esc(p.requested_escalation)+'</b> → thực thi=<b>'+esc(p.escalation_mode)+'</b></div>');
+  }
+  // Critic — nổi bật cả issue chặn lẫn issue bị drop (fix cq03)
+  if(p.critic){
+    const iss=p.critic.issues||[], drp=p.critic.dropped||[];
+    rows.push('<div class="grow">Plan Critic ('+esc(p.critic.provider)+'): '
+      +(iss.length?tag('bad','CHẶN '+iss.length):tag('ok','KHÔNG CHẶN'))
+      +(drp.length?(' '+tag('warn','LỌC '+drp.length+' issue sai')):'')+'</div>');
+    iss.forEach(x=>rows.push('<div class="gitem bad">• chặn: '+esc(x.code)+(x.node_id?(' @'+esc(x.node_id)):'')+' — '+esc(x.message)+'</div>'));
+    drp.forEach(x=>rows.push('<div class="gitem mut">• lọc (máy chứng minh sai): '+esc(x.code)+(x.node_id?(' @'+esc(x.node_id)):'')+'</div>'));
+  }
+  // N-version
+  if(p.nversion){
+    const n=p.nversion;
+    rows.push('<div class="grow">N-version: chọn=<b>'+esc(n.selected)+'</b> · plan_bất_đồng='+esc(n.plan_disagreement)
+      +' · kết_quả_bất_đồng='+esc(n.result_disagreement)+(n.adjudicated?' · '+tag('warn','ADJUDICATED'):'')+'</div>');
+  }
+  if(p.validator_feedback&&p.validator_feedback.length){
+    rows.push('<div class="grow">Planner repair: '+tag('warn',p.validator_feedback.length+' feedback')+'</div>');
+  }
+  el.innerHTML='<div class="gbox"><h4>Planner path (analytical)</h4>'+rows.join('')+'</div>';
 }
 
 form.onsubmit=async e=>{
