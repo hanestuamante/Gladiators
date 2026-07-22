@@ -22,7 +22,7 @@ UNSUPPORTED = {
     "inventory": ("ton kho", "inventory", "stok"),
     "conversion": ("chuyen doi", "conversion", "konversi"),
     "image_similarity": ("giong hinh", "giong nhau ve hinh", "image similarity", "kemiripan gambar"),
-    "reference": ("ty gia", "exchange rate", "kurs vnd", "lich 7.7", "calendar context"),
+    "reference": ("ty gia", "exchange rate", "kurs vnd"),
     "external": ("gia doi thu", "competitor price", "market price", "harga pesaing"),
     "orders": ("don hang", "order-level", "order level", "pesanan"),
     "category_type": ("category type", "category_type", "ma loai danh muc"),
@@ -38,10 +38,23 @@ class MultilingualIntentParser:
         n = normalize_text(text)
         quoted = re.findall(r'["“](.*?)["”]', text)
         language = "id" if any(x in n for x in ("produk", "penjualan", "mirip", "promosi")) else "vi"
+        # Campaign/calendar context is a distinct C2 path.  It must take
+        # precedence over promotion-effectiveness keywords such as "campaign".
+        if any(x in n for x in (
+            "lich 7.7", "7.7", "lich chien dich", "lich khuyen mai",
+            "campaign calendar", "campaign date", "campaign window",
+            "ngay chien dich", "jadwal kampanye", "su kien thi truong",
+            "market event", "theme day", "shopping festival", "hari belanja",
+        )):
+            intent = "external_context"
+        else:
+            intent = ""
         for capability, words in UNSUPPORTED.items():
             if any(w in n for w in words):
                 return StructuredRequest(intent=f"unsupported:{capability}", language=language, slots={"raw_text": text})
-        if any(x in n for x in ("tuong tu", "giong", "similar", "mirip", "serupa")):
+        if intent:
+            pass
+        elif any(x in n for x in ("tuong tu", "giong", "similar", "mirip", "serupa")):
             intent = "similar_product"
         elif any(x in n for x in ("voucher", "khuyen mai", "promotion", "promosi", "promo")):
             intent = "promotion_effectiveness"
@@ -72,6 +85,13 @@ class MultilingualIntentParser:
         country = "id" if re.search(r"\b(id|indonesia)\b", n) else "vn" if re.search(r"\b(vn|viet nam|vietnam)\b", n) else None
         entity = quoted[0].strip() if quoted else None
         slots = {"raw_text": text}
+        if intent == "external_context":
+            slots["external_purpose"] = (
+                "campaign_context" if any(x in n for x in (
+                    "7.7", "lich chien dich", "lich khuyen mai", "campaign",
+                    "ngay chien dich", "jadwal kampanye",
+                )) else "market_event"
+            )
         if intent == "analytical_query":
             if any(x in n for x in ("doanh thu", "revenue", "pendapatan")):
                 slots["analytical_kind"] = "highest_revenue_day"

@@ -30,7 +30,11 @@ def ui_flow() -> str:
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "dataset_version": runtime.repo.dataset_version, "provider": runtime.llm_client.provider if runtime.llm_client else "offline"}
+    return {
+        "status": "ok", "dataset_version": runtime.repo.dataset_version,
+        "provider": runtime.llm_client.provider if runtime.llm_client else "offline",
+        "live_search_enabled": runtime.enable_live_search,
+    }
 
 
 @app.get("/capabilities")
@@ -43,6 +47,11 @@ def capabilities() -> dict:
             "highest_price_listing", "highest_monthly_sold_listing", "top_shop_by_listing_count",
         ),
         "planner": {"ir_version": "1.0", "critic_enabled": runtime.enable_critic, "nversion_enabled": runtime.enable_nversion},
+        "external": {
+            "live_search_enabled": runtime.enable_live_search,
+            "max_admission": "context_only",
+            "cross_tier_conversion": False,
+        },
         "data": runtime.repo.capability_profile(),
         "unsupported_policy": "clarify_or_abstain",
     }

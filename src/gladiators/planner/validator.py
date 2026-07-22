@@ -14,7 +14,7 @@ from .query_ir import LogicalQueryPlan, PlanNode
 IssueCode = Literal[
     "missing_semantic_object", "wrong_filter", "wrong_join_path", "grain_mismatch",
     "fanout_risk", "unit_mismatch", "temporal_mismatch", "unsupported_claim",
-    "budget_exceeded", "schema_invalid",
+    "budget_exceeded", "schema_invalid", "tier_violation",
 ]
 ALLOWED_DATES = {"2026-07-01", "2026-07-02", "2026-07-03"}
 
@@ -96,10 +96,19 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
         for input_id in node.inputs:
             consumers[input_id].append(node)
 
-        for ref in node.refs + node.group_by:
+        node_refs = set(node.refs + node.group_by)
+        if node.rank_by:
+            node_refs.add(node.rank_by)
+        node_refs.update(field.semantic_ref for field in node.expected_schema if field.semantic_ref)
+        for ref in sorted(node_refs):
             if ref not in CATALOG:
                 issues.append(PlanIssue(code="missing_semantic_object", node_id=node.node_id,
                                         message=f"Semantic ref không tồn tại: {ref}"))
+            elif CATALOG[ref].source_tier != "btc_dataset" or CATALOG[ref].kind == "context":
+                issues.append(PlanIssue(
+                    code="tier_violation", node_id=node.node_id,
+                    message=f"{ref} thuộc tier/context ngoài btc_dataset và không được vào LogicalQueryPlan.",
+                ))
 
         for predicate in node.predicates:
             obj = CATALOG.get(predicate.ref)
@@ -109,6 +118,11 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
             elif predicate.op not in obj.allowed_filters:
                 issues.append(PlanIssue(code="wrong_filter", node_id=node.node_id,
                                         message=f"Filter {predicate.op} không hợp lệ cho {predicate.ref}."))
+            elif obj.source_tier != "btc_dataset" or obj.kind == "context":
+                issues.append(PlanIssue(
+                    code="tier_violation", node_id=node.node_id,
+                    message=f"Predicate {predicate.ref} thuộc tier/context ngoài btc_dataset.",
+                ))
 
         if node.op == "Scan" and node.source is None:
             issues.append(PlanIssue(code="schema_invalid", node_id=node.node_id,
@@ -159,6 +173,32 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
             if not has_single_snapshot:
                 issues.append(PlanIssue(code="temporal_mismatch", node_id=node.node_id,
                                         message="Aggregate cross-sectional phải chọn đúng một snapshot."))
+
+        # Trap #5: sentinel 999999999 is an invalid price, not a legitimate
+        # maximum. Ranking/aggregation over either price measure must prove it
+        # was excluded upstream so correctness does not depend on the planner's
+        # prose or the LLM critic.
+        sensitive_refs = {"measure.price", "measure.price_original"}
+        consumed_refs = set(node.refs)
+        if node.rank_by:
+            consumed_refs.add(node.rank_by)
+        required_sentinel_filters = consumed_refs & sensitive_refs
+        if node.op in {"Aggregate", "Rank"} and required_sentinel_filters:
+            ancestors = _ancestors(node, nodes)
+            for ref in sorted(required_sentinel_filters):
+                excluded = any(
+                    predicate.ref == ref
+                    and predicate.op in {"lt", "lte"}
+                    and isinstance(predicate.value, (int, float))
+                    and float(predicate.value) <= 999_999_999
+                    for ancestor in ancestors
+                    for predicate in ancestor.predicates
+                )
+                if not excluded:
+                    issues.append(PlanIssue(
+                        code="wrong_filter", node_id=node.node_id,
+                        message=f"{ref} phải loại sentinel bằng filter < 999999999 trước {node.op}.",
+                    ))
 
         if node.op == "TemporalCompare" and len(plan.time_scope) < 2:
             issues.append(PlanIssue(code="temporal_mismatch", node_id=node.node_id,

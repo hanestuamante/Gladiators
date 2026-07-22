@@ -43,6 +43,8 @@ class AgentRuntime:
         enable_nversion: bool | None = None,
         alternate_planner_client: Any | None = None,
         adjudicator_client: Any | None = None,
+        external_pipeline: Any | None = None,
+        enable_live_search: bool | None = None,
     ):
         self.repo = ArtifactRepository(data_dir)
         self.registry = default_registry()
@@ -57,6 +59,10 @@ class AgentRuntime:
             self.repo, alternate_planner_client or llm_client, adjudicator_client or llm_client,
         )
         self.use_llm_parser, self.use_llm_generation = use_llm_parser, use_llm_generation
+        self.external_pipeline = external_pipeline
+        requested_live = os.getenv("GLADIATORS_ENABLE_LIVE_SEARCH") == "1" if enable_live_search is None else enable_live_search
+        # A flag without a wired, bounded pipeline is not a capability.
+        self.enable_live_search = bool(requested_live and external_pipeline is not None)
         self.parser, self.gate = MultilingualIntentParser(), ContractDrivenGate()
         dense = BGEIndex() if os.getenv("GLADIATORS_ENABLE_BGE") == "1" else None
         self.resolver = EntityResolver(self.repo.products, embeddings=dense)
@@ -74,7 +80,14 @@ class AgentRuntime:
                 parsed = self.llm_client.parse_intent(user_text, self.registry.names())
                 deterministic = self.parser.parse(user_text, self.registry)
                 adjustments = []
-                if deterministic.intent.startswith("unsupported:") and parsed.intent != deterministic.intent:
+                if deterministic.intent == "external_context" and parsed.intent != deterministic.intent:
+                    parsed = parsed.model_copy(update={
+                        "intent": deterministic.intent,
+                        "country": deterministic.country,
+                        "slots": deterministic.slots,
+                    })
+                    adjustments.append("external_route_safety_precedence")
+                elif deterministic.intent.startswith("unsupported:") and parsed.intent != deterministic.intent:
                     parsed = parsed.model_copy(update={"intent": deterministic.intent}); adjustments.append("unsupported_safety_precedence")
                 elif parsed.intent.startswith("unsupported:") and (parsed.intent.split(":", 1)[1] not in UNSUPPORTED or self.registry.get(deterministic.intent) is not None):
                     parsed = parsed.model_copy(update={"intent": deterministic.intent}); adjustments.append("unsupported_taxonomy_normalized")
@@ -116,6 +129,31 @@ class AgentRuntime:
         if decision.action == "clarify":
             return f"Cần làm rõ: {decision.reason}"
         by_metric = {e.metric: e for e in evidence}
+        if request.intent == "external_context" and evidence:
+            lines = []
+            sources = []
+            for item in evidence:
+                provenance = item.provenance
+                assert provenance is not None
+                retrieved = provenance.retrieved_at.isoformat()
+                lines.append(
+                    f"- Bối cảnh web trực tiếp (context_only): {item.value} "
+                    f"[{item.evidence_id}] [nguồn: {provenance.source_id}, lấy {retrieved}]."
+                )
+                sources.append(
+                    f"- External: {provenance.source_id} — {provenance.source_locator.value}; "
+                    f"lấy {retrieved}; mapping: {provenance.mapping_status}; "
+                    f"content_hash: {provenance.content_hash}; license: {provenance.license} "
+                    f"[{item.evidence_id}]"
+                )
+            return (
+                "Kết quả\n" + "\n".join(lines) + "\n\n"
+                "Phạm vi\nNguồn web chỉ bổ sung bối cảnh cho câu hỏi; không thay đổi fact trong dataset BTC.\n\n"
+                "Giới hạn\nCác ánh xạ đều needs_review — chưa xác nhận cùng sản phẩm/thực thể; "
+                "không dùng để suy ra nhân quả, giá trị nội bộ hoặc so sánh xuyên tier.\n\n"
+                "Độ tin cậy\nLow — context_only, phụ thuộc nội dung nguồn tại thời điểm truy xuất.\n\n"
+                "Nguồn\n" + "\n".join(sources)
+            )
         if request.intent == "sales_decline" and evidence:
             delta, days = by_metric["monthly_sold_delta"], by_metric["days_since_previous"]
             return f"Proxy lượt bán thay đổi {delta.value:g} {delta.unit} trong {days.value:g} ngày [{delta.evidence_id}] [{days.evidence_id}]. Đây là chênh lệch snapshot, không phải bằng chứng nhân quả."
@@ -238,6 +276,9 @@ class AgentRuntime:
                     "type": "verification",
                     "unsupported": verdict["unsupported"],
                     "unknown_citations": verdict.get("unknown_citations", []),
+                    "tier_mixing": verdict.get("tier_mixing", []),
+                    "provenance_gaps": verdict.get("provenance_gaps", []),
+                    "source_label_gaps": verdict.get("source_label_gaps", []),
                     "wording": wording_violations,
                 })
                 context["verifier_feedback"] = errors[-1]
@@ -255,7 +296,11 @@ class AgentRuntime:
             return f"ev:{trace_id}:{seq:04d}"
 
         request, llm_meta = self._parse(user_text)
-        decision = self.gate.decide(request, self.registry, self.repo.capability_profile()) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
+        capabilities = {
+            **self.repo.capability_profile(),
+            "live_search_enabled": self.enable_live_search,
+        }
+        decision = self.gate.decide(request, self.registry, capabilities) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
         evidence: list[Evidence] = []
         calls: list[ToolCall] = []
         resolved_key = None
@@ -264,9 +309,54 @@ class AgentRuntime:
             planning_meta = {"mode": "blocked", "a19_rule": decision.rule_id}
         tools = AnalyticsTools(self.repo, self.resolver, evidence_id)
 
+        if decision.action == "allow" and request.intent == "external_context":
+            purpose = str(request.slots.get("external_purpose", "market_event"))
+            market = request.country or "global"
+            try:
+                outcome = self.external_pipeline.run(
+                    user_text, purpose=purpose, market=market,
+                    evidence_id=evidence_id, dataset_version=self.repo.dataset_version,
+                )
+                evidence = list(outcome.evidence)
+                status = "ok" if evidence else "empty"
+                calls.append(ToolCall(
+                    name="live_search_context",
+                    args={
+                        "purpose": purpose, "market": market,
+                        "plan_id": outcome.plan_id, "cache_hits": outcome.cache_hits,
+                        "provider_calls": outcome.provider_calls,
+                        "quarantined_count": outcome.quarantined_count,
+                        "excluded_count": outcome.excluded_count,
+                    },
+                    status=status, evidence_ids=[item.evidence_id for item in evidence],
+                    error=outcome.ladder_reason if not evidence else None,
+                ))
+                planning_meta = {
+                    "mode": "external_context", "plan_id": outcome.plan_id,
+                    "execution_mode": getattr(self.external_pipeline, "mode", "unknown"),
+                    "failed_queries": list(outcome.failed_queries),
+                }
+                if not evidence:
+                    decision = GateDecision(
+                        action="abstain", rule_id="A15-EXTERNAL-UNUSABLE",
+                        reason=outcome.ladder_reason or "Không có external evidence qua admission.",
+                        answerable_alternative="Hãy thử lại khi cache/nguồn ngoài khả dụng; dataset nội bộ không chứa bối cảnh này.",
+                    )
+            except Exception as exc:
+                calls.append(ToolCall(
+                    name="live_search_context", args={"purpose": purpose, "market": market},
+                    status="error", error=f"{type(exc).__name__}: external pipeline failed closed",
+                ))
+                planning_meta = {"mode": "external_context", "outcome": "blocked"}
+                decision = GateDecision(
+                    action="abstain", rule_id="A15-EXTERNAL-UNUSABLE",
+                    reason=f"Nguồn ngoài không khả dụng ({type(exc).__name__}); không dùng dữ liệu chưa kiểm chứng.",
+                    answerable_alternative="Hãy thử lại khi cache/nguồn ngoài khả dụng.",
+                )
+
         # Generic dispatch: đọc tool_plan từ Intent Registry rồi gọi tool theo tên,
         # không còn nhánh if/elif cứng theo từng intent (V2 mục 7.3).
-        if decision.action == "allow":
+        if decision.action == "allow" and request.intent != "external_context":
             spec = self.registry.get(request.intent)
             macro = self.macros.get(spec.macro_name) if spec and spec.macro_name else None
             logical_plan = None

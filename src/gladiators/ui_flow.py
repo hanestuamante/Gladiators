@@ -242,7 +242,8 @@ function renderAnswer(data){
   const box=$('#evidence');box.innerHTML='';
   (data.evidence||[]).forEach(ev=>{
     const el=document.createElement('div');el.className='evidence';
-    el.innerHTML='<strong>'+esc(ev.metric)+'</strong><br>'+esc(ev.value)+' '+esc(ev.unit||'')+'<br><small class="muted">'+esc(ev.evidence_id)+'</small>';
+    const p=ev.provenance;
+    el.innerHTML='<strong>'+esc(ev.metric)+'</strong><br>'+esc(ev.value)+' '+esc(ev.unit||'')+'<br><small class="muted">'+esc(ev.evidence_id)+' · '+esc(ev.source_tier)+(p?(' · '+esc(p.source_id)+' · lấy '+esc(p.retrieved_at)):'')+'</small>';
     box.appendChild(el);
   });
   if(!data.evidence?.length)box.innerHTML='<span class="muted">Không có evidence cho phản hồi này.</span>';

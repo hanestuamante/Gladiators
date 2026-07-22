@@ -29,6 +29,19 @@ planner:
     tau2: 6
   enable_critic: false
   enable_nversion: false
+sources:
+  live_search:
+    enabled: false
+    provider: tavily
+    mode: cache_only
+    max_admission: context_only
+    max_queries_per_request: 3
+    max_results_per_query: 5
+    daily_query_limit: 150
+  reference:
+    enabled: false
+  external:
+    enabled: false
 executor:
   engine: duckdb
   memory_limit: 1GB

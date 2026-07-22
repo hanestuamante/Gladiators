@@ -1,0 +1,22 @@
+{
+  "provider": "fake",
+  "query": {
+    "query": "Shopee 7.7 campaign Indonesia 2026",
+    "market": "id",
+    "recency_days": 60,
+    "purpose": "campaign_context"
+  },
+  "items": [
+    {
+      "rank": 1,
+      "title": "7.7 Great Mid Year Sale",
+      "url": "https://news.example.org/77",
+      "snippet": "Campaign runs from 25 June to 7 July 2026.",
+      "score": 0.9,
+      "published_at": null
+    }
+  ],
+  "retrieved_at": "2026-07-22T00:00:00Z",
+  "content_hash": "3c774b70e12c930c6dd76d4b78a0b8053ff76feb5ef6df58733b9d5d5a96c555",
+  "cache_path": "fixture"
+}

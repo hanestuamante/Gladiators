@@ -10,6 +10,15 @@
 | Runtime tier hiện hành     | `btc_dataset` only (external toàn bộ đang OFF)                 |
 | Capability chính đã chốt | **`live_web_search`** qua Tavily API, provider phụ SerpAPI |
 
+> **Cập nhật implementation 22/07/2026:** Phase **E1–E5 (offline) đã được triển khai cục bộ**:
+> provenance/search contracts; A20-TIER/A21-PROV; catalog `context.*`; validator
+> `tier_violation`; Tavily/Fake provider boundary; immutable SHA-256 cache + quota;
+> deny-list Shopee; injection guard; P5/P6 bounded wrappers; UTF-8 span verification;
+> admission clamp `context_only`; deterministic capability router A14-LIVE/A14-EXT/A16;
+> workflow external evidence + Sources; verifier Pass 4; fixture/replay suite EF-13…EF-24.
+> Toàn bộ source flags vẫn OFF/`cache_only`. **E6 chưa thể ký hoàn tất**: còn DR1 review
+> ≥10 answer thật, rehearsal 4 câu ở `live` và `cache_only`, Lead sign-off/ADR approval.
+
 **Quy ước nhãn bằng chứng dùng xuyên tài liệu:**
 
 - `[Verified]` — đã đọc code/chạy đo và dẫn được file:line hoặc số liệu.

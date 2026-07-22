@@ -383,6 +383,51 @@ Phase 5 chỉ được đánh dấu hoàn tất khi có report versioned chứng
 
 Sau Phase 5, Phase 6 vẫn là conditional external integration. Không tự động chuyển sang Phase 6 chỉ vì Phase 5 code đã có.
 
+### Cập nhật Phase 5 ngày 22/07/2026
+
+- Chuẩn hóa sáu câu `eval/l4_acceptance.json` thành semantics chấm được: bảng `max` theo brand, snapshot `2026-07-03`; không còn từ “so sánh” nhưng bỏ ngỏ aggregation.
+- Thêm oracle độc lập `eval/independent/l4_oracle.py`; module chỉ dùng pandas/CSV và mapping viết tay, không import production `gladiators` code.
+- Thêm `scripts/run_phase5_evaluation.py` cho ba mode `single`, `critic`, `nversion`; report có denotation accuracy, crash, plan/result disagreement, false-consensus, adjudication, stability, mean/p95 latency và go/no-go checks.
+- Runner luôn `NO-GO` khi provider là offline hoặc gold chưa human-review. Chỉ dùng `--gold-review-status approved` sau khi reviewer nghiệp vụ duyệt đủ sáu case.
+- Siết trap #5 trong deterministic validator: `measure.price`/`measure.price_original` bắt buộc có upstream filter loại sentinel `999999999` trước Aggregate/Rank. Catalog và P8 payload đã mang caveat/trap tương ứng để vòng repair có đủ dữ kiện.
+- Offline ablation đã chạy 6 case × 3 runs × 3 mode: denotation 100%, crash 0%, stability 100%, false-consensus 0. Đây chỉ xác nhận wiring/oracle, không thay production-provider acceptance.
+- Full suite sau thay đổi: **170 passed**; coverage matrix vẫn **158/158**.
+- Real Groq rerun chưa thực hiện trong lượt 22/07 vì policy môi trường yêu cầu xác nhận mới trước khi gửi workspace-derived plan/evidence ra SaaS.
+
+### Cập nhật Phase 6 E1 ngày 22/07/2026
+
+- Đã triển khai additive provenance contracts trong `external/contracts.py` và typed live-search contracts trong `external/search_contracts.py`; chưa có network/provider implementation.
+- `Evidence` có `provenance` và `parent_evidence_ids`; evidence ngoài bắt buộc provenance khớp tier (A21-PROV), evidence nội bộ giữ tương thích cũ.
+- Verifier có A20-TIER: chặn một claim hoặc derived evidence trỏ parent thuộc nhiều tier; có A21-PROV diagnostic trong verdict và feedback cho generator.
+- Catalog có ba object non-physical `context.campaign_window`, `context.theme_day`, `context.market_event`, đều `source_tier=external`, `answerability=context_only`.
+- `LogicalQueryPlan.source_tier` vẫn khóa cứng `btc_dataset`; validator trả `tier_violation` nếu bất kỳ node/predicate nào tham chiếu context/external ref.
+- `configs/default.yaml` có `sources.live_search/reference/external`; tất cả mặc định OFF, live-search mặc định `cache_only` và `max_admission=context_only`.
+- Thêm `tests/test_external_phase6_e1.py`; full regression sau toàn bộ thay đổi E1 là **180 passed**.
+- Sau E1, phần còn lại được tiếp tục theo cập nhật E2–E3 ngay dưới đây; E4–E6 vẫn chưa triển khai.
+
+### Cập nhật Phase 6 E2–E3 ngày 22/07/2026
+
+- E2: thêm `SearchProvider`, `TavilyProvider` và `FakeSearchProvider`; Tavily chỉ gọi đúng `https://api.tavily.com/search`, HTTPS, không redirect, response ≤2MB, không tự bật khi thiếu key.
+- E2: thêm immutable content-addressed cache SHA-256, manifest, hash verification, quarantine và daily quota guard; `cache_only` không mở socket.
+- E3: thêm deny-list `shopee.vn`, `shopee.co.id`, `*.shopeemobile.com`; sanitize HTML/control chars và A17 pattern detection trước extractor.
+- E3: thêm `SearchExecutor` với ≤5 result/query, retry đúng một lần cho lỗi retryable, quota tính theo API attempt và total budget.
+- E3: thêm P5 `LiveSearchPlanner` và P6 `WebExtractor`, mỗi lớp chỉ repair một lần; P6 không có tool và bắt buộc source span khớp UTF-8 bytes.
+- E3: thêm deterministic `admit_live_record`; live result luôn `context_only`, kể cả mapping hard-key; mismatch/injection/unmapped bị exclude A17/A15.
+- Bổ sung adapter method P5/P6 cho Gemini, Hugging Face, Groq và Anthropic; chưa gọi provider thật.
+- Test mới: `test_external_phase6_e2.py`, `test_external_phase6_e3.py`. Full regression sau E1–E3: **197 passed**.
+- Còn lại E4–E6: capability router + A16 hợp nhất, workflow evidence/Sources, replay/eval suite, human review và live/cache rehearsal. External flags vẫn OFF.
+
+### Cập nhật Phase 6 E4–E5 ngày 22/07/2026
+
+- E4: thêm deterministic capability router `external/router.py`; lịch/campaign context đi A14-LIVE, giá đối thủ đi A14-EXT, mọi câu so sánh/quy đổi tiền VN–ID bị một rule duy nhất `A16-CROSS-CURRENCY` chặn trước planner.
+- E4: parser/registry/gate đã có intent `external_context`; cờ `sources.live_search.enabled` mặc định OFF và thông báo abstain nêu đúng tên cờ.
+- E4: thêm `ExternalContextPipeline` nối P5 → executor/cache → P6 → admission → `Evidence`; runtime fail-closed A15, không crash và live record luôn `context_only`.
+- E4: câu trả lời deterministic có nhãn nguồn/thời điểm inline, disclaimer `needs_review`, khối Sources; API/UI hiện tier, source và `retrieved_at`.
+- E4: verifier Pass 4 kiểm label nguồn + thời điểm, 15 trường provenance live (provider/query/rank/span), A20 không trộn tier; wording gate chặn thêm nhân quả ngầm (`nhờ/do/bởi/kéo theo/dẫn đến/vì vậy giá`).
+- E5: thêm `eval/questions_external.json` (EF-13…EF-24), fixture normalized + injection, test router/integration/retry/quota/replay/Pass 4 tại `test_external_phase6_e4.py` và `test_external_phase6_e5.py`.
+- Targeted Phase 6 cuối: **42 passed**. Full regression cuối: **212 passed in 75.91s**; `git diff --check` sạch. Coverage matrix đã regenerate sau khi thêm suite external. Runtime còn bắt buộc `GLADIATORS_LIVE_SOURCE_REVIEWED=1` và license ID đã duyệt, nên một cờ live đơn lẻ không thể mở nguồn.
+- E6 **chưa ký hoàn tất**: không giả lập DR1/Lead approval. Còn ≥10 answer live được DR1 review, rehearsal 4 câu ở cả `live` và `cache_only`, và Lead/ADR sign-off. Checklist bàn giao: `docs/PHASE6_ACCEPTANCE_SIGNOFF.md`. Cờ mặc định vẫn OFF.
+
 
 ---
 

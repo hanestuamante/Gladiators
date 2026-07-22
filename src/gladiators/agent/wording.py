@@ -27,7 +27,9 @@ _NEGATION = re.compile(r"\b(?:khong|chua|not|no)\b[^.;:\n]{0,90}")
 _RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("causal_language", (
         "gay ra", "lam tang", "lam giam", "khien", "nho voucher", "nho khuyen mai",
-        "tac dong lam", "hieu qua ro ret", "chung minh hieu qua", "cho thay hieu qua",
+        "nho chien dich", "do chien dich", "boi chien dich", "keo theo", "dan den",
+        "vi vay gia", "tac dong lam", "hieu qua ro ret", "chung minh hieu qua",
+        "cho thay hieu qua",
     )),
     ("same_sku_claim", (
         "cung mau", "cung sku", "chinh xac cung loai", "exact same model", "same sku",

@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "source": {
-    "catalog_objects": 76,
+    "catalog_objects": 79,
     "relation_edges": 10,
     "ir_operators": 12,
-    "eval_cases_with_mutations": 198
+    "eval_cases_with_mutations": 210
   },
   "summary": {
     "requirements": 158,

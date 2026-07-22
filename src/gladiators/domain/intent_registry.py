@@ -39,4 +39,5 @@ def default_registry() -> IntentRegistry:
         ))
     r.register(IntentSpec("analytical_query", (), ("execute_analytical_plan",), ("analytical_planner",)))
     r.register(IntentSpec("open_analytical", (), ("execute_analytical_plan",), ("semantic_parser", "analytical_planner")))
+    r.register(IntentSpec("external_context", ("external_purpose",), ("live_search_context",), ("live_search",)))
     return r

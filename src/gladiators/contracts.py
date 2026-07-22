@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
-from gladiators.external.contracts import SourceLocator
+from pydantic import BaseModel, Field, field_validator, model_validator
+from gladiators.external.contracts import ExternalProvenance, SourceLocator
 
 
 class StructuredRequest(BaseModel):
@@ -49,6 +49,20 @@ class Evidence(BaseModel):
     source_path: str | None = None
     dataset_version: str
     attrs: dict[str, Any] = Field(default_factory=dict)
+    provenance: ExternalProvenance | None = None
+    parent_evidence_ids: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def provenance_matches_tier(self) -> "Evidence":
+        if self.source_tier == "btc_dataset":
+            if self.provenance is not None:
+                raise ValueError("Evidence btc_dataset không được gắn external provenance.")
+            return self
+        if self.provenance is None:
+            raise ValueError("Evidence reference/external bắt buộc có provenance (A21-PROV).")
+        if self.provenance.source_tier != self.source_tier:
+            raise ValueError("Evidence.source_tier không khớp provenance.source_tier.")
+        return self
 
 
 class ToolCall(BaseModel):

@@ -408,7 +408,7 @@
       "status": "exposed_as_measure",
       "catalog_ref": "measure.price",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Loại sentinel 999999999 bằng filter < 999999999 trước aggregate hoặc rank."
     },
     {
       "table": "products_clean.csv",
@@ -416,7 +416,7 @@
       "status": "exposed_as_measure",
       "catalog_ref": "measure.price_original",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Loại sentinel 999999999 bằng filter < 999999999 trước aggregate hoặc rank."
     },
     {
       "table": "products_clean.csv",
@@ -480,7 +480,7 @@
       "status": "proxy_only",
       "catalog_ref": "measure.history_sold",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Đây là proxy hiển thị của sàn, không phải dữ liệu đơn hàng đã kiểm chứng."
     },
     {
       "table": "products_clean.csv",
@@ -488,7 +488,7 @@
       "status": "proxy_only",
       "catalog_ref": "measure.monthly_sold",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Đây là proxy hiển thị của sàn, không phải dữ liệu đơn hàng đã kiểm chứng."
     },
     {
       "table": "products_clean.csv",
@@ -608,7 +608,7 @@
       "status": "exposed_as_measure",
       "catalog_ref": "measure.variation_options_count",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Số option hiển thị không phải số SKU."
     },
     {
       "table": "products_clean.csv",
@@ -1432,7 +1432,7 @@
       "status": "exposed_as_measure",
       "catalog_ref": "measure.price",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Loại sentinel 999999999 bằng filter < 999999999 trước aggregate hoặc rank."
     },
     {
       "table": "product_snapshot_metrics.csv",
@@ -1440,7 +1440,7 @@
       "status": "exposed_as_measure",
       "catalog_ref": "measure.price_original",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Loại sentinel 999999999 bằng filter < 999999999 trước aggregate hoặc rank."
     },
     {
       "table": "product_snapshot_metrics.csv",
@@ -1448,7 +1448,7 @@
       "status": "proxy_only",
       "catalog_ref": "measure.monthly_sold",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Đây là proxy hiển thị của sàn, không phải dữ liệu đơn hàng đã kiểm chứng."
     },
     {
       "table": "product_snapshot_metrics.csv",
@@ -1456,7 +1456,7 @@
       "status": "proxy_only",
       "catalog_ref": "measure.history_sold",
       "reviewed_by": "pending:DR1",
-      "notes": "Dùng đúng grain và scope theo metric/relation registry."
+      "notes": "Dùng đúng grain và scope theo metric/relation registry.; Đây là proxy hiển thị của sàn, không phải dữ liệu đơn hàng đã kiểm chứng."
     },
     {
       "table": "product_snapshot_metrics.csv",

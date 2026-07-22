@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from gladiators.data.repository import ArtifactRepository
@@ -14,6 +15,7 @@ from gladiators.planner.macros import default_macro_registry
 from gladiators.agent.workflow import AgentRuntime
 from gladiators.domain.relations import RELATIONS
 from scripts.build_eval_coverage_matrix import build
+from eval.independent.l4_oracle import build_l4_denotation
 from eval.independent.oracle import build_oracle
 
 
@@ -532,6 +534,10 @@ def _l4_brand_plan(country: str, measures: list[str]) -> LogicalQueryPlan:
     output = (OutputField(name="brand", type="string", semantic_ref="dim.brand"),) + tuple(
         OutputField(name=ref.split(".")[-1], type="number", semantic_ref=ref) for ref in measures
     )
+    sentinel_predicates = tuple(
+        Predicate(ref=ref, op="lt", parameter=f"{ref.split('.')[-1]}_sentinel", value=999999999)
+        for ref in measures if ref in {"measure.price", "measure.price_original"}
+    )
     return LogicalQueryPlan(
         plan_id=f"open:l4:{country}:" + "_".join(ref.split(".")[-1] for ref in measures),
         time_scope=("2026-07-03",), output_node="n3", requested_output_shape=output,
@@ -543,6 +549,7 @@ def _l4_brand_plan(country: str, measures: list[str]) -> LogicalQueryPlan:
             PlanNode(node_id="n2", op="Filter", inputs=("n1",), predicates=(
                 Predicate(ref="dim.country", op="eq", parameter="country", value=country),
                 Predicate(ref="dim.date", op="eq", parameter="date", value="2026-07-03"),
+                *sentinel_predicates,
             ), input_grain="listing_snapshot", output_grain="listing_snapshot",
                 expected_schema=output, expected_cardinality="<=682"),
             PlanNode(node_id="n3", op="Aggregate", inputs=("n2",), refs=tuple(measures),
@@ -550,6 +557,48 @@ def _l4_brand_plan(country: str, measures: list[str]) -> LogicalQueryPlan:
                      input_grain="listing_snapshot", output_grain="brand",
                      expected_schema=output, expected_cardinality="<=100"),
         ),
+    )
+
+
+def test_validator_requires_price_sentinel_filter_before_l4_aggregate():
+    plan = _l4_brand_plan("vn", ["measure.price", "measure.rating"])
+    nodes = tuple(
+        node.model_copy(update={
+            "predicates": tuple(p for p in node.predicates if p.ref != "measure.price")
+        }) if node.op == "Filter" else node
+        for node in plan.nodes
+    )
+    result = validate_plan(plan.model_copy(update={"nodes": nodes}))
+    assert result.valid is False
+    assert any(
+        issue.code == "wrong_filter" and "sentinel" in issue.message
+        for issue in result.issues
+    )
+
+
+@pytest.mark.parametrize(
+    "case",
+    json.loads(Path("eval/l4_acceptance.json").read_text(encoding="utf-8")),
+    ids=lambda case: f"oracle-{case['id']}",
+)
+def test_independent_l4_oracle_matches_validated_fixture_plan(case):
+    plan = _l4_brand_plan(case["country"], case["measures"])
+    repository = ArtifactRepository("data/processed")
+    executor = QueryExecutor(repository)
+    try:
+        actual = executor.execute(compile_plan(plan)).frame
+    finally:
+        executor.close()
+    expected = build_l4_denotation(case)
+    actual_rows = [
+        {
+            column: None if pd.isna(value) else value.item() if hasattr(value, "item") else value
+            for column, value in zip(actual.columns, row)
+        }
+        for row in actual.itertuples(index=False, name=None)
+    ]
+    assert sorted(actual_rows, key=lambda row: str(row["brand"])) == sorted(
+        expected, key=lambda row: str(row["brand"])
     )
 
 

@@ -85,6 +85,7 @@ Read in this order:
 6. [Architecture Spec chi tiết](docs/Architecture-spec.md)
 7. [Các phần V1 chưa thể thực hiện đầy đủ](docs/V1_Implementation_Limitations.md)
 8. [Historical V0 architecture](docs/V0_Architecture.md)
+9. [Implementation handoff 22/07/2026](docs/IMPLEMENTATION_HANDOFF_2026-07-22.md)
 
 Data Context and current artifacts remain the source of truth for data. `V2_Unified_Architecture.md` is the current target Agent architecture; V1 remains the compatibility and parity baseline. `V0_Architecture.md` is retained only to explain superseded decisions.
 
@@ -123,6 +124,22 @@ Lệnh trên chạy end-to-end offline, không gửi dữ liệu ra ngoài. Ch�
 PYTHONPATH=src .venv/bin/python scripts/run_evaluation.py --runs 3 --provider gemini
 ```
 
+Phase 6 live-search mặc định **OFF**. Offline/cache replay không mở socket; chỉ bật
+chủ đích sau source/legal review và rehearsal:
+
+```bash
+GLADIATORS_ENABLE_LIVE_SEARCH=1 \
+GLADIATORS_LIVE_SOURCE_REVIEWED=1 \
+GLADIATORS_LIVE_SEARCH_LICENSE='<approved-license-id>' \
+GLADIATORS_LIVE_SEARCH_MODE=cache_only \
+GLADIATORS_LLM_PROVIDER=groq \
+PYTHONPATH=src .venv/bin/uvicorn gladiators.api:app
+```
+
+Hai biến review/license chỉ được đặt sau source/legal review. Mode `record`/`live`
+còn cần `TAVILY_API_KEY`; mọi record live bị clamp
+`context_only`, và cross-market currency conversion vẫn bị A16 chặn.
+
 Build BGE-M3 có version và CPU benchmark:
 
 ```bash
@@ -140,6 +157,20 @@ Eval analytical dùng golden oracle tại `eval/independent/`, được tính tr
 P7 deterministic fallback dùng longest-match trên toàn semantic catalog, không chỉ bảng từ khóa MVP. Acceptance hiện có 36 case schema-linking và test phân biệt alias lồng nhau như `shop rating`/`rating`, `price original`/`price`. Toàn bộ 12 IR operators đã có tối thiểu 3 positive và 1 adversarial case; operator SQL phải compile/execute thật, còn `ResolveValue`/`Similarity` được kiểm qua delegated certified macro.
 
 Coverage gate mục 14.9 hiện có 198 question/fixture và phủ 158/158 requirements. Cả 10 relation edges có executable acceptance; query rỗng được trả như kết quả hợp lệ với `result_count=0`; sáu composite L4 chạy qua hai planner bị blind. Coverage 100% chỉ xác nhận đủ ô kiểm thử, không thay thế production-provider eval, human review hoặc ablation critic/N-version.
+
+Phase 5 L4 có runner riêng vì fixture composite không dùng schema của evaluator V1:
+
+```bash
+# Kiểm wiring/oracle/ablation hoàn toàn offline; luôn NO-GO cho production.
+PYTHONPATH=. .venv/bin/python scripts/run_phase5_evaluation.py \
+  --provider offline --runs 3 --output artifacts/phase5/offline
+
+# Chỉ chạy sau khi được phép gửi context đánh giá tới provider.
+PYTHONPATH=. .venv/bin/python scripts/run_phase5_evaluation.py \
+  --provider groq --runs 3 --output artifacts/phase5/groq
+```
+
+Không đặt `--gold-review-status approved` trước khi reviewer nghiệp vụ duyệt đủ semantics/gold của sáu case. Runner đo riêng denotation accuracy, plan/result disagreement, false-consensus, adjudication, stability và latency; offline provider không thể cho kết quả `GO`.
 
 Kiến trúc chuẩn: [docs/V2_Unified_Architecture.md](docs/V2_Unified_Architecture.md). V1 được giữ làm parity baseline: [docs/V1_Architecture.md](docs/V1_Architecture.md).
 

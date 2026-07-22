@@ -31,14 +31,14 @@ from .validator import validate_plan
 CriticIssueCode = Literal[
     "missing_semantic_object", "wrong_filter", "wrong_join_path", "grain_mismatch",
     "fanout_risk", "unit_mismatch", "temporal_mismatch", "unsupported_claim",
-    "budget_exceeded", "schema_invalid",
+    "budget_exceeded", "schema_invalid", "tier_violation",
 ]
 
 # Nhóm lỗi deterministic validator phủ đầy đủ — plan đã valid thì LLM issue thuộc
 # nhóm này là verifiably false.
 _DETERMINISTIC_COVERED: frozenset[str] = frozenset({
     "missing_semantic_object", "wrong_filter", "wrong_join_path",
-    "budget_exceeded", "schema_invalid",
+    "budget_exceeded", "schema_invalid", "tier_violation",
 })
 
 
@@ -76,6 +76,7 @@ def _critic_payload(question: str, plan: LogicalQueryPlan) -> dict:
             "physical": CATALOG[ref].physical,
             "valid_aggregations": CATALOG[ref].valid_aggregations,
             "allowed_filters": CATALOG[ref].allowed_filters,
+            "source_tier": CATALOG[ref].source_tier,
             "caveats": CATALOG[ref].caveats,
         }
         for ref in _plan_refs(plan)

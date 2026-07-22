@@ -11,10 +11,12 @@ from typing import Literal
 
 from .metrics import METRICS
 
-CatalogKind = Literal["entity", "dimension", "measure", "derived_metric"]
+CatalogKind = Literal["entity", "dimension", "measure", "derived_metric", "context"]
 Answerability = Literal[
-    "exposed_as_dimension", "exposed_as_measure", "proxy_only", "raw_but_unsafe", "absent"
+    "exposed_as_dimension", "exposed_as_measure", "proxy_only", "raw_but_unsafe", "absent",
+    "context_only",
 ]
+SourceTier = Literal["btc_dataset", "reference", "external"]
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,7 @@ class CatalogObject:
     provenance: str
     value_index: tuple[str, ...] | None
     answerability: Answerability
+    source_tier: SourceTier = "btc_dataset"
 
 
 def _object(
@@ -54,12 +57,14 @@ def _object(
     traps: tuple[int, ...] = (),
     value_index: tuple[str, ...] | None = None,
     answerability: Answerability | None = None,
+    source_tier: SourceTier = "btc_dataset",
 ) -> CatalogObject:
     if answerability is None:
         answerability = "exposed_as_dimension" if kind in {"entity", "dimension"} else "exposed_as_measure"
     return CatalogObject(
         ref, kind, aliases, physical, type, unit, grain, aggregations, time, filters,
         cardinality, caveats, traps, "V2_Unified_Architecture.md", value_index, answerability,
+        source_tier,
     )
 
 
@@ -98,6 +103,29 @@ _BASE_OBJECTS = [
             ("products_clean.csv.shopee_verified_bool",), type="bool"),
     _object("dim.platform_category_has_children", "dimension", ("danh mục có nhánh con",),
             ("category_platform_clean.csv.has_children_bool",), type="bool"),
+    # Phase 6 context namespace is intentionally non-physical. These objects can
+    # help routing/catalog slicing but must never compile into SQL (E1/ADR-E1).
+    _object(
+        "context.campaign_window", "context", ("chiến dịch", "campaign", "kampanye"), (),
+        grain="country_date", time="per_calendar_day", answerability="context_only",
+        source_tier="external", caveats=(
+            "Bối cảnh chiến dịch từ nguồn ngoài; không phải bằng chứng nhân quả cho biến động nội bộ.",
+        ),
+    ),
+    _object(
+        "context.theme_day", "context", ("ngày chủ đề", "theme day"), (),
+        grain="country_date", time="per_calendar_day", answerability="context_only",
+        source_tier="external", caveats=(
+            "Ngày chủ đề là context công khai, không phải quan sát từ btc_dataset.",
+        ),
+    ),
+    _object(
+        "context.market_event", "context", ("sự kiện thị trường", "market event"), (),
+        grain="country_date_window", time="event_window", answerability="context_only",
+        source_tier="external", caveats=(
+            "Sự kiện thị trường chỉ được dùng làm context_only và phải có provenance.",
+        ),
+    ),
 ]
 
 
@@ -130,11 +158,18 @@ _MEASURES: dict[str, tuple[tuple[str, ...], str, str, tuple[int, ...], Answerabi
 }
 
 for name, (physical, unit, type_, traps, status) in _MEASURES.items():
+    caveats = ["Dùng đúng grain và scope theo metric/relation registry."]
+    if name in {"price", "price_original"}:
+        caveats.append("Loại sentinel 999999999 bằng filter < 999999999 trước aggregate hoặc rank.")
+    if name in {"monthly_sold", "history_sold"}:
+        caveats.append("Đây là proxy hiển thị của sàn, không phải dữ liệu đơn hàng đã kiểm chứng.")
+    if name == "variation_options_count":
+        caveats.append("Số option hiển thị không phải số SKU.")
     _BASE_OBJECTS.append(_object(
         f"measure.{name}", "measure", (name.replace("_", " "),), physical,
         type=type_, unit=unit, aggregations=("median", "min", "max"),
         filters=("eq", "lt", "lte", "gt", "gte"), traps=traps, answerability=status,
-        caveats=("Dùng đúng grain và scope theo metric/relation registry.",),
+        caveats=tuple(caveats),
     ))
 
 

@@ -67,7 +67,9 @@ class OpenAnalyticalPlanner:
                 "allowed_filters": CATALOG[ref].allowed_filters,
                 "time_semantics": CATALOG[ref].time_semantics,
                 "answerability": CATALOG[ref].answerability,
+                "source_tier": CATALOG[ref].source_tier,
                 "caveats": CATALOG[ref].caveats,
+                "traps": CATALOG[ref].traps,
             }
             for ref in refs
         ]

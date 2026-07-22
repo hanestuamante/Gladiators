@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import math
 import re
+from typing import Any
 
 from gladiators.contracts import Evidence
 
@@ -76,6 +77,80 @@ def _display_match(claimed: float, decimals: int, allowed: float) -> bool:
     return math.isclose(claimed, allowed, rel_tol=0.0, abs_tol=tolerance)
 
 
+def _tier_mixing(text: str, evidence: list[Evidence]) -> list[dict[str, Any]]:
+    """A20-TIER: one textual claim or derived evidence cannot bind >1 tier."""
+    by_id = {item.evidence_id: item for item in evidence}
+    violations: list[dict[str, Any]] = []
+    # Newline and sentence punctuation form conservative claim boundaries. A
+    # Sources block should list each evidence item on its own line.
+    segments = [part.strip() for part in re.split(r"(?<=[.!?])\s+|\n+", text) if part.strip()]
+    for index, segment in enumerate(segments):
+        ids = tuple(dict.fromkeys(CITATION.findall(segment)))
+        tiers = sorted({by_id[eid].source_tier for eid in ids if eid in by_id})
+        if len(tiers) > 1:
+            violations.append({"kind": "claim", "segment": index, "evidence_ids": ids, "tiers": tiers})
+
+    for item in evidence:
+        if not item.parent_evidence_ids:
+            continue
+        parent_tiers = sorted({
+            by_id[parent].source_tier for parent in item.parent_evidence_ids if parent in by_id
+        })
+        if len(parent_tiers) > 1:
+            violations.append({
+                "kind": "derived_evidence", "evidence_id": item.evidence_id,
+                "parent_evidence_ids": item.parent_evidence_ids, "tiers": parent_tiers,
+            })
+    return violations
+
+
+def _provenance_gaps(evidence: list[Evidence]) -> list[dict[str, str]]:
+    """A21-PROV: every non-internal record must carry matching provenance."""
+    gaps: list[dict[str, str]] = []
+    for item in evidence:
+        if item.source_tier == "btc_dataset":
+            if item.provenance is not None:
+                gaps.append({"evidence_id": item.evidence_id, "reason": "unexpected_external_provenance"})
+            continue
+        if item.provenance is None:
+            gaps.append({"evidence_id": item.evidence_id, "reason": "missing_provenance"})
+        elif item.provenance.source_tier != item.source_tier:
+            gaps.append({"evidence_id": item.evidence_id, "reason": "tier_mismatch"})
+        elif item.provenance.source_id == "live_web_search":
+            required = {
+                "provider": item.provenance.provider,
+                "search_query": item.provenance.search_query,
+                "result_rank": item.provenance.result_rank,
+                "source_spans": item.provenance.source_spans,
+            }
+            for field, value in required.items():
+                if value is None or value == ():
+                    gaps.append({"evidence_id": item.evidence_id, "reason": f"missing_{field}"})
+    return gaps
+
+
+def _source_label_gaps(text: str, evidence: list[Evidence]) -> list[dict[str, str]]:
+    """V2 11.3.10: external claims require source and retrieval-time labels."""
+    gaps: list[dict[str, str]] = []
+    segments = [part.strip() for part in re.split(r"(?<=[.!?])\s+|\n+", text) if part.strip()]
+    for item in evidence:
+        if item.source_tier == "btc_dataset" or item.provenance is None:
+            continue
+        cited = [segment for segment in segments if f"[{item.evidence_id}]" in segment]
+        retrieved = item.provenance.retrieved_at.isoformat()
+        labelled = any(
+            "[nguồn:" in segment.lower()
+            and item.provenance.source_id.lower() in segment.lower()
+            and (retrieved in segment or retrieved[:10] in segment)
+            for segment in cited
+        )
+        if not labelled:
+            gaps.append({"evidence_id": item.evidence_id, "reason": "missing_inline_source_or_retrieved_at"})
+        if item.provenance.mapping_status == "needs_review" and "chưa xác nhận cùng sản phẩm/thực thể" not in text.lower():
+            gaps.append({"evidence_id": item.evidence_id, "reason": "missing_needs_review_label"})
+    return gaps
+
+
 def verify_numeric_claims(text: str, evidence: list[Evidence], tolerance: float | None = None) -> dict:
     known_ids = {item.evidence_id for item in evidence}
     unknown_citations = sorted({c for c in CITATION.findall(text) if c not in known_ids})
@@ -94,6 +169,21 @@ def verify_numeric_claims(text: str, evidence: list[Evidence], tolerance: float 
         for value in item.attrs.values():
             if isinstance(value, str) and value:
                 ignored_strings.extend(_date_variants(value))
+        if item.provenance is not None:
+            ignored_strings.extend((
+                item.provenance.source_id,
+                item.provenance.content_hash,
+                item.provenance.license,
+                item.provenance.observed_at.isoformat(),
+                item.provenance.retrieved_at.isoformat(),
+                item.provenance.observed_at.date().isoformat(),
+                item.provenance.retrieved_at.date().isoformat(),
+                item.provenance.source_locator.value,
+            ))
+            if item.provenance.provider:
+                ignored_strings.append(item.provenance.provider)
+            if item.provenance.search_query:
+                ignored_strings.append(item.provenance.search_query)
     for value in sorted(set(ignored_strings), key=len, reverse=True):
         metric_text = metric_text.replace(value, "")
 
@@ -109,12 +199,18 @@ def verify_numeric_claims(text: str, evidence: list[Evidence], tolerance: float 
     else:
         unsupported = [n for n, d in claimed_tokens if not any(_display_match(n, d, a) for a in allowed)]
 
-    passed = not unsupported and not unknown_citations
+    tier_mixing = _tier_mixing(text, evidence)
+    provenance_gaps = _provenance_gaps(evidence)
+    source_label_gaps = _source_label_gaps(text, evidence)
+    passed = not unsupported and not unknown_citations and not tier_mixing and not provenance_gaps and not source_label_gaps
     return {
         "passed": passed,
         "claimed": claimed,
         "allowed": allowed,
         "unsupported": unsupported,
         "unknown_citations": unknown_citations,
+        "tier_mixing": tier_mixing,
+        "provenance_gaps": provenance_gaps,
+        "source_label_gaps": source_label_gaps,
         "coverage": 1.0 if not claimed else (len(claimed) - len(unsupported)) / len(claimed),
     }
