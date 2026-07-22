@@ -5,7 +5,7 @@ import secrets
 
 from pydantic import ValidationError
 
-from .injection_guard import spans_match_utf8
+from .injection_guard import fields_match_utf8, normalize_bound_raw_value
 from .search_contracts import ExtractedWebRecord, SearchResponse, SearchResultItem
 
 
@@ -42,9 +42,17 @@ class WebExtractor:
                 fixed = payload["fixed"]
                 if any(getattr(record, key) != value for key, value in fixed.items()):
                     raise ValueError("P6 thay đổi fixed provenance fields.")
-                if not spans_match_utf8(item.snippet, record.spans):
-                    raise ValueError("A17 source span không khớp cached snippet.")
-                return record
+                if any(field.normalized_value is not None for field in record.fields.values()):
+                    raise ValueError("P6 không được tự sinh normalized_value.")
+                if not fields_match_utf8(item.snippet, record.fields):
+                    raise ValueError("A17 field/source-span binding không khớp cached snippet.")
+                normalized = {
+                    name: field.model_copy(update={
+                        "normalized_value": normalize_bound_raw_value(field.raw_value),
+                    })
+                    for name, field in record.fields.items()
+                }
+                return record.model_copy(update={"fields": normalized})
             except (ValidationError, ValueError, TypeError, RuntimeError) as exc:
                 errors.append(str(exc)[:300])
                 payload["validator_feedback"] = errors[-1]

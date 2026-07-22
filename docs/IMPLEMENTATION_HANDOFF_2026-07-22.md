@@ -1,5 +1,10 @@
 # Gladiators V2 — Implementation Handoff 22/07/2026
 
+> **Lịch sử, đã được thay thế:** trạng thái và lệnh vận hành hiện hành nằm ở
+> `docs/IMPLEMENTATION_HANDOFF_2026-07-23.md`. Hai biến
+> `GLADIATORS_LIVE_SOURCE_REVIEWED` và `GLADIATORS_LIVE_SEARCH_LICENSE` trong bản
+> bàn giao ngày 22/07 đã bị loại theo E0; không dùng các lệnh cũ bên dưới để vận hành.
+
 ## 1. Trạng thái tổng quát
 
 - Branch triển khai: `MVP_Dai_V2`.

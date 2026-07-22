@@ -10,14 +10,16 @@
 | Runtime tier hiện hành     | `btc_dataset` only (external toàn bộ đang OFF)                 |
 | Capability chính đã chốt | **`live_web_search`** qua Tavily API, provider phụ SerpAPI |
 
-> **Cập nhật implementation 22/07/2026:** Phase **E1–E5 (offline) đã được triển khai cục bộ**:
-> provenance/search contracts; A20-TIER/A21-PROV; catalog `context.*`; validator
-> `tier_violation`; Tavily/Fake provider boundary; immutable SHA-256 cache + quota;
-> deny-list Shopee; injection guard; P5/P6 bounded wrappers; UTF-8 span verification;
-> admission clamp `context_only`; deterministic capability router A14-LIVE/A14-EXT/A16;
-> workflow external evidence + Sources; verifier Pass 4; fixture/replay suite EF-13…EF-24.
-> Toàn bộ source flags vẫn OFF/`cache_only`. **E6 chưa thể ký hoàn tất**: còn DR1 review
-> ≥10 answer thật, rehearsal 4 câu ở `live` và `cache_only`, Lead sign-off/ADR approval.
+> **Cập nhật implementation 23/07/2026:** W1–W7 đã được triển khai và kiểm tra
+> offline trên macOS: structured field↔UTF-8 span binding; per-claim
+> evidence/path/value/unit verifier; Tavily mock HTTP contract; typed settings và source
+> registry; semantic `external_only`/`hybrid` route; internal-partial failure handling;
+> provider-isolated immutable cache, append-only quarantine và executable EF-13…EF-24.
+> Targeted suite **204 passed in 19.81s**, full suite **254 passed in 80.35s**.
+> Default vẫn `enabled: false`/`cache_only`, external admission vẫn chỉ
+> `context_only`. **E6 vẫn PENDING**: máy chưa có `TAVILY_API_KEY`, live calls = 0,
+> chưa có ba fixture Tavily thật/rehearsal và chưa có Windows/Linux CI artifact hoặc
+> human/ADR sign-off. Chi tiết: `IMPLEMENTATION_HANDOFF_2026-07-23.md`.
 
 **Quy ước nhãn bằng chứng dùng xuyên tài liệu:**
 
@@ -67,9 +69,11 @@
 
 ---
 
-## 02 · Current-state audit của repository
+## 02 · Current-state audit của repository (baseline lịch sử trước implementation)
 
-Đối chiếu trực tiếp code tại commit nền, không dựa vào ma trận trong `V2_Unified_Architecture.md`. Phần này là audit thuần túy về code — **không đổi theo quyết định chọn live search hay reference file**, vì nó mô tả trạng thái hiện tại trước khi bất kỳ phần nào của kế hoạch này được triển khai.
+Phần dưới đây đối chiếu code tại commit nền trước Phase 6 và được giữ để truy vết
+gap ban đầu. Nó **không còn mô tả working tree ngày 23/07/2026**; trạng thái hiện
+hành nằm ở cập nhật đầu tài liệu và handoff ngày 23/07.
 
 ### 2.1. Trạng thái từng thành phần external
 

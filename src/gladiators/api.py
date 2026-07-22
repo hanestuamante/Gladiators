@@ -45,6 +45,7 @@ def capabilities() -> dict:
         "analytical_templates": (
             "highest_revenue_day", "listing_count",
             "highest_price_listing", "highest_monthly_sold_listing", "top_shop_by_listing_count",
+            "price_change_by_date",
         ),
         "planner": {"ir_version": "1.0", "critic_enabled": runtime.enable_critic, "nversion_enabled": runtime.enable_nversion},
         "external": {

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from gladiators.external.contracts import ExternalProvenance, SourceLocator
 
 
@@ -15,6 +15,9 @@ class StructuredRequest(BaseModel):
     slots: dict[str, Any] = Field(default_factory=dict)
     analytical: dict[str, Any] | None = None
     language: Literal["vi", "id", "unknown"] = "unknown"
+    route_mode: Literal["internal_only", "external_only", "hybrid", "clarify", "abstain"] = "internal_only"
+    external_purpose: Literal["campaign_context", "market_event", "product_external_info"] | None = None
+    requested_variables: tuple[str, ...] = ()
 
     @field_validator("country")
     @classmethod
@@ -51,6 +54,16 @@ class Evidence(BaseModel):
     attrs: dict[str, Any] = Field(default_factory=dict)
     provenance: ExternalProvenance | None = None
     parent_evidence_ids: tuple[str, ...] = ()
+    claimable_paths: tuple[str, ...] = ("value",)
+
+    @field_validator("claimable_paths")
+    @classmethod
+    def validate_claimable_paths(cls, paths: tuple[str, ...]) -> tuple[str, ...]:
+        if not paths or any(not path or not all(part.isidentifier() for part in path.split(".")) for path in paths):
+            raise ValueError("Evidence.claimable_paths chỉ nhận dot-path định danh và không được rỗng.")
+        if len(set(paths)) != len(paths):
+            raise ValueError("Evidence.claimable_paths không được trùng.")
+        return paths
 
     @model_validator(mode="after")
     def provenance_matches_tier(self) -> "Evidence":
@@ -73,12 +86,26 @@ class ToolCall(BaseModel):
     error: str | None = None
 
 
+class ResponseClaim(BaseModel):
+    """A displayed claim bound to one explicit path in one Evidence object."""
+
+    model_config = ConfigDict(extra="forbid")
+    claim_id: str = Field(min_length=1, pattern=r"^cl:[A-Za-z0-9:_-]+$")
+    text: str = Field(min_length=1)
+    claim_type: Literal["money", "count", "percent", "date", "context", "text"]
+    value: str | int | float | bool
+    unit: str | None = None
+    evidence_id: str = Field(min_length=1)
+    evidence_path: str = Field(min_length=1)
+
+
 class AgentResponse(BaseModel):
     trace_id: str
     request: StructuredRequest
     gate: GateDecision
     answer: str
     evidence: list[Evidence] = Field(default_factory=list)
+    claims: tuple[ResponseClaim, ...] = ()
     tool_calls: list[ToolCall] = Field(default_factory=list)
     resolved_listing_key: str | None = None
     verification: dict[str, Any] = Field(default_factory=dict)

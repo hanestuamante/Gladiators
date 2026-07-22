@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+import math
 
 from gladiators.contracts import Evidence
 from gladiators.external.contracts import SourceLocator
@@ -120,6 +121,8 @@ class AnalyticsTools:
                     value = result_row[column]
                     if hasattr(value, "item"):
                         value = value.item()
+                    if value is None or isinstance(value, float) and math.isnan(value):
+                        continue
                     if field.type == "date" and value is not None:
                         value = str(value)
                     semantic = CATALOG.get(field.semantic_ref or "")

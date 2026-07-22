@@ -33,7 +33,7 @@ class ExternalPipelineOutcome:
 class ExternalContextPipeline:
     def __init__(
         self, planner: LiveSearchPlanner, executor: SearchExecutor, extractor: WebExtractor,
-        *, mode: str = "cache_only", license: str = "public-facts-with-attribution",
+        *, mode: str = "cache_only", license: str = "project-demo-approved-context",
     ):
         if mode not in {"cache_only", "record", "live"}:
             raise ValueError("External mode không hợp lệ.")
@@ -44,6 +44,8 @@ class ExternalContextPipeline:
         self, question: str, *, purpose: str, market: str,
         evidence_id: Callable[[], str], dataset_version: str,
     ) -> ExternalPipelineOutcome:
+        if reason := self.executor.preflight_failure(self.mode):
+            return ExternalPipelineOutcome((), None, (), 0, 0, 0, 0, reason)
         try:
             plan = self.planner.plan(question, purpose=purpose, market=market, mode=self.mode)
         except Exception as exc:
@@ -73,7 +75,8 @@ class ExternalContextPipeline:
                 if admitted.provenance is None:
                     excluded += 1
                     continue
-                value = json.dumps(record.fields, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+                normalized_fields = record.normalized_fields()
+                value = json.dumps(normalized_fields, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
                 metric = {
                     "campaign_window": "context.campaign_window",
                     "theme_day": "context.theme_day",
@@ -83,7 +86,7 @@ class ExternalContextPipeline:
                     value=value, unit=None, source_locator=admitted.provenance.source_locator,
                     source_path=response.cache_path, dataset_version=dataset_version,
                     attrs={
-                        "claim_type": record.claim_type, "fields": record.fields,
+                        "claim_type": record.claim_type, "fields": normalized_fields,
                         "provider": response.provider, "search_query": record.search_query,
                         "result_rank": record.result_rank,
                         "observed_at": observed_at.isoformat(),

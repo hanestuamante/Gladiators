@@ -11,6 +11,8 @@ from gladiators.external.pipeline import ExternalContextPipeline
 from gladiators.external.search_executor import SearchExecutor
 from gladiators.external.search_planner import LiveSearchPlanner
 from gladiators.external.search_provider import TavilyProvider
+from gladiators.external.settings import load_external_settings
+from gladiators.external.registry import build_source_registry
 from gladiators.external.web_extract import WebExtractor
 
 
@@ -19,27 +21,28 @@ def create_runtime(provider: str | None = None) -> AgentRuntime:
     selected = provider or os.getenv("GLADIATORS_LLM_PROVIDER", "offline")
     if selected not in {"offline", "gemini", "huggingface", "groq"}:
         raise ValueError(f"Provider không hỗ trợ: {selected}")
-    live_enabled = os.getenv("GLADIATORS_ENABLE_LIVE_SEARCH") == "1"
-    live_license = os.getenv("GLADIATORS_LIVE_SEARCH_LICENSE", "").strip()
-    if live_enabled and os.getenv("GLADIATORS_LIVE_SOURCE_REVIEWED") != "1":
-        raise RuntimeError("Live search bị chặn: source/license review chưa được xác nhận.")
-    if live_enabled and not live_license:
-        raise RuntimeError("Live search bị chặn: thiếu GLADIATORS_LIVE_SEARCH_LICENSE đã được duyệt.")
+    external_settings = load_external_settings()
+    live = external_settings.live_search
+    live_enabled = live.enabled
+    source_registry = build_source_registry(live)
     llm = GeminiLLMClient() if selected == "gemini" else HuggingFaceLLMClient() if selected == "huggingface" else GroqLLMClient() if selected == "groq" else None
     external_pipeline = None
     if live_enabled:
         if llm is None:
             raise RuntimeError("Live search cần LLM cho bounded P5/P6; chọn provider trước khi bật.")
-        mode = os.getenv("GLADIATORS_LIVE_SEARCH_MODE", "cache_only")
-        provider_adapter = TavilyProvider() if mode in {"record", "live"} else None
-        cache = ExternalCache(os.getenv("GLADIATORS_EXTERNAL_CACHE_DIR", "data/external_cache"))
+        source = source_registry.require_enabled("live_web_search")
+        provider_adapter = TavilyProvider() if live.mode in {"record", "live"} else None
+        cache = ExternalCache(live.cache_dir)
         quota = QuotaGuard(
-            os.getenv("GLADIATORS_EXTERNAL_QUOTA_PATH", "artifacts/external_quota.json"),
-            int(os.getenv("GLADIATORS_LIVE_SEARCH_DAILY_LIMIT", "150")),
+            live.quota_path, live.daily_query_limit,
         )
         external_pipeline = ExternalContextPipeline(
-            LiveSearchPlanner(llm), SearchExecutor(provider_adapter, cache, quota),
-            WebExtractor(llm), mode=mode, license=live_license,
+            LiveSearchPlanner(llm, max_queries=live.max_queries_per_request), SearchExecutor(
+                provider_adapter, cache, quota, max_results=live.max_results_per_query,
+                timeout_s=live.timeout_s, total_budget_s=live.total_budget_s,
+                cache_provider_id=live.provider,
+            ),
+            WebExtractor(llm), mode=live.mode, license=source.license,
         )
     return AgentRuntime(
         llm_client=llm, use_llm_parser=llm is not None,

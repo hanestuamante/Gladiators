@@ -84,6 +84,13 @@ def test_a16_blocks_cross_market_currency_before_planning(tmp_path):
     assert response.tool_calls == []
 
 
+def test_a16_blocks_single_market_conversion_to_usd_before_planning(tmp_path):
+    response = AgentRuntime(trace_dir=tmp_path).run("Quy đổi revenue VN sang USD")
+    assert response.gate.action == "clarify"
+    assert response.gate.rule_id == "A16-CROSS-CURRENCY"
+    assert response.tool_calls == []
+
+
 def test_competitor_price_routes_to_exact_disabled_capability(tmp_path):
     response = AgentRuntime(trace_dir=tmp_path).run("Giá đối thủ ở Indonesia hiện tại là bao nhiêu?")
     assert response.gate.action == "abstain"
@@ -97,6 +104,15 @@ def test_campaign_context_names_live_flag_when_default_off(tmp_path):
     assert response.gate.action == "abstain"
     assert response.gate.rule_id == "A14-LIVE"
     assert "sources.live_search.enabled" in response.gate.reason
+
+
+def test_vietnam_shopping_campaign_question_routes_to_live_context(tmp_path):
+    response = AgentRuntime(trace_dir=tmp_path).run(
+        "Tháng này ở Việt Nam có chiến dịch mua sắm nào?"
+    )
+    assert response.request.intent == "external_context"
+    assert response.request.country == "vn"
+    assert response.gate.rule_id == "A14-LIVE"
 
 
 def test_llm_parser_cannot_override_deterministic_external_route(tmp_path):
@@ -114,7 +130,7 @@ def test_llm_parser_cannot_override_deterministic_external_route(tmp_path):
     ).run("Lịch 7.7 ở Indonesia diễn ra khi nào?")
     assert response.request.intent == "external_context"
     assert response.gate.rule_id == "A14-LIVE"
-    assert "external_route_safety_precedence" in response.llm["parse_adjustments"]
+    assert "deterministic_route_safety_precedence" in response.llm["parse_adjustments"]
 
 
 def test_live_context_end_to_end_is_context_only_and_has_sources(tmp_path):
@@ -148,6 +164,72 @@ def test_external_failure_ladder_abstains_without_crashing(tmp_path):
     assert response.gate.rule_id == "A15-EXTERNAL-UNUSABLE"
     assert response.evidence == []
     assert response.tool_calls[0].status == "empty"
+
+
+def test_hybrid_runs_internal_then_external_in_separate_sections(tmp_path):
+    runtime = AgentRuntime(
+        trace_dir=tmp_path / "traces", external_pipeline=_pipeline(tmp_path),
+        enable_live_search=True,
+    )
+    response = runtime.run(
+        "Có bao nhiêu listing tại Indonesia quanh chiến dịch 7.7 và có bối cảnh gì?"
+    )
+    assert response.request.intent == "analytical_query"
+    assert response.request.route_mode == "hybrid"
+    assert response.gate.action == "allow"
+    assert [call.name for call in response.tool_calls] == [
+        "execute_analytical_plan", "live_search_context",
+    ]
+    assert {item.source_tier for item in response.evidence} == {"btc_dataset", "external"}
+    assert "PHẦN NỘI BỘ" in response.answer
+    assert "BỐI CẢNH NGOÀI — KHÔNG PHẢI BẰNG CHỨNG NHÂN QUẢ" in response.answer
+    assert response.verification["passed"] is True
+
+
+def test_required_price_change_hybrid_runs_internal_snapshot_metrics_and_external(tmp_path):
+    runtime = AgentRuntime(
+        trace_dir=tmp_path / "traces", external_pipeline=_pipeline(tmp_path),
+        enable_live_search=True,
+    )
+    response = runtime.run(
+        "Giá thay đổi thế nào quanh chiến dịch 7.7 tại Indonesia, và có bối cảnh thị trường nào liên quan?"
+    )
+    assert response.request.route_mode == "hybrid"
+    assert response.request.slots["analytical_kind"] == "price_change_by_date"
+    assert response.gate.action == "allow"
+    assert {item.source_tier for item in response.evidence} == {"btc_dataset", "external"}
+    assert any(item.metric == "price" for item in response.evidence)
+    assert "KHÔNG PHẢI BẰNG CHỨNG NHÂN QUẢ" in response.answer
+    assert response.verification["tier_mixing"] == []
+
+
+def test_hybrid_external_failure_keeps_internal_evidence_and_limitation(tmp_path):
+    runtime = AgentRuntime(
+        trace_dir=tmp_path / "traces",
+        external_pipeline=_pipeline(tmp_path, mode="cache_only", provider=False),
+        enable_live_search=True,
+    )
+    response = runtime.run(
+        "Có bao nhiêu listing tại Indonesia quanh chiến dịch 7.7 và có bối cảnh gì?"
+    )
+    assert response.gate.action == "allow"
+    assert response.gate.rule_id == "A15-INTERNAL-PARTIAL"
+    assert response.evidence and {item.source_tier for item in response.evidence} == {"btc_dataset"}
+    assert response.tool_calls[-1].name == "live_search_context"
+    assert response.tool_calls[-1].status == "empty"
+    assert "Phần nội bộ ở trên vẫn giữ nguyên" in response.answer
+    assert response.verification["passed"] is True
+
+
+def test_hybrid_with_live_flag_off_still_runs_internal_path(tmp_path):
+    response = AgentRuntime(trace_dir=tmp_path).run(
+        "Có bao nhiêu listing tại Indonesia quanh chiến dịch 7.7 và có bối cảnh gì?"
+    )
+    assert response.gate.action == "allow"
+    assert response.gate.rule_id == "A14-HYBRID-PARTIAL"
+    assert response.evidence and {item.source_tier for item in response.evidence} == {"btc_dataset"}
+    assert all(call.name != "live_search_context" for call in response.tool_calls)
+    assert "sources.live_search.enabled" in response.answer
 
 
 def test_cache_replay_keeps_external_values_and_hashes(tmp_path):

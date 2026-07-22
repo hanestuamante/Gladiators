@@ -16,7 +16,7 @@ from gladiators.agent.workflow import AgentRuntime
 from gladiators.domain.relations import RELATIONS
 from scripts.build_eval_coverage_matrix import build
 from eval.independent.l4_oracle import build_l4_denotation
-from eval.independent.oracle import build_oracle
+from eval.independent.oracle import _sha256, build_oracle
 
 
 def _codes(plan: LogicalQueryPlan) -> set[str]:
@@ -191,6 +191,14 @@ def test_independent_oracle_matches_frozen_gold_and_imports_no_production_code()
     assert "from gladiators" not in source and "import gladiators" not in source
     frozen = json.loads(Path("eval/independent/golden_v2.json").read_text(encoding="utf-8"))
     assert build_oracle("data/processed") == frozen
+
+
+def test_independent_oracle_hash_is_newline_canonical(tmp_path):
+    lf = tmp_path / "same.csv"
+    lf.write_bytes(b"a,b\n1,2\n")
+    first = _sha256((lf,))
+    lf.write_bytes(b"a,b\r\n1,2\r\n")
+    assert _sha256((lf,)) == first
 
 
 @pytest.mark.parametrize(

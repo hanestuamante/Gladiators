@@ -6,6 +6,7 @@ import unicodedata
 from gladiators.contracts import StructuredRequest
 from gladiators.domain.intent_registry import IntentRegistry
 from gladiators.planner.semantic_parser import DeterministicSemanticParser
+from gladiators.external.router import classify_external_need
 
 
 def normalize_text(value: str) -> str:
@@ -38,26 +39,20 @@ class MultilingualIntentParser:
         n = normalize_text(text)
         quoted = re.findall(r'["“](.*?)["”]', text)
         language = "id" if any(x in n for x in ("produk", "penjualan", "mirip", "promosi")) else "vi"
-        # Campaign/calendar context is a distinct C2 path.  It must take
-        # precedence over promotion-effectiveness keywords such as "campaign".
-        if any(x in n for x in (
-            "lich 7.7", "7.7", "lich chien dich", "lich khuyen mai",
-            "campaign calendar", "campaign date", "campaign window",
-            "ngay chien dich", "jadwal kampanye", "su kien thi truong",
-            "market event", "theme day", "shopping festival", "hari belanja",
-        )):
-            intent = "external_context"
-        else:
-            intent = ""
+        route = classify_external_need(text)
         for capability, words in UNSUPPORTED.items():
             if any(w in n for w in words):
-                return StructuredRequest(intent=f"unsupported:{capability}", language=language, slots={"raw_text": text})
-        if intent:
-            pass
-        elif any(x in n for x in ("tuong tu", "giong", "similar", "mirip", "serupa")):
+                return StructuredRequest(
+                    intent=f"unsupported:{capability}", language=language, slots={"raw_text": text},
+                    route_mode=route.mode, external_purpose=route.purpose,
+                    requested_variables=route.requested_variables,
+                )
+        if any(x in n for x in ("tuong tu", "giong", "similar", "mirip", "serupa")):
             intent = "similar_product"
         elif any(x in n for x in ("voucher", "khuyen mai", "promotion", "promosi", "promo")):
             intent = "promotion_effectiveness"
+        elif any(x in n for x in ("gia thay doi", "bien dong gia", "price change", "perubahan harga")):
+            intent = "analytical_query"
         elif any(x in n for x in ("doanh thu", "revenue", "pendapatan")) and any(
             x in n for x in ("cao nhat", "lon nhat", "highest", "tertinggi")
         ) and any(x in n for x in ("ngay", "date", "tanggal")):
@@ -82,18 +77,17 @@ class MultilingualIntentParser:
             intent = "sales_decline"
         else:
             intent = "open_analytical"
+        if route.mode == "external_only":
+            intent = "external_context"
         country = "id" if re.search(r"\b(id|indonesia)\b", n) else "vn" if re.search(r"\b(vn|viet nam|vietnam)\b", n) else None
         entity = quoted[0].strip() if quoted else None
         slots = {"raw_text": text}
-        if intent == "external_context":
-            slots["external_purpose"] = (
-                "campaign_context" if any(x in n for x in (
-                    "7.7", "lich chien dich", "lich khuyen mai", "campaign",
-                    "ngay chien dich", "jadwal kampanye",
-                )) else "market_event"
-            )
+        if route.purpose:
+            slots["external_purpose"] = route.purpose
         if intent == "analytical_query":
-            if any(x in n for x in ("doanh thu", "revenue", "pendapatan")):
+            if any(x in n for x in ("gia thay doi", "bien dong gia", "price change", "perubahan harga")):
+                slots["analytical_kind"] = "price_change_by_date"
+            elif any(x in n for x in ("doanh thu", "revenue", "pendapatan")):
                 slots["analytical_kind"] = "highest_revenue_day"
             elif any(x in n for x in ("bao nhieu", "how many", "berapa")):
                 slots["analytical_kind"] = "listing_count"
@@ -108,5 +102,6 @@ class MultilingualIntentParser:
             analytical = DeterministicSemanticParser().parse(text, language, country).model_dump(mode="json")
         return StructuredRequest(
             intent=intent, entity_text=entity, country=country, language=language,
-            slots=slots, analytical=analytical,
+            slots=slots, analytical=analytical, route_mode=route.mode,
+            external_purpose=route.purpose, requested_variables=route.requested_variables,
         )

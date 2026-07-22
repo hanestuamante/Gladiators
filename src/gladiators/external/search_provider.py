@@ -8,20 +8,28 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import ssl
 import urllib.error
 import urllib.request
-from datetime import date, datetime, timezone
-from typing import Protocol
+from datetime import date, datetime, timedelta, timezone
+from typing import Callable, Protocol
 
 from dotenv import load_dotenv
+import certifi
 
 from .search_contracts import SearchQuery, SearchResponse, SearchResultItem
 
 
 class ProviderError(RuntimeError):
-    def __init__(self, message: str, *, retryable: bool):
+    def __init__(
+        self, message: str, *, retryable: bool, quota_exhausted: bool = False,
+        retry_after_s: float | None = None, category: str = "provider_failure",
+    ):
         super().__init__(message)
         self.retryable = retryable
+        self.quota_exhausted = quota_exhausted
+        self.retry_after_s = retry_after_s
+        self.category = category
 
 
 class SearchProvider(Protocol):
@@ -62,16 +70,36 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         raise urllib.error.HTTPError(req.full_url, code, "Redirect disabled", headers, fp)
 
 
+def _verified_opener():
+    """Use an explicit maintained CA bundle while preserving full TLS verification."""
+    context = ssl.create_default_context(cafile=certifi.where())
+    return urllib.request.build_opener(
+        _NoRedirect(), urllib.request.HTTPSHandler(context=context),
+    )
+
+
 class TavilyProvider:
+    # HTTP request shape checked against Tavily's official Search API reference
+    # on 2026-07-23; mock-contract tests lock the bounded subset used here.
     provider_id = "tavily"
     _URL = "https://api.tavily.com/search"
 
-    def __init__(self, api_key: str | None = None):
+    def __init__(
+        self, api_key: str | None = None, *, opener=None,
+        clock: Callable[[], datetime] | None = None,
+    ):
         load_dotenv()
         self._api_key = api_key or os.getenv("TAVILY_API_KEY")
         if not self._api_key:
             raise RuntimeError("Thiếu TAVILY_API_KEY; live search vẫn OFF.")
-        self._opener = urllib.request.build_opener(_NoRedirect())
+        self._opener = opener or _verified_opener()
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
+
+    def _now_utc(self) -> datetime:
+        now = self._clock()
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=timezone.utc)
+        return now.astimezone(timezone.utc)
 
     @staticmethod
     def _published(value) -> date | None:
@@ -89,9 +117,12 @@ class TavilyProvider:
         body = {
             "query": query.query, "search_depth": "basic", "max_results": max_results,
             "topic": "news" if query.purpose in {"campaign_context", "market_event"} else "general",
+            "include_answer": False, "include_raw_content": False, "include_images": False,
         }
         if query.recency_days:
-            body["days"] = query.recency_days
+            body["start_date"] = (
+                self._now_utc().date() - timedelta(days=query.recency_days)
+            ).isoformat()
         request = urllib.request.Request(
             self._URL, data=json.dumps(body).encode(), method="POST",
             headers={
@@ -106,26 +137,43 @@ class TavilyProvider:
                     raise ProviderError("Tavily response vượt 2MB.", retryable=False)
         except urllib.error.HTTPError as exc:
             retryable = exc.code == 429 or 500 <= exc.code < 600
-            raise ProviderError(f"Tavily HTTP {exc.code}", retryable=retryable) from exc
+            quota_exhausted = exc.code in {432, 433}
+            retry_after = None
+            if exc.code == 429:
+                try:
+                    retry_after = max(0.0, float(exc.headers.get("Retry-After", "0")))
+                except (TypeError, ValueError):
+                    retry_after = None
+            raise ProviderError(
+                f"Tavily HTTP {exc.code}", retryable=retryable,
+                quota_exhausted=quota_exhausted, retry_after_s=retry_after,
+            ) from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             raise ProviderError(f"Tavily network failure: {type(exc).__name__}", retryable=True) from exc
         try:
             payload = json.loads(raw)
             raw_items = payload.get("results", [])
-            items = tuple(
-                SearchResultItem(
-                    rank=index, title=str(item.get("title", ""))[:500],
-                    url=str(item["url"]), snippet=str(item.get("content", ""))[:4000],
+            if not isinstance(raw_items, list):
+                raise TypeError("results must be a list")
+            items_list: list[SearchResultItem] = []
+            for item in raw_items[:max_results]:
+                if not isinstance(item, dict) or not str(item.get("url", "")).startswith("https://"):
+                    continue
+                items_list.append(SearchResultItem(
+                    rank=len(items_list) + 1, title=str(item.get("title") or "")[:500],
+                    url=str(item["url"]), snippet=str(item.get("content") or "")[:4000],
                     score=item.get("score"), published_at=self._published(item.get("published_date")),
-                )
-                for index, item in enumerate(raw_items[:max_results], 1)
-            )
+                ))
+            items = tuple(items_list)
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-            raise ProviderError("Tavily response không đúng schema.", retryable=False) from exc
+            raise ProviderError(
+                "Tavily response không đúng schema.", retryable=False,
+                category="invalid_response",
+            ) from exc
         core = {
             "provider": self.provider_id, "query": query.model_dump(mode="json"),
             "items": [item.model_dump(mode="json") for item in items],
-            "retrieved_at": datetime.now(timezone.utc).isoformat(),
+            "retrieved_at": self._now_utc().isoformat(),
         }
         return SearchResponse(
             **core, content_hash=response_content_hash(core), cache_path="unpersisted",

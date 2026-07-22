@@ -54,6 +54,19 @@
 
 ### 0.1.1. Baseline triển khai hiện hành vs target V2
 
+> **Implementation snapshot 23/07/2026:** bảng audit ngay dưới được viết tại
+> baseline trước các Phase 1–6 và được giữ để truy vết gap; không dùng nó làm trạng
+> thái working tree hiện tại. Code hiện đã có semantic registries/catalog, typed IR,
+> validator/compiler, certified macro parity, risk escalation và external-context
+> path. Riêng Phase 6 đã bổ sung field↔span binding, per-claim verification, typed
+> Tavily adapter/settings/registry, hybrid workflow, cache/security hardening và
+> executable EF-13…EF-24. Full regression local macOS: **254 passed in 80.35s**.
+> Default external vẫn `OFF/cache_only`, admission vẫn `context_only`; W8 Tavily,
+> cross-platform CI và human/ADR sign-off chưa có bằng chứng nên E6 vẫn `PENDING`.
+> Xem `docs/IMPLEMENTATION_HANDOFF_2026-07-23.md` cho trạng thái và limitation chính xác.
+
+**Bảng baseline lịch sử trước implementation:**
+
 | Khối                                                                                 | Trạng thái đã xác minh                   | Bằng chứng / giới hạn                                                                                                                             |
 | ------------------------------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Processed repository                                                                  | **Implemented**                         | `data/repository.py`; đọc `products_clean` + snapshot/transition metrics                                                                        |

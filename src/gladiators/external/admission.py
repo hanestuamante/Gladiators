@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .contracts import AdmissionDecision, MappingState, SourceLocator
-from .injection_guard import spans_match_utf8
+from .injection_guard import fields_match_utf8
 from .search_contracts import ExtractedWebRecord, LiveSearchProvenance, SearchResponse
 
 
@@ -31,8 +31,8 @@ def admit_live_record(
         (item for item in response.items if item.rank == record.result_rank and item.url == record.result_url),
         None,
     )
-    if record.raw_content_hash != response.content_hash or matching is None or not spans_match_utf8(
-        matching.snippet, record.spans,
+    if record.raw_content_hash != response.content_hash or matching is None or not fields_match_utf8(
+        matching.snippet, record.fields,
     ):
         return AdmissionResult(AdmissionDecision(
             record_hash=digest, outcome="excluded", rule_id="A17",
@@ -53,7 +53,7 @@ def admit_live_record(
         mapping_status=mapping_status, admission="context_only", license=license,
         caveats=all_caveats, provider=response.provider,
         search_query=record.search_query, result_rank=record.result_rank,
-        source_spans=record.spans,
+        source_spans=record.all_spans(),
     )
     return AdmissionResult(AdmissionDecision(
         record_hash=digest, outcome="context_only", rule_id=rule, caveats=all_caveats,

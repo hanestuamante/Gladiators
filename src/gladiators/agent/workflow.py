@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import uuid
 from typing import Any
 
 from pydantic import ValidationError
 
 from gladiators.analytics import AnalyticsTools
-from gladiators.contracts import AgentResponse, Evidence, GateDecision, StructuredRequest, ToolCall
+from gladiators.contracts import AgentResponse, Evidence, GateDecision, ResponseClaim, StructuredRequest, ToolCall
 from gladiators.data.repository import ArtifactRepository
 from gladiators.domain.intent_registry import default_registry
 from gladiators.planner.macros import default_macro_registry
@@ -80,13 +81,19 @@ class AgentRuntime:
                 parsed = self.llm_client.parse_intent(user_text, self.registry.names())
                 deterministic = self.parser.parse(user_text, self.registry)
                 adjustments = []
-                if deterministic.intent == "external_context" and parsed.intent != deterministic.intent:
+                if deterministic.route_mode in {"external_only", "hybrid"} and (
+                    parsed.intent != deterministic.intent or parsed.route_mode != deterministic.route_mode
+                ):
                     parsed = parsed.model_copy(update={
                         "intent": deterministic.intent,
                         "country": deterministic.country,
                         "slots": deterministic.slots,
+                        "analytical": deterministic.analytical,
+                        "route_mode": deterministic.route_mode,
+                        "external_purpose": deterministic.external_purpose,
+                        "requested_variables": deterministic.requested_variables,
                     })
-                    adjustments.append("external_route_safety_precedence")
+                    adjustments.append("deterministic_route_safety_precedence")
                 elif deterministic.intent.startswith("unsupported:") and parsed.intent != deterministic.intent:
                     parsed = parsed.model_copy(update={"intent": deterministic.intent}); adjustments.append("unsupported_safety_precedence")
                 elif parsed.intent.startswith("unsupported:") and (parsed.intent.split(":", 1)[1] not in UNSUPPORTED or self.registry.get(deterministic.intent) is not None):
@@ -128,6 +135,30 @@ class AgentRuntime:
             return f"Không thể trả lời chắc chắn: {decision.reason} {decision.answerable_alternative or ''}".strip()
         if decision.action == "clarify":
             return f"Cần làm rõ: {decision.reason}"
+        if request.route_mode == "hybrid":
+            internal = [item for item in evidence if item.source_tier == "btc_dataset"]
+            external = [item for item in evidence if item.source_tier != "btc_dataset"]
+            internal_request = request.model_copy(update={
+                "route_mode": "internal_only", "external_purpose": None,
+            })
+            internal_answer = AgentRuntime._deterministic_answer(decision, internal_request, internal)
+            if external:
+                external_request = request.model_copy(update={
+                    "intent": "external_context", "route_mode": "external_only",
+                })
+                external_answer = AgentRuntime._deterministic_answer(decision, external_request, external)
+                return (
+                    "PHẦN NỘI BỘ\n" + internal_answer + "\n\n"
+                    "BỐI CẢNH NGOÀI — KHÔNG PHẢI BẰNG CHỨNG NHÂN QUẢ\n" + external_answer
+                )
+            reason = str(request.slots.get(
+                "external_ladder_reason",
+                "sources.live_search.enabled đang OFF hoặc không có external evidence hợp lệ",
+            ))
+            return (
+                "PHẦN NỘI BỘ\n" + internal_answer + "\n\n"
+                "BỐI CẢNH NGOÀI\nTạm thiếu: " + reason + ". Phần nội bộ ở trên vẫn giữ nguyên."
+            )
         by_metric = {e.metric: e for e in evidence}
         if request.intent == "external_context" and evidence:
             lines = []
@@ -240,10 +271,39 @@ class AgentRuntime:
             )
         return "Không đủ evidence đã kiểm chứng để trả lời."
 
-    def _generate(self, decision: GateDecision, request: StructuredRequest, evidence: list[Evidence], llm_meta: dict[str, Any]) -> tuple[str, dict]:
+    @staticmethod
+    def _claims_for_answer(answer: str, evidence: list[Evidence]) -> tuple[ResponseClaim, ...]:
+        segments = [part.strip() for part in re.split(r"(?<=[.!?])\s+|\n+", answer) if part.strip()]
+        claims: list[ResponseClaim] = []
+        for item in evidence:
+            segment = next((part for part in segments if f"[{item.evidence_id}]" in part), None)
+            if segment is None:
+                continue
+            unit = item.unit
+            if isinstance(item.value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", item.value):
+                claim_type = "date"
+            elif item.source_tier != "btc_dataset":
+                claim_type = "context"
+            elif unit in {"VND", "IDR", "USD"}:
+                claim_type = "money"
+            elif unit in {"%", "percent", "percentage_point"}:
+                claim_type = "percent"
+            elif isinstance(item.value, (int, float)) and not isinstance(item.value, bool):
+                claim_type = "count"
+            else:
+                claim_type = "text"
+            claims.append(ResponseClaim(
+                claim_id=f"cl:{len(claims) + 1:04d}", text=segment,
+                claim_type=claim_type, value=item.value if item.value is not None else "null",
+                unit=unit, evidence_id=item.evidence_id, evidence_path="value",
+            ))
+        return tuple(claims)
+
+    def _generate(self, decision: GateDecision, request: StructuredRequest, evidence: list[Evidence], llm_meta: dict[str, Any]) -> tuple[str, tuple[ResponseClaim, ...], dict]:
         deterministic = self._deterministic_answer(decision, request, evidence)
+        deterministic_claims = self._claims_for_answer(deterministic, evidence)
         if decision.action != "allow" or not (self.use_llm_generation and self.llm_client):
-            return deterministic, {"attempts": 0, "fallback": False}
+            return deterministic, deterministic_claims, {"attempts": 0, "fallback": False}
         # Caveats từ metric registry là phần bắt buộc của payload (V2 mục 5.1),
         # không phải tùy chọn của generator — đưa thẳng vào context.
         from gladiators.domain.metrics import METRICS
@@ -261,6 +321,7 @@ class AgentRuntime:
                 "Không dự báo/forecast", "Doanh thu proxy luôn kèm chữ 'ước tính'",
                 "Kết quả ở cấp listing, không phải SKU; cấm 'cùng mẫu/cùng SKU'",
                 "Giữ nguyên các caveat trong trường caveats khi diễn giải",
+                "Nếu có hai tier, trình bày thành các section/claim riêng; cấm tính toán hoặc suy ra nhân quả xuyên tier",
             ],
             "deterministic_answer": deterministic,
         }
@@ -268,10 +329,13 @@ class AgentRuntime:
         for attempt in range(2):
             try:
                 answer = self.llm_client.generate(context)
-                verdict = verify_numeric_claims(answer, evidence)
+                answer_claims = self._claims_for_answer(answer, evidence)
+                verdict = verify_numeric_claims(
+                    answer, evidence, claims=answer_claims, require_claims=True,
+                )
                 wording_violations = check_wording(answer)
                 if verdict["passed"] and not wording_violations:
-                    return answer, {"attempts": attempt + 1, "fallback": False}
+                    return answer, answer_claims, {"attempts": attempt + 1, "fallback": False}
                 errors.append({
                     "type": "verification",
                     "unsupported": verdict["unsupported"],
@@ -279,12 +343,13 @@ class AgentRuntime:
                     "tier_mixing": verdict.get("tier_mixing", []),
                     "provenance_gaps": verdict.get("provenance_gaps", []),
                     "source_label_gaps": verdict.get("source_label_gaps", []),
+                    "claim_binding_gaps": verdict.get("claim_binding_gaps", []),
                     "wording": wording_violations,
                 })
                 context["verifier_feedback"] = errors[-1]
             except (ValueError, RuntimeError, KeyError, json.JSONDecodeError) as exc:
                 errors.append({"type": type(exc).__name__})
-        return deterministic, {"attempts": 2, "fallback": True, "errors": errors}
+        return deterministic, deterministic_claims, {"attempts": 2, "fallback": True, "errors": errors}
 
     def run(self, user_text: str) -> AgentResponse:
         trace_id = uuid.uuid4().hex[:12]
@@ -309,17 +374,16 @@ class AgentRuntime:
             planning_meta = {"mode": "blocked", "a19_rule": decision.rule_id}
         tools = AnalyticsTools(self.repo, self.resolver, evidence_id)
 
-        if decision.action == "allow" and request.intent == "external_context":
-            purpose = str(request.slots.get("external_purpose", "market_event"))
+        def execute_external() -> tuple[list[Evidence], ToolCall, dict[str, Any], str | None]:
+            purpose = request.external_purpose or str(request.slots.get("external_purpose", "market_event"))
             market = request.country or "global"
             try:
                 outcome = self.external_pipeline.run(
                     user_text, purpose=purpose, market=market,
                     evidence_id=evidence_id, dataset_version=self.repo.dataset_version,
                 )
-                evidence = list(outcome.evidence)
-                status = "ok" if evidence else "empty"
-                calls.append(ToolCall(
+                external_evidence = list(outcome.evidence)
+                call = ToolCall(
                     name="live_search_context",
                     args={
                         "purpose": purpose, "market": market,
@@ -328,30 +392,31 @@ class AgentRuntime:
                         "quarantined_count": outcome.quarantined_count,
                         "excluded_count": outcome.excluded_count,
                     },
-                    status=status, evidence_ids=[item.evidence_id for item in evidence],
-                    error=outcome.ladder_reason if not evidence else None,
-                ))
-                planning_meta = {
-                    "mode": "external_context", "plan_id": outcome.plan_id,
+                    status="ok" if external_evidence else "empty",
+                    evidence_ids=[item.evidence_id for item in external_evidence],
+                    error=outcome.ladder_reason if not external_evidence else None,
+                )
+                meta = {
+                    "plan_id": outcome.plan_id,
                     "execution_mode": getattr(self.external_pipeline, "mode", "unknown"),
                     "failed_queries": list(outcome.failed_queries),
                 }
-                if not evidence:
-                    decision = GateDecision(
-                        action="abstain", rule_id="A15-EXTERNAL-UNUSABLE",
-                        reason=outcome.ladder_reason or "Không có external evidence qua admission.",
-                        answerable_alternative="Hãy thử lại khi cache/nguồn ngoài khả dụng; dataset nội bộ không chứa bối cảnh này.",
-                    )
+                return external_evidence, call, meta, outcome.ladder_reason
             except Exception as exc:
-                calls.append(ToolCall(
+                return [], ToolCall(
                     name="live_search_context", args={"purpose": purpose, "market": market},
                     status="error", error=f"{type(exc).__name__}: external pipeline failed closed",
-                ))
-                planning_meta = {"mode": "external_context", "outcome": "blocked"}
+                ), {"outcome": "blocked"}, f"Nguồn ngoài không khả dụng ({type(exc).__name__})"
+
+        if decision.action == "allow" and request.intent == "external_context":
+            evidence, call, external_meta, external_reason = execute_external()
+            calls.append(call)
+            planning_meta = {"mode": "external_context", **external_meta}
+            if not evidence:
                 decision = GateDecision(
                     action="abstain", rule_id="A15-EXTERNAL-UNUSABLE",
-                    reason=f"Nguồn ngoài không khả dụng ({type(exc).__name__}); không dùng dữ liệu chưa kiểm chứng.",
-                    answerable_alternative="Hãy thử lại khi cache/nguồn ngoài khả dụng.",
+                    reason=external_reason or "Không có external evidence qua admission.",
+                    answerable_alternative="Hãy thử lại khi cache/nguồn ngoài khả dụng; dataset nội bộ không chứa bối cảnh này.",
                 )
 
         # Generic dispatch: đọc tool_plan từ Intent Registry rồi gọi tool theo tên,
@@ -470,11 +535,50 @@ class AgentRuntime:
             elif decision.action == "allow" and not evidence and self.enable_gate:
                 decision = GateDecision(action="abstain", rule_id="A-NO-EVIDENCE", reason="Tool không tạo được evidence đủ điều kiện từ artifact hiện tại.")
 
-        answer, generation_meta = self._generate(decision, request, evidence, llm_meta)
-        verification = verify_numeric_claims(answer, evidence) if self.enable_verifier else {"passed": True, "coverage": None, "disabled": True}
+        # Hybrid always preserves the completed internal path. External failure
+        # becomes an explicit limitation rather than an all-or-nothing abstain.
+        if decision.action == "allow" and request.route_mode == "hybrid" and evidence:
+            internal_planning = dict(planning_meta)
+            if self.enable_live_search and self.external_pipeline is not None:
+                external_evidence, call, external_meta, external_reason = execute_external()
+                calls.append(call)
+                evidence.extend(external_evidence)
+                planning_meta = {
+                    "mode": "hybrid", "internal": internal_planning,
+                    "external": external_meta,
+                }
+                if not external_evidence:
+                    request.slots["external_ladder_reason"] = external_reason or "Không có external evidence qua admission"
+                    decision = GateDecision(
+                        action="allow", rule_id="A15-INTERNAL-PARTIAL",
+                        reason="Internal analytics hoàn tất; external context không khả dụng và được hạ thành limitation.",
+                    )
+            else:
+                request.slots["external_ladder_reason"] = "`sources.live_search.enabled` đang OFF"
+                planning_meta = {
+                    "mode": "hybrid", "internal": internal_planning,
+                    "external": {"outcome": "disabled", "rule_id": "A14-LIVE"},
+                }
+
+        answer, claims, generation_meta = self._generate(decision, request, evidence, llm_meta)
+        verification = verify_numeric_claims(
+            answer, evidence, claims=claims,
+            require_claims=decision.action == "allow" and bool(evidence),
+        ) if self.enable_verifier else {"passed": True, "coverage": None, "disabled": True}
+        final_verification_failed = bool(self.enable_verifier and decision.action == "allow" and not verification["passed"])
+        if final_verification_failed:
+            planning_meta["final_verification_failure"] = verification
+            decision = GateDecision(
+                action="abstain", rule_id="A-VERIFICATION-FINAL",
+                reason="Câu trả lời deterministic cuối không qua evidence/claim verification; hệ thống từ chối fail-closed.",
+                answerable_alternative="Hãy thu hẹp câu hỏi hoặc kiểm tra lại artifact/evidence contract.",
+            )
+            answer = self._deterministic_answer(decision, request, [])
+            evidence, claims = [], ()
+            verification = verify_numeric_claims(answer, [], claims=(), require_claims=False)
         llm_meta["generation"] = generation_meta
         if self.llm_client and hasattr(self.llm_client, "telemetry"):
             llm_meta["telemetry"] = self.llm_client.telemetry()
-        response = AgentResponse(trace_id=trace_id, request=request, gate=decision, answer=answer, evidence=evidence, tool_calls=calls, resolved_listing_key=resolved_key, verification=verification, llm=llm_meta, planning=planning_meta, degraded=not verification["passed"])
+        response = AgentResponse(trace_id=trace_id, request=request, gate=decision, answer=answer, evidence=evidence, claims=claims, tool_calls=calls, resolved_listing_key=resolved_key, verification=verification, llm=llm_meta, planning=planning_meta, degraded=final_verification_failed or not verification["passed"])
         self.traces.write(trace_id, {"schema_version": "v1.1", "dataset_version": self.repo.dataset_version, "response": response.model_dump()})
         return response

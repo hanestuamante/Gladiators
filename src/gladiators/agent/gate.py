@@ -19,7 +19,7 @@ class ContractDrivenGate:
                 action="abstain", rule_id=route.rule_id, reason=route.reason,
                 answerable_alternative="Có thể hỏi giá hoặc doanh thu proxy trong dataset nội bộ theo từng thị trường.",
             )
-        if route.rule_id == "A14-LIVE" and request.intent != "external_context":
+        if route.mode == "external_only" and request.intent != "external_context":
             return GateDecision(
                 action="abstain", rule_id="A14-ROUTE-MISMATCH",
                 reason="Parser không bảo toàn live-context route; hệ thống chặn fail-closed thay vì chạy tool nội bộ sai.",
@@ -59,4 +59,11 @@ class ContractDrivenGate:
             return GateDecision(action="abstain", rule_id="A-COUNTRY", reason=f"Không có dữ liệu cho quốc gia {request.country}.")
         if request.intent == "promotion_effectiveness" and request.country == "id" and capabilities["voucher_structured_by_country"].get("id", 0) == 0:
             return GateDecision(action="abstain", rule_id="A-VOUCHER-ID", reason="Indonesia không có voucher structured để so sánh.")
+        if route.mode == "hybrid":
+            if bool(capabilities.get("live_search_enabled", False)):
+                return GateDecision(action="allow", rule_id="A14-HYBRID", reason="Chạy internal analytics trước, sau đó bổ sung external context độc lập.")
+            return GateDecision(
+                action="allow", rule_id="A14-HYBRID-PARTIAL",
+                reason="Internal path khả dụng; `sources.live_search.enabled` đang OFF nên chỉ trả phần nội bộ kèm limitation.",
+            )
         return GateDecision(action="allow", rule_id="A-ALLOW", reason="Contract và slot đáp ứng yêu cầu.")

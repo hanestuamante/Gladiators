@@ -1,15 +1,17 @@
 """Immutable content-addressed cache and local daily quota guard."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import threading
+import uuid
 from datetime import date, datetime, timezone
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .search_contracts import SearchResponse
+from .search_contracts import SearchQuery, SearchResponse, SearchResultItem
 from .search_provider import response_content_hash, response_core
 
 
@@ -21,6 +23,8 @@ class CacheEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
     content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     source_id: str
+    provider: str | None = None
+    query: SearchQuery | None = None
     retrieved_at: datetime
     byte_size: int = Field(ge=0)
     media_type: str = "application/json"
@@ -74,6 +78,7 @@ class ExternalCache:
             if expected not in {item.content_hash for item in manifest.entries}:
                 entry = CacheEntry(
                     content_hash=expected, source_id=stored.provider,
+                    provider=stored.provider, query=stored.query,
                     retrieved_at=stored.retrieved_at, byte_size=len(encoded.encode()),
                 )
                 updated = manifest.model_copy(update={"entries": (*manifest.entries, entry)})
@@ -100,11 +105,36 @@ class ExternalCache:
                 return response
         return None
 
-    def quarantine(self, response: SearchResponse, reason: str) -> Path:
-        path = self.root / "quarantine" / f"{response.content_hash}.json"
+    def quarantine(
+        self, response: SearchResponse, reason: str, item: SearchResultItem | None = None,
+    ) -> Path:
+        now = datetime.now(timezone.utc)
+        event_id = f"{now.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid.uuid4().hex[:10]}"
+        path = self.root / "quarantine" / response.content_hash / f"{event_id}.json"
         payload = {
-            "content_hash": response.content_hash, "reason": reason,
-            "quarantined_at": datetime.now(timezone.utc).isoformat(),
+            "event_id": event_id, "content_hash": response.content_hash,
+            "provider": response.provider, "query": response.query.model_dump(mode="json"),
+            "reason": reason, "quarantined_at": now.isoformat(),
+            "result": ({"rank": item.rank, "url": item.url} if item else None),
+        }
+        _atomic_write(path, json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+        return path
+
+    def quarantine_provider_failure(
+        self, *, provider: str, query: SearchQuery, reason: str,
+    ) -> Path:
+        """Persist investigation metadata without provider bytes, query text or secrets."""
+        now = datetime.now(timezone.utc)
+        event_id = f"{now.strftime('%Y%m%dT%H%M%S%fZ')}-{uuid.uuid4().hex[:10]}"
+        query_bytes = json.dumps(
+            query.model_dump(mode="json"), ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        query_hash = hashlib.sha256(query_bytes).hexdigest()
+        path = self.root / "quarantine" / "provider_failures" / query_hash / f"{event_id}.json"
+        payload = {
+            "event_id": event_id, "provider": provider, "query_hash": query_hash,
+            "reason": reason, "quarantined_at": now.isoformat(),
         }
         _atomic_write(path, json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
         return path

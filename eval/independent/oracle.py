@@ -11,11 +11,16 @@ from pathlib import Path
 import pandas as pd
 
 
+def _canonical_csv_bytes(path: Path) -> bytes:
+    """Hash CSV content independent of checkout CRLF/LF conversion."""
+    return path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def _sha256(paths: tuple[Path, ...]) -> str:
     digest = hashlib.sha256()
     for path in paths:
         digest.update(path.name.encode())
-        digest.update(path.read_bytes())
+        digest.update(_canonical_csv_bytes(path))
     return digest.hexdigest()[:16]
 
 

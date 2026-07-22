@@ -38,6 +38,11 @@ sources:
     max_queries_per_request: 3
     max_results_per_query: 5
     daily_query_limit: 150
+    cache_dir: data/external_cache
+    quota_path: artifacts/external_quota.json
+    timeout_s: 10
+    total_budget_s: 25
+    demo_provenance_label: project-demo-approved-context
   reference:
     enabled: false
   external:

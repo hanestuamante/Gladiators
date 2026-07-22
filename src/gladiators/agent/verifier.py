@@ -20,7 +20,7 @@ import math
 import re
 from typing import Any
 
-from gladiators.contracts import Evidence
+from gladiators.contracts import Evidence, ResponseClaim
 
 NUMBER = re.compile(r"(?<![\w-])-?\d+(?:[.,]\d+)?%?")
 CITATION = re.compile(r"\[(ev:[^\[\]\s]+)\]")
@@ -151,7 +151,86 @@ def _source_label_gaps(text: str, evidence: list[Evidence]) -> list[dict[str, st
     return gaps
 
 
-def verify_numeric_claims(text: str, evidence: list[Evidence], tolerance: float | None = None) -> dict:
+def _resolve_path(item: Evidence, path: str) -> tuple[bool, Any]:
+    current: Any = item
+    for part in path.split("."):
+        if isinstance(current, dict):
+            if part not in current:
+                return False, None
+            current = current[part]
+        elif hasattr(current, part):
+            current = getattr(current, part)
+        else:
+            return False, None
+    return True, current
+
+
+def _claim_value_matches(claimed: Any, actual: Any) -> bool:
+    if isinstance(claimed, bool) or isinstance(actual, bool):
+        return claimed is actual
+    if isinstance(claimed, (int, float)) and isinstance(actual, (int, float)):
+        shown = str(claimed)
+        decimals = len(shown.rsplit(".", 1)[1]) if "." in shown else 0
+        return _display_match(float(claimed), decimals, float(actual))
+    left = _normalize_unicode_punctuation(str(claimed)).strip()
+    right = _normalize_unicode_punctuation(str(actual)).strip()
+    return left in _date_variants(right)
+
+
+def _claim_value_is_displayed(claim: ResponseClaim) -> bool:
+    text = _normalize_thousands_grouping(_normalize_unicode_punctuation(claim.text))
+    if isinstance(claim.value, (int, float)) and not isinstance(claim.value, bool):
+        return any(_display_match(value, decimals, float(claim.value)) for value, decimals in scan_number_tokens(text))
+    value = _normalize_unicode_punctuation(str(claim.value))
+    return any(variant in text for variant in _date_variants(value))
+
+
+def _claim_binding_gaps(
+    text: str, evidence: list[Evidence], claims: tuple[ResponseClaim, ...], *, require_claims: bool,
+) -> list[dict[str, str]]:
+    by_id = {item.evidence_id: item for item in evidence}
+    gaps: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for claim in claims:
+        item = by_id.get(claim.evidence_id)
+        if item is None:
+            gaps.append({"claim_id": claim.claim_id, "reason": "unknown_evidence_id"})
+            continue
+        seen.add(item.evidence_id)
+        if claim.text not in text:
+            gaps.append({"claim_id": claim.claim_id, "reason": "claim_text_not_in_answer"})
+        if f"[{item.evidence_id}]" not in claim.text:
+            gaps.append({"claim_id": claim.claim_id, "reason": "missing_bound_citation"})
+        if claim.evidence_path not in item.claimable_paths:
+            gaps.append({"claim_id": claim.claim_id, "reason": "path_not_claimable"})
+            continue
+        found, actual = _resolve_path(item, claim.evidence_path)
+        if not found:
+            gaps.append({"claim_id": claim.claim_id, "reason": "path_not_found"})
+            continue
+        if not _claim_value_matches(claim.value, actual):
+            gaps.append({"claim_id": claim.claim_id, "reason": "value_mismatch"})
+        expected_unit = item.unit if claim.evidence_path == "value" else None
+        if (claim.unit or None) != (expected_unit or None):
+            gaps.append({"claim_id": claim.claim_id, "reason": "unit_mismatch"})
+        if not _claim_value_is_displayed(claim):
+            gaps.append({"claim_id": claim.claim_id, "reason": "value_not_in_claim_text"})
+    if require_claims:
+        required = {
+            item.evidence_id for item in evidence
+            if item.source_tier != "btc_dataset"
+            or isinstance(item.value, (int, float)) and not isinstance(item.value, bool)
+            or isinstance(item.value, str) and bool(re.search(r"\d", item.value))
+        }
+        for evidence_id in sorted(required - seen):
+            gaps.append({"claim_id": "", "reason": f"missing_claim:{evidence_id}"})
+    return gaps
+
+
+def verify_numeric_claims(
+    text: str, evidence: list[Evidence], tolerance: float | None = None,
+    *, claims: tuple[ResponseClaim, ...] = (), require_claims: bool = False,
+) -> dict:
     known_ids = {item.evidence_id for item in evidence}
     unknown_citations = sorted({c for c in CITATION.findall(text) if c not in known_ids})
 
@@ -202,7 +281,13 @@ def verify_numeric_claims(text: str, evidence: list[Evidence], tolerance: float 
     tier_mixing = _tier_mixing(text, evidence)
     provenance_gaps = _provenance_gaps(evidence)
     source_label_gaps = _source_label_gaps(text, evidence)
-    passed = not unsupported and not unknown_citations and not tier_mixing and not provenance_gaps and not source_label_gaps
+    claim_binding_gaps = _claim_binding_gaps(
+        text, evidence, claims, require_claims=require_claims,
+    )
+    passed = (
+        not unsupported and not unknown_citations and not tier_mixing
+        and not provenance_gaps and not source_label_gaps and not claim_binding_gaps
+    )
     return {
         "passed": passed,
         "claimed": claimed,
@@ -212,5 +297,6 @@ def verify_numeric_claims(text: str, evidence: list[Evidence], tolerance: float 
         "tier_mixing": tier_mixing,
         "provenance_gaps": provenance_gaps,
         "source_label_gaps": source_label_gaps,
+        "claim_binding_gaps": claim_binding_gaps,
         "coverage": 1.0 if not claimed else (len(claimed) - len(unsupported)) / len(claimed),
     }

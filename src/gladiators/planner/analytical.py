@@ -38,11 +38,48 @@ def build_analytical_plan(kind: str, country: str) -> LogicalQueryPlan:
         "highest_price_listing": _highest_listing,
         "highest_monthly_sold_listing": _highest_listing,
         "top_shop_by_listing_count": _top_shop_by_listing_count,
+        "price_change_by_date": _price_change_by_date,
     }
     builder = builders.get(kind)
     if builder is None:
         raise AnalyticalPlanError(f"Chưa có analytical template cho: {kind}")
     return builder(kind, country)
+
+
+def _price_change_by_date(kind: str, country: str) -> LogicalQueryPlan:
+    """Median observed listing price per dataset snapshot; no causal inference."""
+    output = (
+        OutputField(name="date", type="date", semantic_ref="dim.date"),
+        OutputField(name="price", type="number", semantic_ref="measure.price"),
+    )
+    return LogicalQueryPlan(
+        plan_id=f"open:price_change_by_date:{country}:1.0",
+        time_scope=("2026-07-01", "2026-07-02", "2026-07-03"),
+        output_node="n3", requested_output_shape=output,
+        nodes=(
+            PlanNode(
+                node_id="n1", op="Scan", source="product_snapshot_metrics.csv",
+                refs=("dim.date", "measure.price"), input_grain="listing_snapshot",
+                output_grain="listing_snapshot", expected_schema=output,
+                expected_cardinality="<=3341",
+            ),
+            PlanNode(
+                node_id="n2", op="Filter", inputs=("n1",), predicates=(
+                    Predicate(ref="dim.country", op="eq", parameter="country", value=country),
+                    Predicate(ref="measure.price", op="gte", parameter="price_floor", value=0),
+                    Predicate(ref="measure.price", op="lt", parameter="price_sentinel", value=999999999),
+                ), input_grain="listing_snapshot", output_grain="listing_snapshot",
+                expected_schema=output, expected_cardinality="<=2046",
+            ),
+            PlanNode(
+                node_id="n3", op="Aggregate", inputs=("n2",), refs=("measure.price",),
+                group_by=("dim.date",), aggregation="median",
+                input_grain="listing_snapshot", output_grain="date",
+                expected_schema=output, expected_cardinality="3",
+                invariants=("unique:date", "nonnegative:price"),
+            ),
+        ),
+    )
 
 
 def _highest_revenue_day(kind: str, country: str) -> LogicalQueryPlan:

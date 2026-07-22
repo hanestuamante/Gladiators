@@ -194,7 +194,9 @@ class GeminiLLMClient:
     def plan_live_search(self, payload: dict) -> dict:
         from gladiators.external.search_contracts import LiveSearchPlan
         return self._json(
-            "P5: sinh tối đa 3 search query ngắn, không chứa secret/PII; chỉ trả LiveSearchPlan. "
+            "P5: sinh tối đa 3 search-engine query ngắn bằng tiếng Anh, không chứa secret/PII; "
+            "giữ token chiến dịch như 7.7, ghi đầy đủ tên market và as_of year, đặt bounded recency_days; "
+            "không copy câu hỏi hội thoại, chỉ trả LiveSearchPlan. "
             f"Payload: {json.dumps(payload, ensure_ascii=False)}",
             schema=LiveSearchPlan, purpose="live_search_plan",
         )
@@ -304,7 +306,9 @@ class HuggingFaceLLMClient:
     def plan_live_search(self, payload: dict) -> dict:
         from gladiators.external.search_contracts import LiveSearchPlan
         return json.loads(self._chat(
-            "P5 sinh tối đa 3 query; chỉ trả typed plan. Payload: " + json.dumps(payload, ensure_ascii=False),
+            "P5 sinh tối đa 3 search-engine query tiếng Anh; giữ token campaign, tên market, as_of year, "
+            "đặt bounded recency_days và không copy câu hỏi hội thoại; chỉ trả typed plan. Payload: "
+            + json.dumps(payload, ensure_ascii=False),
             "live_search_plan", schema=LiveSearchPlan,
         ))
 
@@ -403,8 +407,17 @@ class GroqLLMClient:
         content=response.choices[0].message.content
         if not content:
             # cq02 (smoke 20/07): Groq đôi khi trả response rỗng transient — một
-            # bounded retry trước khi fail-closed, có đếm telemetry riêng.
+            # bounded retry trước khi fail-closed, có đếm telemetry riêng. Với
+            # structured output, retry một lần bằng explicit schema prompt vì
+            # một số model trả empty content cho response_format hợp lệ.
             self._telemetry["empty_retries"] = self._telemetry.get("empty_retries", 0) + 1
+            if schema is not None and response_format is not None:
+                effective_prompt = (
+                    f"{prompt}\n\nTrả CHỈ một JSON object hợp lệ theo schema sau, "
+                    "không thêm chữ nào khác, không dùng markdown code fence:\n"
+                    f"{json.dumps(schema.model_json_schema(), ensure_ascii=False)}"
+                )
+                response_format = None
             try:
                 response = self._complete(client, target_model, effective_prompt, response_format, reasoning_effort)
                 content = response.choices[0].message.content
@@ -466,7 +479,9 @@ class GroqLLMClient:
     def plan_live_search(self, payload: dict) -> dict:
         from gladiators.external.search_contracts import LiveSearchPlan
         return json.loads(self._chat(
-            "P5 sinh tối đa 3 query; chỉ trả typed plan. Payload: " + json.dumps(payload, ensure_ascii=False),
+            "P5 sinh tối đa 3 search-engine query tiếng Anh; giữ token campaign, tên market, as_of year, "
+            "đặt bounded recency_days và không copy câu hỏi hội thoại; chỉ trả typed plan. Payload: "
+            + json.dumps(payload, ensure_ascii=False),
             "live_search_plan", LiveSearchPlan,
         ))
 
@@ -536,7 +551,8 @@ class AnthropicLLMClient:
 
     def plan_live_search(self, payload: dict) -> dict:
         return self._json(
-            "P5 sinh tối đa 3 search query; chỉ trả JSON LiveSearchPlan. "
+            "P5 sinh tối đa 3 search-engine query tiếng Anh; giữ token campaign, tên market, as_of year, "
+            "đặt bounded recency_days và không copy câu hỏi hội thoại; chỉ trả JSON LiveSearchPlan. "
             f"Payload: {json.dumps(payload, ensure_ascii=False)}"
         )
 

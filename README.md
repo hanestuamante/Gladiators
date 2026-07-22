@@ -85,7 +85,7 @@ Read in this order:
 6. [Architecture Spec chi tiết](docs/Architecture-spec.md)
 7. [Các phần V1 chưa thể thực hiện đầy đủ](docs/V1_Implementation_Limitations.md)
 8. [Historical V0 architecture](docs/V0_Architecture.md)
-9. [Implementation handoff 22/07/2026](docs/IMPLEMENTATION_HANDOFF_2026-07-22.md)
+9. [Implementation handoff 23/07/2026](docs/IMPLEMENTATION_HANDOFF_2026-07-23.md)
 
 Data Context and current artifacts remain the source of truth for data. `V2_Unified_Architecture.md` is the current target Agent architecture; V1 remains the compatibility and parity baseline. `V0_Architecture.md` is retained only to explain superseded decisions.
 
@@ -124,21 +124,25 @@ Lệnh trên chạy end-to-end offline, không gửi dữ liệu ra ngoài. Ch�
 PYTHONPATH=src .venv/bin/python scripts/run_evaluation.py --runs 3 --provider gemini
 ```
 
-Phase 6 live-search mặc định **OFF**. Offline/cache replay không mở socket; chỉ bật
-chủ đích sau source/legal review và rehearsal:
+Phase 6 live-search mặc định **OFF** và mode mặc định là `cache_only`. Offline/cache
+replay không khởi tạo Tavily và không mở socket. Có thể chạy cache replay có chủ đích:
 
 ```bash
 GLADIATORS_ENABLE_LIVE_SEARCH=1 \
-GLADIATORS_LIVE_SOURCE_REVIEWED=1 \
-GLADIATORS_LIVE_SEARCH_LICENSE='<approved-license-id>' \
 GLADIATORS_LIVE_SEARCH_MODE=cache_only \
 GLADIATORS_LLM_PROVIDER=groq \
 PYTHONPATH=src .venv/bin/uvicorn gladiators.api:app
 ```
 
-Hai biến review/license chỉ được đặt sau source/legal review. Mode `record`/`live`
-còn cần `TAVILY_API_KEY`; mọi record live bị clamp
-`context_only`, và cross-market currency conversion vẫn bị A16 chặn.
+Mode `record`/`live` cần thêm `TAVILY_API_KEY`. Không có gate
+`GLADIATORS_LIVE_SOURCE_REVIEWED` hay `GLADIATORS_LIVE_SEARCH_LICENSE`: E0 đã cho
+phép Tavily làm demo context, còn nhãn provenance dự án được cấu hình bằng
+`GLADIATORS_DEMO_EXTERNAL_LABEL` khi cần. Mọi record live bị clamp `context_only`,
+không scrape/fetch URL Shopee, và cross-market currency conversion vẫn bị A16 chặn.
+
+Trạng thái 23/07/2026: W1–W7 đã có implementation và **254 test pass trên macOS**;
+W8 Tavily rehearsal và CI Windows/Linux chưa có bằng chứng, nên Phase 6 E6 vẫn
+`PENDING`. Xem handoff ngày 23/07 và checklist sign-off trước khi bật mode mạng.
 
 Build BGE-M3 có version và CPU benchmark:
 

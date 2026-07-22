@@ -7,7 +7,7 @@ import pytest
 
 from gladiators.agent.verifier import verify_numeric_claims
 from gladiators.agent.wording import check_wording
-from gladiators.contracts import Evidence
+from gladiators.contracts import Evidence, ResponseClaim
 from gladiators.external.contracts import SourceLocator
 from gladiators.planner.analytical import build_analytical_plan
 from gladiators.planner.critic import PlanCritic
@@ -97,6 +97,89 @@ def test_verifier_accepts_typographic_dash_and_narrow_space():
     result = verify_numeric_claims(text, [date_ev, amount_ev])
     assert result["passed"]
     assert result["unsupported"] == []
+
+
+# ---- 22/07 W2 per-claim value/unit/path/citation binding ----
+
+def _claim(evidence_id="ev:t:0001", *, unit="VND", path="value", text=None):
+    text = text or f"Giá trị 10 {unit} [{evidence_id}]."
+    return ResponseClaim(
+        claim_id="cl:test:0001", text=text, claim_type="money", value=10,
+        unit=unit, evidence_id=evidence_id, evidence_path=path,
+    )
+
+
+def test_per_claim_wrong_unit_fails_even_when_value_and_citation_match():
+    ev = Evidence(
+        evidence_id="ev:t:0001", source_tier="btc_dataset", metric="price", value=10,
+        unit="VND", source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1",
+    )
+    answer = "Giá trị 10 IDR [ev:t:0001]."
+    result = verify_numeric_claims(answer, [ev], claims=(_claim(unit="IDR", text=answer),), require_claims=True)
+    assert result["passed"] is False
+    assert any(gap["reason"] == "unit_mismatch" for gap in result["claim_binding_gaps"])
+
+
+def test_per_claim_wrong_path_fails_even_when_value_is_identical():
+    ev = Evidence(
+        evidence_id="ev:t:0001", source_tier="btc_dataset", metric="price", value=10,
+        unit="VND", attrs={"duplicate": 10},
+        source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1",
+    )
+    answer = "Giá trị 10 VND [ev:t:0001]."
+    result = verify_numeric_claims(
+        answer, [ev], claims=(_claim(path="attrs.duplicate", text=answer),), require_claims=True,
+    )
+    assert result["passed"] is False
+    assert any(gap["reason"] == "path_not_claimable" for gap in result["claim_binding_gaps"])
+
+
+def test_per_claim_correct_binding_passes():
+    ev = Evidence(
+        evidence_id="ev:t:0001", source_tier="btc_dataset", metric="price", value=10,
+        unit="VND", source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1",
+    )
+    answer = "Giá trị 10 VND [ev:t:0001]."
+    result = verify_numeric_claims(answer, [ev], claims=(_claim(text=answer),), require_claims=True)
+    assert result["passed"] is True
+
+
+def test_strict_claim_mode_does_not_ignore_digits_in_string_evidence():
+    ev = _ev("ev:t:0001", "Campaign 7.7 starts 2026-07-01")
+    result = verify_numeric_claims(
+        "Campaign 7.7 starts 2026-07-01 [ev:t:0001].", [ev], require_claims=True,
+    )
+    assert result["passed"] is False
+    assert result["claim_binding_gaps"] == [
+        {"claim_id": "", "reason": "missing_claim:ev:t:0001"}
+    ]
+
+
+def test_per_claim_missing_bound_citation_fails():
+    ev = Evidence(
+        evidence_id="ev:t:0001", source_tier="btc_dataset", metric="price", value=10,
+        unit="VND", source_locator=SourceLocator(kind="internal", value="x"), dataset_version="v1",
+    )
+    answer = "Giá trị 10 VND."
+    result = verify_numeric_claims(
+        answer, [ev], claims=(_claim(text=answer),), require_claims=True,
+    )
+    assert result["passed"] is False
+    assert any(gap["reason"] == "missing_bound_citation" for gap in result["claim_binding_gaps"])
+
+
+def test_final_deterministic_verification_failure_abstains(monkeypatch, tmp_path):
+    from gladiators.agent.workflow import AgentRuntime
+
+    monkeypatch.setattr("gladiators.agent.workflow.verify_numeric_claims", lambda *a, **k: {
+        "passed": False, "coverage": 0.0, "unsupported": [], "unknown_citations": [],
+        "tier_mixing": [], "provenance_gaps": [], "source_label_gaps": [],
+        "claim_binding_gaps": [{"claim_id": "", "reason": "forced_test_failure"}],
+    })
+    response = AgentRuntime(trace_dir=tmp_path).run("Có bao nhiêu listing tại VN?")
+    assert response.gate.action == "abstain"
+    assert response.gate.rule_id == "A-VERIFICATION-FINAL"
+    assert response.evidence == []
 
 
 # ---- 13.2.4 wording gate ----
@@ -222,4 +305,35 @@ def test_groq_retries_once_on_empty_response(monkeypatch):
     out = client.generate({"deterministic_answer": "x"})
     assert out == "Câu trả lời thật."
     assert calls["n"] == 2
+    assert client.telemetry().get("empty_retries") == 1
+
+
+def test_groq_structured_empty_response_retries_without_response_format(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.delenv("GROQ_PARSE_API_KEY", raising=False)
+    monkeypatch.setattr("gladiators.agent.llm.load_dotenv", lambda: None)
+    from pydantic import BaseModel
+    from gladiators.agent.llm import GroqLLMClient
+
+    class TinySchema(BaseModel):
+        value: int
+
+    client = GroqLLMClient(model="openai/gpt-oss-120b")
+
+    def _resp(content):
+        return types.SimpleNamespace(
+            choices=[types.SimpleNamespace(message=types.SimpleNamespace(content=content))],
+            usage=None,
+        )
+
+    formats = []
+
+    def fake_complete(_client, _model, _prompt, response_format, _reasoning):
+        formats.append(response_format)
+        return _resp("" if len(formats) == 1 else '{"value": 1}')
+
+    monkeypatch.setattr(client, "_complete", fake_complete)
+    out = client._chat("structured", "fixture", TinySchema)
+    assert out == '{"value": 1}'
+    assert formats[0] is not None and formats[1] is None
     assert client.telemetry().get("empty_retries") == 1
