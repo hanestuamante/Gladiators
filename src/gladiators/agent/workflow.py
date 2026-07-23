@@ -391,6 +391,7 @@ class AgentRuntime:
                         "provider_calls": outcome.provider_calls,
                         "quarantined_count": outcome.quarantined_count,
                         "excluded_count": outcome.excluded_count,
+                        "prefiltered_count": outcome.prefiltered_count,
                     },
                     status="ok" if external_evidence else "empty",
                     evidence_ids=[item.evidence_id for item in external_evidence],

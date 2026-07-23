@@ -15,13 +15,19 @@ import re
 import unicodedata
 
 
-def _fold(value: str) -> str:
-    value = value.lower().replace("đ", "d")
+def _strip_diacritics(value: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", value) if unicodedata.category(c) != "Mn")
 
 
-# Mệnh đề phủ định: từ negation tới hết cụm (chặn ở dấu câu) — quét trên bản đã bỏ dấu.
-_NEGATION = re.compile(r"\b(?:khong|chua|not|no)\b[^.;:\n]{0,90}")
+def _fold(value: str) -> str:
+    return _strip_diacritics(value.lower().replace("đ", "d"))
+
+
+# Mệnh đề phủ định: từ negation tới hết cụm (chặn ở dấu câu). Quét trên bản CÒN
+# DẤU (chỉ lowercase), dùng negator có dấu — nếu quét sau khi bỏ dấu thì đại từ
+# "nó"/"nò" và động từ "nốt" bị fold thành "no"/"not" rồi scrub oan cả mệnh đề
+# nhân quả phía sau, làm thủng causal-claim gate (bug 22/07).
+_NEGATION = re.compile(r"\b(?:không|chưa|not|no)\b[^.;:\n]{0,90}")
 
 # (rule, các cụm bị cấm — viết KHÔNG DẤU vì so khớp trên văn bản đã fold)
 _RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -46,8 +52,10 @@ _ESTIMATE_LABELS = ("uoc tinh", "proxy", "estimated")
 
 def check_wording(answer: str) -> list[dict[str, str]]:
     """Trả danh sách violation; rỗng = answer qua gate."""
-    folded = _fold(answer)
-    scrubbed = _NEGATION.sub(" ", folded)
+    lowered = answer.lower().replace("đ", "d")
+    folded = _strip_diacritics(lowered)
+    # Scrub negation trên bản còn dấu, rồi mới bỏ dấu để so khớp rule term.
+    scrubbed = _strip_diacritics(_NEGATION.sub(" ", lowered))
     violations = [
         {"rule": rule, "term": term}
         for rule, terms in _RULES

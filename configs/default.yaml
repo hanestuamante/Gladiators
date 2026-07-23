@@ -2,8 +2,10 @@ data_dir: data/processed
 artifact_dir: artifacts
 llm:
   provider: groq
-  model: openai/gpt-oss-20b
-  judge_model: openai/gpt-oss-20b
+  # Runtime lấy model thực từ env GROQ_MODEL/GROQ_PARSE_MODEL (xem GroqLLMClient);
+  # hai dòng dưới chỉ để tài liệu/script phụ, giữ khớp env để tránh nhầm.
+  model: openai/gpt-oss-120b
+  judge_model: openai/gpt-oss-120b
   prompt_version: v1.1.0
   timeout_ms: 30000
   retry_attempts: 3

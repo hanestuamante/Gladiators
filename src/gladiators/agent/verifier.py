@@ -25,9 +25,11 @@ from gladiators.contracts import Evidence, ResponseClaim
 NUMBER = re.compile(r"(?<![\w-])-?\d+(?:[.,]\d+)?%?")
 CITATION = re.compile(r"\[(ev:[^\[\]\s]+)\]")
 # ≥2 lần lặp nhóm-3-chữ-số mới coi là thousands grouping (vd "298,219,517,806"
-# hay "298 219 517 806"). Chỉ 1 lần lặp ("745.078") vẫn mơ hồ với số thập phân
-# nên KHÔNG gộp — giữ nguyên hành vi display-rounding cũ cho trường hợp đó.
-_THOUSANDS_GROUP = re.compile(r"(?<![\w.,])\d{1,3}(?:[,.\s]{1,2}\d{3}){2,}(?!\d)")
+# hay "298 219 517 806" — narrow no-break space đã được normalize về space đơn).
+# Separator PHẢI đúng 1 ký tự: "298, 219, 517" (comma+space) là danh sách số rời,
+# KHÔNG phải một số — nếu cho 2 ký tự sẽ gộp oan list "512, 431, 380" thành số bịa.
+# Chỉ 1 lần lặp ("745.078") vẫn mơ hồ với số thập phân nên KHÔNG gộp.
+_THOUSANDS_GROUP = re.compile(r"(?<![\w.,])\d{1,3}(?:[,.\s]\d{3}){2,}(?!\d)")
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # LLM đôi khi sinh dấu gạch nối/khoảng trắng kiểu "typographic" (non-breaking
 # hyphen, narrow no-break space...) thay vì ASCII thường — cùng giá trị hiển

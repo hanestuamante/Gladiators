@@ -67,8 +67,22 @@ def test_verifier_merges_space_separated_thousands_grouping():
 
 def test_verifier_merges_comma_separated_thousands_grouping():
     ev = _ev("ev:t:0001", 298219517806.0)
-    result = verify_numeric_claims("Tổng 298, 219, 517, 806 VND [ev:t:0001]", [ev])
+    result = verify_numeric_claims("Tổng 298,219,517,806 VND [ev:t:0001]", [ev])
     assert result["passed"]
+
+
+def test_verifier_does_not_merge_comma_space_number_list():
+    # "512, 431, 380" là DANH SÁCH số rời (comma+space), không phải một số —
+    # không được gộp thành 512431380. Cả ba đều có evidence nên phải PASS.
+    from gladiators.agent.verifier import _normalize_thousands_grouping
+    assert _normalize_thousands_grouping("Top: 512, 431, 380 listing") == "Top: 512, 431, 380 listing"
+    evs = [_ev("ev:t:0001", 512.0), _ev("ev:t:0002", 431.0), _ev("ev:t:0003", 380.0)]
+    result = verify_numeric_claims(
+        "Ba shop dẫn đầu: 512, 431, 380 listing "
+        "[ev:t:0001][ev:t:0002][ev:t:0003].", evs,
+    )
+    assert result["passed"]
+    assert result["unsupported"] == []
 
 
 def test_verifier_still_rejects_single_group_decimal_ambiguity():
@@ -192,6 +206,12 @@ def test_final_deterministic_verification_failure_abstains(monkeypatch, tmp_path
     ("Sản phẩm này cùng mẫu với listing kia", True),
     ("Không khẳng định cùng mẫu hoặc cùng SKU.", False),
     ("Tháng sau sẽ tăng mạnh", True),
+    # Bug 22/07: đại từ "nó" fold thành "no" từng scrub oan mệnh đề nhân quả phía sau.
+    ("Voucher — nó làm tăng doanh số 20%.", True),
+    # "nốt" fold thành "not" — cũng không được nuốt mệnh đề nhân quả.
+    ("Xử lý nốt phần còn lại, chương trình làm tăng doanh số.", True),
+    # Negator tiếng Anh "no" vẫn phải scrub được mệnh đề nhân quả (folded) theo sau.
+    ("Chỉ là tương quan, no bằng chứng voucher làm tăng doanh số.", False),
 ])
 def test_wording_gate_cases(answer, expect_violation):
     assert bool(check_wording(answer)) is expect_violation

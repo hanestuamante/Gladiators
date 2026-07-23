@@ -13,6 +13,7 @@ from typing import Callable
 from gladiators.contracts import Evidence
 
 from .admission import admit_live_record
+from .relevance import is_relevant
 from .search_executor import SearchExecutor
 from .search_planner import LiveSearchPlanner
 from .web_extract import ExtractionError, WebExtractor
@@ -28,6 +29,8 @@ class ExternalPipelineOutcome:
     cache_hits: int
     provider_calls: int
     ladder_reason: str | None
+    # Số item bị deterministic relevance gate loại TRƯỚC P6 (tiết kiệm LLM call).
+    prefiltered_count: int = 0
 
 
 class ExternalContextPipeline:
@@ -56,8 +59,13 @@ class ExternalContextPipeline:
         execution = self.executor.execute(plan)
         evidence: list[Evidence] = []
         excluded = 0
+        prefiltered = 0
         for response in execution.responses:
             for item in response.items:
+                # Relevance gate rẻ, deterministic: loại item lạc đề trước khi tốn P6.
+                if not is_relevant(response.query, item):
+                    prefiltered += 1
+                    continue
                 try:
                     record = self.extractor.extract(response, item)
                 except ExtractionError:
@@ -98,8 +106,12 @@ class ExternalContextPipeline:
                 ))
         reason = execution.ladder_reason
         if not evidence and reason is None:
-            reason = "A15: no external record passed extraction/admission"
+            reason = (
+                "A15: no external record passed relevance/extraction/admission"
+                if prefiltered else "A15: no external record passed extraction/admission"
+            )
         return ExternalPipelineOutcome(
             tuple(evidence), plan.plan_id, execution.failed_queries, excluded,
             execution.quarantined_count, execution.cache_hits, execution.provider_calls, reason,
+            prefiltered_count=prefiltered,
         )

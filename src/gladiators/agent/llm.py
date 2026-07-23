@@ -381,10 +381,21 @@ class GroqLLMClient:
         if wait > 0: time.sleep(wait)
         response_format = None
         effective_prompt = prompt
-        # Qwen reasoning model co xu huong sinh <think> rat dai roi bi cat cut truoc khi
-        # ra JSON that su; voi tac vu phan loai/structured output khong can chain-of-thought
-        # nen tat han de tranh lang phi token va truncation.
-        reasoning_effort = "none" if (schema is not None and "qwen" in target_model.lower()) else None
+        # Reasoning model tieu output budget vao khoi reasoning truoc khi ra JSON:
+        #  - Qwen sinh <think> rat dai roi bi cat cut => tat han ("none").
+        #  - gpt-oss tra content RONG cho structured output khi reasoning_effort mac
+        #    dinh (medium/high); ep "low" de model danh budget cho JSON that su (P6
+        #    extract/plan tung fail-closed vi empty structured output — handoff 23/07).
+        # Free-form generation (schema is None) khong dung nhanh nay: giu reasoning day du.
+        target_lower = target_model.lower()
+        if schema is None:
+            reasoning_effort = None
+        elif "qwen" in target_lower:
+            reasoning_effort = "none"
+        elif "gpt-oss" in target_lower:
+            reasoning_effort = "low"
+        else:
+            reasoning_effort = None
         if schema is not None:
             response_format = {"type":"json_schema","json_schema":{"name":schema.__name__,"strict":True,"schema":schema.model_json_schema()}}
         started=time.perf_counter()
