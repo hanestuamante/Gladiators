@@ -46,6 +46,9 @@ def test_metric_registry_covers_v2_metric_contract():
         "product_count", "median_monthly_sold", "median_estimated_recent_revenue",
         "descriptive_gap_vs_baseline", "text_sim", "category_overlap_depth",
         "brand_match", "price_distance", "same_shelf_bonus", "similarity_score",
+        # voucher_profile_rank_v1 (V2 §2.8, T-11)
+        "voucher_rate", "median_discount_ratio", "descriptive_gap_median_sold",
+        "voucher_profile_score",
     }
     assert set(METRICS) == expected
     assert all(spec.formula and spec.caveats for spec in METRICS.values())
@@ -173,9 +176,11 @@ def test_executor_enforces_output_postconditions():
         executor.close()
 
 
-def test_three_certified_macros_are_versioned_and_validator_clean():
+def test_certified_macros_are_versioned_and_validator_clean():
     macros = default_macro_registry()
-    assert macros.names() == ("sales_decline", "similar_product", "promotion_effectiveness")
+    assert macros.names() == (
+        "sales_decline", "similar_product", "promotion_effectiveness", "voucher_profile_rank",
+    )
     assert all(macros.get(name).version == "1.0" for name in macros.names())
     assert all(len(macros.get(name).plan_hash) == 16 for name in macros.names())
     assert default_registry().get("sales_decline").macro_name == "sales_decline"
@@ -284,7 +289,7 @@ def test_highest_monthly_sold_template_preserves_proxy_caveat(tmp_path):
 
 def test_v2_analytical_eval_suite_has_unique_cases():
     suite = json.loads(Path("eval/questions_v2.json").read_text(encoding="utf-8"))
-    assert len(suite) == 9
+    assert len(suite) == 11
     assert len({case["id"] for case in suite}) == len(suite)
 
 

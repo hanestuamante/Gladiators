@@ -100,6 +100,14 @@ def _compare_voucher_groups(ctx: ToolContext) -> None:
     _record(ctx, "compare_voucher_groups", {"country": ctx.request.country}, evidence)
 
 
+@tool("rank_voucher_profiles")
+def _rank_voucher_profiles(ctx: ToolContext) -> None:
+    if not ctx.request.country:
+        return
+    evidence = ctx.tools.voucher_profile_rank(ctx.request.country)
+    _record(ctx, "rank_voucher_profiles", {"country": ctx.request.country}, evidence)
+
+
 @tool("execute_analytical_plan")
 def _execute_analytical_plan(ctx: ToolContext) -> None:
     if ctx.logical_plan is None:

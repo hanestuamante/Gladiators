@@ -73,6 +73,7 @@ pre{overflow:auto;white-space:pre-wrap;font-size:11.5px}
 <span class="chip">Có bao nhiêu listing tại VN?</span>
 <span class="chip">Shop nào có nhiều listing nhất tại VN?</span>
 <span class="chip">Voucher ở VN có hiệu quả không?</span>
+<span class="chip">Shop nào có chiến lược voucher hiệu quả nhất VN?</span>
 <span class="chip">Lợi nhuận công ty là bao nhiêu?</span>
 </div></section>
 

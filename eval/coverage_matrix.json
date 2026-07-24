@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0",
   "source": {
-    "catalog_objects": 79,
+    "catalog_objects": 83,
     "relation_edges": 10,
     "ir_operators": 12,
-    "eval_cases_with_mutations": 210
+    "eval_cases_with_mutations": 212
   },
   "summary": {
-    "requirements": 158,
-    "satisfied": 158,
+    "requirements": 162,
+    "satisfied": 162,
     "missing": 0,
     "coverage_ratio": 1.0,
     "phase_4_5_acceptance_ready": true
@@ -19,7 +19,7 @@
       "value": "Scan",
       "mode": "positive",
       "minimum": 3,
-      "observed": 14,
+      "observed": 16,
       "satisfied": true,
       "case_ids": [
         "a19q04",
@@ -36,6 +36,8 @@
         "v2q07",
         "v2q08",
         "v2q09",
+        "v2q10",
+        "v2q11",
         "mut01",
         "mut12"
       ]
@@ -62,6 +64,8 @@
         "v2q07",
         "v2q08",
         "v2q09",
+        "v2q10",
+        "v2q11",
         "mut01",
         "mut12"
       ]
@@ -103,7 +107,7 @@
       "value": "Filter",
       "mode": "positive",
       "minimum": 3,
-      "observed": 14,
+      "observed": 16,
       "satisfied": true,
       "case_ids": [
         "a19q04",
@@ -120,6 +124,8 @@
         "v2q07",
         "v2q08",
         "v2q09",
+        "v2q10",
+        "v2q11",
         "mut02",
         "mut11"
       ]
@@ -146,6 +152,8 @@
         "v2q07",
         "v2q08",
         "v2q09",
+        "v2q10",
+        "v2q11",
         "mut02",
         "mut11"
       ]
@@ -265,9 +273,11 @@
       "value": "DeriveMetric",
       "mode": "positive",
       "minimum": 3,
-      "observed": 4,
+      "observed": 6,
       "satisfied": true,
       "case_ids": [
+        "v2q10",
+        "v2q11",
         "mut08",
         "op_derive_01",
         "op_derive_02",
@@ -283,6 +293,8 @@
       "observed": 1,
       "satisfied": true,
       "case_ids": [
+        "v2q10",
+        "v2q11",
         "mut08",
         "op_derive_01",
         "op_derive_02",
@@ -325,7 +337,7 @@
       "value": "Rank",
       "mode": "positive",
       "minimum": 3,
-      "observed": 13,
+      "observed": 15,
       "satisfied": true,
       "case_ids": [
         "a19q04",
@@ -340,6 +352,8 @@
         "v2q07",
         "v2q08",
         "v2q09",
+        "v2q10",
+        "v2q11",
         "mut19",
         "op_rank_negative_anchor"
       ]
@@ -364,6 +378,8 @@
         "v2q07",
         "v2q08",
         "v2q09",
+        "v2q10",
+        "v2q11",
         "mut19",
         "op_rank_negative_anchor"
       ]
@@ -937,12 +953,13 @@
       "value": "measure.price",
       "mode": "positive",
       "minimum": 1,
-      "observed": 3,
+      "observed": 4,
       "satisfied": true,
       "case_ids": [
         "a19q03",
         "v2q06",
         "v2q07",
+        "v2q10",
         "mut02"
       ]
     },
@@ -996,9 +1013,10 @@
       "value": "measure.voucher_discount",
       "mode": "positive",
       "minimum": 1,
-      "observed": 1,
+      "observed": 2,
       "satisfied": true,
       "case_ids": [
+        "v2q10",
         "sl04"
       ]
     },
@@ -1362,9 +1380,11 @@
       "value": "derived.has_structured_voucher",
       "mode": "positive",
       "minimum": 1,
-      "observed": 2,
+      "observed": 4,
       "satisfied": true,
       "case_ids": [
+        "v2q10",
+        "v2q11",
         "sl28",
         "op_derive_03"
       ]
@@ -1521,6 +1541,52 @@
       ]
     },
     {
+      "axis": "semantic_refs",
+      "value": "derived.voucher_rate",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "v2q11"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.median_discount_ratio",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.descriptive_gap_median_sold",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.voucher_profile_score",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "v2q11"
+      ]
+    },
+    {
       "axis": "grains",
       "value": "listing",
       "mode": "positive",
@@ -1544,7 +1610,7 @@
       "value": "listing_snapshot",
       "mode": "positive",
       "minimum": 2,
-      "observed": 16,
+      "observed": 18,
       "satisfied": true,
       "case_ids": [
         "cq01",
@@ -1560,6 +1626,8 @@
         "v2q07",
         "v2q08",
         "v2q09",
+        "v2q10",
+        "v2q11",
         "op_dedupe_01",
         "op_dedupe_02",
         "op_dedupe_03"
@@ -1570,7 +1638,7 @@
       "value": "shop",
       "mode": "positive",
       "minimum": 2,
-      "observed": 5,
+      "observed": 7,
       "satisfied": true,
       "case_ids": [
         "a19q02",
@@ -1578,6 +1646,8 @@
         "cq02",
         "cq03",
         "cq04",
+        "v2q10",
+        "v2q11",
         "mut04"
       ]
     },
@@ -1748,6 +1818,8 @@
       "observed": 1,
       "satisfied": true,
       "case_ids": [
+        "v2q10",
+        "v2q11",
         "mut21",
         "op_promotion_macro"
       ]
@@ -1882,6 +1954,7 @@
       "observed": 2,
       "satisfied": true,
       "case_ids": [
+        "v2q10",
         "mut08",
         "mut21",
         "sl11",
@@ -2010,11 +2083,13 @@
       "value": "L4",
       "mode": "positive",
       "minimum": 1,
-      "observed": 12,
+      "observed": 14,
       "satisfied": true,
       "case_ids": [
         "a19q03",
         "bnd03",
+        "v2q10",
+        "v2q11",
         "sl07",
         "sl15",
         "sl16",
@@ -2032,7 +2107,7 @@
       "value": "C1",
       "mode": "positive",
       "minimum": 1,
-      "observed": 61,
+      "observed": 63,
       "satisfied": true,
       "case_ids": [
         "a19q01",
@@ -2059,6 +2134,8 @@
         "v2q07",
         "v2q08",
         "v2q09",
+        "v2q10",
+        "v2q11",
         "sl01",
         "sl02",
         "sl03",
@@ -2141,7 +2218,7 @@
       "value": "vi",
       "mode": "positive",
       "minimum": 1,
-      "observed": 23,
+      "observed": 24,
       "satisfied": true,
       "case_ids": [
         "a19q01",
@@ -2166,6 +2243,7 @@
         "v2q04",
         "v2q06",
         "v2q08",
+        "v2q10",
         "op_resolve_01"
       ]
     },
@@ -2186,7 +2264,7 @@
       "value": "id",
       "mode": "positive",
       "minimum": 1,
-      "observed": 7,
+      "observed": 8,
       "satisfied": true,
       "case_ids": [
         "a19q06",
@@ -2195,7 +2273,8 @@
         "v2q03",
         "v2q05",
         "v2q07",
-        "v2q09"
+        "v2q09",
+        "v2q11"
       ]
     },
     {

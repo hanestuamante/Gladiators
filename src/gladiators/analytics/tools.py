@@ -64,6 +64,121 @@ class AnalyticsTools:
             ])
         return result
 
+    # Định nghĩa cố định của voucher_profile_rank_v1 (V2 §2.8, T-11):
+    # weights + ngưỡng sample là một phần của contract, không phải tham số tự do.
+    VOUCHER_PROFILE_WEIGHTS = {"voucher_rate": 0.4, "median_discount_ratio": 0.3,
+                               "descriptive_gap_median_sold": 0.3}
+    VOUCHER_PROFILE_MIN_LISTINGS = 5
+
+    def voucher_profile_rank(self, country: str) -> list[Evidence]:
+        """Descriptive multi-signal voucher profile per shop — KHÔNG đo hiệu quả nhân quả.
+
+        SP1: voucher_rate = share(has_structured_voucher) per shop.
+        SP2: descriptive_gap_median_sold = median(sold|voucher) − median(sold|không) CÙNG shop.
+        SP3: median_discount_ratio = median(voucher_discount/price) trên dòng có voucher.
+        SYN: score = Σ wᵢ·minmax(SPᵢ) trên các shop đủ điều kiện; trả top-1 + breakdown.
+        """
+        snapshots = self.repo.snapshots.query("country_code == @country").copy()
+        if snapshots.empty:
+            return []
+        latest_date = str(snapshots.date.astype(str).max())
+        latest = snapshots.loc[snapshots.date.astype(str) == latest_date]
+        # G6: một snapshot + dedupe listing trước mọi thống kê.
+        rows = latest.drop_duplicates("product_listing_key").copy()
+        rows = rows.loc[rows.monthly_sold_value_num.notna()]
+
+        components: list[dict] = []
+        low_coverage_excluded = 0
+        missing_group_excluded = 0
+        for shop_id, group in rows.groupby("shop_id", observed=True):
+            if len(group) < self.VOUCHER_PROFILE_MIN_LISTINGS:
+                low_coverage_excluded += 1
+                continue
+            flags = group.has_structured_voucher.astype(bool)
+            with_voucher, without_voucher = group.loc[flags], group.loc[~flags]
+            if with_voucher.empty or without_voucher.empty:
+                missing_group_excluded += 1
+                continue
+            priced = with_voucher.loc[
+                (with_voucher.price_num > 0) & with_voucher.voucher_discount_num.notna()
+            ]
+            if priced.empty:
+                missing_group_excluded += 1
+                continue
+            components.append({
+                "shop_id": str(shop_id), "n_listings": int(len(group)),
+                "voucher_rate": float(flags.mean()),
+                "median_discount_ratio": float((priced.voucher_discount_num / priced.price_num).median()),
+                "descriptive_gap_median_sold": float(
+                    with_voucher.monthly_sold_value_num.median()
+                    - without_voucher.monthly_sold_value_num.median()
+                ),
+            })
+        if not components:
+            return []
+
+        def _minmax(name: str) -> dict[str, float]:
+            values = [item[name] for item in components]
+            low, high = min(values), max(values)
+            if high == low:
+                return {item["shop_id"]: 1.0 for item in components}
+            return {item["shop_id"]: (item[name] - low) / (high - low) for item in components}
+
+        normalized = {name: _minmax(name) for name in self.VOUCHER_PROFILE_WEIGHTS}
+        for item in components:
+            item["score"] = round(sum(
+                weight * normalized[name][item["shop_id"]]
+                for name, weight in self.VOUCHER_PROFILE_WEIGHTS.items()
+            ), 6)
+        # Tie-break deterministic: score giảm dần rồi shop_id tăng dần.
+        components.sort(key=lambda item: (-item["score"], item["shop_id"]))
+        top = components[0]
+        shop_name = self._shop_display_name(top["shop_id"], rows)
+
+        common = dict(
+            source_tier="btc_dataset",
+            source_locator=SourceLocator(kind="internal", value="product_snapshot_metrics"),
+            dataset_version=self.repo.dataset_version,
+            attrs={
+                "country": country, "snapshot_date": latest_date,
+                "definition": "voucher_profile_rank_v1", "observational_only": True,
+                "weights": dict(self.VOUCHER_PROFILE_WEIGHTS),
+                "min_listings": self.VOUCHER_PROFILE_MIN_LISTINGS,
+                "shop_id": top["shop_id"], "n_listings": top["n_listings"],
+                "low_coverage_excluded": low_coverage_excluded,
+                "missing_group_excluded": missing_group_excluded,
+            },
+        )
+        return [
+            Evidence(evidence_id=self.evidence_id(), metric="top_voucher_profile_shop_name",
+                     value=shop_name, unit="shop_name", source_path="shop_id", **common),
+            Evidence(evidence_id=self.evidence_id(), metric="voucher_profile_score",
+                     value=top["score"], unit="score_0_1", source_path="derived", **common),
+            Evidence(evidence_id=self.evidence_id(), metric="voucher_rate",
+                     value=round(top["voucher_rate"], 6), unit="share_0_1",
+                     source_path="has_structured_voucher", **common),
+            Evidence(evidence_id=self.evidence_id(), metric="median_discount_ratio",
+                     value=round(top["median_discount_ratio"], 6), unit="ratio_0_1",
+                     source_path="voucher_discount_num", **common),
+            Evidence(evidence_id=self.evidence_id(), metric="descriptive_gap_median_sold",
+                     value=round(top["descriptive_gap_median_sold"], 6), unit="units_recent_window",
+                     source_path="monthly_sold_value_num", **common),
+            Evidence(evidence_id=self.evidence_id(), metric="ranked_shop_count",
+                     value=int(len(components)), unit="shops", source_path="shop_id", **common),
+        ]
+
+    def _shop_display_name(self, shop_id: str, rows) -> str:
+        try:
+            shops = self.repo.read("shop_info_clean.csv")
+            match = shops.loc[shops.shop_id.astype(str) == shop_id]
+            if not match.empty and "shop_name" in match.columns:
+                name = str(match.iloc[0].shop_name)
+                if name and name.lower() != "nan":
+                    return name
+        except Exception:
+            pass
+        return f"shop_id={shop_id}"
+
     def execute_analytical_plan(self, plan) -> list[Evidence]:
         from gladiators.planner.compiler import compile_plan
         from gladiators.planner.executor import QueryExecutor

@@ -127,8 +127,47 @@ def _promotion_effectiveness() -> CertifiedMacro:
     )
 
 
+def _voucher_profile_rank() -> CertifiedMacro:
+    """L4 descriptive multi-signal ranking — V2 §2.8, định nghĩa voucher_profile_rank_v1.
+
+    Plan shape đóng băng theo §7.10: SP1 (voucher_rate) + SP2 (descriptive gap
+    trong cùng shop) + SP3 (median discount ratio) + SYN (weighted rank) được
+    chứng nhận như MỘT macro; compute ở analytics layer, không qua LLM.
+    """
+    output = (
+        OutputField(name="voucher_profile_score", type="number"),
+    )
+    plan = LogicalQueryPlan(
+        plan_id="macro:voucher_profile_rank:1.0", time_scope=("2026-07-03",),
+        output_node="n3", requested_output_shape=output,
+        nodes=(
+            PlanNode(node_id="n1", op="Scan", source="product_snapshot_metrics.csv",
+                     refs=("derived.has_structured_voucher", "measure.monthly_sold",
+                           "measure.voucher_discount", "measure.price"),
+                     input_grain="listing_snapshot", output_grain="listing_snapshot",
+                     expected_schema=output, expected_cardinality="<=1157"),
+            PlanNode(node_id="n2", op="Filter", inputs=("n1",),
+                     predicates=(Predicate(ref="dim.country", op="eq", parameter="country", value="<bound>"),),
+                     input_grain="listing_snapshot", output_grain="listing_snapshot",
+                     expected_schema=output, expected_cardinality="<=682"),
+            PlanNode(node_id="n3", op="DeriveMetric", inputs=("n2",),
+                     refs=("derived.descriptive_gap_vs_baseline",),
+                     input_grain="listing_snapshot", output_grain="shop", expected_schema=output,
+                     expected_cardinality="<=50"),
+        ),
+    )
+    metrics = (
+        "top_voucher_profile_shop_name", "voucher_profile_score", "voucher_rate",
+        "median_discount_ratio", "descriptive_gap_median_sold", "ranked_shop_count",
+    )
+    return CertifiedMacro(
+        "voucher_profile_rank", "1.0", ("country",), ("voucher_observation",),
+        ("rank_voucher_profiles",), plan, metrics,
+    )
+
+
 def default_macro_registry() -> MacroRegistry:
     registry = MacroRegistry()
-    for factory in (_sales_decline, _similar_product, _promotion_effectiveness):
+    for factory in (_sales_decline, _similar_product, _promotion_effectiveness, _voucher_profile_rank):
         registry.register(factory())
     return registry

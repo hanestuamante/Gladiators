@@ -594,3 +594,31 @@ Cả hai đều bị `verify_numeric_claims` chặn đúng thiết kế (fail-cl
 **Test:** 5 case mới trong `tests/test_antihallucination.py` (gộp space-separated, comma-separated, không gộp nhầm single-group decimal, date đổi separator ASCII, và case tái hiện đúng bug thật với `chr(0x2011)`/`chr(0x202F)`). Full suite: **162 passed / 1 failed** (giữ nguyên đúng golden-stale ở 13.7, không regression).
 
 **Verify live:** chạy lại đúng câu hỏi qua Groq thật sau fix — `generation.fallback=False`, `attempts=1`, không còn `errors` key (pass verify ngay lần đầu).
+
+### 13.9. voucher_profile_rank_v1 — đóng gap L4 descriptive metric (24/07)
+
+Mục tiêu: đóng gap T-11/§2.8 — lớp câu *"shop nào có chiến lược voucher hiệu quả nhất"*
+trước đây (a) parser bắt nhầm về `promotion_effectiveness` (so sánh hai nhóm toàn
+quốc — sai grain câu hỏi), (b) không có định nghĩa metric nên không phục vụ được.
+
+**Triển khai (certified macro theo §7.10, không qua LLM):**
+
+| File | Nội dung |
+| --- | --- |
+| `domain/metrics.py` | 4 MetricSpec mới: `voucher_rate`, `median_discount_ratio`, `descriptive_gap_median_sold`, `voucher_profile_score` — formula/weights/caveats cố định, caveat ghi rõ "weights chờ DR1/Lead phê duyệt (T-11)". |
+| `planner/macros.py` | `_voucher_profile_rank()` — CertifiedMacro thứ 4, plan template qua Plan Validator lúc đăng ký, evidence contract 6 metric cố định (multiset exact). |
+| `analytics/tools.py` | `voucher_profile_rank(country)`: SP1 share voucher/shop; SP2 gap median sold có-vs-không voucher TRONG CÙNG shop; SP3 median(voucher_discount/price) dòng có voucher; SYN min-max normalize + weights 0.4/0.3/0.3; dedupe listing + 1 snapshot (G6); shop `n_listings < 5` hoặc thiếu một nhóm bị loại và đếm riêng (`low_coverage_excluded`/`missing_group_excluded` trong attrs); tie-break deterministic. |
+| `agent/parser.py` | Nhánh mới TRƯỚC promo: shop-word + voucher-word + hiệu quả/tốt nhất/chiến lược → `voucher_profile_rank`. Câu promo hai-nhóm cũ giữ nguyên route. |
+| `agent/workflow.py` | Cờ `GLADIATORS_ENABLE_VOUCHER_PROFILE` (default **OFF** theo T-11): OFF → clarify `A19-METRIC` đúng nhánh 1 của §2.8 (offer định nghĩa mô tả, không bịa metric); ON → chạy macro. Deterministic answer 6 số + citation + Limitation bắt buộc "không đo hiệu quả nhân quả; hai nhóm khác cơ cấu ngành hàng/giá". |
+| `agent/tool_dispatch.py` | Tool `rank_voucher_profiles`. |
+| `tests/test_voucher_profile.py` | **File mới, 9 test**: routing (cả regression câu promo cũ), flag OFF → A19-METRIC, flag ON → evidence contract multiset + verification passed, wording gate sạch, bounded values + attrs definition, determinism 2 lần chạy, ID (0 structured voucher) → abstain `A-NO-EVIDENCE`, registry caveat T-11 + weights sum 1. |
+
+**Kết quả smoke thật (VN, snapshot 03/07):** top shop "Nestlé Chính hãng", score 1.0,
+voucher_rate 0.916667, median_discount_ratio 0.16342, gap 3458, 5 shop đủ điều kiện;
+per-claim verification passed, wording gate 0 violation. ID abstain sạch vì
+`voucher_structured_by_country = {id: 0}`.
+
+**Governance:** định nghĩa + weights đã nằm trong code làm căn cứ review; **cờ mặc
+định OFF cho tới khi DR1/Lead ký T-11**. Bật bằng `GLADIATORS_ENABLE_VOUCHER_PROFILE=1`.
+
+**Coverage matrix:** 4 semantic ref mới (`derived.voucher_rate/median_discount_ratio/descriptive_gap_median_sold/voucher_profile_score`) được phủ bằng 2 case eval THẬT `v2q10`/`v2q11` trong `eval/questions_v2.json` (không chỉnh tay matrix); regenerate bằng `scripts/build_eval_coverage_matrix.py` → **162/162 requirements, missing 0, acceptance_ready True**. Test khoá cứng danh sách cũ được cập nhật theo contract mở rộng: metric set (+4), macro tuple (+`voucher_profile_rank`), suite size 9→11.

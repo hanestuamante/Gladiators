@@ -197,6 +197,43 @@ _METRIC_SPECS = [
         formula="Σ wᵢ·(text_sim, category_overlap_depth, brand_match, price_distance, same_shelf_bonus)",
         caveats=("'tương tự' theo thành phần điểm — không khẳng định cùng mẫu (không có nhãn same-product)",),
     ),
+    # --- voucher_profile_rank_v1 (V2 §2.8, T-11) — descriptive multi-signal, KHÔNG causal ---
+    MetricSpec(
+        name="voucher_rate", grain="group", unit="share_0_1",
+        dedupe="one_snapshot_per_listing", traps=(9, 19),
+        depends_on=("has_structured_voucher",),
+        formula="share(has_structured_voucher) per shop @ 1 snapshot",
+        caveats=("tỷ lệ listing có structured voucher tại một snapshot; không nói gì về hiệu quả",),
+    ),
+    MetricSpec(
+        name="median_discount_ratio", grain="group", unit="ratio_0_1",
+        dedupe="one_snapshot_per_listing", traps=(9, 19),
+        depends_on=("voucher_discount_num", "price_num"),
+        formula="median(voucher_discount_num / price_num) trên dòng có voucher, price>0",
+        caveats=("độ sâu giảm giá mô tả; voucher_discount là mức giảm hiển thị, chưa xác nhận điều kiện áp dụng",),
+    ),
+    MetricSpec(
+        name="descriptive_gap_median_sold", grain="group", unit="units_recent_window",
+        dedupe="one_snapshot_per_listing", traps=(4, 9, 19),
+        depends_on=("monthly_sold_value_num", "has_structured_voucher"),
+        formula="median(monthly_sold | voucher) - median(monthly_sold | không voucher) trong CÙNG shop",
+        caveats=("chênh lệch mô tả tại 1 snapshot trong cùng shop; hai nhóm khác cơ cấu sản phẩm/giá — không phải bằng chứng nhân quả",),
+    ),
+    MetricSpec(
+        name="voucher_profile_score", grain="group", unit="score_0_1",
+        dedupe="one_snapshot_per_listing", traps=(9, 19),
+        depends_on=("has_structured_voucher", "voucher_discount_num", "price_num", "monthly_sold_value_num"),
+        formula=(
+            "voucher_profile_rank_v1: 0.4·norm(voucher_rate) + 0.3·norm(median_discount_ratio) "
+            "+ 0.3·norm(descriptive_gap_median_sold); min-max normalize trên các shop đủ điều kiện "
+            "(n_listings ≥ 5, có đủ cả hai nhóm voucher/không-voucher)"
+        ),
+        caveats=(
+            "ranking mô tả theo định nghĩa voucher_profile_rank_v1, không đo hiệu quả nhân quả",
+            "weights 0.4/0.3/0.3 chờ DR1/Lead phê duyệt (T-11) — chỉ phục vụ khi cờ bật",
+            "shop dưới ngưỡng sample hoặc thiếu một nhóm bị loại khỏi ranking và được đếm riêng",
+        ),
+    ),
 ]
 
 

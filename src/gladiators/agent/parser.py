@@ -49,6 +49,12 @@ class MultilingualIntentParser:
                 )
         if any(x in n for x in ("tuong tu", "giong", "similar", "mirip", "serupa")):
             intent = "similar_product"
+        elif any(x in n for x in ("shop", "cua hang", "toko")) and any(
+            x in n for x in ("voucher", "khuyen mai", "promosi")
+        ) and any(x in n for x in ("hieu qua", "tot nhat", "chien luoc", "terbaik", "best")):
+            # V2 §2.8: "shop nào có chiến lược voucher hiệu quả nhất" — L4 descriptive
+            # ranking theo voucher_profile_rank_v1, KHÔNG phải câu promo hai-nhóm.
+            intent = "voucher_profile_rank"
         elif any(x in n for x in ("voucher", "khuyen mai", "promotion", "promosi", "promo")):
             intent = "promotion_effectiveness"
         elif any(x in n for x in ("gia thay doi", "bien dong gia", "price change", "perubahan harga")):

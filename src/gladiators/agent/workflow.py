@@ -46,6 +46,7 @@ class AgentRuntime:
         adjudicator_client: Any | None = None,
         external_pipeline: Any | None = None,
         enable_live_search: bool | None = None,
+        enable_voucher_profile: bool | None = None,
     ):
         self.repo = ArtifactRepository(data_dir)
         self.registry = default_registry()
@@ -64,6 +65,12 @@ class AgentRuntime:
         requested_live = os.getenv("GLADIATORS_ENABLE_LIVE_SEARCH") == "1" if enable_live_search is None else enable_live_search
         # A flag without a wired, bounded pipeline is not a capability.
         self.enable_live_search = bool(requested_live and external_pipeline is not None)
+        # T-11 (V2 §2.8): định nghĩa voucher_profile_rank_v1 đã có trong metric
+        # registry nhưng weights chờ DR1/Lead ký; mặc định OFF → A19-METRIC clarify.
+        self.enable_voucher_profile = (
+            os.getenv("GLADIATORS_ENABLE_VOUCHER_PROFILE") == "1"
+            if enable_voucher_profile is None else enable_voucher_profile
+        )
         self.parser, self.gate = MultilingualIntentParser(), ContractDrivenGate()
         dense = BGEIndex() if os.getenv("GLADIATORS_ENABLE_BGE") == "1" else None
         self.resolver = EntityResolver(self.repo.products, embeddings=dense)
@@ -194,6 +201,24 @@ class AgentRuntime:
         if request.intent == "promotion_effectiveness" and evidence:
             values = "; ".join(f"{e.metric}={e.value:g} {e.unit} [{e.evidence_id}]" for e in evidence)
             return f"So sánh quan sát tại một snapshot: {values}. Đây là tương quan nhóm, không chứng minh khuyến mãi gây ra thay đổi."
+        if request.intent == "voucher_profile_rank" and evidence:
+            shop = by_metric["top_voucher_profile_shop_name"]
+            score = by_metric["voucher_profile_score"]
+            rate = by_metric["voucher_rate"]
+            ratio = by_metric["median_discount_ratio"]
+            gap = by_metric["descriptive_gap_median_sold"]
+            count = by_metric["ranked_shop_count"]
+            return (
+                f"Hồ sơ voucher theo các thành phần điểm mô tả (voucher_profile_rank_v1): "
+                f"shop dẫn đầu là {shop.value} [{shop.evidence_id}] với điểm tổng hợp {score.value:g} [{score.evidence_id}] "
+                f"trên {count.value:g} shop đủ điều kiện [{count.evidence_id}]. "
+                f"Thành phần: tỷ lệ listing có structured voucher {rate.value:g} [{rate.evidence_id}]; "
+                f"median voucher_discount/price {ratio.value:g} [{ratio.evidence_id}]; "
+                f"chênh lệch mô tả median sold proxy giữa nhóm có/không voucher trong cùng shop "
+                f"{gap.value:g} {gap.unit} [{gap.evidence_id}]. "
+                f"Giới hạn: ranking mô tả theo định nghĩa voucher_profile_rank_v1, không đo hiệu quả nhân quả; "
+                f"hai nhóm listing khác cơ cấu ngành hàng/giá; dữ liệu tại một snapshot, proxy ước tính."
+            )
         if request.intent in {"analytical_query", "open_analytical"} and evidence:
             if "highest_revenue_proxy_date" in by_metric:
                 date_evidence = by_metric["highest_revenue_proxy_date"]
@@ -366,6 +391,22 @@ class AgentRuntime:
             "live_search_enabled": self.enable_live_search,
         }
         decision = self.gate.decide(request, self.registry, capabilities) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
+        if (
+            decision.action == "allow" and request.intent == "voucher_profile_rank"
+            and not self.enable_voucher_profile
+        ):
+            # T-11: weights của voucher_profile_rank_v1 chưa được DR1/Lead phê duyệt
+            # → clarify theo đúng nhánh A19-METRIC của V2 §2.8, không bịa metric.
+            decision = GateDecision(
+                action="clarify", rule_id="A19-METRIC",
+                reason=(
+                    "'hiệu quả voucher' chưa có định nghĩa metric được duyệt để phục vụ. "
+                    "Hệ thống có thể trả descriptive multi-signal ranking theo voucher_profile_rank_v1 "
+                    "(tỷ lệ listing có structured voucher; median voucher_discount/price; "
+                    "chênh lệch mô tả sold proxy giữa nhóm có/không voucher trong cùng shop) "
+                    "sau khi định nghĩa được phê duyệt — không đo hiệu quả nhân quả."
+                ),
+            )
         evidence: list[Evidence] = []
         calls: list[ToolCall] = []
         resolved_key = None
