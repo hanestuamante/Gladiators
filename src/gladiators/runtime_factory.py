@@ -4,8 +4,10 @@ import os
 
 from dotenv import load_dotenv
 
+from gladiators.agent.cassette import CassetteLLMClient, LLMCassette
 from gladiators.agent.llm import GeminiLLMClient, GroqLLMClient, HuggingFaceLLMClient
 from gladiators.agent.workflow import AgentRuntime
+from gladiators.data.repository import ArtifactRepository
 from gladiators.external.cache import ExternalCache, QuotaGuard
 from gladiators.external.pipeline import ExternalContextPipeline
 from gladiators.external.search_executor import SearchExecutor
@@ -25,7 +27,42 @@ def create_runtime(provider: str | None = None) -> AgentRuntime:
     live = external_settings.live_search
     live_enabled = live.enabled
     source_registry = build_source_registry(live)
-    llm = GeminiLLMClient() if selected == "gemini" else HuggingFaceLLMClient() if selected == "huggingface" else GroqLLMClient() if selected == "groq" else None
+    cassette = LLMCassette(
+        root=os.getenv("GLADIATORS_CASSETTE_DIR", "tests/fixtures/cassettes"),
+    )
+    llm = None
+    if selected != "offline":
+        defaults = {
+            "gemini": os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
+            "huggingface": os.getenv("HF_MODEL", "Qwen/Qwen3-32B"),
+            "groq": os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
+        }
+        if cassette.mode == "replay":
+            llm = CassetteLLMClient(
+                None,
+                provider=selected,
+                model=defaults[selected],
+                prompt_version=os.getenv("GLADIATORS_PROMPT_VERSION", "v1.1.0"),
+                dataset_version=ArtifactRepository().dataset_version,
+                cassette=cassette,
+            )
+        else:
+            delegate = (
+                GeminiLLMClient()
+                if selected == "gemini"
+                else HuggingFaceLLMClient()
+                if selected == "huggingface"
+                else GroqLLMClient()
+            )
+            llm = (
+                CassetteLLMClient(
+                    delegate,
+                    dataset_version=ArtifactRepository().dataset_version,
+                    cassette=cassette,
+                )
+                if cassette.mode == "record"
+                else delegate
+            )
     external_pipeline = None
     if live_enabled:
         if llm is None:

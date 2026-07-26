@@ -179,7 +179,9 @@ def test_executor_enforces_output_postconditions():
 def test_certified_macros_are_versioned_and_validator_clean():
     macros = default_macro_registry()
     assert macros.names() == (
-        "sales_decline", "similar_product", "promotion_effectiveness", "voucher_profile_rank",
+        "sales_decline", "similar_product", "promotion_effectiveness",
+        "voucher_profile_rank", "voucher_coverage",
+        "discount_bucket_observation", "dataset_coverage",
     )
     assert all(macros.get(name).version == "1.0" for name in macros.names())
     assert all(len(macros.get(name).plan_hash) == 16 for name in macros.names())

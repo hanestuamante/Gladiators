@@ -60,7 +60,13 @@ def _resolve_entity(ctx: ToolContext) -> None:
     entity_text = ctx.request.entity_text
     candidates = ctx.resolver.resolve(entity_text) if entity_text else []
     ctx.calls.append(ToolCall(name="resolve_entity", args={"entity_text": entity_text}, status="ok" if candidates else "empty"))
-    if ctx.resolver.ambiguous(candidates):
+    if not candidates:
+        ctx.clarify = GateDecision(
+            action="abstain",
+            rule_id="A-ENTITY-NOT-FOUND",
+            reason="Không tìm thấy listing khớp entity/ID trong artifact hiện tại.",
+        )
+    elif ctx.resolver.ambiguous(candidates):
         ctx.clarify = GateDecision(action="clarify", rule_id="A-AMBIGUOUS", reason="Có nhiều listing gần giống; cần listing key hoặc URL chính xác hơn.")
     else:
         ctx.resolved_listing_key = candidates[0].listing_key
@@ -98,6 +104,24 @@ def _compare_voucher_groups(ctx: ToolContext) -> None:
         return
     evidence = ctx.tools.promotion_observation(ctx.request.country)
     _record(ctx, "compare_voucher_groups", {"country": ctx.request.country}, evidence)
+
+
+@tool("compare_voucher_coverage")
+def _compare_voucher_coverage(ctx: ToolContext) -> None:
+    evidence = ctx.tools.voucher_coverage_by_country()
+    _record(ctx, "compare_voucher_coverage", {}, evidence)
+
+
+@tool("observe_discount_bucket")
+def _observe_discount_bucket(ctx: ToolContext) -> None:
+    evidence = ctx.tools.discount_bucket_observation()
+    _record(ctx, "observe_discount_bucket", {"discount_percent": 50}, evidence)
+
+
+@tool("describe_dataset_coverage")
+def _describe_dataset_coverage(ctx: ToolContext) -> None:
+    evidence = ctx.tools.dataset_coverage()
+    _record(ctx, "describe_dataset_coverage", {}, evidence)
 
 
 @tool("rank_voucher_profiles")

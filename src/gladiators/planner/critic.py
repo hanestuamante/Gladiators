@@ -24,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from gladiators.domain.catalog import CATALOG
 from gladiators.domain.relations import RELATIONS
+from gladiators.agent.context import ContextBundle
 
 from .query_ir import LogicalQueryPlan
 from .validator import validate_plan
@@ -58,6 +59,7 @@ class CriticOutput(BaseModel):
 class CriticReview:
     issues: tuple[CriticIssue, ...]
     dropped: tuple[CriticIssue, ...] = ()
+    context: dict | None = None
 
 
 def _plan_refs(plan: LogicalQueryPlan) -> tuple[str, ...]:
@@ -112,7 +114,10 @@ class PlanCritic:
     def __init__(self, llm_client=None):
         self.llm_client = llm_client
 
-    def review(self, question: str, plan: LogicalQueryPlan) -> CriticReview:
+    def review(
+        self, question: str, plan: LogicalQueryPlan,
+        context_bundle: ContextBundle | None = None,
+    ) -> CriticReview:
         deterministic = validate_plan(plan)
         if not deterministic.valid:
             return CriticReview(issues=tuple(
@@ -121,8 +126,12 @@ class PlanCritic:
             ))
         if self.llm_client is None or not hasattr(self.llm_client, "critique_plan"):
             raise RuntimeError("Plan critic được yêu cầu nhưng chưa có LLM provider hỗ trợ P9.")
+        payload = _critic_payload(question, plan)
+        if context_bundle is not None:
+            context_bundle = context_bundle.model_copy(update={"payload": payload}).with_hash()
+            payload = context_bundle.payload
         output = CriticOutput.model_validate(
-            self.llm_client.critique_plan(question, _critic_payload(question, plan))
+            self.llm_client.critique_plan(question, payload)
         )
         node_ids = {node.node_id for node in plan.nodes}
         kept: list[CriticIssue] = []
@@ -134,4 +143,8 @@ class PlanCritic:
                 dropped.append(issue)  # trỏ node không tồn tại — không kiểm được
             else:
                 kept.append(issue)
-        return CriticReview(issues=tuple(kept), dropped=tuple(dropped))
+        return CriticReview(
+            issues=tuple(kept),
+            dropped=tuple(dropped),
+            context=context_bundle.trace_summary() if context_bundle else None,
+        )

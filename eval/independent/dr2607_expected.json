@@ -1,0 +1,85 @@
+[
+  {
+    "case_id": "dr2607_tc26",
+    "metric": "promotion_observation_profile",
+    "value": {
+      "raw_rows": 85,
+      "distinct_listings": 85,
+      "dates": ["2026-07-01"],
+      "shops": ["173513432", "438905996"]
+    },
+    "unit": "profile",
+    "grain": "listing_snapshot",
+    "scope": "promotion_id=473502013010049",
+    "method_note": "Direct CSV filter; no campaign identity inference."
+  },
+  {
+    "case_id": "dr2607_tc30",
+    "metric": "promotion_zero_profile",
+    "value": {
+      "all_raw_rows": 874,
+      "vn_raw_rows": 694,
+      "vn_distinct_listings": 255,
+      "vn_latest_rows": 241
+    },
+    "unit": "profile",
+    "grain": "listing_snapshot",
+    "scope": "promotion_id=0",
+    "method_note": "Separates raw rows, distinct listings and latest snapshot."
+  },
+  {
+    "case_id": "dr2607_tc19",
+    "metric": "price_sentinel_flag",
+    "value": [
+      {"date": "2026-07-01", "price_num": 410000.0, "price_sentinel_flag": false},
+      {"date": "2026-07-02", "price_num": 400890.0, "price_sentinel_flag": false},
+      {"date": "2026-07-03", "price_num": 400890.0, "price_sentinel_flag": false}
+    ],
+    "unit": "profile",
+    "grain": "listing_snapshot",
+    "scope": "item_id=56061511146",
+    "method_note": "Flag is governed artifact output; product-name semantics require human policy."
+  },
+  {
+    "case_id": "dr2607_tc34",
+    "metric": "verified_gap_fixture_candidates",
+    "value": [
+      {"product_listing_key": "vn:108166524:42955556831", "item_id": "42955556831", "date": "2026-07-01"},
+      {"product_listing_key": "vn:108166524:49254147237", "item_id": "49254147237", "date": "2026-07-01"},
+      {"product_listing_key": "vn:108166524:52854131624", "item_id": "52854131624", "date": "2026-07-01"},
+      {"product_listing_key": "vn:108166524:46804156138", "item_id": "46804156138", "date": "2026-07-01"},
+      {"product_listing_key": "vn:108166524:52702489216", "item_id": "52702489216", "date": "2026-07-01"},
+      {"product_listing_key": "vn:108166524:42955556831", "item_id": "42955556831", "date": "2026-07-03"},
+      {"product_listing_key": "vn:108166524:49254147237", "item_id": "49254147237", "date": "2026-07-03"},
+      {"product_listing_key": "vn:108166524:52854131624", "item_id": "52854131624", "date": "2026-07-03"},
+      {"product_listing_key": "vn:108166524:46804156138", "item_id": "46804156138", "date": "2026-07-03"},
+      {"product_listing_key": "vn:108166524:52702489216", "item_id": "52702489216", "date": "2026-07-03"}
+    ],
+    "unit": "fixtures",
+    "grain": "listing_snapshot",
+    "scope": "snapshot_gap_flag=True",
+    "method_note": "Use one of these rows instead of stale item 24710759163."
+  },
+  {
+    "case_id": "dr2607_tc23",
+    "metric": "structured_voucher_rows",
+    "value": {"id": 0, "vn": 1580},
+    "unit": "rows",
+    "grain": "listing_snapshot",
+    "scope": "all snapshots",
+    "method_note": "Counts governed has_structured_voucher, not UI voucher labels."
+  },
+  {
+    "case_id": "dr2607_tc39",
+    "metric": "item_snapshot_series",
+    "value": [
+      {"date": "2026-07-01", "monthly_sold_value_num": 1000.0, "history_sold_value_num": 6000.0, "rating_num": 4.851894374282434},
+      {"date": "2026-07-02", "monthly_sold_value_num": 1000.0, "history_sold_value_num": 6000.0, "rating_num": 4.851894374282434},
+      {"date": "2026-07-03", "monthly_sold_value_num": 3000.0, "history_sold_value_num": 8000.0, "rating_num": 4.883527454242929}
+    ],
+    "unit": "profile",
+    "grain": "listing_snapshot",
+    "scope": "item_id=26663401389",
+    "method_note": "monthly_sold is a recent-window snapshot proxy and must not be summed across snapshots."
+  }
+]

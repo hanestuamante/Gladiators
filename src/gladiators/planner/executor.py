@@ -1,6 +1,7 @@
 """Hardened in-process DuckDB executor cho SQL chỉ đến từ compiler."""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 
 import duckdb
@@ -39,8 +40,39 @@ class QueryExecutor:
         names = ("memory_limit", "threads", "enable_external_access", "autoload_known_extensions", "allow_community_extensions", "lock_configuration")
         return {name: self.connection.execute("SELECT current_setting(?)", [name]).fetchone()[0] for name in names}
 
+    def _estimated_rows(self, sql: str, parameters: tuple[object, ...]) -> int | None:
+        """Return a conservative plan-cardinality bound, or None if unavailable."""
+        try:
+            raw = self.connection.execute(
+                "EXPLAIN (FORMAT JSON) " + sql, parameters,
+            ).fetchone()[-1]
+            tree = json.loads(raw)
+        except Exception:
+            return None
+        stack = [tree] if isinstance(tree, dict) else list(tree)
+        best: int | None = None
+        while stack:
+            node = stack.pop()
+            if not isinstance(node, dict):
+                continue
+            card = (node.get("extra_info") or {}).get("Estimated Cardinality")
+            try:
+                parsed = int(float(card)) if card is not None else None
+            except (TypeError, ValueError, OverflowError):
+                parsed = None
+            if parsed is not None:
+                best = parsed if best is None else max(best, parsed)
+            stack.extend(node.get("children") or ())
+        return best
+
     def execute(self, query: CompiledQuery) -> ExecutionResult:
         assert_read_only_sql(query.sql)
+        estimated = self._estimated_rows(query.sql, query.parameters)
+        if estimated is not None and estimated > self.max_result_rows:
+            raise RuntimeError(
+                f"ESTIMATED_ROWS_EXCEEDED: estimate={estimated}, "
+                f"max_result_rows={self.max_result_rows}"
+            )
         explain_rows = self.connection.execute("EXPLAIN " + query.sql, query.parameters).fetchall()
         explain = "\n".join(str(row[-1]) for row in explain_rows)
         frame = self.connection.execute(query.sql, query.parameters).fetchdf()
@@ -49,6 +81,13 @@ class QueryExecutor:
         if tuple(frame.columns) != query.expected_columns:
             raise RuntimeError(
                 f"SCHEMA_INVALID: expected={query.expected_columns}, actual={tuple(frame.columns)}"
+            )
+        bound = query.expected_cardinality
+        exact = not bound.startswith("<=")
+        limit = int(bound.removeprefix("<="))
+        if (len(frame) != limit) if exact else (len(frame) > limit):
+            raise RuntimeError(
+                f"CARDINALITY_VIOLATION: expected={bound}, actual={len(frame)}"
             )
         passed: list[str] = []
         for invariant in query.postconditions:

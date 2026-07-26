@@ -1,6 +1,7 @@
 """LogicalQueryPlan IR v1.0 — V2 mục 7.6."""
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -11,6 +12,7 @@ Op = Literal[
 ]
 PredicateOp = Literal["eq", "ne", "lt", "lte", "gt", "gte", "in", "contains"]
 Aggregation = Literal["count", "sum", "mean", "median", "min", "max", "share"]
+_CARDINALITY = re.compile(r"^(<=)?\d+$")
 
 
 class Predicate(BaseModel):
@@ -76,6 +78,15 @@ class PlanNode(BaseModel):
         if not value.strip():
             raise ValueError("node_id rỗng")
         return value
+
+    @field_validator("expected_cardinality")
+    @classmethod
+    def valid_cardinality(cls, value: str) -> str:
+        """Output cardinality is enforced; intermediate values remain estimates."""
+        normalized = value.strip()
+        if not _CARDINALITY.fullmatch(normalized):
+            raise ValueError(f"expected_cardinality sai định dạng: {value!r}")
+        return normalized
 
 
 class PlanBudget(BaseModel):

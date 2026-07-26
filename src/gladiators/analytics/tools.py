@@ -6,6 +6,8 @@ import math
 from gladiators.contracts import Evidence
 from gladiators.external.contracts import SourceLocator
 
+OPEN_RESULT_ROW_LIMIT = 10
+
 
 class AnalyticsTools:
     """Deterministic analytics. LLMs never calculate values in this class."""
@@ -63,6 +65,113 @@ class AnalyticsTools:
                 Evidence(evidence_id=self.evidence_id(), metric=f"{label}_median_monthly_sold_proxy", value=round(float(group.monthly_sold_value_num.median()), 6), unit="items", source_path="monthly_sold_value_num", **common),
             ])
         return result
+
+    def voucher_coverage_by_country(self) -> list[Evidence]:
+        snapshots = self.repo.snapshots.copy()
+        latest_date = str(snapshots.date.astype(str).max())
+        latest = snapshots.loc[
+            snapshots.date.astype(str) == latest_date
+        ].drop_duplicates("product_listing_key")
+        result = []
+        for country in ("vn", "id"):
+            group = latest.loc[latest.country_code == country]
+            count = int(group.has_structured_voucher.fillna(False).astype(bool).sum())
+            result.append(Evidence(
+                evidence_id=self.evidence_id(),
+                source_tier="btc_dataset",
+                metric="structured_voucher_listing_count",
+                value=count,
+                unit="listings",
+                source_locator=SourceLocator(
+                    kind="internal", value="product_snapshot_metrics",
+                ),
+                source_path="has_structured_voucher",
+                dataset_version=self.repo.dataset_version,
+                attrs={
+                    "country": country,
+                    "snapshot_date": latest_date,
+                    "group": country,
+                    "dedupe": "product_listing_key",
+                },
+            ))
+        return result
+
+    def discount_bucket_observation(self, target_percent: float = 50.0) -> list[Evidence]:
+        snapshots = self.repo.snapshots.copy()
+        latest_date = str(snapshots.date.astype(str).max())
+        latest = snapshots.loc[
+            snapshots.date.astype(str) == latest_date
+        ].drop_duplicates("product_listing_key")
+        bucket = latest.loc[
+            latest.discount_percent_analysis.between(
+                target_percent - 5, target_percent + 5, inclusive="both",
+            )
+        ]
+        median_sold = (
+            float(bucket.monthly_sold_value_num.dropna().median())
+            if bucket.monthly_sold_value_num.notna().any()
+            else 0.0
+        )
+        common = dict(
+            source_tier="btc_dataset",
+            source_locator=SourceLocator(
+                kind="internal", value="product_snapshot_metrics",
+            ),
+            dataset_version=self.repo.dataset_version,
+            attrs={
+                "country": "vn+id_separate_nonmonetary",
+                "snapshot_date": latest_date,
+                "group": "discount_45_to_55_percent",
+                "observational_only": True,
+            },
+        )
+        return [
+            Evidence(
+                evidence_id=self.evidence_id(),
+                metric="discount_bucket_listing_count",
+                value=int(len(bucket)),
+                unit="listings",
+                source_path="discount_percent_analysis",
+                **common,
+            ),
+            Evidence(
+                evidence_id=self.evidence_id(),
+                metric="discount_bucket_median_monthly_sold_proxy",
+                value=round(median_sold, 6),
+                unit="items",
+                source_path="monthly_sold_value_num",
+                **common,
+            ),
+        ]
+
+    def dataset_coverage(self) -> list[Evidence]:
+        dates = sorted(self.repo.snapshots.date.astype(str).dropna().unique().tolist())
+        common = dict(
+            source_tier="btc_dataset",
+            source_locator=SourceLocator(
+                kind="internal", value="product_snapshot_metrics",
+            ),
+            dataset_version=self.repo.dataset_version,
+            attrs={
+                "country": "vn+id",
+                "snapshot_date": dates[-1],
+                "coverage_dates": dates,
+            },
+        )
+        return [
+            Evidence(
+                evidence_id=self.evidence_id(), metric="coverage_start_date",
+                value=dates[0], unit="date", source_path="date", **common,
+            ),
+            Evidence(
+                evidence_id=self.evidence_id(), metric="coverage_end_date",
+                value=dates[-1], unit="date", source_path="date", **common,
+            ),
+            Evidence(
+                evidence_id=self.evidence_id(), metric="coverage_snapshot_count",
+                value=len(dates), unit="snapshots", source_path="date", **common,
+            ),
+        ]
 
     # Định nghĩa cố định của voucher_profile_rank_v1 (V2 §2.8, T-11):
     # weights + ngưỡng sample là một phần của contract, không phải tham số tự do.
@@ -191,6 +300,13 @@ class AnalyticsTools:
         finally:
             executor.close()
         parts = plan.plan_id.split(":")
+        dataset_version = self.repo.dataset_version
+        output_node = next(node for node in plan.nodes if node.node_id == plan.output_node)
+        execution_attrs = {
+            "expected_field_count": len(plan.requested_output_shape),
+            "postconditions_passed": len(result.postconditions),
+            "has_invariants": bool(output_node.invariants),
+        }
         known_kinds = {
             "highest_revenue_day", "listing_count", "highest_price_listing",
             "highest_monthly_sold_listing", "top_shop_by_listing_count",
@@ -209,9 +325,10 @@ class AnalyticsTools:
                 evidence_id=self.evidence_id(), metric="result_count", value=0, unit="rows",
                 source_tier="btc_dataset",
                 source_locator=SourceLocator(kind="internal", value="compiled_semantic_plan"),
-                source_path="result.row_count", dataset_version=self.repo.dataset_version,
+                source_path="result.row_count", dataset_version=dataset_version,
                 attrs={"country": country, "observed_date": observed_date,
-                       "plan_hash": compiled.plan_hash, "empty_result": True, "row_index": 0},
+                       "plan_hash": compiled.plan_hash, "empty_result": True, "row_index": 0,
+                       **execution_attrs},
             )]
         row = result.frame.iloc[0]
         observed_date = str(row["date"]) if "date" in row else "2026-07-03"
@@ -222,14 +339,17 @@ class AnalyticsTools:
                 kind="internal",
                 value="product_snapshot_metrics" if kind == "highest_revenue_day" else "products_clean",
             ),
-            dataset_version=self.repo.dataset_version,
+            dataset_version=dataset_version,
             attrs={"country": country, "observed_date": observed_date, "plan_hash": compiled.plan_hash,
-                   "proxy_only": True},
+                   "proxy_only": True, **execution_attrs},
         )
         if kind not in known_kinds:
             output = {field.name: field for field in plan.requested_output_shape}
+            returned = min(result.row_count, OPEN_RESULT_ROW_LIMIT)
             evidence: list[Evidence] = []
-            for row_index, result_row in result.frame.head(10).iterrows():
+            for row_index, (_, result_row) in enumerate(
+                result.frame.head(OPEN_RESULT_ROW_LIMIT).iterrows()
+            ):
                 for column, field in output.items():
                     if column not in result_row:
                         continue
@@ -244,14 +364,25 @@ class AnalyticsTools:
                     unit = semantic.unit if semantic else field.type
                     if unit == "local_currency":
                         unit = currency
+                    attrs = {
+                        "country": country, "observed_date": observed_date,
+                        "plan_hash": compiled.plan_hash, "row_index": row_index,
+                        **execution_attrs,
+                    }
+                    if not evidence:
+                        attrs.update({
+                            "result_count": result.row_count,
+                            "returned_rows": returned,
+                            "row_limit": OPEN_RESULT_ROW_LIMIT,
+                            "truncated": result.row_count > returned,
+                        })
                     evidence.append(Evidence(
                         evidence_id=self.evidence_id(), metric=column, value=value,
                         unit=unit, source_path=field.semantic_ref or column,
                         source_tier="btc_dataset",
                         source_locator=SourceLocator(kind="internal", value="compiled_semantic_plan"),
-                        dataset_version=self.repo.dataset_version,
-                        attrs={"country": country, "observed_date": observed_date,
-                               "plan_hash": compiled.plan_hash, "row_index": int(row_index)},
+                        dataset_version=dataset_version,
+                        attrs=attrs,
                     ))
             return evidence
         if kind == "highest_revenue_day":

@@ -15,9 +15,23 @@ class EntityResolver:
 
     def resolve(self, query: str, limit: int = 20) -> list[Candidate]:
         direct = self.products.loc[self.products.product_listing_key.astype(str) == str(query).strip()]
+        if direct.empty and str(query).strip().isdigit() and "item_id" in self.products:
+            direct = self.products.loc[
+                self.products.item_id.astype(str) == str(query).strip()
+            ]
         if not direct.empty:
-            row = direct.iloc[0]
-            return [Candidate(listing_key=str(row.product_listing_key), product_name=str(row.product_name), lexical_score=1.0, semantic_score=1.0 if self.embeddings else None, final_score=1.0)]
+            return [
+                Candidate(
+                    listing_key=str(row.product_listing_key),
+                    product_name=str(row.product_name),
+                    lexical_score=1.0,
+                    semantic_score=1.0 if self.embeddings else None,
+                    final_score=1.0,
+                )
+                for _, row in direct.drop_duplicates("product_listing_key").head(limit).iterrows()
+            ]
+        if str(query).strip().isdigit():
+            return []
         matches = process.extract(normalize_text(query), self.names, scorer=fuzz.WRatio, limit=limit, processor=normalize_text)
         semantic = self.embeddings.search(query, top_k=max(limit, 20)) if self.embeddings is not None else {}
         lexical = {idx: (name, score / 100) for name, score, idx in matches}

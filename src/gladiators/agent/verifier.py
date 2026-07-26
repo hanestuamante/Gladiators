@@ -272,6 +272,11 @@ def verify_numeric_claims(
     claimed_tokens = scan_number_tokens(metric_text)
     claimed = [value for value, _ in claimed_tokens]
     allowed = [float(e.value) for e in evidence if isinstance(e.value, (int, float)) and not isinstance(e.value, bool)]
+    for item in evidence:
+        for key in ("result_count", "returned_rows", "row_limit"):
+            value = item.attrs.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                allowed.append(float(value))
 
     if tolerance is not None:
         # Escape hatch tương thích cũ: caller truyền tolerance thì dùng isclose legacy.

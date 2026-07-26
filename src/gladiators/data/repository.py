@@ -30,7 +30,7 @@ class ArtifactRepository:
     def transitions(self) -> pd.DataFrame:
         return self.read("product_transition_metrics.csv")
 
-    @property
+    @cached_property
     def dataset_version(self) -> str:
         h = hashlib.sha256()
         for name in sorted(["products_clean.csv", "product_snapshot_metrics.csv", "product_transition_metrics.csv"]):
@@ -46,4 +46,3 @@ class ArtifactRepository:
             "snapshot_count": int(p.date.nunique()),
             "voucher_structured_by_country": p.groupby("country_code")["voucher_code"].apply(lambda s: int(s.notna().sum())).to_dict(),
         }
-

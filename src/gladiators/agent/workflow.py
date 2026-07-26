@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import uuid
+from dataclasses import dataclass
 from typing import Any
 
 from pydantic import ValidationError
@@ -27,6 +29,67 @@ from .tool_dispatch import ToolContext, dispatch
 from .trace import TraceStore
 from .verifier import verify_numeric_claims
 from .wording import check_wording
+from .alignment import (
+    check_answer_alignment,
+    check_evidence_alignment,
+    check_macro_shape,
+    check_plan_alignment,
+    plan_refs,
+)
+from .context import BUDGETS, ContextBundle, guarded_evidence_payload, request_digest
+
+
+@dataclass(frozen=True)
+class ConfidenceInputs:
+    evidence_count: int
+    expected_field_count: int
+    postconditions_passed: int
+    escalation_mode: str
+    truncated: bool
+    tiers: frozenset[str]
+    has_invariants: bool = False
+    adjudicated: bool = False
+
+
+def confidence_label(inputs: ConfidenceInputs) -> str:
+    if inputs.tiers - {"btc_dataset"}:
+        return "Low"
+    if inputs.truncated:
+        return "Low"
+    if inputs.expected_field_count and inputs.evidence_count < inputs.expected_field_count:
+        return "Low"
+    if inputs.escalation_mode == "nversion" and inputs.adjudicated:
+        return "Medium"
+    if inputs.has_invariants and inputs.postconditions_passed == 0:
+        return "Medium"
+    return "High"
+
+
+_CONFIDENCE_EXPLANATION = (
+    "phản ánh mức đầy đủ và nhất quán của evidence, không phải xác suất đúng."
+)
+
+
+def _confidence_inputs(
+    evidence: list[Evidence], planning_meta: dict[str, Any] | None = None,
+) -> ConfidenceInputs:
+    attrs = evidence[0].attrs if evidence else {}
+    result_count = next(
+        (item for item in evidence if item.metric == "result_count" or "result_count" in item.attrs),
+        None,
+    )
+    planning_meta = planning_meta or {}
+    nversion = planning_meta.get("nversion") or {}
+    return ConfidenceInputs(
+        evidence_count=len([item for item in evidence if item.metric != "result_count"]),
+        expected_field_count=int(attrs.get("expected_field_count", 0) or 0),
+        postconditions_passed=int(attrs.get("postconditions_passed", 0) or 0),
+        escalation_mode=str(planning_meta.get("escalation_mode", "single")),
+        truncated=bool(result_count and result_count.attrs.get("truncated")),
+        tiers=frozenset(item.source_tier for item in evidence),
+        has_invariants=bool(attrs.get("has_invariants", False)),
+        adjudicated=bool(nversion.get("adjudicated", False)),
+    )
 
 
 class AgentRuntime:
@@ -94,6 +157,8 @@ class AgentRuntime:
                     parsed = parsed.model_copy(update={
                         "intent": deterministic.intent,
                         "country": deterministic.country,
+                        "countries": deterministic.countries,
+                        "entities": deterministic.entities,
                         "slots": deterministic.slots,
                         "analytical": deterministic.analytical,
                         "route_mode": deterministic.route_mode,
@@ -113,7 +178,12 @@ class AgentRuntime:
                     elif "entity_text" in spec.required_slots and deterministic.entity_text and parsed.entity_text != deterministic.entity_text:
                         updates["entity_text"] = deterministic.entity_text; adjustments.append("entity_from_deterministic_parser")
                     if not parsed.country and deterministic.country:
-                        updates["country"] = deterministic.country; adjustments.append("country_from_deterministic_parser")
+                        updates["country"] = deterministic.country
+                        updates["countries"] = deterministic.countries
+                        adjustments.append("country_from_deterministic_parser")
+                    if not parsed.entities and deterministic.entities:
+                        updates["entities"] = deterministic.entities
+                        adjustments.append("entities_from_deterministic_parser")
                     # P1 only classifies the top-level intent. Certified analytical
                     # templates and the open analytical path carry deterministic,
                     # typed payloads that P8 needs; never discard them when P1
@@ -137,11 +207,47 @@ class AgentRuntime:
         return self.parser.parse(user_text, self.registry), meta
 
     @staticmethod
-    def _deterministic_answer(decision: GateDecision, request: StructuredRequest, evidence: list[Evidence]) -> str:
+    def _deterministic_answer(
+        decision: GateDecision,
+        request: StructuredRequest,
+        evidence: list[Evidence],
+        confidence: ConfidenceInputs | None = None,
+    ) -> str:
+        partial = request.slots.get("partial_unsupported")
+
+        def partial_limitations() -> str:
+            if not isinstance(partial, (list, tuple)) or not partial:
+                return ""
+            from .gate import CAPABILITY_MESSAGES
+            limitations = []
+            for item in partial:
+                if not isinstance(item, dict):
+                    continue
+                capability = str(item.get("capability", "unknown"))
+                message = CAPABILITY_MESSAGES.get(capability)
+                reason = (
+                    message["missing"]
+                    if message
+                    else f"Không hỗ trợ phần: {item.get('text', '')}"
+                )
+                limitations.append(f"- {item.get('text', '')}: {reason}")
+            return "\n\nChưa trả lời được\n" + "\n".join(limitations)
+
         if decision.action == "abstain":
-            return f"Không thể trả lời chắc chắn: {decision.reason} {decision.answerable_alternative or ''}".strip()
+            return (
+                f"Không thể trả lời chắc chắn: {decision.reason} "
+                f"{decision.answerable_alternative or ''}"
+            ).strip() + partial_limitations()
         if decision.action == "clarify":
-            return f"Cần làm rõ: {decision.reason}"
+            return f"Cần làm rõ: {decision.reason}" + partial_limitations()
+        if decision.action == "allow" and isinstance(partial, (list, tuple)) and partial:
+            base_slots = dict(request.slots)
+            base_slots.pop("partial_unsupported", None)
+            base_slots.pop("sub_requests", None)
+            base = AgentRuntime._deterministic_answer(
+                decision, request.model_copy(update={"slots": base_slots}), evidence,
+            )
+            return base + partial_limitations()
         if request.route_mode == "hybrid":
             internal = [item for item in evidence if item.source_tier == "btc_dataset"]
             external = [item for item in evidence if item.source_tier != "btc_dataset"]
@@ -201,6 +307,33 @@ class AgentRuntime:
         if request.intent == "promotion_effectiveness" and evidence:
             values = "; ".join(f"{e.metric}={e.value:g} {e.unit} [{e.evidence_id}]" for e in evidence)
             return f"So sánh quan sát tại một snapshot: {values}. Đây là tương quan nhóm, không chứng minh khuyến mãi gây ra thay đổi."
+        if request.intent == "voucher_coverage" and evidence:
+            values = "; ".join(
+                f"{str(e.attrs['country']).upper()}={e.value:g} {e.unit} [{e.evidence_id}]"
+                for e in evidence
+            )
+            return (
+                "Mức độ phủ structured voucher tại snapshot mới nhất: "
+                f"{values}. Đây là số listing sau khi dedupe, không phải tỷ lệ chuyển đổi."
+            )
+        if request.intent == "discount_bucket_observation" and evidence:
+            count = by_metric["discount_bucket_listing_count"]
+            sold = by_metric["discount_bucket_median_monthly_sold_proxy"]
+            return (
+                f"Nhóm quanh mức giảm được hỏi có {count.value:g} listing "
+                f"[{count.evidence_id}] và median monthly-sold proxy {sold.value:g} "
+                f"{sold.unit} [{sold.evidence_id}]. Đây là mô tả một snapshot, "
+                "không chứng minh giảm giá làm tăng chuyển đổi."
+            )
+        if request.intent == "dataset_coverage" and evidence:
+            start = by_metric["coverage_start_date"]
+            end = by_metric["coverage_end_date"]
+            count = by_metric["coverage_snapshot_count"]
+            return (
+                f"Artifact chỉ phủ từ {start.value} [{start.evidence_id}] đến "
+                f"{end.value} [{end.evidence_id}], gồm {count.value:g} snapshot "
+                f"[{count.evidence_id}]. Ngoài khoảng này không có quan sát nội bộ."
+            )
         if request.intent == "voucher_profile_rank" and evidence:
             shop = by_metric["top_voucher_profile_shop_name"]
             score = by_metric["voucher_profile_score"]
@@ -220,6 +353,10 @@ class AgentRuntime:
                 f"hai nhóm listing khác cơ cấu ngành hàng/giá; dữ liệu tại một snapshot, proxy ước tính."
             )
         if request.intent in {"analytical_query", "open_analytical"} and evidence:
+            confidence_text = (
+                f"{confidence_label(confidence or _confidence_inputs(evidence))} — "
+                f"{_CONFIDENCE_EXPLANATION}"
+            )
             if "highest_revenue_proxy_date" in by_metric:
                 date_evidence = by_metric["highest_revenue_proxy_date"]
                 revenue = by_metric["estimated_recent_revenue"]
@@ -269,8 +406,14 @@ class AgentRuntime:
                 )
                 scope_evidence = metric
             else:
+                result_count = by_metric.get("result_count")
+                result_meta = result_count or next(
+                    (item for item in evidence if "result_count" in item.attrs), None,
+                )
                 rows: dict[int, list[Evidence]] = {}
                 for item in evidence:
+                    if item.metric == "result_count":
+                        continue
                     rows.setdefault(int(item.attrs.get("row_index", 0)), []).append(item)
                 lines = []
                 for items in rows.values():
@@ -279,20 +422,37 @@ class AgentRuntime:
                         for item in items
                     ))
                 scope_evidence = evidence[0]
+                scope = ""
+                truncation = ""
+                if result_meta is not None:
+                    returned = int(result_meta.attrs.get("returned_rows", len(rows)))
+                    total = int(
+                        result_count.value if result_count is not None
+                        else result_meta.attrs.get("result_count", returned)
+                    )
+                    scope = (
+                        f" Hiển thị {returned}/{total} dòng "
+                        f"[{result_meta.evidence_id}]."
+                    )
+                    if result_meta.attrs.get("truncated"):
+                        truncation = (
+                            f" Chỉ hiển thị tối đa {result_meta.attrs.get('row_limit')} dòng; "
+                            "đây không phải toàn bộ tập khớp."
+                        )
                 return (
                     "Kết quả\n" + "\n".join(lines) + "\n\n"
                     f"Phạm vi\nThị trường {str(scope_evidence.attrs.get('country', 'unknown')).upper()}, "
-                    f"snapshot {scope_evidence.attrs.get('observed_date', 'không xác định')}.\n\n"
+                    f"snapshot {scope_evidence.attrs.get('observed_date', 'không xác định')}.{scope}\n\n"
                     "Cách tính\nLogicalQueryPlan đã qua deterministic validator và compiler read-only.\n\n"
-                    "Giới hạn\nKết quả chỉ phản ánh các semantic object được catalog expose.\n\n"
-                    "Độ tin cậy\nMedium — phản ánh mức đầy đủ và nhất quán của evidence, không phải xác suất đúng."
+                    f"Giới hạn\nKết quả chỉ phản ánh các semantic object được catalog expose.{truncation}\n\n"
+                    f"Độ tin cậy\n{confidence_text}"
                 )
             return (
                 f"Kết quả\n{result}\n\n"
                 f"Phạm vi\nThị trường {scope_evidence.attrs['country'].upper()}, snapshot {scope_evidence.attrs['observed_date']}.\n\n"
                 f"Cách tính\n{method}\n\n"
                 f"Giới hạn\n{limitation}\n\n"
-                "Độ tin cậy\nMedium — phản ánh mức đầy đủ và nhất quán của evidence, không phải xác suất đúng."
+                f"Độ tin cậy\n{confidence_text}"
             )
         return "Không đủ evidence đã kiểm chứng để trả lời."
 
@@ -324,8 +484,14 @@ class AgentRuntime:
             ))
         return tuple(claims)
 
-    def _generate(self, decision: GateDecision, request: StructuredRequest, evidence: list[Evidence], llm_meta: dict[str, Any]) -> tuple[str, tuple[ResponseClaim, ...], dict]:
-        deterministic = self._deterministic_answer(decision, request, evidence)
+    def _generate(
+        self, decision: GateDecision, request: StructuredRequest,
+        evidence: list[Evidence], llm_meta: dict[str, Any],
+        planning_meta: dict[str, Any] | None = None,
+    ) -> tuple[str, tuple[ResponseClaim, ...], dict]:
+        deterministic = self._deterministic_answer(
+            decision, request, evidence, _confidence_inputs(evidence, planning_meta),
+        )
         deterministic_claims = self._claims_for_answer(deterministic, evidence)
         if decision.action != "allow" or not (self.use_llm_generation and self.llm_client):
             return deterministic, deterministic_claims, {"attempts": 0, "fallback": False}
@@ -336,9 +502,10 @@ class AgentRuntime:
             caveat for item in evidence
             if (spec := METRICS.get(item.metric)) is not None for caveat in spec.caveats
         })
-        context = {
+        evidence_payload, guard_hits = guarded_evidence_payload(evidence)
+        context_payload = {
             "request": request.model_dump(), "gate": decision.model_dump(),
-            "evidence": [e.model_dump(mode="json") for e in evidence],
+            "evidence": evidence_payload,
             "caveats": caveats,
             "rules": [
                 "Chỉ dùng số trong evidence", "Gắn evidence_id ngay sau claim",
@@ -350,6 +517,25 @@ class AgentRuntime:
             ],
             "deterministic_answer": deterministic,
         }
+        bundle = ContextBundle(
+            stage="generate",
+            purpose="P2",
+            request_digest=request_digest(request),
+            plan_hash=next(
+                (str(item.attrs["plan_hash"]) for item in evidence if item.attrs.get("plan_hash")),
+                None,
+            ),
+            payload=context_payload,
+            guard_hits=guard_hits,
+            prompt_version=str(getattr(self.llm_client, "prompt_version", "deterministic-v1")),
+            dataset_version=self.repo.dataset_version,
+            budget_tokens=BUDGETS[("generate", "P2")],
+        ).with_hash()
+        context = bundle.payload
+        context_meta = {
+            "context": bundle.trace_summary(),
+            "context_guard_hits": list(bundle.guard_hits),
+        }
         errors = []
         for attempt in range(2):
             try:
@@ -360,7 +546,9 @@ class AgentRuntime:
                 )
                 wording_violations = check_wording(answer)
                 if verdict["passed"] and not wording_violations:
-                    return answer, answer_claims, {"attempts": attempt + 1, "fallback": False}
+                    return answer, answer_claims, {
+                        "attempts": attempt + 1, "fallback": False, **context_meta,
+                    }
                 errors.append({
                     "type": "verification",
                     "unsupported": verdict["unsupported"],
@@ -374,7 +562,9 @@ class AgentRuntime:
                 context["verifier_feedback"] = errors[-1]
             except (ValueError, RuntimeError, KeyError, json.JSONDecodeError) as exc:
                 errors.append({"type": type(exc).__name__})
-        return deterministic, deterministic_claims, {"attempts": 2, "fallback": True, "errors": errors}
+        return deterministic, deterministic_claims, {
+            "attempts": 2, "fallback": True, "errors": errors, **context_meta,
+        }
 
     def run(self, user_text: str) -> AgentResponse:
         trace_id = uuid.uuid4().hex[:12]
@@ -386,6 +576,7 @@ class AgentRuntime:
             return f"ev:{trace_id}:{seq:04d}"
 
         request, llm_meta = self._parse(user_text)
+        digest = request_digest(request)
         capabilities = {
             **self.repo.capability_profile(),
             "live_search_enabled": self.enable_live_search,
@@ -474,7 +665,16 @@ class AgentRuntime:
                     if request.intent == "open_analytical":
                         analytical_request = AnalyticalRequest.model_validate(request.analytical)
                         try:
-                            planner_result = self.open_planner.plan(user_text, analytical_request, request.country)
+                            plan_bundle = ContextBundle(
+                                stage="plan", purpose="P8", request_digest=digest,
+                                prompt_version=str(getattr(self.llm_client, "prompt_version", "deterministic-v1")),
+                                dataset_version=self.repo.dataset_version,
+                                budget_tokens=BUDGETS[("plan", "P8")],
+                            )
+                            planner_result = self.open_planner.plan(
+                                user_text, analytical_request, request.country,
+                                context_bundle=plan_bundle,
+                            )
                         except OpenPlannerError as exc:
                             raise AnalyticalPlanError(str(exc)) from exc
                         logical_plan = planner_result.plan
@@ -505,6 +705,8 @@ class AgentRuntime:
                             validator_feedback=list(planner_result.feedback),
                             catalog_slice_size=len(planner_result.catalog_refs),
                         )
+                        if planner_result.context:
+                            planning_meta.setdefault("contexts", {})["plan"] = planner_result.context
                     if not risk.allowed:
                         raise AnalyticalPlanError(risk.reason)
                     if risk.effective_mode == "nversion":
@@ -527,13 +729,31 @@ class AgentRuntime:
                         }
                     elif risk.effective_mode == "critic":
                         try:
-                            critique = self.plan_critic.review(user_text, logical_plan)
+                            critic_bundle = ContextBundle(
+                                stage="critic", purpose="P9", request_digest=digest,
+                                plan_refs=plan_refs(logical_plan),
+                                plan_hash=hashlib.sha256(
+                                    logical_plan.model_dump_json().encode("utf-8")
+                                ).hexdigest()[:16],
+                                prompt_version=str(getattr(
+                                    self.plan_critic.llm_client,
+                                    "prompt_version",
+                                    "deterministic-v1",
+                                )),
+                                dataset_version=self.repo.dataset_version,
+                                budget_tokens=BUDGETS[("critic", "P9")],
+                            )
+                            critique = self.plan_critic.review(
+                                user_text, logical_plan, context_bundle=critic_bundle,
+                            )
                         except RuntimeError as exc:
                             raise AnalyticalPlanError(str(exc)) from exc
                         planning_meta["critic"] = {
                             "provider": getattr(self.plan_critic.llm_client, "provider", "unavailable"),
                             "issues": [issue.model_dump() for issue in critique.issues],
                         }
+                        if critique.context:
+                            planning_meta.setdefault("contexts", {})["critic"] = critique.context
                         if critique.dropped:
                             # Issue LLM báo nhưng máy chứng minh được là sai (cq03) —
                             # ghi trace, không cho phép chặn plan đúng.
@@ -556,18 +776,85 @@ class AgentRuntime:
                 decision = GateDecision(action="abstain", rule_id="A19-PLAN", reason="Intent chưa có certified macro hợp lệ.")
                 tool_plan = ()
             else:
-                tool_plan = macro.tool_plan
-                planning_meta = {
-                    "mode": "certified_macro", "macro": macro.name,
-                    "macro_version": macro.version, "ir_version": macro.plan_template.ir_version,
-                    "plan_hash": macro.plan_hash,
-                }
+                macro_alignment = check_macro_shape(digest, macro.certified_shape)
+                if (
+                    macro.name in {"sales_decline", "similar_product"}
+                    and len(digest.entity_refs) > 1
+                ):
+                    from .alignment import AlignmentIssue, AlignmentVerdict
+                    macro_alignment = AlignmentVerdict(False, (AlignmentIssue(
+                        "entity_unbound",
+                        "Macro hiện chỉ bind một entity; câu hỏi nêu nhiều entity.",
+                        digest.entity_refs,
+                        (),
+                    ),))
+                if macro_alignment.aligned:
+                    tool_plan = macro.tool_plan
+                    planning_meta = {
+                        "mode": "certified_macro", "macro": macro.name,
+                        "macro_version": macro.version, "ir_version": macro.plan_template.ir_version,
+                        "plan_hash": macro.plan_hash,
+                        "alignment": macro_alignment.as_dict(),
+                    }
+                else:
+                    decision = GateDecision(
+                        action="clarify",
+                        rule_id=macro_alignment.rule_id or "A22-ALIGN-QUALIFIER",
+                        reason="; ".join(item.detail for item in macro_alignment.issues),
+                        answerable_alternative=(
+                            "Hệ thống có thể so sánh nhóm có structured voucher với "
+                            "nhóm không trong cùng thị trường và một snapshot."
+                        ),
+                    )
+                    tool_plan = ()
+                    planning_meta = {
+                        "mode": "blocked",
+                        "macro": macro.name,
+                        "alignment": macro_alignment.as_dict(),
+                    }
+            if decision.action == "allow" and logical_plan is not None:
+                alignment = check_plan_alignment(digest, logical_plan)
+                planning_meta["semantic_refs"] = list(plan_refs(logical_plan))
+                planning_meta["alignment"] = alignment.as_dict()
+                if not alignment.aligned:
+                    decision = GateDecision(
+                        action="clarify",
+                        rule_id=alignment.rule_id or "A22-ALIGN-MEASURE",
+                        reason="; ".join(item.detail for item in alignment.issues),
+                        answerable_alternative=(
+                            "Hãy xác nhận metric, phạm vi và dạng kết quả cần trả; "
+                            "hệ thống không tự thay bằng một metric khác."
+                        ),
+                    )
+                    tool_plan = ()
             ctx = ToolContext(request=request, tools=tools, resolver=self.resolver, logical_plan=logical_plan)
             dispatch(tool_plan, ctx)
             evidence, resolved_key = ctx.evidence, ctx.resolved_listing_key
             calls.extend(ctx.calls)
+            partial = request.slots.get("partial_unsupported")
+            if decision.action == "allow" and evidence and isinstance(partial, (list, tuple)) and partial:
+                evidence = [
+                    item.model_copy(update={"attrs": {**item.attrs, "sub_id": "sr1"}})
+                    for item in evidence
+                ]
+                decision = GateDecision(
+                    action="allow",
+                    rule_id="A22-ALIGN-SUBREQUEST",
+                    reason="Đã trả phần có evidence; phần ngoài dữ liệu được nêu riêng.",
+                )
             if ctx.clarify is not None:
                 decision = ctx.clarify
+            elif decision.action == "allow" and logical_plan is not None and evidence:
+                evidence_alignment = check_evidence_alignment(digest, evidence)
+                planning_meta["evidence_alignment"] = evidence_alignment.as_dict()
+                if not evidence_alignment.aligned:
+                    evidence = []
+                    decision = GateDecision(
+                        action="clarify",
+                        rule_id=evidence_alignment.rule_id or "A22-ALIGN-MEASURE",
+                        reason="; ".join(item.detail for item in evidence_alignment.issues),
+                        answerable_alternative="Hãy thu hẹp metric và output cần nhận.",
+                    )
             elif macro and evidence and not macro.accepts_evidence([item.metric for item in evidence]):
                 evidence = []
                 decision = GateDecision(
@@ -602,12 +889,27 @@ class AgentRuntime:
                     "external": {"outcome": "disabled", "rule_id": "A14-LIVE"},
                 }
 
-        answer, claims, generation_meta = self._generate(decision, request, evidence, llm_meta)
+        answer, claims, generation_meta = self._generate(
+            decision, request, evidence, llm_meta, planning_meta,
+        )
         verification = verify_numeric_claims(
             answer, evidence, claims=claims,
             require_claims=decision.action == "allow" and bool(evidence),
         ) if self.enable_verifier else {"passed": True, "coverage": None, "disabled": True}
-        final_verification_failed = bool(self.enable_verifier and decision.action == "allow" and not verification["passed"])
+        answer_alignment = (
+            check_answer_alignment(digest, evidence, claims, answer)
+            if request.intent in {"analytical_query", "open_analytical"}
+            else check_answer_alignment(
+                digest.model_copy(update={"requested_measures": ()}),
+                evidence, claims, answer,
+            )
+        )
+        verification["alignment"] = answer_alignment.as_dict()
+        final_verification_failed = bool(
+            self.enable_verifier
+            and decision.action == "allow"
+            and (not verification["passed"] or not answer_alignment.aligned)
+        )
         if final_verification_failed:
             planning_meta["final_verification_failure"] = verification
             decision = GateDecision(
@@ -619,8 +921,14 @@ class AgentRuntime:
             evidence, claims = [], ()
             verification = verify_numeric_claims(answer, [], claims=(), require_claims=False)
         llm_meta["generation"] = generation_meta
+        if generation_meta.get("context_guard_hits"):
+            llm_meta["context_guard_hits"] = generation_meta["context_guard_hits"]
         if self.llm_client and hasattr(self.llm_client, "telemetry"):
             llm_meta["telemetry"] = self.llm_client.telemetry()
-        response = AgentResponse(trace_id=trace_id, request=request, gate=decision, answer=answer, evidence=evidence, claims=claims, tool_calls=calls, resolved_listing_key=resolved_key, verification=verification, llm=llm_meta, planning=planning_meta, degraded=final_verification_failed or not verification["passed"])
+        context_meta = generation_meta.get("context")
+        response_context = dict(planning_meta.get("contexts", {}))
+        if context_meta:
+            response_context["generate"] = context_meta
+        response = AgentResponse(trace_id=trace_id, request=request, gate=decision, answer=answer, evidence=evidence, claims=claims, tool_calls=calls, resolved_listing_key=resolved_key, verification=verification, llm=llm_meta, planning=planning_meta, context=response_context, degraded=final_verification_failed or not verification["passed"])
         self.traces.write(trace_id, {"schema_version": "v1.1", "dataset_version": self.repo.dataset_version, "response": response.model_dump()})
         return response

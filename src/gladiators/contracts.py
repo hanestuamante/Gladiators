@@ -11,6 +11,8 @@ class StructuredRequest(BaseModel):
     intent: str
     entity_text: str | None = None
     country: str | None = None
+    countries: tuple[str, ...] = ()
+    entities: tuple[dict[str, Any], ...] = ()
     date_range: list[str] = Field(default_factory=list)
     slots: dict[str, Any] = Field(default_factory=dict)
     analytical: dict[str, Any] | None = None
@@ -24,7 +26,21 @@ class StructuredRequest(BaseModel):
     def normalize_country(cls, value: str | None) -> str | None:
         if value is None: return None
         normalized = value.strip().lower()
-        return {"vietnam": "vn", "viet nam": "vn", "indonesia": "id"}.get(normalized, normalized)
+        return {"vietnam": "vn", "viet nam": "vn", "indonesia": "id", "indo": "id"}.get(normalized, normalized)
+
+    @field_validator("countries")
+    @classmethod
+    def normalize_countries(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        aliases = {"vietnam": "vn", "viet nam": "vn", "indonesia": "id", "indo": "id"}
+        return tuple(dict.fromkeys(aliases.get(value.strip().lower(), value.strip().lower()) for value in values))
+
+    @model_validator(mode="after")
+    def primary_country_matches_countries(self) -> "StructuredRequest":
+        if self.countries and self.country != self.countries[0]:
+            object.__setattr__(self, "country", self.countries[0])
+        elif self.country and not self.countries:
+            object.__setattr__(self, "countries", (self.country,))
+        return self
 
 
 class Candidate(BaseModel):
@@ -111,5 +127,6 @@ class AgentResponse(BaseModel):
     verification: dict[str, Any] = Field(default_factory=dict)
     llm: dict[str, Any] = Field(default_factory=dict)
     planning: dict[str, Any] = Field(default_factory=dict)
+    context: dict[str, Any] = Field(default_factory=dict)
     degraded: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

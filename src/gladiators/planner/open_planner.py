@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from gladiators.domain.catalog import CATALOG
 from gladiators.domain.relations import RELATIONS
+from gladiators.agent.context import ContextBundle
 
 from .analytical import build_analytical_plan, infer_deterministic_template
 from .query_ir import LogicalQueryPlan
@@ -26,6 +27,7 @@ class OpenPlannerResult:
     attempts: int
     feedback: tuple[dict[str, Any], ...] = ()
     catalog_refs: tuple[str, ...] = ()
+    context: dict[str, Any] | None = None
 
 
 def _used_refs(plan: LogicalQueryPlan) -> set[str]:
@@ -87,7 +89,10 @@ class OpenAnalyticalPlanner:
             for relation in RELATIONS.values()
         ]
 
-    def plan(self, question: str, request: AnalyticalRequest, country: str) -> OpenPlannerResult:
+    def plan(
+        self, question: str, request: AnalyticalRequest, country: str,
+        context_bundle: ContextBundle | None = None,
+    ) -> OpenPlannerResult:
         template = infer_deterministic_template(request)
         if template:
             return OpenPlannerResult(
@@ -109,6 +114,11 @@ class OpenAnalyticalPlanner:
                 "country": country, "repair_limit": 1,
             },
         }
+        if context_bundle is not None:
+            context_bundle = context_bundle.model_copy(
+                update={"payload": base_payload},
+            ).with_hash()
+            base_payload = context_bundle.payload
         feedback: list[dict[str, Any]] = []
         for attempt in range(2):
             payload = {**base_payload, "validator_feedback": feedback or None, "attempt": attempt + 1}
@@ -132,6 +142,7 @@ class OpenAnalyticalPlanner:
                 return OpenPlannerResult(
                     plan=plan, mode="llm_semantic_plan", attempts=attempt + 1,
                     feedback=tuple(feedback), catalog_refs=refs,
+                    context=context_bundle.trace_summary() if context_bundle else None,
                 )
             feedback = issues
         summary = "; ".join(f"{item['code']}: {item['message']}" for item in feedback[:5])

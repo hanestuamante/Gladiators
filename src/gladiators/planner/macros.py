@@ -10,6 +10,17 @@ from .validator import validate_plan
 
 
 @dataclass(frozen=True)
+class CertifiedShape:
+    """Conditions under which a macro may serve a semantic request."""
+
+    required_measures: frozenset[str] = frozenset()
+    allowed_extra_measures: frozenset[str] = frozenset()
+    allowed_grouping: frozenset[str] = frozenset()
+    output_shape: str = "comparison"
+    forbidden_qualifiers: frozenset[str] = frozenset()
+
+
+@dataclass(frozen=True)
 class CertifiedMacro:
     name: str
     version: str
@@ -18,6 +29,7 @@ class CertifiedMacro:
     tool_plan: tuple[str, ...]
     plan_template: LogicalQueryPlan
     evidence_metrics: tuple[str, ...]
+    certified_shape: CertifiedShape = CertifiedShape()
 
     @property
     def plan_hash(self) -> str:
@@ -124,6 +136,15 @@ def _promotion_effectiveness() -> CertifiedMacro:
     return CertifiedMacro(
         "promotion_effectiveness", "1.0", ("country",), ("voucher_observation",),
         ("compare_voucher_groups",), plan, metrics,
+        CertifiedShape(
+            required_measures=frozenset({"measure.monthly_sold"}),
+            allowed_grouping=frozenset({"derived.has_structured_voucher"}),
+            output_shape="comparison",
+            forbidden_qualifiers=frozenset({
+                "promotion_id_filter", "no_promo_segment", "revenue_measure",
+                "mean_requested", "discount_bucket",
+            }),
+        ),
     )
 
 
@@ -166,8 +187,86 @@ def _voucher_profile_rank() -> CertifiedMacro:
     )
 
 
+def _descriptive_fixture_macro(
+    name: str,
+    tool_name: str,
+    evidence_metrics: tuple[str, ...],
+    refs: tuple[str, ...],
+    *,
+    cardinality: str,
+) -> CertifiedMacro:
+    """Small certified plans for safe partial answers in DR 26/07."""
+    output = (OutputField(name="descriptive_result", type="number"),)
+    plan = LogicalQueryPlan(
+        plan_id=f"macro:{name}:1.0",
+        time_scope=("2026-07-01", "2026-07-02", "2026-07-03"),
+        output_node="n1",
+        requested_output_shape=output,
+        nodes=(
+            PlanNode(
+                node_id="n1",
+                op="Scan",
+                source="product_snapshot_metrics.csv",
+                refs=refs,
+                input_grain="listing_snapshot",
+                output_grain="group",
+                expected_schema=output,
+                expected_cardinality=cardinality,
+            ),
+        ),
+    )
+    return CertifiedMacro(
+        name,
+        "1.0",
+        (),
+        ("descriptive_snapshot_metrics",),
+        (tool_name,),
+        plan,
+        evidence_metrics,
+        CertifiedShape(output_shape="comparison"),
+    )
+
+
+def _voucher_coverage() -> CertifiedMacro:
+    return _descriptive_fixture_macro(
+        "voucher_coverage",
+        "compare_voucher_coverage",
+        ("structured_voucher_listing_count",) * 2,
+        ("dim.country", "derived.has_structured_voucher"),
+        cardinality="2",
+    )
+
+
+def _discount_bucket_observation() -> CertifiedMacro:
+    return _descriptive_fixture_macro(
+        "discount_bucket_observation",
+        "observe_discount_bucket",
+        ("discount_bucket_listing_count", "discount_bucket_median_monthly_sold_proxy"),
+        ("measure.discount_percent", "measure.monthly_sold"),
+        cardinality="2",
+    )
+
+
+def _dataset_coverage() -> CertifiedMacro:
+    return _descriptive_fixture_macro(
+        "dataset_coverage",
+        "describe_dataset_coverage",
+        ("coverage_start_date", "coverage_end_date", "coverage_snapshot_count"),
+        ("dim.date",),
+        cardinality="3",
+    )
+
+
 def default_macro_registry() -> MacroRegistry:
     registry = MacroRegistry()
-    for factory in (_sales_decline, _similar_product, _promotion_effectiveness, _voucher_profile_rank):
+    for factory in (
+        _sales_decline,
+        _similar_product,
+        _promotion_effectiveness,
+        _voucher_profile_rank,
+        _voucher_coverage,
+        _discount_bucket_observation,
+        _dataset_coverage,
+    ):
         registry.register(factory())
     return registry

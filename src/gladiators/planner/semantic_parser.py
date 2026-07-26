@@ -163,7 +163,10 @@ class DeterministicSemanticParser:
 
     def parse(self, text: str, language: str, country: str | None) -> AnalyticalRequest:
         normalized = normalize(text)
-        measures = self._link(normalized, self.MEASURES, {"measure", "derived_metric"})
+        # "giá trị" means "value", not the price measure. Keep explicit
+        # "price/giá" elsewhere available to the linker.
+        measure_text = re.sub(r"\bgia tri\b", "value", normalized)
+        measures = self._link(measure_text, self.MEASURES, {"measure", "derived_metric"})
         dimension_text = normalized
         for measure in measures:
             dimension_text = re.sub(
@@ -215,6 +218,12 @@ class DeterministicSemanticParser:
         rank_ref = next((item.ref for item in measures if item.ref), None)
         ranking = AnalyticalRanking(order_by=rank_ref, direction="asc" if ascending else "desc", top_k=1) if rank_ref and (descending or ascending) else None
         grouping = tuple(item.ref for item in dimensions if item.ref and item.ref not in {"dim.country"})
+        price_change_table = any(
+            term in normalized
+            for term in ("gia thay doi", "bien dong gia", "price change", "perubahan harga")
+        )
+        if price_change_table and "dim.date" not in grouping:
+            grouping = (*grouping, "dim.date")
         requested_grain = "shop" if "entity.shop" in grouping else "category" if "dim.platform_category_name" in grouping else "listing" if ranking else "group"
         operators = ["filter"]
         if grouping or any(item.ref == "derived.product_count" for item in measures):

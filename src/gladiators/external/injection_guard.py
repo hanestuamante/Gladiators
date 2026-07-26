@@ -37,6 +37,12 @@ PATTERNS: tuple[tuple[str, re.Pattern], ...] = (
     ("A17_SECRET_TOKEN", re.compile(r"\b(?:tvly-[A-Za-z0-9_-]{12,}|bearer\s+[A-Za-z0-9._-]{12,})\b", re.I)),
     ("A17_PII_PHONE", re.compile(r"(?<!\d)(?:\+?\d[\s.-]?){9,14}(?!\d)")),
 )
+_INTERNAL_PATTERN_IDS = frozenset({
+    "A17_IGNORE_INSTRUCTIONS",
+    "A17_SYSTEM_PROMPT",
+    "A17_ROLE_OVERRIDE",
+    "A17_FAKE_CITATION",
+})
 
 
 def _fold(text: str) -> str:
@@ -54,6 +60,22 @@ def sanitize_and_check(value: str, *, max_chars: int = 4000) -> GuardResult:
     folded = _fold(text)
     hits = tuple(pattern_id for pattern_id, pattern in PATTERNS if pattern.search(folded))
     return GuardResult(text=text, hits=hits)
+
+
+def sanitize_internal_text(value: str, *, max_chars: int = 1000) -> GuardResult:
+    """Guard internal dataset text before it is copied into an LLM payload.
+
+    Internal evidence is already governed data, so PII/secret patterns are not
+    applied here: long model numbers in product titles are legitimate.  When an
+    instruction-like span is found the LLM copy is replaced wholesale; the
+    original Evidence object is never mutated.
+    """
+    checked = sanitize_and_check(value, max_chars=max_chars)
+    hits = tuple(hit for hit in checked.hits if hit in _INTERNAL_PATTERN_IDS)
+    if not hits:
+        return GuardResult(text=checked.text, hits=())
+    neutral = f"[Nội dung nội bộ đã được trung hòa: {', '.join(hits)}]"
+    return GuardResult(text=neutral, hits=hits)
 
 
 def spans_match_utf8(text: str, spans: tuple[SourceSpan, ...]) -> bool:

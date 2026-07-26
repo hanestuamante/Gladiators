@@ -29,6 +29,7 @@ class CompiledQuery:
     plan_hash: str
     expected_columns: tuple[str, ...]
     postconditions: tuple[str, ...]
+    expected_cardinality: str = "<=10000"
 
 
 _VIEW_NAMES = {
@@ -291,4 +292,5 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
         plan_hash=plan_hash,
         expected_columns=tuple(field.name for field in plan.requested_output_shape),
         postconditions=output.invariants,
+        expected_cardinality=output.expected_cardinality,
     )
