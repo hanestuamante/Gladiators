@@ -473,5 +473,10 @@ def test_search_planner_uses_safe_deterministic_fallback_after_bounded_repairs()
     ).plan(question, purpose="campaign_context", market="id", mode="record")
     assert client.calls == 2
     assert plan.plan_id.startswith("p5:deterministic:")
-    assert plan.queries[0].query == "Indonesia 7.7 ecommerce shopping campaign 2026 dates"
+    # Query fallback phải neo vào sàn thật của market: đo trên Tavily 26/07, bản
+    # không có tên sàn trả về score 0.03–0.09 (tên lửa, UFC, Walmart) trong khi bản
+    # có "Shopee Tokopedia" trả về score 0.54–0.87 đúng chủ đề 7.7 Indonesia.
+    assert plan.queries[0].query == (
+        "Shopee Tokopedia Indonesia 7.7 ecommerce shopping campaign 2026 dates"
+    )
     assert plan.queries[0].recency_days == 365

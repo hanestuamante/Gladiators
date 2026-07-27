@@ -15,6 +15,31 @@ class SearchPlanningError(RuntimeError):
     pass
 
 
+# Tên marketplace là tín hiệu truy hồi MẠNH NHẤT cho câu hỏi lịch chiến dịch.
+# Đo trực tiếp trên Tavily (26/07), cùng câu hỏi 7.7 Indonesia:
+#   "7.7 marketplace promotion Indonesia schedule"       → score 0.03–0.09, toàn rác
+#     (tên lửa KHAN, hợp đồng UFC, visa Quý Châu, Walmart Mexico)
+#   "Shopee Tokopedia Indonesia 7.7 ecommerce shopping…" → score 0.54–0.87, đúng chủ đề
+# Query hợp lệ theo validator vẫn có thể lấy về rác; thiếu tên sàn mới là nguyên nhân.
+# Map này là nguồn sự thật duy nhất: vừa đưa vào constraints cho P5, vừa dùng cho
+# deterministic fallback, để hai đường không lệch nhau.
+MARKETPLACES: dict[str, tuple[str, ...]] = {
+    "vn": ("Shopee", "Lazada", "TikTok Shop"),
+    "id": ("Shopee", "Tokopedia", "Lazada"),
+    "global": ("Shopee", "Lazada"),
+}
+
+_MARKET_NAMES = {"id": "Indonesia", "vn": "Vietnam", "global": "Southeast Asia"}
+
+# Qualifier mà campaign query BẮT BUỘC phải có. Trước đây tuple này chỉ nằm inline
+# trong nhánh validate nên prompt P5 không hề biết — model không có cách nào đoán
+# đúng và luôn fail hai vòng repair rồi rơi xuống fallback.
+_CAMPAIGN_QUALIFIERS: tuple[str, ...] = (
+    "campaign", "shopping", "sale", "ecommerce", "e-commerce", "promotion",
+    "marketplace", "shopee", "tokopedia", "traveloka", "lazada",
+)
+
+
 class LiveSearchPlanner:
     def __init__(
         self, llm_client, *, max_queries: int = 3,
@@ -31,17 +56,21 @@ class LiveSearchPlanner:
         question: str, *, purpose: str, market: str, mode: str, as_of_date: str,
     ) -> LiveSearchPlan | None:
         """Safe fallback for the two approved context purposes; never embeds raw text."""
-        market_name = {"id": "Indonesia", "vn": "Vietnam", "global": "Southeast Asia"}.get(market)
+        market_name = _MARKET_NAMES.get(market)
         if market_name is None or purpose not in {"campaign_context", "market_event"}:
             return None
         year = as_of_date[:4]
+        # Hai sàn lớn nhất của market — đủ để neo chủ đề, không dài tới mức
+        # loãng query (max_query_chars = 200).
+        sellers = " ".join(MARKETPLACES.get(market, ())[:2])
+        prefix = f"{sellers} " if sellers else ""
         if purpose == "campaign_context":
             match = re.search(r"(?<!\d)(\d{1,2}\.\d{1,2})(?!\d)", question)
             token = match.group(1) if match else None
             campaign = f" {token}" if token else ""
-            query_text = f"{market_name}{campaign} ecommerce shopping campaign {year} dates"
+            query_text = f"{prefix}{market_name}{campaign} ecommerce shopping campaign {year} dates"
         else:
-            query_text = f"{market_name} ecommerce market event {year}"
+            query_text = f"{prefix}{market_name} ecommerce market event {year}"
         digest = hashlib.sha256(
             f"{purpose}|{market}|{query_text}".encode(),
         ).hexdigest()[:12]
@@ -68,6 +97,9 @@ class LiveSearchPlanner:
                 "search_language": "en", "default_recency_days": 365,
                 "allowed_markets": ["vn", "id", "global"],
                 "no_secrets": True, "no_pii": True,
+                # P5 phải neo query vào sàn thật của market, nếu không truy hồi ra rác.
+                "marketplaces": list(MARKETPLACES.get(market, ())),
+                "required_query_qualifiers": list(_CAMPAIGN_QUALIFIERS),
             },
         }
         errors: list[str] = []
@@ -90,10 +122,7 @@ class LiveSearchPlanner:
                 ):
                     raise ValueError("P5 phải sinh search-engine query, không copy câu hỏi hội thoại.")
                 if purpose == "campaign_context" and any(
-                    not any(token in query.query.casefold() for token in (
-                        "campaign", "shopping", "sale", "ecommerce", "e-commerce", "promotion",
-                        "marketplace", "shopee", "tokopedia", "traveloka",
-                    ))
+                    not any(token in query.query.casefold() for token in _CAMPAIGN_QUALIFIERS)
                     for query in plan.queries
                 ):
                     raise ValueError("P5 campaign query phải có qualifier shopping/campaign rõ ràng.")

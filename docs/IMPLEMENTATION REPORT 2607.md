@@ -96,3 +96,120 @@ failure của implementation.
 Không cần thêm file source để chạy core regression. Để đóng production/provider
 acceptance, cần cung cấp cassette đã duyệt hoặc credential qua secret store, cùng
 quyết định reviewer cho TC19, fixture TC34 và Phase 5 gold.
+
+---
+
+## 4. Bổ sung 27/07 — live-search P5 và query fallback
+
+Phần này nằm **ngoài** ba spec 2507/2607; nó xử lý bốn lỗi phát hiện khi chạy
+Tavily thật ngày 26–27/07. Live search vẫn mặc định OFF và E6 vẫn `PENDING`.
+
+### 4.1 Điều kiện đo
+
+Mọi số dưới đây đo bằng `TAVILY_API_KEY` thật, provider `groq`, cache/quota tạm
+(không ghi vào `data/external_cache`), câu hỏi `Lịch 7.7 ở Indonesia diễn ra khi nào?`.
+
+### 4.2 (a) Prompt P5 không nêu đủ ràng buộc — ĐÃ SỬA
+
+**Triệu chứng.** `LiveSearchPlanner.plan()` cưỡng chế 7 ràng buộc, nhưng prompt
+`plan_live_search` chỉ nêu 5 và **không hề nhắc `validator_feedback`** — trong khi
+cả 4 biến thể `plan_analytical` đều có. Đo được: Groq trả về output **giống nhau
+từng byte** ở cả hai vòng repair, luôn fail rồi rơi xuống deterministic fallback.
+Vòng bounded repair là no-op.
+
+**Sửa.** Gộp thành một hằng `P5_PROMPT` dùng chung cho cả bốn client (Gemini,
+HuggingFace, Groq, Anthropic) — trước đó là bốn bản copy đã lệch nhau. Prompt nêu
+đủ 7 ràng buộc, `validator_feedback`, và yêu cầu kèm tên sàn.
+`_CAMPAIGN_QUALIFIERS` được tách khỏi nhánh validate inline để prompt đọc được
+qua `constraints.required_query_qualifiers`.
+
+| | Trước | Sau |
+| --- | --- | --- |
+| Latency P5 | 17.9 s (2 vòng repair đều fail) | **1.5 s** |
+| Kết quả | luôn `plan_id=p5:deterministic:*` | **plan LLM hợp lệ ngay lần đầu** |
+
+### 4.3 (b) Query fallback thiếu tên sàn — ĐÃ SỬA
+
+**Triệu chứng.** Query template không nêu marketplace nên Tavily (`topic=news`)
+trả về nội dung lạc đề hoàn toàn.
+
+Đo A/B cùng thời điểm:
+
+| Query | Score | Nội dung trả về |
+| --- | --- | --- |
+| `Indonesia 7.7 ecommerce shopping campaign 2026 dates` | 0.03 – 0.09 | tên lửa KHAN, hợp đồng UFC, visa Quý Châu, Walmart Mexico |
+| `Shopee Tokopedia Indonesia 7.7 ecommerce shopping campaign 2026 dates` | **0.54 – 0.87** | đúng chủ đề 7.7 Shopee Indonesia |
+
+**Sửa.** Thêm `MARKETPLACES` trong `search_planner.py` làm nguồn sự thật duy nhất
+cho ánh xạ market → sàn (`vn`: Shopee/Lazada/TikTok Shop; `id`: Shopee/Tokopedia/
+Lazada; `global`: Shopee/Lazada). Map này vừa đi vào `constraints.marketplaces`
+cho P5, vừa dùng cho deterministic fallback, để hai đường không lệch nhau.
+
+Test `test_search_planner_uses_safe_deterministic_fallback_after_bounded_repairs`
+được cập nhật theo query mới; đây là đổi contract có chủ đích, không phải sửa
+test cho xanh.
+
+### 4.4 Kết quả không như kỳ vọng — phải ghi lại
+
+Sửa (a) làm P5 hợp lệ, **nhưng query do P5 tự sinh vẫn truy hồi ra rác**:
+
+```
+'Shopee 7.7 campaign Indonesia 2026 sale'          → 0.11  Boeing F-15EX Indonesia
+'Tokopedia 7.7 promotion Indonesia 2026 ecommerce' → 0.17  Hilliard Law promotion
+'Lazada 7.7 shopping Indonesia 2026 marketplace'   → 0.09  janitor fish, Lazada layoffs
+```
+
+Tức **template deterministic (0.87) đang tốt hơn LLM planner (≤0.17)** cho use case
+này. Hai hệ quả:
+
+1. Chất lượng truy hồi **chưa** được đóng bởi (a)+(b).
+2. Latency **xấu đi**: P5 nay sinh 3 query × 5 result = 15 item, relevance gate cho
+   qua 12 ⇒ `12 × ~34 s ≈ 408 s` P6, so với 4 item trước đây. Sửa (a) mà không kèm
+   (c) làm hệ thống chậm hơn.
+
+### 4.5 (c) Relevance gate — DỰ ĐỊNH, CHƯA LÀM
+
+Gate hiện sai ở **cả hai chiều**, đo trên kết quả thật:
+
+- **Quá lỏng:** bài về hợp đồng UFC lọt vì overlap `['7.7','promotion']`; bài tên
+  lửa lọt vì `['7.7','indonesia']`. Mỗi item lọt tốn một P6 call ≈ 34 s.
+- **Quá chặt:** bài đúng chủ đề `"Seller jangan sampai ketinggalan ikut campaign
+  Gajian Sale"` (score 0.58) bị **drop** vì overlap rỗng — snippet tiếng Bahasa
+  không trùng token tiếng Anh của query.
+
+Gate đang dùng token overlap trong khi Tavily đã trả sẵn trường `score`, và phân
+tách rất sạch:
+
+```
+rác                        : 0.03 – 0.17
+hit thật                   : 0.54 – 0.87
+fixture Phase 6 / W8 hiện có: 0.36 – 0.90
+```
+
+**Kế hoạch:** thêm score floor ≈ 0.30 vào `external/relevance.py`, fail-open khi
+`score is None` để không phá fixture offline, giữ token overlap làm lớp phụ.
+Ngưỡng 0.30 cắt toàn bộ 12 item rác đo được và giữ nguyên 12/12 fixture Phase 6.
+
+Chưa triển khai vì thay đổi này đụng ngưỡng admission của external evidence, cần
+quyết định của reviewer trước. Cân nhắc kèm: hạ `max_queries_per_request` về 1
+hoặc ưu tiên deterministic template, vì P5 tự do hiện chưa có giá trị gia tăng.
+
+### 4.6 (d) Latency — DỰ ĐỊNH, CHƯA LÀM
+
+Đo một câu hỏi end-to-end: **158 s**. Phần lớn là hệ quả của (c). Phần còn lại là
+`GROQ_MIN_INTERVAL_SECONDS` mặc định 15 s (`llm.py`), tức throttle ép ngủ giữa các
+call cùng role. Đây là knob vận hành, cần quyết định của owner chứ không sửa trong
+code. Điều kiện rehearsal *"năm câu dưới 5 phút"* của
+`PHASE6_ACCEPTANCE_SIGNOFF.md` **chưa đạt** ở trạng thái hiện tại.
+
+### 4.7 Xác minh sau khi sửa (a)+(b)
+
+```
+python -m pytest -q                                   326 passed
+pytest -q tests/test_external_*.py                     94 passed
+run_phase6_evaluation.py --suite eval/questions_external.json
+                                                       12/12, offline-no-network
+```
+
+Không đổi trạng thái E6, không bật cờ live search, không đụng file nào của
+`8cf2073`.

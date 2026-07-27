@@ -35,6 +35,30 @@ class GroqParseOutput(BaseModel):
     language: Literal["vi", "id", "unknown"]
 
 
+# Prompt P5 dùng chung cho mọi provider.
+#
+# Bản cũ nêu 5 ràng buộc trong khi `LiveSearchPlanner.plan()` cưỡng chế 7, và không
+# hề nhắc `validator_feedback` (trong khi `plan_analytical` của cả 4 client đều có).
+# Hệ quả đo được: Groq trả cùng một output ở cả hai vòng repair, luôn fail rồi rơi
+# xuống deterministic fallback — vòng bounded repair là no-op và tốn thêm ~17s.
+# Sau khi nêu đủ ràng buộc, plan hợp lệ ngay lần đầu (~1.4s).
+P5_PROMPT = (
+    "P5: sinh tối đa 3 search-engine query NGẮN bằng tiếng Anh. Bắt buộc:\n"
+    "1. Mỗi query phải có `recency_days` là số nguyên dương, không được null.\n"
+    "2. Query KHÔNG phải câu hỏi: không kết thúc bằng '?', không copy câu hội thoại.\n"
+    "3. Nếu purpose là campaign_context, mỗi query phải chứa ít nhất một từ trong "
+    "`constraints.required_query_qualifiers`.\n"
+    "4. Mỗi query phải nêu ít nhất một tên sàn trong `constraints.marketplaces` — "
+    "thiếu tên sàn thì kết quả truy hồi sẽ lạc chủ đề.\n"
+    "5. Giữ nguyên token chiến dịch (ví dụ 7.7), ghi đủ tên market và năm as_of.\n"
+    "6. `purpose` và `market` của mỗi query phải đúng bằng giá trị trong payload; "
+    "không đổi `mode`.\n"
+    "7. Không chứa secret hoặc PII.\n"
+    "Nếu payload có `validator_feedback`, hãy sửa đúng các lỗi được nêu ở đó.\n"
+    "Chỉ trả JSON LiveSearchPlan. Payload: "
+)
+
+
 class LLMClient(Protocol):
     provider: str
     model: str
@@ -194,10 +218,7 @@ class GeminiLLMClient:
     def plan_live_search(self, payload: dict) -> dict:
         from gladiators.external.search_contracts import LiveSearchPlan
         return self._json(
-            "P5: sinh tối đa 3 search-engine query ngắn bằng tiếng Anh, không chứa secret/PII; "
-            "giữ token chiến dịch như 7.7, ghi đầy đủ tên market và as_of year, đặt bounded recency_days; "
-            "không copy câu hỏi hội thoại, chỉ trả LiveSearchPlan. "
-            f"Payload: {json.dumps(payload, ensure_ascii=False)}",
+            P5_PROMPT + json.dumps(payload, ensure_ascii=False),
             schema=LiveSearchPlan, purpose="live_search_plan",
         )
 
@@ -306,9 +327,7 @@ class HuggingFaceLLMClient:
     def plan_live_search(self, payload: dict) -> dict:
         from gladiators.external.search_contracts import LiveSearchPlan
         return json.loads(self._chat(
-            "P5 sinh tối đa 3 search-engine query tiếng Anh; giữ token campaign, tên market, as_of year, "
-            "đặt bounded recency_days và không copy câu hỏi hội thoại; chỉ trả typed plan. Payload: "
-            + json.dumps(payload, ensure_ascii=False),
+            P5_PROMPT + json.dumps(payload, ensure_ascii=False),
             "live_search_plan", schema=LiveSearchPlan,
         ))
 
@@ -490,9 +509,7 @@ class GroqLLMClient:
     def plan_live_search(self, payload: dict) -> dict:
         from gladiators.external.search_contracts import LiveSearchPlan
         return json.loads(self._chat(
-            "P5 sinh tối đa 3 search-engine query tiếng Anh; giữ token campaign, tên market, as_of year, "
-            "đặt bounded recency_days và không copy câu hỏi hội thoại; chỉ trả typed plan. Payload: "
-            + json.dumps(payload, ensure_ascii=False),
+            P5_PROMPT + json.dumps(payload, ensure_ascii=False),
             "live_search_plan", LiveSearchPlan,
         ))
 
@@ -561,11 +578,7 @@ class AnthropicLLMClient:
         )
 
     def plan_live_search(self, payload: dict) -> dict:
-        return self._json(
-            "P5 sinh tối đa 3 search-engine query tiếng Anh; giữ token campaign, tên market, as_of year, "
-            "đặt bounded recency_days và không copy câu hỏi hội thoại; chỉ trả JSON LiveSearchPlan. "
-            f"Payload: {json.dumps(payload, ensure_ascii=False)}"
-        )
+        return self._json(P5_PROMPT + json.dumps(payload, ensure_ascii=False))
 
     def extract_web(self, payload: dict) -> dict:
         return self._json(
