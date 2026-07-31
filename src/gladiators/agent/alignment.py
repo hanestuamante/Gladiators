@@ -18,6 +18,8 @@ IssueCode = Literal[
     "qualifier_ignored",
     "entity_unbound",
     "subrequest_dropped",
+    "scope_dropped",
+    "temporal_window_narrowed",
 ]
 
 
@@ -45,6 +47,8 @@ class AlignmentVerdict:
             "qualifier_ignored": "A22-ALIGN-QUALIFIER",
             "entity_unbound": "A22-ALIGN-ENTITY",
             "subrequest_dropped": "A22-ALIGN-SUBREQUEST",
+            "scope_dropped": "A22-ALIGN-SCOPE",
+            "temporal_window_narrowed": "A22-ALIGN-TEMPORAL",
         }[self.issues[0].code]
 
     def as_dict(self) -> dict:
@@ -214,6 +218,72 @@ def check_evidence_alignment(
                 "shape_mismatch", "Evidence comparison không có đủ hai nhóm.",
                 ("comparison",), tuple(sorted(groups)),
             ))
+
+    issues.extend(_scope_issues(digest, evidence))
+    return AlignmentVerdict(not issues, tuple(issues))
+
+
+def _scope_issues(
+    digest: RequestDigest, evidence: list[Evidence],
+) -> list[AlignmentIssue]:
+    """Country/date coverage checks (V2 §4.4).
+
+    These compare attribute *sets* and never consult the catalog, so unlike the
+    measure/shape checks they are valid on any producer — certified macro or
+    analytical plan.  ``check_evidence_scope_alignment`` exposes them for the
+    macro path, where a ref-level measure check would misfire: a macro may
+    legitimately answer ``measure.monthly_sold`` with ``derived.monthly_sold_delta``.
+    """
+    issues: list[AlignmentIssue] = []
+
+    # Answering one market for a two-market question is an alignment failure even
+    # when the number returned is correct for the market it did cover.  Only
+    # judged when the evidence carries country attributes at all -- otherwise the
+    # producer has no way to express scope and there is nothing to compare.
+    covered_countries = {
+        str(item.attrs["country"]) for item in evidence if item.attrs.get("country")
+    }
+    if digest.countries and covered_countries:
+        dropped = tuple(sorted(set(digest.countries) - covered_countries))
+        if dropped:
+            issues.append(AlignmentIssue(
+                "scope_dropped",
+                "Evidence không phủ hết country đã hỏi: " + ", ".join(dropped),
+                tuple(digest.countries),
+                tuple(sorted(covered_countries)),
+            ))
+
+    # TemporalCompare must use the previous/current dates that were asked for,
+    # never the nearest available pair.  Answering the trailing leg of a
+    # multi-day window can invert the sign of the change, so a narrowed window is
+    # an alignment failure even though the leg itself is computed correctly.
+    if len(digest.date_window) == 2:
+        spans = [
+            (str(item.attrs["previous_date"]), str(item.attrs["date"]))
+            for item in evidence
+            if item.attrs.get("previous_date") and item.attrs.get("date")
+        ]
+        if spans:
+            start, end = min(s for s, _ in spans), max(e for _, e in spans)
+            if (start, end) != (digest.date_window[0], digest.date_window[1]):
+                issues.append(AlignmentIssue(
+                    "temporal_window_narrowed",
+                    "Evidence phủ cửa sổ {}→{} thay vì {}→{} đã hỏi.".format(
+                        start, end, digest.date_window[0], digest.date_window[1],
+                    ),
+                    tuple(digest.date_window),
+                    (start, end),
+                ))
+    return issues
+
+
+def check_evidence_scope_alignment(
+    digest: RequestDigest, evidence: list[Evidence],
+) -> AlignmentVerdict:
+    """Scope-only alignment for producers without a semantic plan (macros)."""
+    if any(item.metric == "result_count" and item.attrs.get("empty_result") for item in evidence):
+        return AlignmentVerdict(True, ())
+    issues = _scope_issues(digest, evidence)
     return AlignmentVerdict(not issues, tuple(issues))
 
 

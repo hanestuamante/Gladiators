@@ -32,6 +32,7 @@ from .wording import check_wording
 from .alignment import (
     check_answer_alignment,
     check_evidence_alignment,
+    check_evidence_scope_alignment,
     check_macro_shape,
     check_plan_alignment,
     plan_refs,
@@ -844,8 +845,20 @@ class AgentRuntime:
                 )
             if ctx.clarify is not None:
                 decision = ctx.clarify
-            elif decision.action == "allow" and logical_plan is not None and evidence:
-                evidence_alignment = check_evidence_alignment(digest, evidence)
+            elif decision.action == "allow" and (
+                logical_plan is not None or macro is not None
+            ) and evidence:
+                # Macros were exempt from evidence alignment entirely, which let
+                # sales_decline answer a trailing 1-day leg for a multi-day
+                # question (V2 §4.4).  They get the scope/date coverage checks
+                # only: the ref-level measure check does not apply, because a
+                # macro may legitimately answer measure.monthly_sold with
+                # derived.monthly_sold_delta.
+                evidence_alignment = (
+                    check_evidence_alignment(digest, evidence)
+                    if logical_plan is not None
+                    else check_evidence_scope_alignment(digest, evidence)
+                )
                 planning_meta["evidence_alignment"] = evidence_alignment.as_dict()
                 if not evidence_alignment.aligned:
                     evidence = []

@@ -88,45 +88,28 @@
       "spec_ref": "docs/ultimate solution.md §4.4 — TemporalCompare phải dùng đúng previous/current date được hỏi, không tự thay bằng cặp gần nhất",
       "oracle_ref": "eval/independent/p0_probe_expected.json#p0_tc34_window",
       "dr1_status": null,
-      "expected_state": "red",
+      "expected_state": "green",
       "red_reason": "AnalyticsTools.sales_decline dùng rows.iloc[-1] nên chỉ lấy chặng transition cuối; câu hỏi 01/07→03/07 bị thu về 02/07→03/07 và đảo dấu (+11 thành −102)",
       "baseline": {
-        "action": "allow",
-        "rule_id": "A-ALLOW",
+        "action": "clarify",
+        "rule_id": "A22-ALIGN-TEMPORAL",
         "request_countries": [],
         "planning": {
           "mode": "certified_macro",
           "macro": "sales_decline",
           "macro_version": "1.0"
         },
-        "evidence": [
-          {
-            "metric": "monthly_sold_delta",
-            "value": -102.0,
-            "unit": "items",
-            "attrs": {"previous_date": "2026-07-02", "date": "2026-07-03"}
-          },
-          {
-            "metric": "days_since_previous",
-            "value": 1,
-            "unit": "days",
-            "attrs": {
-              "listing_key": "vn:1145316676:24710759163",
-              "previous_date": "2026-07-02",
-              "date": "2026-07-03"
-            }
-          }
-        ],
-        "n_claims": 2,
-        "answer_markers": ["không phải bằng chứng nhân quả"],
-        "answer_absent": []
+        "evidence": [],
+        "n_claims": 0,
+        "answer_markers": ["Cần làm rõ", "thay vì 2026-07-01→2026-07-03 đã hỏi"],
+        "answer_absent": ["không phải bằng chứng nhân quả"]
       },
       "contract": {
         "statement": "action != allow OR the monthly_sold_delta evidence window spans 2026-07-01 → 2026-07-03"
       },
-      "observed_note": "Accepts any legitimate P1 fix: compute the window delta (+11), return both legs so the span covers 01→03, or clarify/abstain. Rejects only today's single trailing leg.",
-      "fixed_in": null,
-      "fixed_at": null
+      "observed_note": "FIXED in P1 by the temporal_window_narrowed issue (A22-ALIGN-TEMPORAL). AnalyticsTools.sales_decline still returns the trailing leg — the tool is unchanged — but the digest now carries the asked window (parser.extract_date_window) and the evidence gate blocks an answer whose span does not match. Computing the true window delta (+11) needs TemporalCompare over a chosen date pair and belongs to the synthesizer/decomposer, not to a certified macro. Verified: TC34 is the only question in the whole eval corpus that names a date window, so the run_evaluation.py:50 codependency is not triggered by this change.",
+      "fixed_in": "P1 §4.4 temporal window coverage",
+      "fixed_at": "2026-07-31"
     },
     {
       "id": "p0-gap-item-42955556831",
@@ -169,11 +152,11 @@
       "spec_ref": "docs/ultimate solution.md §4.4 — Evidence country/date sets phải phủ digest; thiếu một scope là alignment failure dù số còn lại đúng",
       "oracle_ref": "eval/independent/p0_probe_expected.json#p0_scope_listing_count",
       "dr1_status": null,
-      "expected_state": "red",
+      "expected_state": "green",
       "red_reason": "build_analytical_plan(kind, country) nhận country vô hướng và _listing_count phát đúng một predicate dim.country eq, nên plan_id đã khoá :vn: ngay lúc dựng; check_evidence_alignment không có kiểm country coverage",
       "baseline": {
-        "action": "allow",
-        "rule_id": "A-ALLOW",
+        "action": "clarify",
+        "rule_id": "A22-ALIGN-SCOPE",
         "request_countries": ["vn", "id"],
         "planning": {
           "mode": "deterministic_template",
@@ -185,24 +168,17 @@
             "entity.product_listing"
           ]
         },
-        "evidence": [
-          {
-            "metric": "listing_count",
-            "value": 668,
-            "unit": "listings",
-            "attrs": {"country": "vn", "observed_date": "2026-07-03"}
-          }
-        ],
-        "n_claims": 1,
-        "answer_markers": ["Thị trường VN"],
-        "answer_absent": []
+        "evidence": [],
+        "n_claims": 0,
+        "answer_markers": ["Cần làm rõ", "không phủ hết country đã hỏi"],
+        "answer_absent": ["Thị trường VN"]
       },
       "contract": {
         "statement": "action != allow OR the evidence country set covers every country in request.countries"
       },
-      "observed_note": "request.countries is ('vn','id') so the parser resolved both — the drop happens downstream at plan construction, which plan_id 'analytical:listing_count:vn:1.0' shows literally. Ground truth vn=668, id=474. Accepts either the cheap fix (a country_dropped alignment issue → clarify) or full multi-country planning.",
-      "fixed_in": null,
-      "fixed_at": null
+      "observed_note": "FIXED in P1 by the scope_dropped issue in check_evidence_alignment (A22-ALIGN-SCOPE): the plan still builds vn-only — plan_id 'analytical:listing_count:vn:1.0' is unchanged — but the silent half-answer is now blocked at the evidence-alignment gate and turned into a clarify. Answering both markets properly needs union_scope composition and belongs to the decomposer (§8.6), not here. Ground truth vn=668, id=474.",
+      "fixed_in": "P1 §4.4 evidence scope coverage",
+      "fixed_at": "2026-07-31"
     },
     {
       "id": "p0-plurality-top-k",
