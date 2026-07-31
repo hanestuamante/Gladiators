@@ -18,3 +18,7 @@ where = ["src"]
 pythonpath = ["src"]
 testpaths = ["tests"]
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
+# A P0 regression-lock contract that starts passing must fail loudly, never pass
+# quietly — see tests/test_p0_regression_lock.py.
+xfail_strict = true
+markers = ["p0_contract(case_id): P0 regression-lock contract from eval/p0_probes.json"]

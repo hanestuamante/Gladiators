@@ -168,7 +168,15 @@ CONTRACTS: dict[int, dict[str, object]] = {
     34: {
         "complexity_level": "L2",
         "answerability_class": "C1",
-        "status": "invalid_fixture_premise",
+        # Corrected 29/07. The DR premise (item 24710759163 missing its 02/07
+        # snapshot) is false: the listing has all three dates and two eligible
+        # transitions. The real defect is date-window narrowing — the runtime
+        # answers the trailing 1-day leg for a question spanning 01/07->03/07,
+        # inverting the sign. expected_action stays None because the correct
+        # answer shape is P1 scope; the red contract lives in
+        # tests/test_p0_regression_lock.py.
+        "status": "executable_red_date_window_narrowing",
+        "oracle_ref": "eval/independent/p0_probe_expected.json#p0_tc34_window",
     },
     35: {"complexity_level": "L2", "answerability_class": "C1+C3"},
     36: {

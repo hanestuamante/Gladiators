@@ -545,8 +545,8 @@
     "forbidden_rule_ids": [],
     "forbidden_analytical_kind": null,
     "expected_semantic_refs": [],
-    "oracle_ref": null,
-    "status": "invalid_fixture_premise",
+    "oracle_ref": "eval/independent/p0_probe_expected.json#p0_tc34_window",
+    "status": "executable_red_date_window_narrowing",
     "complexity_level": "L2",
     "answerability_class": "C1"
   },

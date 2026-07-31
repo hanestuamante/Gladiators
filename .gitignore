@@ -11,7 +11,12 @@ env/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+# Release proof packs are regenerable: `python scripts/build_release_proof.py`
+# rebuilds artifacts/release/<run_id>/ from committed inputs (eval/p0_probes.json,
+# eval/independent/p0_probe_expected.json, tests/). Traces inside are large, so the
+# pack stays out of git and is attached to the release instead.
 artifacts/
+graphify-out/
 data/external_cache/
 models/cache/
 data/image-cache/

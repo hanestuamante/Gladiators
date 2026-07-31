@@ -86,7 +86,15 @@ def build(data_dir: str | Path = "data/processed") -> list[dict]:
         "unit": "fixtures",
         "grain": "listing_snapshot",
         "scope": "snapshot_gap_flag=True",
-        "method_note": "Use one of these rows instead of stale item 24710759163.",
+        "method_note": (
+            "Corrected 29/07: item 24710759163 is NOT stale. It has all three snapshot "
+            "dates and two eligible transitions (01->02 = +113, 02->03 = -102), so the DR "
+            "premise of a missing 02/07 snapshot is false. TC34's real defect is date-window "
+            "narrowing — it answers the trailing 1-day leg for a question that asks "
+            "01/07->03/07, inverting the sign (+11 becomes -102). See p0_tc34_window in "
+            "eval/independent/p0_probe_expected.json. The rows listed here remain valid "
+            "fixtures for the separate snapshot-gap guard rail (p0_gap_item_42955556831)."
+        ),
     })
 
     voucher = snapshots.groupby("country_code", observed=True)["has_structured_voucher"].sum()
