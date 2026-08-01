@@ -297,8 +297,14 @@ def test_named_date_must_not_be_substituted_by_the_latest_snapshot(responses):
     # wrong answer rather than a defensible default.
     counts = {entry["listing_count"] for entry in by_date.values()}
     assert len(counts) == len(by_date)
-    assert response.gate.action != "allow"
     assert str(by_date["2026-07-03"]["listing_count"]) not in response.answer
+    if response.gate.action == "allow":
+        # Answering is allowed only from the snapshot that was asked for.
+        assert any(
+            item.value == by_date["2026-07-01"]["listing_count"]
+            and str(item.attrs.get("observed_date")) == "2026-07-01"
+            for item in response.evidence
+        )
 
 
 @contract_test("p0-rank-direction-inverted")

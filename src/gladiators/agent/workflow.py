@@ -17,7 +17,13 @@ from gladiators.domain.intent_registry import default_registry
 from gladiators.planner.macros import default_macro_registry
 from gladiators.planner.analytical import AnalyticalPlanError, build_analytical_plan, infer_deterministic_template
 from gladiators.planner.semantic_parser import AnalyticalRequest, classify_complexity
-from gladiators.planner.open_planner import OpenAnalyticalPlanner, OpenPlannerError
+from gladiators.planner.open_planner import (
+    OpenAnalyticalPlanner,
+    OpenPlannerError,
+    _synthesis_beats_template,
+)
+from gladiators.planner.synthesizer import synthesize
+from gladiators.planner.validator import validate_plan
 from gladiators.planner.consensus import ConsensusError, NVersionResolver
 from gladiators.planner.risk import EscalationConfig, score_plan
 from gladiators.planner.critic import PlanCritic
@@ -691,7 +697,23 @@ class AgentRuntime:
                             raise AnalyticalPlanError(str(exc)) from exc
                         logical_plan = planner_result.plan
                     else:
-                        logical_plan = build_analytical_plan(analytical_kind, request.country)
+                        # Certified-kind questions skipped the synthesizer entirely,
+                        # so "bao nhiêu listing tại VN ngày 01/07" still compiled to
+                        # the listing_count template, which hard-codes 2026-07-03.
+                        # Same rule as the open path: synthesise only where the
+                        # template is known to be wrong, not merely absent.
+                        synthesized = None
+                        if request.analytical:
+                            candidate = AnalyticalRequest.model_validate(request.analytical)
+                            if _synthesis_beats_template(candidate):
+                                result = synthesize(candidate, request.country)
+                                if result is not None and validate_plan(result.plan).valid:
+                                    synthesized = result.plan
+                        logical_plan = synthesized or build_analytical_plan(
+                            analytical_kind, request.country,
+                        )
+                        if synthesized is not None:
+                            analytical_kind = f"synthesized:{analytical_kind}"
                     complexity_level = (
                         classify_complexity(analytical_request)
                         if request.intent == "open_analytical"
@@ -704,7 +726,9 @@ class AgentRuntime:
                         ),
                     )
                     planning_meta = {
-                        "mode": planner_result.mode if planner_result else "deterministic_template",
+                        "mode": planner_result.mode if planner_result
+                        else "deterministic_synthesis" if str(logical_plan.plan_id).startswith("synth:")
+                        else "deterministic_template",
                         "plan_id": logical_plan.plan_id,
                         "ir_version": logical_plan.ir_version, "complexity_level": complexity_level,
                         "risk_score": risk.score, "requested_escalation": risk.requested_mode,

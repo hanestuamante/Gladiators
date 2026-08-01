@@ -229,12 +229,12 @@
       "expected_state": "green",
       "red_reason": null,
       "baseline": {
-        "action": "clarify",
-        "rule_id": "A22-ALIGN-DATE",
+        "action": "allow",
+        "rule_id": "A-ALLOW",
         "request_countries": ["vn"],
         "planning": {
-          "mode": "deterministic_template",
-          "plan_id": "analytical:listing_count:vn:1.0",
+          "mode": "deterministic_synthesis",
+          "plan_id": "synth:derived.product_count:count:nogroup:none:vn:2026-07-01:1.0",
           "semantic_refs": [
             "derived.product_count",
             "dim.country",
@@ -242,16 +242,23 @@
             "entity.product_listing"
           ]
         },
-        "evidence": [],
-        "n_claims": 0,
-        "answer_markers": ["Cần làm rõ", "ngoài phạm vi 2026-07-01"],
-        "answer_absent": ["668"]
+        "evidence": [
+          {
+            "metric": "listing_count",
+            "value": 581,
+            "unit": "listings",
+            "attrs": {"country": "vn", "observed_date": "2026-07-01"}
+          }
+        ],
+        "n_claims": 1,
+        "answer_markers": ["Có 581 listing", "snapshot 2026-07-01"],
+        "answer_absent": ["668", "snapshot 2026-07-03"]
       },
       "contract": {
-        "statement": "action != allow while the evidence observes a date outside the one the question named"
+        "statement": "a named date is answered from that snapshot, or not answered at all — never from a different one"
       },
-      "observed_note": "Was ALLOW returning 668 with attrs observed_date=2026-07-03 for a question about 01/07, whose true answer is 581 — 87 listings off, and the evidence label openly contradicted the question. Every snapshot differs (581/670/668 listings; max price 2,959,200 on 01/07 vs 3,033,180 later), so latest-snapshot substitution is a wrong answer, not a defensible default. Templates are unchanged; answering a named past date needs a date-parameterised plan, which is P4 synthesizer scope.",
-      "fixed_in": "P1 §4.4 date point coverage",
+      "observed_note": "Full arc. Originally ALLOW returning 668 with attrs observed_date=2026-07-03 for a question about 01/07 whose true answer is 581 — 87 listings off, with the evidence label openly contradicting the question. P1 made it clarify. §5 synthesizer now answers 581 from the 01/07 snapshot. Wiring it also exposed a second bug: AnalyticsTools fell back to a hard-coded '2026-07-03' for observed_date whenever the result had no date column, so a correct 01/07 plan still labelled its evidence 03/07 and tripped its own A22-ALIGN-DATE guard. That fallback now reads plan.time_scope. answer_absent pins both the old number and the wrong snapshot label.",
+      "fixed_in": "§5 synthesizer on the analytical_query branch + observed_date from plan.time_scope",
       "fixed_at": "2026-08-01"
     },
     {

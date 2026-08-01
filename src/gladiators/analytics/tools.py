@@ -331,7 +331,14 @@ class AnalyticsTools:
                        **execution_attrs},
             )]
         row = result.frame.iloc[0]
-        observed_date = str(row["date"]) if "date" in row else "2026-07-03"
+        # Fall back to the plan's own scope, never to a hard-coded snapshot: a
+        # synthesized plan for 2026-07-01 was labelling its evidence 2026-07-03,
+        # which then tripped A22-ALIGN-DATE on a plan that was actually correct.
+        observed_date = (
+            str(row["date"]) if "date" in row
+            else str(plan.time_scope[-1]) if plan.time_scope
+            else "unknown"
+        )
         currency = "VND" if country == "vn" else "IDR"
         common = dict(
             source_tier="btc_dataset",
