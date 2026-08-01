@@ -137,7 +137,11 @@ _MEASURE_ALIASES: dict[str, tuple[str, ...]] = {
     "price": ("giá", "giá bán", "harga"),
     "price_original": ("giá gốc", "giá niêm yết", "original price", "harga asli"),
     "discount_percent": ("phần trăm giảm giá", "mức giảm giá", "discount", "diskon"),
-    "monthly_sold": ("lượt bán tháng", "đã bán trong tháng", "monthly sold", "terjual per bulan"),
+    # "doanh số" is the everyday Vietnamese word for sales volume and was the
+    # single largest alias gap measured over the eval corpus. It is distinct from
+    # "doanh thu" (revenue), which belongs to derived.estimated_recent_revenue.
+    "monthly_sold": ("lượt bán tháng", "đã bán trong tháng", "doanh số", "lượt bán",
+                     "monthly sold", "sales", "terjual per bulan", "penjualan"),
     "history_sold": ("lượt bán tích luỹ", "tổng đã bán", "total sold", "total terjual"),
     "voucher_discount": ("giá trị voucher", "mức giảm của voucher", "voucher value", "nilai voucher"),
     "voucher_min_spend": ("giá trị đơn tối thiểu", "chi tiêu tối thiểu", "minimum spend", "minimum belanja"),
@@ -211,7 +215,9 @@ for name, (physical, unit, type_, traps, status) in _MEASURES.items():
 # ends up looking absent to the user.
 _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "estimated_recent_revenue": ("doanh thu ước tính", "doanh thu proxy", "estimated revenue", "pendapatan perkiraan"),
-    "monthly_sold_delta": ("thay đổi lượt bán tháng", "biến động lượt bán", "monthly sold change"),
+    "monthly_sold_delta": ("thay đổi lượt bán tháng", "biến động lượt bán",
+                           "biến động doanh số", "thay đổi doanh số",
+                           "monthly sold change", "perubahan penjualan"),
     "history_sold_delta_raw": ("thay đổi lượt bán tích luỹ", "cumulative sold change"),
     "history_sold_delta_clean": ("thay đổi lượt bán đã làm sạch", "clean sold change"),
     "history_sold_decrease_flag": ("cờ lượt bán giảm", "sold decrease flag"),
@@ -236,7 +242,9 @@ _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "brand_match": ("trùng thương hiệu", "brand match"),
     "price_distance": ("khoảng cách giá", "price distance"),
     "same_shelf_bonus": ("cùng kệ shop", "same shelf"),
-    "similarity_score": ("điểm tương đồng", "similarity score", "skor kemiripan"),
+    "similarity_score": ("điểm tương đồng", "sản phẩm tương tự", "sản phẩm giống",
+                         "tương tự", "giống", "similarity score", "skor kemiripan",
+                         "similar", "mirip", "serupa"),
     "voucher_rate": ("tỷ lệ có voucher", "voucher rate"),
     "median_discount_ratio": ("tỷ lệ giảm giá trung vị", "median discount ratio"),
     "voucher_profile_score": ("điểm hồ sơ voucher", "voucher profile score"),
