@@ -155,6 +155,20 @@
     "method_note": "transition_metric_eligible is False because days_since_previous=2 (02/07 is absent). monthly_sold is flat 4000 -> 4000 across the gap while history_sold moves 4000 -> 5000, so a naive 'compute it anyway' change returns delta 0, a plausible-looking wrong answer. The guard rail must forbid emitting a monthly_sold_delta at all, not merely forbid a non-zero one."
   },
   {
+    "case_id": "p0_grouping_official_shop",
+    "metric": "listing_count_by_shop_flag_latest",
+    "value": {
+      "snapshot_date": "2026-07-03",
+      "vn_all_listings": 668,
+      "vn_official_shop_listings": 465,
+      "vn_official_shops": 7
+    },
+    "unit": "listings",
+    "grain": "listing",
+    "scope": "country=vn, date=2026-07-03",
+    "method_note": "The dropped-dimension answer returned the unfiltered 668 for a question whose true answer is 465 -- a 203-listing overcount, not a rounding difference. Three differently-scoped questions all returned the same 668, which is what makes this a silent wrong answer rather than an imprecise one."
+  },
+  {
     "case_id": "p0_tc19_sentinel_ref",
     "metric": "price_sentinel_policy_pending",
     "value": {

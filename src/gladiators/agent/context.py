@@ -38,9 +38,9 @@ class RequestDigest(BaseModel):
     requested_output_shape: Literal["scalar", "table", "ranking", "comparison"]
     qualifiers: tuple[str, ...] = ()
     sub_request_ids: tuple[str, ...] = ()
-    # V2 §4.4: the digest must carry the date window that was asked for, so a
+    # V2 §4.4: the digest must carry the date range that was asked for, so a
     # temporal answer can be checked against it instead of being trusted.
-    date_window: tuple[str, ...] = ()
+    date_range: tuple[str, ...] = ()
 
 
 class ContextBundle(BaseModel):
@@ -137,7 +137,7 @@ def request_digest(request: StructuredRequest) -> RequestDigest:
         requested_dimensions=refs("requested_dimensions"),
         requested_output_shape=str(analytical.get("requested_output_shape") or "table"),
         qualifiers=tuple(str(x) for x in request.slots.get("qualifiers", ())),
-        date_window=tuple(str(x) for x in request.slots.get("date_window", ())),
+        date_range=tuple(str(x) for x in request.date_range),
         sub_request_ids=tuple(
             str(item.get("sub_id")) for item in request.slots.get("sub_requests", ())
             if isinstance(item, dict) and item.get("sub_id")

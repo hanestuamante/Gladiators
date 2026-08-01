@@ -201,6 +201,40 @@ def build(data_dir: str | Path = "data/processed") -> list[dict]:
         ),
     })
 
+    # ------------------------------------------------------------ grouping --
+    # GUARD RAIL (added P1).  "bao nhiêu listing của shop official / thương hiệu
+    # NESCAFÉ / theo từng shop tại VN" all used to compile to the bare
+    # listing_count template and return the same unfiltered 668.
+    shops = pd.read_csv(root / "shop_info_clean.csv", dtype=dtype)
+    official = set(
+        shops.loc[
+            (shops.country_code == "vn") & shops.is_official_shop_bool.astype(bool)
+        ].shop_id.astype(str)
+    )
+    vn_latest_all = latest_snapshots.loc[latest_snapshots.country_code == "vn"]
+    official_listings = vn_latest_all.loc[
+        vn_latest_all.shop_id.astype(str).isin(official)
+    ]
+    records.append({
+        "case_id": "p0_grouping_official_shop",
+        "metric": "listing_count_by_shop_flag_latest",
+        "value": {
+            "snapshot_date": LATEST_SNAPSHOT,
+            "vn_all_listings": int(vn_latest_all.product_listing_key.nunique()),
+            "vn_official_shop_listings": int(official_listings.product_listing_key.nunique()),
+            "vn_official_shops": len(official),
+        },
+        "unit": "listings",
+        "grain": "listing",
+        "scope": f"country=vn, date={LATEST_SNAPSHOT}",
+        "method_note": (
+            "The dropped-dimension answer returned the unfiltered 668 for a question "
+            "whose true answer is 465 -- a 203-listing overcount, not a rounding "
+            "difference. Three differently-scoped questions all returned the same 668, "
+            "which is what makes this a silent wrong answer rather than an imprecise one."
+        ),
+    })
+
     # ------------------------------------------------------------------ tc19 --
     # GUARD RAIL only.  The sentinel policy for this listing is an unapproved
     # DR1 decision, so no expected answer may be pinned (see ultimate solution

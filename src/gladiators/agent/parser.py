@@ -20,17 +20,17 @@ _DATE_ISO = re.compile(r"2026-07-0[1-3]")
 _DATE_DAY_MONTH = re.compile(r"(?<![0-9])0?([123])\s*/\s*0?7(?![0-9])")
 
 
-def extract_date_window(normalized: str) -> tuple[str, ...]:
-    """Return ``(start, end)`` when the question names two or more snapshot dates.
+def extract_date_range(normalized: str) -> list[str]:
+    """Return ``[start, end]`` when the question names two or more snapshot dates.
 
     The dataset only holds 2026-07-01..03, so both ``2026-07-01`` and the
     colloquial ``01/07`` resolve to the same snapshot.  A single date is a point,
-    not a window, and returns ``()`` so downstream checks stay silent.
+    not a range, and returns ``[]`` so downstream checks stay silent.
     """
     dates = list(_DATE_ISO.findall(normalized))
     dates += [f"2026-07-0{day}" for day in _DATE_DAY_MONTH.findall(normalized)]
     ordered = sorted(dict.fromkeys(dates))
-    return (ordered[0], ordered[-1]) if len(ordered) >= 2 else ()
+    return [ordered[0], ordered[-1]] if len(ordered) >= 2 else []
 
 
 def strip_presentation_quotes(value: str) -> str:
@@ -307,9 +307,7 @@ class MultilingualIntentParser:
             qualifiers.append("discount_bucket")
         if qualifiers:
             slots["qualifiers"] = tuple(dict.fromkeys(qualifiers))
-        date_window = extract_date_window(n)
-        if date_window:
-            slots["date_window"] = date_window
+        date_range = extract_date_range(n)
         if route.purpose:
             slots["external_purpose"] = route.purpose
         if intent == "analytical_query":
@@ -331,6 +329,7 @@ class MultilingualIntentParser:
         return StructuredRequest(
             intent=intent, entity_text=entity, country=country, countries=countries,
             entities=tuple(item.model_dump() for item in entities), language=language,
-            slots=slots, analytical=analytical, route_mode=route.mode,
+            date_range=date_range, slots=slots, analytical=analytical,
+            route_mode=route.mode,
             external_purpose=route.purpose, requested_variables=route.requested_variables,
         )

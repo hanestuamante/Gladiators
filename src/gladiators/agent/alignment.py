@@ -18,8 +18,13 @@ IssueCode = Literal[
     "qualifier_ignored",
     "entity_unbound",
     "subrequest_dropped",
-    "scope_dropped",
-    "temporal_window_narrowed",
+    # V2 §4.4 issue vocabulary. Names and outward codes are a contract; do not
+    # rename without updating the stable-code table in the spec.
+    "country_dropped",
+    "date_range_narrowed",
+    "aggregation_mismatch",
+    "grouping_dropped",
+    "filter_dropped",
 ]
 
 
@@ -47,8 +52,11 @@ class AlignmentVerdict:
             "qualifier_ignored": "A22-ALIGN-QUALIFIER",
             "entity_unbound": "A22-ALIGN-ENTITY",
             "subrequest_dropped": "A22-ALIGN-SUBREQUEST",
-            "scope_dropped": "A22-ALIGN-SCOPE",
-            "temporal_window_narrowed": "A22-ALIGN-TEMPORAL",
+            "country_dropped": "A22-ALIGN-COUNTRY",
+            "date_range_narrowed": "A22-ALIGN-DATE",
+            "aggregation_mismatch": "A22-ALIGN-AGGREGATION",
+            "grouping_dropped": "A22-ALIGN-GROUPING",
+            "filter_dropped": "A22-ALIGN-FILTER",
         }[self.issues[0].code]
 
     def as_dict(self) -> dict:
@@ -148,6 +156,24 @@ def check_plan_alignment(
                 unexpected,
             ))
         issues.extend(_shape_issues(digest, plan))
+
+        # V2 §4.4 grouping_dropped: a dimension named in the question must be
+        # touched by the plan.  Without this, "bao nhiêu listing của shop
+        # official / thương hiệu NESCAFÉ / theo từng shop tại VN" all compile to
+        # the bare listing_count template and return the same unfiltered 668,
+        # which is a silent wrong answer for three different questions.
+        dropped_dimensions = tuple(
+            ref for ref in digest.requested_dimensions
+            if ref in CATALOG and ref not in refs
+        )
+        if dropped_dimensions:
+            issues.append(AlignmentIssue(
+                "grouping_dropped",
+                "Plan bỏ chiều đã hỏi: " + ", ".join(dropped_dimensions),
+                dropped_dimensions,
+                tuple(sorted(refs)),
+            ))
+
         if digest.entity_refs:
             binds_entity = any(
                 node.op == "ResolveValue"
@@ -247,7 +273,7 @@ def _scope_issues(
         dropped = tuple(sorted(set(digest.countries) - covered_countries))
         if dropped:
             issues.append(AlignmentIssue(
-                "scope_dropped",
+                "country_dropped",
                 "Evidence không phủ hết country đã hỏi: " + ", ".join(dropped),
                 tuple(digest.countries),
                 tuple(sorted(covered_countries)),
@@ -257,7 +283,7 @@ def _scope_issues(
     # never the nearest available pair.  Answering the trailing leg of a
     # multi-day window can invert the sign of the change, so a narrowed window is
     # an alignment failure even though the leg itself is computed correctly.
-    if len(digest.date_window) == 2:
+    if len(digest.date_range) == 2:
         spans = [
             (str(item.attrs["previous_date"]), str(item.attrs["date"]))
             for item in evidence
@@ -265,13 +291,13 @@ def _scope_issues(
         ]
         if spans:
             start, end = min(s for s, _ in spans), max(e for _, e in spans)
-            if (start, end) != (digest.date_window[0], digest.date_window[1]):
+            if (start, end) != (digest.date_range[0], digest.date_range[1]):
                 issues.append(AlignmentIssue(
-                    "temporal_window_narrowed",
+                    "date_range_narrowed",
                     "Evidence phủ cửa sổ {}→{} thay vì {}→{} đã hỏi.".format(
-                        start, end, digest.date_window[0], digest.date_window[1],
+                        start, end, digest.date_range[0], digest.date_range[1],
                     ),
-                    tuple(digest.date_window),
+                    tuple(digest.date_range),
                     (start, end),
                 ))
     return issues

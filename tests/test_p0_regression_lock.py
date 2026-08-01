@@ -278,6 +278,17 @@ def test_snapshot_gap_item_never_allows_a_transition_delta(responses):
     assert not any(item.metric == "monthly_sold_delta" for item in response.evidence)
 
 
+@contract_test("p0-grouping-dropped-official-shop")
+def test_dimension_named_in_question_must_not_be_dropped_by_the_plan(responses):
+    response = responses["p0-grouping-dropped-official-shop"]
+    oracle = ORACLE["p0_grouping_official_shop"]["value"]
+    # The wrong answer and the right one differ by 203 listings, so a regression
+    # that re-allows the template is not a rounding difference.
+    assert oracle["vn_all_listings"] != oracle["vn_official_shop_listings"]
+    assert response.gate.action != "allow"
+    assert str(oracle["vn_all_listings"]) not in response.answer
+
+
 # ------------------------------------------------------------ red contracts --
 
 

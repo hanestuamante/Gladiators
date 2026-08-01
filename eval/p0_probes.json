@@ -92,7 +92,7 @@
       "red_reason": "AnalyticsTools.sales_decline dùng rows.iloc[-1] nên chỉ lấy chặng transition cuối; câu hỏi 01/07→03/07 bị thu về 02/07→03/07 và đảo dấu (+11 thành −102)",
       "baseline": {
         "action": "clarify",
-        "rule_id": "A22-ALIGN-TEMPORAL",
+        "rule_id": "A22-ALIGN-DATE",
         "request_countries": [],
         "planning": {
           "mode": "certified_macro",
@@ -107,7 +107,7 @@
       "contract": {
         "statement": "action != allow OR the monthly_sold_delta evidence window spans 2026-07-01 → 2026-07-03"
       },
-      "observed_note": "FIXED in P1 by the temporal_window_narrowed issue (A22-ALIGN-TEMPORAL). AnalyticsTools.sales_decline still returns the trailing leg — the tool is unchanged — but the digest now carries the asked window (parser.extract_date_window) and the evidence gate blocks an answer whose span does not match. Computing the true window delta (+11) needs TemporalCompare over a chosen date pair and belongs to the synthesizer/decomposer, not to a certified macro. Verified: TC34 is the only question in the whole eval corpus that names a date window, so the run_evaluation.py:50 codependency is not triggered by this change.",
+      "observed_note": "FIXED in P1 by the date_range_narrowed issue (A22-ALIGN-DATE). AnalyticsTools.sales_decline still returns the trailing leg — the tool is unchanged — but the digest now carries the asked window (parser.extract_date_range) and the evidence gate blocks an answer whose span does not match. Computing the true window delta (+11) needs TemporalCompare over a chosen date pair and belongs to the synthesizer/decomposer, not to a certified macro. Verified: TC34 is the only question in the whole eval corpus that names a date window, so the run_evaluation.py:50 codependency is not triggered by this change.",
       "fixed_in": "P1 §4.4 temporal window coverage",
       "fixed_at": "2026-07-31"
     },
@@ -156,7 +156,7 @@
       "red_reason": "build_analytical_plan(kind, country) nhận country vô hướng và _listing_count phát đúng một predicate dim.country eq, nên plan_id đã khoá :vn: ngay lúc dựng; check_evidence_alignment không có kiểm country coverage",
       "baseline": {
         "action": "clarify",
-        "rule_id": "A22-ALIGN-SCOPE",
+        "rule_id": "A22-ALIGN-COUNTRY",
         "request_countries": ["vn", "id"],
         "planning": {
           "mode": "deterministic_template",
@@ -176,9 +176,46 @@
       "contract": {
         "statement": "action != allow OR the evidence country set covers every country in request.countries"
       },
-      "observed_note": "FIXED in P1 by the scope_dropped issue in check_evidence_alignment (A22-ALIGN-SCOPE): the plan still builds vn-only — plan_id 'analytical:listing_count:vn:1.0' is unchanged — but the silent half-answer is now blocked at the evidence-alignment gate and turned into a clarify. Answering both markets properly needs union_scope composition and belongs to the decomposer (§8.6), not here. Ground truth vn=668, id=474.",
+      "observed_note": "FIXED in P1 by the country_dropped issue in check_evidence_alignment (A22-ALIGN-COUNTRY): the plan still builds vn-only — plan_id 'analytical:listing_count:vn:1.0' is unchanged — but the silent half-answer is now blocked at the evidence-alignment gate and turned into a clarify. Answering both markets properly needs union_scope composition and belongs to the decomposer (§8.6), not here. Ground truth vn=668, id=474.",
       "fixed_in": "P1 §4.4 evidence scope coverage",
       "fixed_at": "2026-07-31"
+    },
+    {
+      "id": "p0-grouping-dropped-official-shop",
+      "kind": "guard_rail",
+      "question": "Có bao nhiêu listing của shop official tại VN?",
+      "dr2607_id": null,
+      "source": "authored P1 — cùng họ lỗi với tc29/tc39 listing_count substitution",
+      "spec_ref": "docs/ultimate solution.md §4.4 — grouping_dropped / A22-ALIGN-GROUPING",
+      "oracle_ref": "eval/independent/p0_probe_expected.json#p0_grouping_official_shop",
+      "dr1_status": null,
+      "expected_state": "green",
+      "red_reason": null,
+      "baseline": {
+        "action": "clarify",
+        "rule_id": "A22-ALIGN-GROUPING",
+        "request_countries": ["vn"],
+        "planning": {
+          "mode": "deterministic_template",
+          "plan_id": "analytical:listing_count:vn:1.0",
+          "semantic_refs": [
+            "derived.product_count",
+            "dim.country",
+            "dim.date",
+            "entity.product_listing"
+          ]
+        },
+        "evidence": [],
+        "n_claims": 0,
+        "answer_markers": ["Cần làm rõ", "Plan bỏ chiều đã hỏi"],
+        "answer_absent": ["668"]
+      },
+      "contract": {
+        "statement": "action != allow while the plan ignores a dimension named in the question"
+      },
+      "observed_note": "Was ALLOW returning 668 — the unfiltered VN total — for a question whose true answer is 465 (203-listing overcount). Two sibling questions ('thương hiệu NESCAFÉ', 'theo từng shop') returned the same 668, which is what makes this a silent wrong answer rather than an imprecise one. The plan is unchanged; the grouping_dropped check in check_plan_alignment blocks it. Answering properly needs a group-by/filter the listing_count template does not have, which is P4 synthesizer scope. Note answer_absent pins '668' so a regression that re-allows the wrong number fails here even if the rule_id changes.",
+      "fixed_in": "P1 §4.4 grouping coverage",
+      "fixed_at": "2026-08-01"
     },
     {
       "id": "p0-plurality-top-k",
