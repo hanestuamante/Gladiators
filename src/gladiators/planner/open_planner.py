@@ -47,15 +47,18 @@ def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
     if request.ranking is not None and request.ranking.direction == "asc":
         return True
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
-    return len(dates) == 1 and dates[0] != LATEST_SNAPSHOT
-    # Grouping is deliberately NOT here yet. The synthesizer builds a correct
-    # per-group plan for "bao nhiêu listing tại VN theo từng shop" and the
-    # executor returns the right ten rows, but the deterministic answer
-    # formatter cannot render a multi-row grouped result, so verification
-    # fail-closes and clarify becomes abstain -- safe, but no better for the
-    # user. Enabling it needs the answer formatter/verifier work that §16 P1
-    # lists last. Until then the A22-ALIGN-GROUPING message is the more useful
-    # outcome because it names the dropped dimension.
+    if len(dates) == 1 and dates[0] != LATEST_SNAPSHOT:
+        return True
+    # A grouping the templates lack: listing_count collapses "theo từng shop"
+    # into one unfiltered number. Enabling this needed the multi-row answer
+    # renderer first -- before that, by_metric kept only the last row and the
+    # answer read "Có 120 listing", one arbitrary shop's count presented as the
+    # total. The synthesizer's unbound-qualifier guard keeps this from firing on
+    # questions whose restriction was never parsed ("shop official").
+    return bool([
+        item for item in request.requested_dimensions
+        if item.ref and item.ref not in {"dim.country", "dim.date"}
+    ])
 
 
 def _used_refs(plan: LogicalQueryPlan) -> set[str]:
@@ -72,10 +75,15 @@ class OpenAnalyticalPlanner:
     def __init__(
         self, llm_client: Any | None, catalog_limit: int = 30,
         planner_method: str = "plan_analytical",
+        use_synthesizer: bool = True,
     ):
         self.llm_client = llm_client
         self.catalog_limit = catalog_limit
         self.planner_method = planner_method
+        # The N-version alternate turns this off: comparing an LLM plan against a
+        # deterministic one is not N-version, it is one planner plus a fixture.
+        # P10 has to reach the model or the disagreement signal means nothing.
+        self.use_synthesizer = use_synthesizer
         self.slicer = CatalogSlicer()
 
     def _catalog_slice(self, question: str, request: AnalyticalRequest) -> tuple[str, ...]:
@@ -133,7 +141,7 @@ class OpenAnalyticalPlanner:
         # empty-result case -- with all 19 brands, because the parser never bound
         # the non-existent brand and the synthesizer silently widened the
         # question. Widening the trigger needs the entity-binding guard first.
-        if _synthesis_beats_template(request):
+        if self.use_synthesizer and _synthesis_beats_template(request):
             synthesized = synthesize(request, country)
             if synthesized is not None and validate_plan(synthesized.plan).valid:
                 return OpenPlannerResult(

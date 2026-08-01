@@ -72,7 +72,11 @@ class NVersionResolver:
         method = "plan_analytical_alternate" if alternate_client and hasattr(
             alternate_client, "plan_analytical_alternate"
         ) else "plan_analytical"
-        self.alternate = OpenAnalyticalPlanner(alternate_client, planner_method=method)
+        # P10 must reach the model; the deterministic synthesizer would make
+        # both versions agree by construction.
+        self.alternate = OpenAnalyticalPlanner(
+            alternate_client, planner_method=method, use_synthesizer=False,
+        )
         self.adjudicator_client = adjudicator_client
 
     def resolve(

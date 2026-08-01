@@ -364,7 +364,17 @@ class AgentRuntime:
                 f"{confidence_label(confidence or _confidence_inputs(evidence))} — "
                 f"{_CONFIDENCE_EXPLANATION}"
             )
-            if "highest_revenue_proxy_date" in by_metric:
+            # A grouped result spans several row_index values. by_metric keeps
+            # only the last evidence per metric name, so the single-value
+            # branches below would render row 10 of 10 as though it were the
+            # whole answer -- "Có 120 listing" for a per-shop breakdown, which is
+            # one arbitrary shop's count presented as the total. Route multi-row
+            # results to the row renderer before any of them can match.
+            multi_row = len({
+                int(item.attrs.get("row_index", 0)) for item in evidence
+                if item.metric != "result_count"
+            }) > 1
+            if not multi_row and "highest_revenue_proxy_date" in by_metric:
                 date_evidence = by_metric["highest_revenue_proxy_date"]
                 revenue = by_metric["estimated_recent_revenue"]
                 result = (
@@ -378,7 +388,7 @@ class AgentRuntime:
                     "monthly_sold là số hiển thị có cửa sổ chưa được xác nhận."
                 )
                 scope_evidence = revenue
-            elif "listing_count" in by_metric:
+            elif not multi_row and "listing_count" in by_metric:
                 count = by_metric["listing_count"]
                 if "shop_name" in by_metric:
                     shop = by_metric["shop_name"]
@@ -396,7 +406,9 @@ class AgentRuntime:
                     method = "Lọc đúng thị trường và snapshot, sau đó đếm distinct product_listing_key."
                     limitation = "Đây là số listing, không phải số SKU và không phải số dòng snapshot."
                 scope_evidence = count
-            elif "product_name" in by_metric and ({"price", "monthly_sold"} & by_metric.keys()):
+            elif not multi_row and "product_name" in by_metric and (
+                {"price", "monthly_sold"} & by_metric.keys()
+            ):
                 product = by_metric["product_name"]
                 metric = by_metric.get("price") or by_metric["monthly_sold"]
                 # The superlative has to follow the plan's actual sort order.
@@ -436,7 +448,11 @@ class AgentRuntime:
                 lines = []
                 for items in rows.values():
                     lines.append("- " + "; ".join(
-                        f"{item.metric}={item.value} {item.unit or ''} [{item.evidence_id}]".strip()
+                        # "dimension" is the catalog's placeholder unit for a
+                        # grouping key; printing it reads as noise next to a value.
+                        f"{item.metric}={item.value}"
+                        + (f" {item.unit}" if item.unit and item.unit != "dimension" else "")
+                        + f" [{item.evidence_id}]"
                         for item in items
                     ))
                 scope_evidence = evidence[0]

@@ -24,7 +24,9 @@
         },
         "evidence": [],
         "n_claims": 0,
-        "answer_markers": ["Cần làm rõ"],
+        "answer_markers": [
+          "Cần làm rõ"
+        ],
         "answer_absent": []
       },
       "contract": {
@@ -48,7 +50,10 @@
       "baseline": {
         "action": "allow",
         "rule_id": "A22-ALIGN-SUBREQUEST",
-        "request_countries": ["vn", "id"],
+        "request_countries": [
+          "vn",
+          "id"
+        ],
         "planning": {
           "mode": "certified_macro",
           "macro": "voucher_coverage",
@@ -59,17 +64,28 @@
             "metric": "structured_voucher_listing_count",
             "value": 577,
             "unit": "listings",
-            "attrs": {"country": "vn", "sub_id": "sr1", "snapshot_date": "2026-07-03"}
+            "attrs": {
+              "country": "vn",
+              "sub_id": "sr1",
+              "snapshot_date": "2026-07-03"
+            }
           },
           {
             "metric": "structured_voucher_listing_count",
             "value": 0,
             "unit": "listings",
-            "attrs": {"country": "id", "sub_id": "sr1", "snapshot_date": "2026-07-03"}
+            "attrs": {
+              "country": "id",
+              "sub_id": "sr1",
+              "snapshot_date": "2026-07-03"
+            }
           }
         ],
         "n_claims": 2,
-        "answer_markers": ["Chưa trả lời được", "không phải tỷ lệ chuyển đổi"],
+        "answer_markers": [
+          "Chưa trả lời được",
+          "không phải tỷ lệ chuyển đổi"
+        ],
         "answer_absent": []
       },
       "contract": {
@@ -101,8 +117,13 @@
         },
         "evidence": [],
         "n_claims": 0,
-        "answer_markers": ["Cần làm rõ", "thay vì 2026-07-01→2026-07-03 đã hỏi"],
-        "answer_absent": ["không phải bằng chứng nhân quả"]
+        "answer_markers": [
+          "Cần làm rõ",
+          "thay vì 2026-07-01→2026-07-03 đã hỏi"
+        ],
+        "answer_absent": [
+          "không phải bằng chứng nhân quả"
+        ]
       },
       "contract": {
         "statement": "action != allow OR the monthly_sold_delta evidence window spans 2026-07-01 → 2026-07-03"
@@ -133,7 +154,9 @@
         },
         "evidence": [],
         "n_claims": 0,
-        "answer_markers": ["Không thể trả lời chắc chắn"],
+        "answer_markers": [
+          "Không thể trả lời chắc chắn"
+        ],
         "answer_absent": []
       },
       "contract": {
@@ -157,7 +180,10 @@
       "baseline": {
         "action": "clarify",
         "rule_id": "A22-ALIGN-COUNTRY",
-        "request_countries": ["vn", "id"],
+        "request_countries": [
+          "vn",
+          "id"
+        ],
         "planning": {
           "mode": "deterministic_template",
           "plan_id": "analytical:listing_count:vn:1.0",
@@ -170,8 +196,13 @@
         },
         "evidence": [],
         "n_claims": 0,
-        "answer_markers": ["Cần làm rõ", "không phủ hết country đã hỏi"],
-        "answer_absent": ["Thị trường VN"]
+        "answer_markers": [
+          "Cần làm rõ",
+          "không phủ hết country đã hỏi"
+        ],
+        "answer_absent": [
+          "Thị trường VN"
+        ]
       },
       "contract": {
         "statement": "action != allow OR the evidence country set covers every country in request.countries"
@@ -194,7 +225,9 @@
       "baseline": {
         "action": "clarify",
         "rule_id": "A22-ALIGN-GROUPING",
-        "request_countries": ["vn"],
+        "request_countries": [
+          "vn"
+        ],
         "planning": {
           "mode": "deterministic_template",
           "plan_id": "analytical:listing_count:vn:1.0",
@@ -207,8 +240,13 @@
         },
         "evidence": [],
         "n_claims": 0,
-        "answer_markers": ["Cần làm rõ", "Plan bỏ chiều đã hỏi"],
-        "answer_absent": ["668"]
+        "answer_markers": [
+          "Cần làm rõ",
+          "Plan bỏ chiều đã hỏi"
+        ],
+        "answer_absent": [
+          "668"
+        ]
       },
       "contract": {
         "statement": "action != allow while the plan ignores a dimension named in the question"
@@ -231,7 +269,9 @@
       "baseline": {
         "action": "allow",
         "rule_id": "A-ALLOW",
-        "request_countries": ["vn"],
+        "request_countries": [
+          "vn"
+        ],
         "planning": {
           "mode": "deterministic_synthesis",
           "plan_id": "synth:derived.product_count:count:nogroup:none:vn:2026-07-01:1.0",
@@ -247,12 +287,21 @@
             "metric": "listing_count",
             "value": 581,
             "unit": "listings",
-            "attrs": {"country": "vn", "observed_date": "2026-07-01"}
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-01"
+            }
           }
         ],
         "n_claims": 1,
-        "answer_markers": ["Có 581 listing", "snapshot 2026-07-01"],
-        "answer_absent": ["668", "snapshot 2026-07-03"]
+        "answer_markers": [
+          "Có 581 listing",
+          "snapshot 2026-07-01"
+        ],
+        "answer_absent": [
+          "668",
+          "snapshot 2026-07-03"
+        ]
       },
       "contract": {
         "statement": "a named date is answered from that snapshot, or not answered at all — never from a different one"
@@ -275,7 +324,9 @@
       "baseline": {
         "action": "allow",
         "rule_id": "A-ALLOW",
-        "request_countries": ["vn"],
+        "request_countries": [
+          "vn"
+        ],
         "planning": {
           "mode": "deterministic_synthesis",
           "plan_id": "synth:measure.price:median:dim.product_name:asc:vn:2026-07-03:1.0",
@@ -291,18 +342,30 @@
             "metric": "product_name",
             "value": "[Tặng quà đơn từ 129k]Bánh Richy KARO trứng tươi chà bông (Gà/ Phô Mai/ Sữa), HSD 45-90 ngày",
             "unit": "dimension",
-            "attrs": {"country": "vn", "observed_date": "2026-07-03"}
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
           },
           {
             "metric": "price",
             "value": 1000.0,
             "unit": "VND",
-            "attrs": {"country": "vn", "observed_date": "2026-07-03"}
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
           }
         ],
         "n_claims": 2,
-        "answer_markers": ["Listing có giá thấp nhất là", "xếp hạng tăng dần"],
-        "answer_absent": ["3033180", "giá cao nhất"]
+        "answer_markers": [
+          "Listing có giá thấp nhất là",
+          "xếp hạng tăng dần"
+        ],
+        "answer_absent": [
+          "3033180",
+          "giá cao nhất"
+        ]
       },
       "contract": {
         "statement": "an ascending question is answered with the minimum, or not answered at all — never with the maximum"
@@ -325,10 +388,12 @@
       "baseline": {
         "action": "allow",
         "rule_id": "A-ALLOW",
-        "request_countries": ["vn"],
+        "request_countries": [
+          "vn"
+        ],
         "planning": {
-          "mode": "deterministic_template",
-          "plan_id": "analytical:highest_price_listing:vn:1.0",
+          "mode": "deterministic_synthesis",
+          "plan_id": "synth:measure.price:median:dim.product_name:desc:vn:2026-07-03:1.0",
           "semantic_refs": [
             "dim.country",
             "dim.date",
@@ -340,24 +405,32 @@
           {
             "metric": "product_name",
             "value": "Bộ 3 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 567G",
-            "unit": "listing_name",
-            "attrs": {"country": "vn", "observed_date": "2026-07-03"}
+            "unit": "dimension",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
           },
           {
             "metric": "price",
             "value": 3033180.0,
             "unit": "VND",
-            "attrs": {"country": "vn", "observed_date": "2026-07-03"}
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
           }
         ],
         "n_claims": 2,
-        "answer_markers": ["Listing có giá cao nhất"],
+        "answer_markers": [
+          "Listing có giá cao nhất"
+        ],
         "answer_absent": []
       },
       "contract": {
         "statement": "action != allow OR more than one distinct listing is returned"
       },
-      "observed_note": "Count DISTINCT attrs.product_name, never len(evidence): this template emits two Evidence objects (product_name + price) for a single listing, so a len(evidence) > 1 assertion would XPASS immediately and silently.",
+      "observed_note": "Still red, now via the synthesizer instead of the highest_price_listing template. The plan and the number are right; what is still wrong is the cardinality: the deterministic parser hard-codes AnalyticalRanking.top_k=1, so a plural question produces a top-1 plan. The multi-row answer renderer added for grouping means the answer layer could now display several listings — the remaining gap is purely in parsing plurality into top_k, which is the output-shape contract work in P4.",
       "fixed_in": null,
       "fixed_at": null
     }

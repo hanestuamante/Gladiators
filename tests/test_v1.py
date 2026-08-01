@@ -627,6 +627,9 @@ def test_open_planner_repairs_once_then_executes_validated_ir(tmp_path):
 
     llm = RepairingPlanner()
     runtime = AgentRuntime(trace_dir=tmp_path, llm_client=llm, enable_critic=True)
+    # This test is about the LLM repair loop, so switch off the deterministic
+    # synthesizer that would otherwise answer this question before P8 is reached.
+    runtime.open_planner.use_synthesizer = False
     response = runtime.run("Brand nào có rating cao nhất tại VN?")
     assert response.request.intent == "open_analytical"
     assert response.gate.action == "allow"
@@ -639,7 +642,11 @@ def test_open_planner_repairs_once_then_executes_validated_ir(tmp_path):
 
 
 def test_open_planner_without_provider_fails_closed_as_a19_plan(tmp_path):
-    response = AgentRuntime(trace_dir=tmp_path).run("Brand nào có rating cao nhất tại VN?")
+    # Outside the synthesizer grammar (two measures), so with no provider
+    # there is genuinely no planner left and the request must fail closed.
+    response = AgentRuntime(trace_dir=tmp_path).run(
+        "So sánh giá và rating theo brand tại VN?"
+    )
     assert response.request.intent == "open_analytical"
     assert response.gate.action == "abstain"
     assert response.gate.rule_id == "A19-PLAN"

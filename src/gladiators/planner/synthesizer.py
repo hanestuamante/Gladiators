@@ -26,6 +26,7 @@ compiler and executor.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from gladiators.domain.catalog import CATALOG
@@ -63,6 +64,8 @@ _TYPE_BY_CATALOG_TYPE = {
 # The guard is deliberately one-directional: an unrecognised qualifier can only
 # ever make the synthesizer decline, never make it answer. False declines fall
 # through to templates or the planner; a false accept would be a wrong number.
+_ITEM_ID = re.compile(r"\d{8,}")
+
 _UNBOUND_QUALIFIER_MARKERS = (
     "khong", "chua", "chi rieng", "rieng", "ngoai tru", "tru",
     "official", "chinh hang", "verified", "da xac minh",
@@ -78,6 +81,17 @@ def _has_unbound_qualifier(request: AnalyticalRequest) -> bool:
     """True when the question restricts something the request never bound."""
     text = f" {request.normalized_question} "
     bound = {predicate.field_ref for predicate in request.filters}
+
+    # A question naming a specific listing/shop id is asking about that row. The
+    # grammar has no way to bind an id, so synthesising would answer about the
+    # whole market instead -- tc39 asks about item 26663401389 and would have got
+    # a market-wide aggregate.
+    if _ITEM_ID.search(text) and not any(
+        isinstance(predicate.value_binding, str) and _ITEM_ID.fullmatch(predicate.value_binding)
+        for predicate in request.filters
+    ):
+        return True
+
     for marker in _UNBOUND_QUALIFIER_MARKERS:
         if f" {marker} " not in text and not text.rstrip().endswith(f" {marker}"):
             continue
