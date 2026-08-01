@@ -151,7 +151,9 @@ def _response_from(payload: dict[str, Any]) -> SearchResponse:
     return SearchResponse.model_validate(payload["response"])
 
 
-def verify_determinism(provider: ReplaySearchProvider, queries, *, runs: int = 3) -> dict:
+def verify_determinism(
+    provider: ReplaySearchProvider, queries, *, runs: int = 3, max_results: int = 5,
+) -> dict:
     """Replay N times and assert the content hash never moves (§16 P12).
 
     Comparing content hashes rather than object equality is deliberate: the
@@ -160,7 +162,7 @@ def verify_determinism(provider: ReplaySearchProvider, queries, *, runs: int = 3
     observed: dict[str, set[str]] = {}
     for _ in range(runs):
         for query in queries:
-            response = provider.search(query)
+            response = provider.search(query, max_results=max_results)
             observed.setdefault(query.query, set()).add(response.content_hash)
     unstable = {q: sorted(h) for q, h in observed.items() if len(h) > 1}
     return {
