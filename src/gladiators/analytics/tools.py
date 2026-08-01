@@ -5,6 +5,14 @@ import math
 
 from gladiators.contracts import Evidence
 from gladiators.external.contracts import SourceLocator
+from gladiators.planner.semantic_parser import normalize as normalize_text
+from .similarity import (
+    STATUS_PHRASE_REGISTRY_HASH,
+    STATUS_PHRASE_REGISTRY_VERSION,
+    category_overlap,
+    parse_category_path,
+    strip_status_phrases,
+)
 
 OPEN_RESULT_ROW_LIMIT = 10
 
@@ -27,22 +35,87 @@ class AnalyticsTools:
         ]
 
     def similar_products(self, listing_key: str, top_k: int = 5) -> list[Evidence]:
+        """§4.6: compare inside one platform category, on de-decorated titles."""
         products = self.repo.products.drop_duplicates("product_listing_key")
         source = products.loc[products.product_listing_key.astype(str) == str(listing_key)]
         if source.empty:
             return []
-        candidates = self.resolver.resolve(str(source.iloc[0].product_name), limit=max(top_k + 5, 20))
-        result = []
-        for candidate in (c for c in candidates if c.listing_key != listing_key):
+        source_row = source.iloc[0]
+        source_path = parse_category_path(source_row.get("global_catids"))
+        if not source_path:
+            # §4.6: an unmapped listing must not be matched against the whole
+            # catalogue. "Similar to everything" is not an answer, so the caveat
+            # is the answer.
+            return [Evidence(
+                evidence_id=self.evidence_id(), source_tier="btc_dataset",
+                metric="similarity_unavailable", value="no_platform_category",
+                unit="caveat",
+                source_locator=SourceLocator(kind="internal", value="products_clean"),
+                source_path="global_catids", dataset_version=self.repo.dataset_version,
+                attrs={
+                    "source_listing_key": listing_key,
+                    "reason": "listing chưa được map vào danh mục sàn nên không so sánh được",
+                },
+            )]
+
+        # Category membership is read per listing from the same physical keys the
+        # certified in_platform_category relation uses. Shop shelves are never
+        # consulted: there is no certified edge from them to platform taxonomy.
+        by_key = {
+            str(row.product_listing_key): row for row in products.itertuples()
+        }
+        folded_source = normalize_text(str(source_row.product_name))
+        _, source_removed = strip_status_phrases(folded_source)
+
+        # Rank a wide pool then filter by category, not the reverse: a
+        # distinctive title can fill its top-40 with other categories, which
+        # would silently return fewer than top_k same-category neighbours.
+        candidates = self.resolver.resolve(
+            str(source_row.product_name), limit=max(top_k * 40, 250),
+        )
+        scored = []
+        for candidate in candidates:
+            if candidate.listing_key == listing_key:
+                continue
+            row = by_key.get(str(candidate.listing_key))
+            if row is None:
+                continue
+            path = parse_category_path(getattr(row, "global_catids", None))
+            overlap = category_overlap(source_path, path)
+            if not overlap["same_level1"]:
+                continue  # hard constraint: same level-1 or not a candidate
+            _, removed = strip_status_phrases(normalize_text(candidate.product_name))
+            scored.append((candidate, path, overlap, removed))
+
+        # Deeper taxonomy agreement outranks a marginally better title score.
+        scored.sort(
+            key=lambda item: (item[2]["shared_depth"], item[0].final_score),
+            reverse=True,
+        )
+        result: list[Evidence] = []
+        for candidate, path, overlap, removed in scored[:top_k]:
             result.append(Evidence(
                 evidence_id=self.evidence_id(), source_tier="btc_dataset", metric="similarity_score",
                 value=round(candidate.final_score, 6), unit="cosine_fusion_score",
                 source_locator=SourceLocator(kind="internal", value="products_clean"), source_path="product_name_clean",
                 dataset_version=self.repo.dataset_version,
-                attrs={"source_listing_key": listing_key, "candidate_listing_key": candidate.listing_key, "product_name": candidate.product_name, "rank": len(result) + 1, "lexical_score": candidate.lexical_score, "semantic_score": candidate.semantic_score},
+                attrs={
+                    "source_listing_key": listing_key,
+                    "candidate_listing_key": candidate.listing_key,
+                    "product_name": candidate.product_name,
+                    "rank": len(result) + 1,
+                    "lexical_score": candidate.lexical_score,
+                    "semantic_score": candidate.semantic_score,
+                    "platform_category_path": list(path),
+                    "source_category_path": list(source_path),
+                    "same_level1": overlap["same_level1"],
+                    "same_level2": overlap["same_level2"],
+                    "same_leaf": overlap["same_leaf"],
+                    "status_tokens_removed": list(dict.fromkeys(source_removed + removed)),
+                    "status_registry_version": STATUS_PHRASE_REGISTRY_VERSION,
+                    "status_registry_hash": STATUS_PHRASE_REGISTRY_HASH,
+                },
             ))
-            if len(result) >= top_k:
-                break
         return result
 
     def promotion_observation(self, country: str) -> list[Evidence]:
