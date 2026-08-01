@@ -13,13 +13,16 @@ would produce a confident plan for a question it was shown two-thirds of.
 from __future__ import annotations
 
 import hashlib
+from typing import TYPE_CHECKING
 
-from ..agent.context import RequestDigest
 from ..domain import topics
 from ..domain.invariants import INVARIANTS, hard_invariants
 from ..domain.relations import RELATIONS
 from .context_packer import ContextItem, render_catalog_ref
 from .topic_router import RoutingResult
+
+if TYPE_CHECKING:  # import-time cycle: agent.context -> agent -> workflow -> shadow
+    from ..agent.context import RequestDigest
 
 RENDERER_VERSION = "prompt-library.v1"
 
@@ -95,7 +98,7 @@ def _topic_item(topic_id: str) -> ContextItem:
 
 
 def build_atomic_plan_context(
-    digest: RequestDigest,
+    digest: "RequestDigest",
     routing: RoutingResult,
     *,
     required_refs: tuple[str, ...] = (),

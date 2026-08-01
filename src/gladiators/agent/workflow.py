@@ -23,6 +23,7 @@ from gladiators.planner.open_planner import (
     OpenPlannerError,
     _synthesis_beats_template,
 )
+from gladiators.planner.shadow import ShadowObserver
 from gladiators.planner.synthesizer import synthesize
 from gladiators.planner.validator import validate_plan
 from gladiators.planner.consensus import ConsensusError, NVersionResolver
@@ -185,6 +186,10 @@ class AgentRuntime:
         self.enable_nversion = os.getenv("GLADIATORS_ENABLE_NVERSION") == "1" if enable_nversion is None else enable_nversion
         self.plan_critic = PlanCritic(critic_client or llm_client)
         self.open_planner = OpenAnalyticalPlanner(llm_client)
+        # Shadow only: observes routing/decomposition, never decides (§6.5).
+        self.shadow = ShadowObserver(
+            enabled=os.getenv("GLADIATORS_DISABLE_SHADOW") != "1"
+        )
         self.nversion = NVersionResolver(
             self.repo, alternate_planner_client or llm_client, adjudicator_client or llm_client,
         )
@@ -865,6 +870,20 @@ class AgentRuntime:
                             if node.original_cardinality is not None
                         ],
                     }
+                    # §6.5 / §8.11: the topic gate is closed pending reviewer
+                    # sign-off, so routing runs in shadow. It records what it
+                    # would have selected and changes nothing -- not the plan,
+                    # not the gate decision, not the answer. Running it on live
+                    # traffic is the point: a component nothing calls is a
+                    # component nobody is measuring.
+                    planning_meta["shadow"] = self.shadow.observe(
+                        user_text,
+                        AnalyticalRequest.model_validate(request.analytical)
+                        if request.analytical else None,
+                        digest,
+                        dataset_version=self.repo.dataset_version,
+                        plan_refs=tuple(plan_refs(logical_plan)),
+                    )
                     if planner_result:
                         planning_meta.update(
                             planner_attempts=planner_result.attempts,
