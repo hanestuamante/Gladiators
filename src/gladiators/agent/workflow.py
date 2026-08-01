@@ -177,6 +177,24 @@ class AgentRuntime:
                     parsed = parsed.model_copy(update={"intent": deterministic.intent}); adjustments.append("unsupported_safety_precedence")
                 elif parsed.intent.startswith("unsupported:") and (parsed.intent.split(":", 1)[1] not in UNSUPPORTED or self.registry.get(deterministic.intent) is not None):
                     parsed = parsed.model_copy(update={"intent": deterministic.intent}); adjustments.append("unsupported_taxonomy_normalized")
+                elif (
+                    deterministic.intent in {"analytical_query", "open_analytical"}
+                    and parsed.intent != deterministic.intent
+                    and self.macros.get(parsed.intent) is not None
+                    and any(
+                        item.get("ref") for item in
+                        (deterministic.analytical or {}).get("requested_measures", ())
+                    )
+                ):
+                    # §3.6 A-CAPABILITY-MISS: a question whose measure the semantic
+                    # parser bound belongs on the analytical path. Letting P1 route
+                    # it to a descriptive macro answers a different question --
+                    # DeepSeek labelled "Có bao nhiêu listing ở VN?" as
+                    # dataset_coverage, which replies "no listing evidence, the
+                    # data covers 01-03/07" for a question the analytical path
+                    # answers with 668.
+                    parsed = parsed.model_copy(update={"intent": deterministic.intent})
+                    adjustments.append("analytical_capability_precedence")
                 spec = self.registry.get(parsed.intent)
                 if spec:
                     updates = {}
@@ -200,9 +218,18 @@ class AgentRuntime:
                         if merged_slots != parsed.slots:
                             updates["slots"] = merged_slots
                             adjustments.append("slots_from_deterministic_parser")
-                        if parsed.analytical is None and deterministic.analytical is not None:
-                            updates["analytical"] = deterministic.analytical
-                            adjustments.append("analytical_from_deterministic_parser")
+                    # The analytical payload is a deterministic semantic parse of
+                    # the text -- measures, dimensions, filters, ranking, dates.
+                    # None of that depends on which intent label P1 chose, so it
+                    # must be carried even when the two parsers disagree. Gating
+                    # it on agreement silently dropped the whole semantic layer
+                    # whenever the model guessed a different label: "giá thấp
+                    # nhất tại VN" answered offline but abstained with A19-PLAN
+                    # under a provider, because the synthesizer had no request to
+                    # work from.
+                    if parsed.analytical is None and deterministic.analytical is not None:
+                        updates["analytical"] = deterministic.analytical
+                        adjustments.append("analytical_from_deterministic_parser")
                     if updates: parsed = parsed.model_copy(update=updates)
                 if adjustments: meta["parse_adjustments"] = adjustments
                 if self.registry.get(parsed.intent) is None and not parsed.intent.startswith("unsupported:"):
