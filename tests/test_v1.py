@@ -170,8 +170,12 @@ def test_executor_enforces_output_postconditions():
             plan_hash="test", expected_columns=("score",), postconditions=("unique:score",),
         )
         import pytest
-        with pytest.raises(RuntimeError, match="POSTCONDITION_FAILED"):
+        from gladiators.planner.executor import ExecutionFailure
+        # §8.2: assert on the typed code, never on exception text.
+        with pytest.raises(ExecutionFailure) as excinfo:
             executor.execute(query)
+        assert excinfo.value.issue.code == "postcondition_failed"
+        assert excinfo.value.issue.details["invariant"] == "unique:score"
     finally:
         executor.close()
 

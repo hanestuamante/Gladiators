@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import runpy
 from pathlib import Path
 
@@ -69,6 +70,20 @@ RED_IDS = [case["id"] for case in PROBES["cases"] if case["kind"] == "red"]
 
 # Populated by @contract_test at import time; asserted complete below.
 CONTRACT_TESTS: dict[str, str] = {}
+
+
+_EVIDENCE_ID = re.compile(r"ev:[0-9a-f]{12}")
+
+
+def answer_text(response) -> str:
+    """Answer with evidence ids masked, for substring assertions.
+
+    ``evidence_id`` embeds a uuid4 slice, so a raw ``"668" not in answer`` check
+    can collide with a random identifier and fail perhaps one run in a few
+    hundred.  A flaky guard is worse than no guard: it trains people to re-run
+    until green.  Every forbidden-number assertion reads through here.
+    """
+    return _EVIDENCE_ID.sub("ev:MASKED", response.answer)
 
 
 def probe_question(case: dict) -> str:
@@ -220,10 +235,11 @@ def test_baseline_answer_is_evidence_linked_and_marker_stable(case_id, responses
         assert f"[{item.evidence_id}]" in response.answer, (
             f"{case_id}: evidence {item.metric} is not cited in the answer"
         )
+    visible = answer_text(response)
     for marker in baseline["answer_markers"]:
-        assert marker in response.answer, f"{case_id}: missing marker {marker!r}"
+        assert marker in visible, f"{case_id}: missing marker {marker!r}"
     for marker in baseline["answer_absent"]:
-        assert marker not in response.answer, f"{case_id}: unexpected marker {marker!r}"
+        assert marker not in visible, f"{case_id}: unexpected marker {marker!r}"
     assert len(response.claims) == baseline["n_claims"], case_id
     evidence_ids = {item.evidence_id for item in response.evidence}
     assert all(claim.evidence_id in evidence_ids for claim in response.claims), case_id
@@ -286,7 +302,7 @@ def test_dimension_named_in_question_must_not_be_dropped_by_the_plan(responses):
     # that re-allows the template is not a rounding difference.
     assert oracle["vn_all_listings"] != oracle["vn_official_shop_listings"]
     assert response.gate.action != "allow"
-    assert str(oracle["vn_all_listings"]) not in response.answer
+    assert str(oracle["vn_all_listings"]) not in answer_text(response)
 
 
 @contract_test("p0-date-point-substituted")
@@ -297,7 +313,7 @@ def test_named_date_must_not_be_substituted_by_the_latest_snapshot(responses):
     # wrong answer rather than a defensible default.
     counts = {entry["listing_count"] for entry in by_date.values()}
     assert len(counts) == len(by_date)
-    assert str(by_date["2026-07-03"]["listing_count"]) not in response.answer
+    assert str(by_date["2026-07-03"]["listing_count"]) not in answer_text(response)
     if response.gate.action == "allow":
         # Answering is allowed only from the snapshot that was asked for.
         assert any(
@@ -313,7 +329,7 @@ def test_ascending_ranking_must_not_be_answered_by_a_descending_template(respons
     oracle = ORACLE["p0_rank_direction_vn"]["value"]
     # ~3000x apart, so an inverted answer can never be mistaken for a near miss.
     assert oracle["max_price"] > oracle["min_price"] * 1000
-    assert str(int(oracle["max_price"])) not in response.answer
+    assert str(int(oracle["max_price"])) not in answer_text(response)
     if response.gate.action == "allow":
         # Answering is allowed only with the actual minimum, and the sentence
         # must not call it the maximum.
@@ -321,7 +337,7 @@ def test_ascending_ranking_must_not_be_answered_by_a_descending_template(respons
             item.metric == "price" and item.value == oracle["min_price"]
             for item in response.evidence
         )
-        assert oracle["min_price_product"] in response.answer
+        assert oracle["min_price_product"] in answer_text(response)
 
 
 # ------------------------------------------------------------ red contracts --

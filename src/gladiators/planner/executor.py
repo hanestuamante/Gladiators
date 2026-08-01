@@ -3,13 +3,47 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import Any, Literal
 
 import duckdb
 import pandas as pd
+from pydantic import BaseModel, ConfigDict, Field
 
 from gladiators.data.coverage import ARTIFACTS
 
 from .compiler import CompiledQuery, assert_read_only_sql
+
+
+ExecutionIssueCode = Literal[
+    "schema_invalid", "cardinality_violation",
+    "postcondition_failed", "result_cap_exceeded",
+]
+
+
+class ExecutionIssue(BaseModel):
+    """Typed execution failure — ultimate solution §4.10.
+
+    Execution used to fail with a ``RuntimeError`` whose *prefix* carried the
+    code ("SCHEMA_INVALID: ..."), which forced anything downstream to parse
+    exception text to decide what happened.  §8.2 forbids exactly that.  The
+    code is now a closed vocabulary and the numbers live in ``details``, so a
+    repair loop can act on the issue and a UI can render a message key without
+    ever seeing the raw text.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    code: ExecutionIssueCode
+    node_id: str | None = None
+    message_key: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExecutionFailure(RuntimeError):
+    """Carries an :class:`ExecutionIssue`; ``str()`` stays UI-safe."""
+
+    def __init__(self, issue: ExecutionIssue, message: str):
+        super().__init__(message)
+        self.issue = issue
 
 
 @dataclass(frozen=True)
@@ -69,25 +103,48 @@ class QueryExecutor:
         assert_read_only_sql(query.sql)
         estimated = self._estimated_rows(query.sql, query.parameters)
         if estimated is not None and estimated > self.max_result_rows:
-            raise RuntimeError(
-                f"ESTIMATED_ROWS_EXCEEDED: estimate={estimated}, "
-                f"max_result_rows={self.max_result_rows}"
+            raise ExecutionFailure(
+                ExecutionIssue(
+                    code="result_cap_exceeded",
+                    message_key="execution.estimated_rows_exceeded",
+                    details={
+                        "estimate": estimated, "max_result_rows": self.max_result_rows,
+                    },
+                ),
+                "Plan ước tính vượt giới hạn số dòng trước khi chạy.",
             )
         explain_rows = self.connection.execute("EXPLAIN " + query.sql, query.parameters).fetchall()
         explain = "\n".join(str(row[-1]) for row in explain_rows)
         frame = self.connection.execute(query.sql, query.parameters).fetchdf()
         if len(frame) > self.max_result_rows:
-            raise RuntimeError(f"Kết quả {len(frame)} dòng vượt max_result_rows={self.max_result_rows}")
+            raise ExecutionFailure(
+                ExecutionIssue(
+                    code="result_cap_exceeded", message_key="execution.result_cap_exceeded",
+                    details={"rows": len(frame), "max_result_rows": self.max_result_rows},
+                ),
+                "Kết quả vượt giới hạn số dòng cho phép.",
+            )
         if tuple(frame.columns) != query.expected_columns:
-            raise RuntimeError(
-                f"SCHEMA_INVALID: expected={query.expected_columns}, actual={tuple(frame.columns)}"
+            raise ExecutionFailure(
+                ExecutionIssue(
+                    code="schema_invalid", message_key="execution.schema_invalid",
+                    details={
+                        "expected": list(query.expected_columns),
+                        "actual": list(frame.columns),
+                    },
+                ),
+                "Cột kết quả không khớp output contract của plan.",
             )
         bound = query.expected_cardinality
         exact = not bound.startswith("<=")
         limit = int(bound.removeprefix("<="))
         if (len(frame) != limit) if exact else (len(frame) > limit):
-            raise RuntimeError(
-                f"CARDINALITY_VIOLATION: expected={bound}, actual={len(frame)}"
+            raise ExecutionFailure(
+                ExecutionIssue(
+                    code="cardinality_violation", message_key="execution.cardinality_violation",
+                    details={"expected": bound, "actual": len(frame)},
+                ),
+                "Số dòng kết quả không khớp expected_cardinality của plan.",
             )
         passed: list[str] = []
         for invariant in query.postconditions:
@@ -96,17 +153,45 @@ class QueryExecutor:
             if kind == "unique" and len(parts) == 2:
                 columns = tuple(filter(None, parts[1].split(",")))
                 if not columns or any(column not in frame for column in columns) or frame.duplicated(list(columns)).any():
-                    raise RuntimeError(f"POSTCONDITION_FAILED: {invariant}")
+                    raise ExecutionFailure(
+                        ExecutionIssue(
+                            code="postcondition_failed",
+                            message_key="execution.postcondition_failed",
+                            details={"invariant": invariant},
+                        ),
+                        "Kết quả vi phạm một bất biến đã khai trong plan.",
+                    )
             elif kind == "nonnegative" and len(parts) == 2:
                 column = parts[1]
                 if column not in frame or (frame[column].dropna() < 0).any():
-                    raise RuntimeError(f"POSTCONDITION_FAILED: {invariant}")
+                    raise ExecutionFailure(
+                        ExecutionIssue(
+                            code="postcondition_failed",
+                            message_key="execution.postcondition_failed",
+                            details={"invariant": invariant},
+                        ),
+                        "Kết quả vi phạm một bất biến đã khai trong plan.",
+                    )
             elif kind == "range" and len(parts) == 4:
                 column, lower, upper = parts[1], float(parts[2]), float(parts[3])
                 if column not in frame or not frame[column].dropna().between(lower, upper).all():
-                    raise RuntimeError(f"POSTCONDITION_FAILED: {invariant}")
+                    raise ExecutionFailure(
+                        ExecutionIssue(
+                            code="postcondition_failed",
+                            message_key="execution.postcondition_failed",
+                            details={"invariant": invariant},
+                        ),
+                        "Kết quả vi phạm một bất biến đã khai trong plan.",
+                    )
             else:
-                raise RuntimeError(f"POSTCONDITION_UNKNOWN: {invariant}")
+                raise ExecutionFailure(
+                    ExecutionIssue(
+                        code="postcondition_failed",
+                        message_key="execution.postcondition_unknown",
+                        details={"invariant": invariant},
+                    ),
+                    "Plan khai một bất biến mà executor chưa hỗ trợ.",
+                )
             passed.append(invariant)
         return ExecutionResult(
             frame=frame, plan_hash=query.plan_hash, explain=explain,

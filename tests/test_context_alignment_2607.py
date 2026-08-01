@@ -36,7 +36,7 @@ from gladiators.external.contracts import SourceLocator
 from gladiators.external.injection_guard import sanitize_internal_text
 from gladiators.planner.analytical import build_analytical_plan
 from gladiators.planner.compiler import CompiledQuery
-from gladiators.planner.executor import QueryExecutor
+from gladiators.planner.executor import ExecutionFailure, QueryExecutor
 from gladiators.planner.query_ir import OutputField, PlanNode
 
 
@@ -212,8 +212,11 @@ def test_cardinality_schema_and_executor_enforcement():
             postconditions=(),
             expected_cardinality="1",
         )
-        with pytest.raises(RuntimeError, match="CARDINALITY_VIOLATION"):
+        # §8.2: assert on the typed code, never on exception text.
+        with pytest.raises(ExecutionFailure) as excinfo:
             executor.execute(query)
+        assert excinfo.value.issue.code == "cardinality_violation"
+        assert excinfo.value.issue.details["expected"] == "1"
     finally:
         executor.close()
 
