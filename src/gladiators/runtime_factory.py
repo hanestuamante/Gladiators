@@ -5,7 +5,13 @@ import os
 from dotenv import load_dotenv
 
 from gladiators.agent.cassette import CassetteLLMClient, LLMCassette
-from gladiators.agent.llm import GeminiLLMClient, GroqLLMClient, HuggingFaceLLMClient
+from gladiators.agent.llm import (
+    DeepSeekLLMClient,
+    FallbackLLMClient,
+    GeminiLLMClient,
+    GroqLLMClient,
+    HuggingFaceLLMClient,
+)
 from gladiators.agent.workflow import AgentRuntime
 from gladiators.data.repository import ArtifactRepository
 from gladiators.external.cache import ExternalCache, QuotaGuard
@@ -21,7 +27,7 @@ from gladiators.external.web_extract import WebExtractor
 def create_runtime(provider: str | None = None) -> AgentRuntime:
     load_dotenv()
     selected = provider or os.getenv("GLADIATORS_LLM_PROVIDER", "offline")
-    if selected not in {"offline", "gemini", "huggingface", "groq"}:
+    if selected not in {"offline", "gemini", "huggingface", "groq", "deepseek"}:
         raise ValueError(f"Provider không hỗ trợ: {selected}")
     external_settings = load_external_settings()
     live = external_settings.live_search
@@ -36,6 +42,7 @@ def create_runtime(provider: str | None = None) -> AgentRuntime:
             "gemini": os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
             "huggingface": os.getenv("HF_MODEL", "Qwen/Qwen3-32B"),
             "groq": os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
+            "deepseek": os.getenv("DEEPSEEK_MODEL", ""),
         }
         if cassette.mode == "replay":
             llm = CassetteLLMClient(
@@ -52,8 +59,17 @@ def create_runtime(provider: str | None = None) -> AgentRuntime:
                 if selected == "gemini"
                 else HuggingFaceLLMClient()
                 if selected == "huggingface"
+                else DeepSeekLLMClient()
+                if selected == "deepseek"
                 else GroqLLMClient()
             )
+            # DeepSeek primary, Groq as spare: a transport failure on the fast
+            # provider degrades to the slower one instead of failing the request.
+            if selected == "deepseek" and os.getenv("GROQ_API_KEY"):
+                try:
+                    delegate = FallbackLLMClient(delegate, GroqLLMClient())
+                except RuntimeError:
+                    pass
             llm = (
                 CassetteLLMClient(
                     delegate,

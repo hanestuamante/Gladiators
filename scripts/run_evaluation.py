@@ -117,7 +117,7 @@ def run_case(case, runtime):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", default="eval/questions.json"); ap.add_argument("--runs", type=int, default=3); ap.add_argument("--output", default="eval/reports")
-    ap.add_argument("--mode", choices=["direct", "gated", "full"], default="full"); ap.add_argument("--provider", choices=["offline", "gemini", "huggingface", "groq"], default="offline")
+    ap.add_argument("--mode", choices=["direct", "gated", "full"], default="full"); ap.add_argument("--provider", choices=["offline", "gemini", "huggingface", "groq", "deepseek"], default="offline")
     ap.add_argument("--enable-critic", action="store_true", help="Bật escalation critic; offline dùng deterministic acceptance stub")
     ap.add_argument("--resume", action="store_true", help="Tiếp tục từ checkpoint.json trong output directory")
     args = ap.parse_args(); cases = json.loads(Path(args.suite).read_text(encoding="utf-8"))
