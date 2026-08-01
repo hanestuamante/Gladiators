@@ -131,8 +131,15 @@ def _contract_holds(case: dict, observed: dict) -> bool:
         covered = {str(i["attrs"]["country"]) for i in evidence if i["attrs"].get("country")}
         return covered >= set(observed["request_countries"])
     if case["id"] == "p0-plurality-top-k":
+        # Count distinct listings in both shapes the pipeline emits: the
+        # certified template carries the name in attrs, the synthesizer emits it
+        # as its own Evidence row. Reading only attrs made this proof report a
+        # correct 5-listing answer as still-broken, because the shape moved and
+        # this copy of the rule did not follow.
         listings = {
             str(i["attrs"]["product_name"]) for i in evidence if i["attrs"].get("product_name")
+        } | {
+            str(i["value"]) for i in evidence if i["metric"] == "product_name"
         }
         return len(listings) > 1
     if case["id"] == "p0-gap-item-42955556831":
