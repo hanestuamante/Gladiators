@@ -235,6 +235,34 @@ def build(data_dir: str | Path = "data/processed") -> list[dict]:
         ),
     })
 
+    # ----------------------------------------------------------- date point --
+    # GUARD RAIL (added P1).  Analytical templates hardcode the latest snapshot,
+    # so a question naming 01/07 was answered with 03/07 data and the evidence
+    # was labelled observed_date=2026-07-03.
+    by_date = {}
+    for date in sorted(snapshots.date.astype(str).unique()):
+        day = snapshots.loc[
+            (snapshots.date.astype(str) == date) & (snapshots.country_code == "vn")
+        ]
+        by_date[date] = {
+            "listing_count": int(day.product_listing_key.nunique()),
+            "max_price": float(day.price_num.max()),
+        }
+    records.append({
+        "case_id": "p0_date_point_vn",
+        "metric": "listing_count_and_max_price_by_date",
+        "value": {"country": "vn", "by_date": by_date},
+        "unit": "profile",
+        "grain": "listing",
+        "scope": "country=vn, each snapshot date",
+        "method_note": (
+            "Every snapshot has a different answer: 581/670/668 listings and a max price "
+            "of 2,959,200 on 01/07 versus 3,033,180 later. Substituting the latest "
+            "snapshot for a named date is therefore a wrong answer (87 listings off), "
+            "not a defensible default."
+        ),
+    })
+
     # ------------------------------------------------------------------ tc19 --
     # GUARD RAIL only.  The sentinel policy for this listing is an unapproved
     # DR1 decision, so no expected answer may be pinned (see ultimate solution

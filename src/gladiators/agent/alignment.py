@@ -284,18 +284,41 @@ def _scope_issues(
     # multi-day window can invert the sign of the change, so a narrowed window is
     # an alignment failure even though the leg itself is computed correctly.
     if len(digest.date_range) == 2:
+        asked_start, asked_end = digest.date_range
+
+        # Snapshot evidence: the observed date has to sit inside the asked range.
+        # Templates default to the latest snapshot, so "bao nhiêu listing tại VN
+        # ngày 01/07" was answered with the 03/07 count (668 instead of 581) and
+        # labelled observed_date=2026-07-03.
+        observed = sorted({
+            str(item.attrs["observed_date"])
+            for item in evidence if item.attrs.get("observed_date")
+        })
+        outside = [date for date in observed if not asked_start <= date <= asked_end]
+        if outside:
+            issues.append(AlignmentIssue(
+                "date_range_narrowed",
+                "Evidence quan sát ngày {} ngoài phạm vi {}→{} đã hỏi.".format(
+                    ", ".join(outside), asked_start, asked_end,
+                ),
+                tuple(digest.date_range),
+                tuple(observed),
+            ))
+
+        # Transition evidence: the span has to match the asked range exactly.
+        # Only meaningful for a real range -- a single date cannot bound a delta.
         spans = [
             (str(item.attrs["previous_date"]), str(item.attrs["date"]))
             for item in evidence
             if item.attrs.get("previous_date") and item.attrs.get("date")
         ]
-        if spans:
+        if spans and asked_start != asked_end:
             start, end = min(s for s, _ in spans), max(e for _, e in spans)
-            if (start, end) != (digest.date_range[0], digest.date_range[1]):
+            if (start, end) != (asked_start, asked_end):
                 issues.append(AlignmentIssue(
                     "date_range_narrowed",
                     "Evidence phủ cửa sổ {}→{} thay vì {}→{} đã hỏi.".format(
-                        start, end, digest.date_range[0], digest.date_range[1],
+                        start, end, asked_start, asked_end,
                     ),
                     tuple(digest.date_range),
                     (start, end),

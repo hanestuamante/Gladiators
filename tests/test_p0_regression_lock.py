@@ -289,6 +289,18 @@ def test_dimension_named_in_question_must_not_be_dropped_by_the_plan(responses):
     assert str(oracle["vn_all_listings"]) not in response.answer
 
 
+@contract_test("p0-date-point-substituted")
+def test_named_date_must_not_be_substituted_by_the_latest_snapshot(responses):
+    response = responses["p0-date-point-substituted"]
+    by_date = ORACLE["p0_date_point_vn"]["value"]["by_date"]
+    # Every snapshot has a different count, so substituting one for another is a
+    # wrong answer rather than a defensible default.
+    counts = {entry["listing_count"] for entry in by_date.values()}
+    assert len(counts) == len(by_date)
+    assert response.gate.action != "allow"
+    assert str(by_date["2026-07-03"]["listing_count"]) not in response.answer
+
+
 # ------------------------------------------------------------ red contracts --
 
 

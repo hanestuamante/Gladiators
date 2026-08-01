@@ -169,6 +169,31 @@
     "method_note": "The dropped-dimension answer returned the unfiltered 668 for a question whose true answer is 465 -- a 203-listing overcount, not a rounding difference. Three differently-scoped questions all returned the same 668, which is what makes this a silent wrong answer rather than an imprecise one."
   },
   {
+    "case_id": "p0_date_point_vn",
+    "metric": "listing_count_and_max_price_by_date",
+    "value": {
+      "country": "vn",
+      "by_date": {
+        "2026-07-01": {
+          "listing_count": 581,
+          "max_price": 2959200.0
+        },
+        "2026-07-02": {
+          "listing_count": 670,
+          "max_price": 3033180.0
+        },
+        "2026-07-03": {
+          "listing_count": 668,
+          "max_price": 3033180.0
+        }
+      }
+    },
+    "unit": "profile",
+    "grain": "listing",
+    "scope": "country=vn, each snapshot date",
+    "method_note": "Every snapshot has a different answer: 581/670/668 listings and a max price of 2,959,200 on 01/07 versus 3,033,180 later. Substituting the latest snapshot for a named date is therefore a wrong answer (87 listings off), not a defensible default."
+  },
+  {
     "case_id": "p0_tc19_sentinel_ref",
     "metric": "price_sentinel_policy_pending",
     "value": {

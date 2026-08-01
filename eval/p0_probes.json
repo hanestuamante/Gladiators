@@ -218,6 +218,43 @@
       "fixed_at": "2026-08-01"
     },
     {
+      "id": "p0-date-point-substituted",
+      "kind": "guard_rail",
+      "question": "Có bao nhiêu listing tại VN ngày 01/07?",
+      "dr2607_id": null,
+      "source": "authored P1 — cùng họ với tc34 nhưng ở mức một ngày, không phải cửa sổ",
+      "spec_ref": "docs/ultimate solution.md §4.4 — date_range_narrowed / A22-ALIGN-DATE",
+      "oracle_ref": "eval/independent/p0_probe_expected.json#p0_date_point_vn",
+      "dr1_status": null,
+      "expected_state": "green",
+      "red_reason": null,
+      "baseline": {
+        "action": "clarify",
+        "rule_id": "A22-ALIGN-DATE",
+        "request_countries": ["vn"],
+        "planning": {
+          "mode": "deterministic_template",
+          "plan_id": "analytical:listing_count:vn:1.0",
+          "semantic_refs": [
+            "derived.product_count",
+            "dim.country",
+            "dim.date",
+            "entity.product_listing"
+          ]
+        },
+        "evidence": [],
+        "n_claims": 0,
+        "answer_markers": ["Cần làm rõ", "ngoài phạm vi 2026-07-01"],
+        "answer_absent": ["668"]
+      },
+      "contract": {
+        "statement": "action != allow while the evidence observes a date outside the one the question named"
+      },
+      "observed_note": "Was ALLOW returning 668 with attrs observed_date=2026-07-03 for a question about 01/07, whose true answer is 581 — 87 listings off, and the evidence label openly contradicted the question. Every snapshot differs (581/670/668 listings; max price 2,959,200 on 01/07 vs 3,033,180 later), so latest-snapshot substitution is a wrong answer, not a defensible default. Templates are unchanged; answering a named past date needs a date-parameterised plan, which is P4 synthesizer scope.",
+      "fixed_in": "P1 §4.4 date point coverage",
+      "fixed_at": "2026-08-01"
+    },
+    {
       "id": "p0-plurality-top-k",
       "kind": "red",
       "question": "Những sản phẩm nào có giá cao nhất tại VN?",
