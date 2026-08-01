@@ -34,7 +34,12 @@
       },
       "observed_note": "Clarifies for a different reason than the disputed premise: it asks for a country because the metric is monetary, not because the listing is a not-for-sale gift. Safe today, but the guard rail is what P0 locks — not the reason string.",
       "fixed_in": null,
-      "fixed_at": null
+      "fixed_at": null,
+      "expected_action": "clarify",
+      "allowed_rule_ids": [
+        "A-ANALYTICAL-AMBIGUITY"
+      ],
+      "forbidden_answer_tokens": []
     },
     {
       "id": "p0-tc23-voucher-oracle",
@@ -93,7 +98,12 @@
       },
       "observed_note": "Correct today. Locked because dr2607_tc23 pins 1580 (sum over all three snapshots) while the runtime answers 577 (latest snapshot, deduped); a reviewer comparing only those two numbers would wrongly flag this case.",
       "fixed_in": null,
-      "fixed_at": null
+      "fixed_at": null,
+      "expected_action": "allow",
+      "allowed_rule_ids": [
+        "A22-ALIGN-SUBREQUEST"
+      ],
+      "forbidden_answer_tokens": []
     },
     {
       "id": "p0-tc34-date-window-narrowing",
@@ -130,7 +140,14 @@
       },
       "observed_note": "FIXED in P1 by the date_range_narrowed issue (A22-ALIGN-DATE). AnalyticsTools.sales_decline still returns the trailing leg — the tool is unchanged — but the digest now carries the asked window (parser.extract_date_range) and the evidence gate blocks an answer whose span does not match. Computing the true window delta (+11) needs TemporalCompare over a chosen date pair and belongs to the synthesizer/decomposer, not to a certified macro. Verified: TC34 is the only question in the whole eval corpus that names a date window, so the run_evaluation.py:50 codependency is not triggered by this change.",
       "fixed_in": "P1 §4.4 temporal window coverage",
-      "fixed_at": "2026-07-31"
+      "fixed_at": "2026-07-31",
+      "expected_action": "clarify",
+      "allowed_rule_ids": [
+        "A22-ALIGN-DATE"
+      ],
+      "forbidden_answer_tokens": [
+        "không phải bằng chứng nhân quả"
+      ]
     },
     {
       "id": "p0-gap-item-42955556831",
@@ -164,7 +181,12 @@
       },
       "observed_note": "This is the fixture DR TASK 1407 should have used for tc34. transition_metric_eligible=False because 02/07 is absent. The trap for a later fix: monthly_sold is flat 4000→4000 across the gap, so computing the delta anyway yields a confident 0 that reads as 'no decline'. The guard rail forbids emitting the metric at all, not merely a non-zero value.",
       "fixed_in": null,
-      "fixed_at": null
+      "fixed_at": null,
+      "expected_action": "abstain",
+      "allowed_rule_ids": [
+        "A-NO-EVIDENCE"
+      ],
+      "forbidden_answer_tokens": []
     },
     {
       "id": "p0-scope-dropped-vn-id",
@@ -209,7 +231,28 @@
       },
       "observed_note": "FIXED in P1 by the country_dropped issue in check_evidence_alignment (A22-ALIGN-COUNTRY): the plan still builds vn-only — plan_id 'analytical:listing_count:vn:1.0' is unchanged — but the silent half-answer is now blocked at the evidence-alignment gate and turned into a clarify. Answering both markets properly needs union_scope composition and belongs to the decomposer (§8.6), not here. Ground truth vn=668, id=474.",
       "fixed_in": "P1 §4.4 evidence scope coverage",
-      "fixed_at": "2026-07-31"
+      "fixed_at": "2026-07-31",
+      "expected_action": "clarify",
+      "allowed_rule_ids": [
+        "A22-ALIGN-COUNTRY"
+      ],
+      "expected_plan_properties": {
+        "countries": [
+          "vn",
+          "id"
+        ],
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "metric_refs": [
+          "derived.product_count"
+        ],
+        "aggregation": "count",
+        "group_by": [],
+        "output_shape_kind": "scalar"
+      },
+      "forbidden_answer_tokens": [
+        "Thị trường VN"
+      ]
     },
     {
       "id": "p0-grouping-dropped-official-shop",
@@ -253,7 +296,27 @@
       },
       "observed_note": "Was ALLOW returning 668 — the unfiltered VN total — for a question whose true answer is 465 (203-listing overcount). Two sibling questions ('thương hiệu NESCAFÉ', 'theo từng shop') returned the same 668, which is what makes this a silent wrong answer rather than an imprecise one. The plan is unchanged; the grouping_dropped check in check_plan_alignment blocks it. Answering properly needs a group-by/filter the listing_count template does not have, which is P4 synthesizer scope. Note answer_absent pins '668' so a regression that re-allows the wrong number fails here even if the rule_id changes.",
       "fixed_in": "P1 §4.4 grouping coverage",
-      "fixed_at": "2026-08-01"
+      "fixed_at": "2026-08-01",
+      "expected_action": "clarify",
+      "allowed_rule_ids": [
+        "A22-ALIGN-GROUPING"
+      ],
+      "expected_plan_properties": {
+        "countries": [
+          "vn"
+        ],
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "metric_refs": [
+          "derived.product_count"
+        ],
+        "aggregation": "count",
+        "group_by": [],
+        "output_shape_kind": "table"
+      },
+      "forbidden_answer_tokens": [
+        "668"
+      ]
     },
     {
       "id": "p0-date-point-substituted",
@@ -308,7 +371,28 @@
       },
       "observed_note": "Full arc. Originally ALLOW returning 668 with attrs observed_date=2026-07-03 for a question about 01/07 whose true answer is 581 — 87 listings off, with the evidence label openly contradicting the question. P1 made it clarify. §5 synthesizer now answers 581 from the 01/07 snapshot. Wiring it also exposed a second bug: AnalyticsTools fell back to a hard-coded '2026-07-03' for observed_date whenever the result had no date column, so a correct 01/07 plan still labelled its evidence 03/07 and tripped its own A22-ALIGN-DATE guard. That fallback now reads plan.time_scope. answer_absent pins both the old number and the wrong snapshot label.",
       "fixed_in": "§5 synthesizer on the analytical_query branch + observed_date from plan.time_scope",
-      "fixed_at": "2026-08-01"
+      "fixed_at": "2026-08-01",
+      "expected_action": "allow",
+      "allowed_rule_ids": [
+        "A-ALLOW"
+      ],
+      "expected_plan_properties": {
+        "countries": [
+          "vn"
+        ],
+        "date_start": "2026-07-01",
+        "date_end": "2026-07-01",
+        "metric_refs": [
+          "derived.product_count"
+        ],
+        "aggregation": "count",
+        "group_by": [],
+        "output_shape_kind": "table"
+      },
+      "forbidden_answer_tokens": [
+        "668",
+        "snapshot 2026-07-03"
+      ]
     },
     {
       "id": "p0-rank-direction-inverted",
@@ -372,7 +456,30 @@
       },
       "observed_note": "Full arc of this case. Originally ALLOW returning 3.033.180 (the maximum) for a minimum question, ~3000x off, under a sentence reading 'Listing có giá cao nhất là'. P1 first made it abstain by requiring direction=='desc' before matching a template — safer, but the system simply stopped answering. §5 DeterministicPlanSynthesizer now answers it correctly with 1.000, and the superlative in the answer follows the plan's real sort order instead of being hard-coded. answer_absent still pins the old wrong number and the old wrong wording, so either regression is caught.",
       "fixed_in": "§5 DeterministicPlanSynthesizer + direction-aware wording",
-      "fixed_at": "2026-08-01"
+      "fixed_at": "2026-08-01",
+      "expected_action": "allow",
+      "allowed_rule_ids": [
+        "A-ALLOW"
+      ],
+      "expected_plan_properties": {
+        "countries": [
+          "vn"
+        ],
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "metric_refs": [
+          "measure.price"
+        ],
+        "aggregation": "median",
+        "group_by": [
+          "dim.product_name"
+        ],
+        "output_shape_kind": "ranking"
+      },
+      "forbidden_answer_tokens": [
+        "3033180",
+        "giá cao nhất"
+      ]
     },
     {
       "id": "p0-plurality-top-k",
@@ -506,7 +613,29 @@
       },
       "observed_note": "FIXED. Three sites had to move together. (1) DeterministicSemanticParser hard-coded AnalyticalRanking.top_k=1, so a plural question produced a top-1 plan; _requested_top_k now reads 'top N' and a narrow set of plural markers, deliberately excluding 'các X' used as a grouping domain so 'trung bình của các sản phẩm' stays scalar. (2) The synthesizer builds the Rank with the requested limit instead of 1. (3) The answer formatter routes multi-row results to the row renderer -- before that, by_metric kept only the last row and would have shown one listing as the whole answer. Now returns 5 distinct listings with 10 evidence and 10 claims. answer_absent pins the singular sentence so a collapse back to top-1 is caught.",
       "fixed_in": "parser top_k + synthesizer limit + multi-row renderer",
-      "fixed_at": "2026-08-01"
+      "fixed_at": "2026-08-01",
+      "expected_action": "allow",
+      "allowed_rule_ids": [
+        "A-ALLOW"
+      ],
+      "expected_plan_properties": {
+        "countries": [
+          "vn"
+        ],
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "metric_refs": [
+          "measure.price"
+        ],
+        "aggregation": "median",
+        "group_by": [
+          "dim.product_name"
+        ],
+        "output_shape_kind": "ranking"
+      },
+      "forbidden_answer_tokens": [
+        "Listing có giá cao nhất là"
+      ]
     }
   ]
 }

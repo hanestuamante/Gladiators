@@ -46,6 +46,38 @@ from .alignment import (
 from .context import BUDGETS, ContextBundle, guarded_evidence_payload, request_digest
 
 
+def _plan_properties(plan, request: StructuredRequest) -> dict[str, Any]:
+    """Structural summary of a plan for the §4.9 plan-oracle layer.
+
+    Deliberately shape only -- refs, aggregation, grouping, scope, output kind.
+    No values: an oracle that pinned numbers here would be an answer key, and the
+    point of this layer is to catch a plan that reaches a right-looking number
+    the wrong way.
+    """
+    analytical = request.analytical or {}
+    time_scope = [str(date) for date in getattr(plan, "time_scope", ()) or ()]
+    aggregations = [node.aggregation for node in plan.nodes if node.aggregation]
+    group_by = sorted({ref for node in plan.nodes for ref in node.group_by})
+    filters = sorted({
+        predicate.ref for node in plan.nodes for predicate in node.predicates
+    })
+    metric_refs = sorted({
+        field.semantic_ref for field in plan.requested_output_shape
+        if field.semantic_ref and field.semantic_ref.split(".")[0] in {"measure", "derived"}
+    })
+    return {
+        "countries": list(request.countries),
+        "date_start": time_scope[0] if time_scope else None,
+        "date_end": time_scope[-1] if time_scope else None,
+        "metric_refs": metric_refs,
+        "aggregation": aggregations[-1] if aggregations else None,
+        "group_by": group_by,
+        "output_shape_kind": analytical.get("requested_output_shape"),
+        "filters": filters,
+        "entity_count": len(request.entities),
+    }
+
+
 @dataclass(frozen=True)
 class ConfidenceInputs:
     evidence_count: int
@@ -906,6 +938,12 @@ class AgentRuntime:
             if decision.action == "allow" and logical_plan is not None:
                 alignment = check_plan_alignment(digest, logical_plan)
                 planning_meta["semantic_refs"] = list(plan_refs(logical_plan))
+                # §4.9 layer 2: the plan oracle compares structure, not prose, so
+                # the structure has to be readable from the trace. ALLOW+VERIFIED
+                # is not a pass if the plan itself was the wrong shape.
+                planning_meta["plan_properties"] = _plan_properties(
+                    logical_plan, request,
+                )
                 planning_meta["alignment"] = alignment.as_dict()
                 if not alignment.aligned:
                     decision = GateDecision(
