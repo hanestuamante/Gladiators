@@ -12,13 +12,23 @@ from gladiators.agent.context import ContextBundle
 
 from .analytical import build_analytical_plan, infer_deterministic_template
 from .synthesizer import synthesize
-from .query_ir import LogicalQueryPlan
+from .query_ir import CARDINALITY_GRAMMAR, LogicalQueryPlan
 from .semantic_parser import AnalyticalRequest, CatalogSlicer
 from .validator import PlanIssue, validate_plan
 
 
 class OpenPlannerError(ValueError):
-    pass
+    """Planning failure with a UI-safe message and machine detail kept apart.
+
+    §4.3/§4.4: schema errors must not reach the UI.  ``str(exc)`` used to carry
+    the raw pydantic text ("1 validation error for LogicalQueryPlan nodes.0...")
+    straight into the answer a user reads.  The structured issues stay on
+    ``.issues`` for the trace and the bounded repair loop.
+    """
+
+    def __init__(self, message: str, issues: tuple[dict[str, Any], ...] = ()):
+        super().__init__(message)
+        self.issues = issues
 
 
 @dataclass(frozen=True)
@@ -165,6 +175,12 @@ class OpenAnalyticalPlanner:
                 "ir_version": "1.0", "semantic_refs_only": True,
                 "allowed_dates": ["2026-07-01", "2026-07-02", "2026-07-03"],
                 "max_nodes": 12, "max_depth": 6, "max_subplans": 4,
+                # §4.3: the prompt states the same grammar the validator enforces.
+                "expected_cardinality_grammar": CARDINALITY_GRAMMAR,
+                "expected_cardinality_note": (
+                    "Dùng số chính xác ('1') hoặc bound ('<=5'). Alias số nhiều chỉ hợp lệ "
+                    "khi node khai limit; không tự đặt bound khi chưa biết số dòng."
+                ),
                 "country": country, "repair_limit": 1,
             },
         }
@@ -199,5 +215,13 @@ class OpenAnalyticalPlanner:
                     context=context_bundle.trace_summary() if context_bundle else None,
                 )
             feedback = issues
-        summary = "; ".join(f"{item['code']}: {item['message']}" for item in feedback[:5])
-        raise OpenPlannerError(f"Plan không hợp lệ sau 1 vòng repair: {summary}")
+        # Codes only in the message: they are a closed, reviewed vocabulary. The
+        # free-text detail (which can embed a raw schema dump) stays on .issues
+        # for the trace, never in the sentence a user reads.
+        codes = sorted({str(item.get("code", "unknown")) for item in feedback})
+        raise OpenPlannerError(
+            "Không lập được plan hợp lệ sau một vòng sửa có ràng buộc"
+            + (f" ({', '.join(codes)})" if codes else "")
+            + ".",
+            issues=tuple(feedback),
+        )

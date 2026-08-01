@@ -12,7 +12,17 @@ Op = Literal[
 ]
 PredicateOp = Literal["eq", "ne", "lt", "lte", "gt", "gte", "in", "contains"]
 Aggregation = Literal["count", "sum", "mean", "median", "min", "max", "share"]
-_CARDINALITY = re.compile(r"^(<=)?\d+$")
+# §4.3: one grammar, shared by the model, the planner prompt and the validator
+# feedback, so a plan is never rejected against a rule the prompt never stated.
+CARDINALITY_GRAMMAR = r"^(<=)?\d+$"
+_CARDINALITY = re.compile(CARDINALITY_GRAMMAR)
+
+# Words models reach for instead of a bound. "single" has an exact meaning; the
+# plural aliases only do once the node states a limit, and are otherwise left
+# alone so the field validator rejects them into a bounded repair. Coercing them
+# to something like "<=10000" would invent a bound the plan never justified.
+_CARDINALITY_EXACT_ALIASES = {"single": "1", "one": "1", "scalar": "1"}
+_CARDINALITY_BOUNDED_ALIASES = frozenset({"many", "multiple", "list", "several"})
 
 
 class Predicate(BaseModel):
@@ -66,6 +76,9 @@ class PlanNode(BaseModel):
     units: tuple[str, ...] = ()
     expected_schema: tuple[OutputField, ...]
     expected_cardinality: str
+    # Set only when an alias was resolved, so planning meta can report
+    # original/normalized/coerced without a side channel (§4.3).
+    original_cardinality: str | None = None
     dedupe_policy: str | None = None
     invariants: tuple[str, ...] = ()
     evidence_emission: EvidenceEmission = Field(default_factory=EvidenceEmission)
@@ -79,13 +92,47 @@ class PlanNode(BaseModel):
             raise ValueError("node_id rỗng")
         return value
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_cardinality(cls, data: Any) -> Any:
+        """Resolve the aliases a model reaches for, and only where they are exact.
+
+        ``single`` means one row whatever the node does.  ``many`` only carries a
+        bound when the node states a ``limit``; without one it is left untouched
+        so :meth:`valid_cardinality` rejects it and the planner gets a structured
+        issue to repair.  §4.3 forbids inventing a bound such as ``<=10000``,
+        because that turns "I don't know how many" into a contract the executor
+        will happily enforce against nothing.
+        """
+        if not isinstance(data, dict):
+            return data
+        raw = data.get("expected_cardinality")
+        if not isinstance(raw, str):
+            return data
+        token = raw.strip().lower()
+        resolved: str | None = _CARDINALITY_EXACT_ALIASES.get(token)
+        if resolved is None and token in _CARDINALITY_BOUNDED_ALIASES:
+            limit = data.get("limit")
+            if isinstance(limit, int) and limit >= 1:
+                resolved = f"<={limit}"
+        if resolved is not None and resolved != raw:
+            data = {**data, "expected_cardinality": resolved, "original_cardinality": raw}
+        return data
+
     @field_validator("expected_cardinality")
     @classmethod
     def valid_cardinality(cls, value: str) -> str:
         """Output cardinality is enforced; intermediate values remain estimates."""
         normalized = value.strip()
         if not _CARDINALITY.fullmatch(normalized):
-            raise ValueError(f"expected_cardinality sai định dạng: {value!r}")
+            # Message is contract text, not a schema dump: it names the grammar
+            # the prompt was given so a repair has something actionable, and it
+            # never reaches the UI (workflow maps this to a structured issue).
+            raise ValueError(
+                f"expected_cardinality phải khớp {CARDINALITY_GRAMMAR} "
+                f"(ví dụ '1' hoặc '<=5'); nhận được {value!r}. "
+                "Alias số nhiều chỉ hợp lệ khi node khai limit."
+            )
         return normalized
 
 

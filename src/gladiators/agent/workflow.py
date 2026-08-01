@@ -777,6 +777,18 @@ class AgentRuntime:
                         "risk_score": risk.score, "requested_escalation": risk.requested_mode,
                         "escalation_mode": risk.effective_mode,
                         "risk_factors": [factor.__dict__ for factor in risk.factors],
+                        # §4.3: an alias the model used and we resolved is a fact
+                        # about the plan, so it is reported rather than hidden.
+                        "cardinality_coercions": [
+                            {
+                                "node_id": node.node_id,
+                                "original_cardinality": node.original_cardinality,
+                                "normalized_cardinality": node.expected_cardinality,
+                                "cardinality_coerced": True,
+                            }
+                            for node in logical_plan.nodes
+                            if node.original_cardinality is not None
+                        ],
                     }
                     if planner_result:
                         planning_meta.update(
