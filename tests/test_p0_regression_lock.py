@@ -301,6 +301,16 @@ def test_named_date_must_not_be_substituted_by_the_latest_snapshot(responses):
     assert str(by_date["2026-07-03"]["listing_count"]) not in response.answer
 
 
+@contract_test("p0-rank-direction-inverted")
+def test_ascending_ranking_must_not_be_answered_by_a_descending_template(responses):
+    response = responses["p0-rank-direction-inverted"]
+    oracle = ORACLE["p0_rank_direction_vn"]["value"]
+    # ~3000x apart, so an inverted answer can never be mistaken for a near miss.
+    assert oracle["max_price"] > oracle["min_price"] * 1000
+    assert response.gate.action != "allow"
+    assert str(int(oracle["max_price"])) not in response.answer
+
+
 # ------------------------------------------------------------ red contracts --
 
 

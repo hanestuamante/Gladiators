@@ -255,6 +255,37 @@
       "fixed_at": "2026-08-01"
     },
     {
+      "id": "p0-rank-direction-inverted",
+      "kind": "guard_rail",
+      "question": "Sản phẩm nào có giá thấp nhất tại VN?",
+      "dr2607_id": null,
+      "source": "authored P1 — phát hiện khi quét ALLOW-sai theo họ ràng buộc",
+      "spec_ref": "docs/ultimate solution.md §4.4 — output shape/ranking phải khớp câu hỏi",
+      "oracle_ref": "eval/independent/p0_probe_expected.json#p0_rank_direction_vn",
+      "dr1_status": null,
+      "expected_state": "green",
+      "red_reason": null,
+      "baseline": {
+        "action": "abstain",
+        "rule_id": "A19-PLAN",
+        "request_countries": ["vn"],
+        "planning": {
+          "mode": "blocked",
+          "a19_rule": "A19-PLAN"
+        },
+        "evidence": [],
+        "n_claims": 0,
+        "answer_markers": ["Không thể trả lời chắc chắn"],
+        "answer_absent": ["3033180", "cao nhất"]
+      },
+      "contract": {
+        "statement": "action != allow while no certified ascending-ranking template exists"
+      },
+      "observed_note": "Worst inversion found in P1. The parser read direction='asc' correctly, but infer_deterministic_template only checked `if request.ranking:` and matched the descending highest_price_listing template, returning 3.033.180 — the maximum — when the true minimum is 1.000, roughly 3000x off. The answer sentence still read 'Listing có giá cao nhất là', openly contradicting the question. Fixed by requiring direction == 'desc' before matching any certified template; ascending now falls through to the semantic planner, which is fail-closed offline. answer_absent pins both the wrong number and the wrong wording.",
+      "fixed_in": "P1 ranking direction guard",
+      "fixed_at": "2026-08-01"
+    },
+    {
       "id": "p0-plurality-top-k",
       "kind": "red",
       "question": "Những sản phẩm nào có giá cao nhất tại VN?",

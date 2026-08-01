@@ -194,6 +194,20 @@
     "method_note": "Every snapshot has a different answer: 581/670/668 listings and a max price of 2,959,200 on 01/07 versus 3,033,180 later. Substituting the latest snapshot for a named date is therefore a wrong answer (87 listings off), not a defensible default."
   },
   {
+    "case_id": "p0_rank_direction_vn",
+    "metric": "price_extremes_vn_latest",
+    "value": {
+      "snapshot_date": "2026-07-03",
+      "min_price": 1000.0,
+      "max_price": 3033180.0,
+      "min_price_product": "[Tặng quà đơn từ 129k]Bánh Richy KARO trứng tươi chà bông (Gà/ Phô Mai/ Sữa), HSD 45-90 ngày"
+    },
+    "unit": "local_currency",
+    "grain": "listing",
+    "scope": "country=vn, date=2026-07-03",
+    "method_note": "The ascending answer differs from the descending one by roughly 3000x (1,000 versus 3,033,180), and the answer sentence still read 'Listing có giá cao nhất là', so the output contradicted the question it answered."
+  },
+  {
     "case_id": "p0_tc19_sentinel_ref",
     "metric": "price_sentinel_policy_pending",
     "value": {

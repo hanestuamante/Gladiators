@@ -263,6 +263,32 @@ def build(data_dir: str | Path = "data/processed") -> list[dict]:
         ),
     })
 
+    # ---------------------------------------------------------- rank order --
+    # GUARD RAIL (added P1).  Every certified ranking template is a "highest"
+    # template, and infer_deterministic_template never read ranking.direction,
+    # so an ascending question was answered with the descending result.
+    vn_latest_prices = vn_latest.price_num.dropna()
+    records.append({
+        "case_id": "p0_rank_direction_vn",
+        "metric": "price_extremes_vn_latest",
+        "value": {
+            "snapshot_date": LATEST_SNAPSHOT,
+            "min_price": float(vn_latest_prices.min()),
+            "max_price": float(vn_latest_prices.max()),
+            "min_price_product": str(
+                vn_latest.loc[vn_latest_prices.idxmin()].product_name,
+            ),
+        },
+        "unit": "local_currency",
+        "grain": "listing",
+        "scope": f"country=vn, date={LATEST_SNAPSHOT}",
+        "method_note": (
+            "The ascending answer differs from the descending one by roughly 3000x "
+            "(1,000 versus 3,033,180), and the answer sentence still read 'Listing có "
+            "giá cao nhất là', so the output contradicted the question it answered."
+        ),
+    })
+
     # ------------------------------------------------------------------ tc19 --
     # GUARD RAIL only.  The sentinel policy for this listing is an unapproved
     # DR1 decision, so no expected answer may be pinned (see ultimate solution

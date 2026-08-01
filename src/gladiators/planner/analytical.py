@@ -17,7 +17,13 @@ def infer_deterministic_template(request: AnalyticalRequest) -> str | None:
     measures = {item.ref for item in request.requested_measures if item.ref}
     dimensions = {item.ref for item in request.requested_dimensions if item.ref}
     analytical_dimensions = dimensions - {"dim.country", "dim.date"}
-    if request.ranking:
+    # Every certified ranking template below is a "highest" template: they build
+    # a Rank node with direction desc. Matching one for an ascending request
+    # inverts the answer silently -- "giá thấp nhất tại VN" returned 3.033.180
+    # (the maximum) when the true minimum is 1.000, and the answer sentence still
+    # read "Listing có giá cao nhất là...". Fail through to the semantic planner
+    # instead; there is no certified lowest-N template to fall back on.
+    if request.ranking and request.ranking.direction == "desc":
         if "derived.estimated_recent_revenue" in measures and "dim.date" in dimensions:
             return "highest_revenue_day"
         if "measure.price" in measures and request.requested_grain == "listing":
