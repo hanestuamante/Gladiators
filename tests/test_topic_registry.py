@@ -188,6 +188,22 @@ def test_c7_rejects_inheriting_a_topic_that_does_not_exist():
         _rebuild([_card(inherits=("T99",))])
 
 
+def test_checked_in_topic_projections_match_the_registry():
+    """A hand-edited copy of a card is a second source of truth.
+
+    The drift is invisible until a reviewer signs off against the stale copy, so
+    CI checks it rather than trusting that nobody edited a generated file.
+    """
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "scripts/render_topic_prompts.py", "--check"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_cards_are_frozen():
     card = topics.TOPICS["T1"]
     with pytest.raises((TypeError, ValueError, dataclasses.FrozenInstanceError)):
