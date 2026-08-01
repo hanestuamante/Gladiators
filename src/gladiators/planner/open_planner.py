@@ -48,6 +48,14 @@ def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
         return True
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
     return len(dates) == 1 and dates[0] != LATEST_SNAPSHOT
+    # Grouping is deliberately NOT here yet. The synthesizer builds a correct
+    # per-group plan for "bao nhiêu listing tại VN theo từng shop" and the
+    # executor returns the right ten rows, but the deterministic answer
+    # formatter cannot render a multi-row grouped result, so verification
+    # fail-closes and clarify becomes abstain -- safe, but no better for the
+    # user. Enabling it needs the answer formatter/verifier work that §16 P1
+    # lists last. Until then the A22-ALIGN-GROUPING message is the more useful
+    # outcome because it names the dropped dimension.
 
 
 def _used_refs(plan: LogicalQueryPlan) -> set[str]:

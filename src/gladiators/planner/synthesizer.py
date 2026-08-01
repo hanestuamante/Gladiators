@@ -53,8 +53,42 @@ _TYPE_BY_CATALOG_TYPE = {
 }
 
 
+# Words that restrict a question but that the deterministic parser does not bind
+# into a predicate.  Their presence means the request object is a *lossy* summary
+# of what was asked, so synthesising from it would silently widen the question:
+#
+#   "listing của shop official tại VN"   -> counts for all 20 shops, not the 7 official ones
+#   "Rating theo brand không tồn tại"    -> all 31 brands instead of an empty result
+#
+# The guard is deliberately one-directional: an unrecognised qualifier can only
+# ever make the synthesizer decline, never make it answer. False declines fall
+# through to templates or the planner; a false accept would be a wrong number.
+_UNBOUND_QUALIFIER_MARKERS = (
+    "khong", "chua", "chi rieng", "rieng", "ngoai tru", "tru",
+    "official", "chinh hang", "verified", "da xac minh",
+    "nghi ban", "vacation", "sold out", "het hang",
+)
+
+
 class SynthesisError(ValueError):
     pass
+
+
+def _has_unbound_qualifier(request: AnalyticalRequest) -> bool:
+    """True when the question restricts something the request never bound."""
+    text = f" {request.normalized_question} "
+    bound = {predicate.field_ref for predicate in request.filters}
+    for marker in _UNBOUND_QUALIFIER_MARKERS:
+        if f" {marker} " not in text and not text.rstrip().endswith(f" {marker}"):
+            continue
+        # An "official" question is fine once the parser actually bound the
+        # official-shop dimension as a filter.
+        if marker in {"official", "chinh hang"} and "dim.shop_official" in bound:
+            continue
+        if marker in {"nghi ban", "vacation"} and "dim.shop_vacation" in bound:
+            continue
+        return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -74,9 +108,22 @@ def _sources_of(ref: str) -> set[str]:
 
 
 def _field(ref: str, name: str | None = None) -> OutputField:
+    """Name a projected column the way the compiler and templates already do.
+
+    Dimensions and entities carry their physical column name -- ``entity.shop``
+    is ``shop_id``, not ``shop`` -- because the compiler aliases group-by columns
+    from the catalog mapping and the executor checks the result columns against
+    ``expected_columns`` exactly.  Measures keep the friendly ref suffix
+    (``measure.price`` → ``price``, not ``price_num``), matching the certified
+    templates and the evidence metric names downstream.
+    """
     obj = CATALOG[ref]
+    if name is None:
+        name = ref.split(".")[-1]
+        if obj.kind in {"dimension", "entity"} and obj.physical:
+            name = obj.physical[0].rsplit(".", 1)[1]
     return OutputField(
-        name=name or ref.split(".")[-1],
+        name=name,
         type=_TYPE_BY_CATALOG_TYPE.get(obj.type, "string"),
         semantic_ref=ref,
     )
@@ -108,6 +155,8 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     """Build a plan for the release grammar, or ``None`` when out of grammar."""
     if not country:
         return None  # country is mandatory; cross-market needs the decomposer
+    if _has_unbound_qualifier(request):
+        return None
 
     measures = _bound_refs(request.requested_measures)
     if len(measures) != 1:
