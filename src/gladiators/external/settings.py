@@ -13,12 +13,15 @@ class LiveSearchSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enabled: bool = False
     provider: Literal["tavily"] = "tavily"
-    mode: Literal["cache_only", "record", "live"] = "cache_only"
+    # "replay" serves recorded cassettes only and never reaches the network,
+    # which is what makes live search usable inside a regression suite (§16 P12).
+    mode: Literal["cache_only", "record", "live", "replay"] = "cache_only"
     max_admission: Literal["context_only"] = "context_only"
     max_queries_per_request: int = Field(default=3, ge=1, le=3)
     max_results_per_query: int = Field(default=5, ge=1, le=5)
     daily_query_limit: int = Field(default=150, ge=1)
     cache_dir: str = "data/external_cache"
+    cassette_dir: str = "artifacts/search_cassettes"
     quota_path: str = "artifacts/external_quota.json"
     timeout_s: float = Field(default=10.0, gt=0, le=25)
     total_budget_s: float = Field(default=25.0, gt=0, le=25)

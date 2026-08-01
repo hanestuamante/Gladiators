@@ -40,6 +40,7 @@ from .contracts import (
     card_sort_key,
     sha256_of,
 )
+from .lock import BuildLock
 from .pam import FORMULA_VERSION, PamConfig, score_frame
 
 BUNDLE_FILES = ("pam_scorecard.csv", "insight_cards.jsonl", "insight_evidence.jsonl")
@@ -213,6 +214,7 @@ def write_bundle(
     output_root: str | Path, dataset_version: str, *,
     scorecard: pd.DataFrame, cards: list[InsightCard], evidence: list[InsightEvidence],
     as_of_date: str, source_files: dict[str, str], parameters: dict[str, Any],
+    lock_timeout_s: float = 0.0,
 ) -> Path:
     """Write atomically, or fail loudly. Never overwrite (§12.1)."""
     validate_scorecard(scorecard)
@@ -220,6 +222,23 @@ def write_bundle(
     root = Path(output_root)
     root.mkdir(parents=True, exist_ok=True)
     destination = root / dataset_version
+
+    # §12.1 step 1. Without it two concurrent builds each stage a bundle, each
+    # find the destination absent, and both rename -- so which bundle survives
+    # is decided by a race, and immutability is what everything downstream
+    # trusts. This docstring used to claim the lock existed; it did not.
+    with BuildLock(root, dataset_version, timeout_s=lock_timeout_s):
+        return _write_locked(
+            destination, root, dataset_version, scorecard=scorecard, cards=cards,
+            evidence=evidence, as_of_date=as_of_date, source_files=source_files,
+            parameters=parameters,
+        )
+
+
+def _write_locked(
+    destination: Path, root: Path, dataset_version: str, *,
+    scorecard, cards, evidence, as_of_date, source_files, parameters,
+) -> Path:
 
     ordered_cards = sorted(cards, key=card_sort_key)
     ordered_evidence = sorted(evidence, key=lambda e: (e.insight_id, e.evidence_id))

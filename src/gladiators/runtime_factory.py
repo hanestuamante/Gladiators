@@ -24,6 +24,36 @@ from gladiators.external.registry import build_source_registry
 from gladiators.external.web_extract import WebExtractor
 
 
+SEARCH_CASSETTE_DIR = "artifacts/search_cassettes"
+
+
+def _search_provider(live):
+    """Pick the search provider the configured mode actually implies (§16 P12).
+
+    ``record`` wraps the live provider so every call is saved as a cassette;
+    ``replay`` serves cassettes only and raises on a miss. Before this, the
+    record/replay layer existed and nothing selected it -- the same
+    dark-component problem the shadow wiring fixed for routing, and just as
+    invisible: ``mode=record`` looked configured and recorded nothing.
+    """
+    from gladiators.external.record_replay import (
+        CassetteStore,
+        RecordingSearchProvider,
+        ReplaySearchProvider,
+    )
+
+    mode = getattr(live, "mode", "cache_only")
+    store = CassetteStore(getattr(live, "cassette_dir", SEARCH_CASSETTE_DIR))
+    if mode == "replay":
+        # No live provider is constructed at all, so a miss cannot reach out.
+        return ReplaySearchProvider(store)
+    if mode == "record":
+        return RecordingSearchProvider(TavilyProvider(), store)
+    if mode == "live":
+        return TavilyProvider()
+    return None
+
+
 def create_runtime(provider: str | None = None) -> AgentRuntime:
     load_dotenv()
     selected = provider or os.getenv("GLADIATORS_LLM_PROVIDER", "offline")
@@ -84,7 +114,7 @@ def create_runtime(provider: str | None = None) -> AgentRuntime:
         if llm is None:
             raise RuntimeError("Live search cần LLM cho bounded P5/P6; chọn provider trước khi bật.")
         source = source_registry.require_enabled("live_web_search")
-        provider_adapter = TavilyProvider() if live.mode in {"record", "live"} else None
+        provider_adapter = _search_provider(live)
         cache = ExternalCache(live.cache_dir)
         quota = QuotaGuard(
             live.quota_path, live.daily_query_limit,
