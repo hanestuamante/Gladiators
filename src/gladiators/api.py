@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from gladiators.contracts import AgentResponse
+from gladiators.insights.api import router as insights_router
 from gladiators.runtime_factory import create_runtime
 from gladiators.ui import MVP_UI
 from gladiators.ui_flow import FLOW_UI
@@ -16,6 +17,10 @@ class AskRequest(BaseModel):
 
 app = FastAPI(title="Gladiators V2", version="2.0.0-alpha")
 runtime = create_runtime()
+
+# §12.4: the insight mart is served read-only from a pinned sidecar bundle. It
+# shares this app rather than standing up a second AgentRuntime.
+app.include_router(insights_router)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
