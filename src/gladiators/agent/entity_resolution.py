@@ -1,9 +1,98 @@
+"""Entity resolution with a typed outcome — ultimate solution §4.2."""
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz, process
 
 from gladiators.contracts import Candidate
 from .parser import normalize_text
+
+ResolutionState = Literal["resolved", "not_found", "invalid_extraction", "ambiguous_broad"]
+
+# §4.2 stop lexicon, versioned, covering the groups the spec names: cause, time,
+# price, forecast, negation and competitor. These words carry no product
+# identity, so they must not earn a match on their own -- rapidfuzz WRatio is
+# generous with partial token overlap and scored a nonsense query 0.855 against
+# a listing purely because both contained the negation "không".
+STOP_LEXICON_VERSION = "v1"
+_STOP_TOKENS = frozenset({
+    # negation
+    "khong", "chua", "chang", "no", "not", "tanpa", "bukan",
+    # cause
+    "vi", "sao", "tai", "ly", "do", "nguyen", "nhan", "why", "karena",
+    # time
+    "ngay", "tuan", "thang", "nam", "snapshot", "hom", "qua", "nay", "truoc",
+    "sau", "date", "week", "month", "hari", "minggu", "bulan",
+    # price
+    "gia", "price", "harga", "tien", "dong", "vnd", "idr",
+    # forecast
+    "du", "bao", "doan", "forecast", "ramalan", "prediksi",
+    # competitor / comparison
+    "doi", "thu", "canh", "tranh", "competitor", "pesaing", "so", "voi",
+    "hon", "kem", "compare", "vs",
+    # generic question scaffolding
+    "cua", "la", "co", "cho", "toi", "ban", "hang", "san", "pham", "listing",
+    "bao", "nhieu", "the", "nao", "gi", "which", "what", "product", "produk",
+    "kiem", "tra", "phan", "tich", "danh", "gia", "ton", "tai",
+})
+_MIN_DISTINCTIVE_LEN = 3
+
+
+def distinctive_tokens(normalized: str) -> set[str]:
+    """Tokens that could actually name a product, per the §4.2 stop lexicon."""
+    return {
+        token for token in normalized.split()
+        if len(token) >= _MIN_DISTINCTIVE_LEN and token not in _STOP_TOKENS
+    }
+
+
+@dataclass(frozen=True)
+class ResolutionThresholds:
+    """Typed config, so the numbers live in one reviewable place (§4.2).
+
+    Bootstrap values from the spec; they are meant to be tuned against fixtures
+    rather than guessed again at each call site, and they never appear in a
+    user-facing message.
+    """
+
+    accept_score: float = 0.50
+    min_margin: float = 0.05
+    top_k: int = 3
+
+
+class ResolutionCandidate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    entity_id: str
+    display_name: str
+    shop_name: str | None = None
+    listing_key: str | None = None
+    score: float
+    score_breakdown: dict[str, float] = Field(default_factory=dict)
+
+
+class EntityResolutionResult(BaseModel):
+    """Why resolution ended the way it did, not merely that it failed.
+
+    ``ambiguous()`` used to collapse "nothing extracted", "extracted but nothing
+    matched" and "several equally good matches" into one boolean, so the gate
+    could only ever say the same thing.  Each state now carries a different
+    remedy: a missing span is a parsing problem, a weak top score means the text
+    does not name anything in the catalogue, and a thin margin means the user has
+    to disambiguate.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    state: ResolutionState
+    extracted_text: str
+    normalized_text: str
+    candidates: tuple[ResolutionCandidate, ...] = ()
+    top1_score: float | None = None
+    top2_score: float | None = None
+    margin: float | None = None
+    resolution_source: str = "lexical"
 
 
 class EntityResolver:
@@ -45,6 +134,84 @@ class EntityResolver:
             result.append(Candidate(listing_key=key, product_name=name, lexical_score=lex, semantic_score=dense, final_score=final))
         return sorted(result, key=lambda x: x.final_score, reverse=True)[:limit]
 
+    def classify(
+        self, entity_text: str | None, candidates: list[Candidate] | None = None,
+        thresholds: ResolutionThresholds = ResolutionThresholds(),
+    ) -> EntityResolutionResult:
+        """Resolve into one of four states (§4.2), never a bare boolean.
+
+        Ordering matters and follows the spec: no span at all is ``not_found``;
+        a span that matches nothing convincing is ``invalid_extraction``; a
+        convincing top score that is not convincingly *better* than the runner-up
+        is ``ambiguous_broad``, and carries the top-3 so the question can be put
+        back to the user.  Nothing here ever picks the best-selling listing to
+        break a tie -- §4.2 forbids that, and it would turn "which one did you
+        mean" into a confident wrong answer.
+        """
+        text = (entity_text or "").strip()
+        normalized = normalize_text(text) if text else ""
+        if not text:
+            return EntityResolutionResult(
+                state="not_found", extracted_text="", normalized_text="",
+                resolution_source="no_span",
+            )
+
+        ranked = list(candidates if candidates is not None else self.resolve(text))
+        source = "embedding+lexical" if self.embeddings is not None else "lexical"
+
+        # WRatio is generous with partial token overlap, so a listing that shares
+        # only stop-lexicon words can outrank the products the user actually
+        # named -- "bánh quy Kinh Đô" ranked a NESTLÉ gift item first at 0.855
+        # while the real Kinh Đô listings sat below it. Drop candidates that share
+        # no distinctive token, then rank what is left. Used as a filter rather
+        # than a veto: when the query does name something real, the answer is
+        # "which of these", not "not found".
+        wanted = distinctive_tokens(normalized)
+        by_identifier = text.isdigit() or any(
+            item.listing_key == text for item in ranked[:1]
+        )
+        if wanted and not by_identifier:
+            relevant = [
+                item for item in ranked
+                if wanted & distinctive_tokens(normalize_text(item.product_name))
+            ]
+            if relevant:
+                ranked = relevant
+                source += "+token_filtered"
+            else:
+                ranked = []
+                source += "+no_distinctive_match"
+        top = [
+            ResolutionCandidate(
+                entity_id=item.listing_key, display_name=item.product_name,
+                listing_key=item.listing_key, score=round(item.final_score, 6),
+                score_breakdown={
+                    "lexical": round(item.lexical_score, 6),
+                    **({"semantic": round(item.semantic_score, 6)}
+                       if item.semantic_score is not None else {}),
+                },
+            )
+            for item in ranked[: thresholds.top_k]
+        ]
+        top1 = ranked[0].final_score if ranked else None
+        top2 = ranked[1].final_score if len(ranked) > 1 else None
+        margin = None if top1 is None or top2 is None else round(top1 - top2, 6)
+
+        if top1 is None or top1 < thresholds.accept_score:
+            state: ResolutionState = "invalid_extraction"
+        elif margin is not None and margin < thresholds.min_margin:
+            state = "ambiguous_broad"
+        else:
+            state = "resolved"
+        return EntityResolutionResult(
+            state=state, extracted_text=text, normalized_text=normalized,
+            candidates=tuple(top),
+            top1_score=None if top1 is None else round(top1, 6),
+            top2_score=None if top2 is None else round(top2, 6),
+            margin=margin, resolution_source=source,
+        )
+
     @staticmethod
     def ambiguous(candidates: list[Candidate], threshold: float = .65, margin: float = .05) -> bool:
+        """Legacy boolean kept for callers not yet reading the typed result."""
         return not candidates or candidates[0].final_score < threshold or (len(candidates) > 1 and candidates[0].final_score - candidates[1].final_score < margin)

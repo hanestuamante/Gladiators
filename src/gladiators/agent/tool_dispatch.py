@@ -30,6 +30,9 @@ class ToolContext:
     evidence: list[Evidence] = field(default_factory=list)
     calls: list[ToolCall] = field(default_factory=list)
     logical_plan: object | None = None
+    # §4.2: span, scores and margin belong in the trace; the UI only ever sees
+    # the business message built from the state.
+    entity_resolution: object | None = None
 
 
 ToolHandler = Callable[[ToolContext], None]
@@ -60,16 +63,39 @@ def _resolve_entity(ctx: ToolContext) -> None:
     entity_text = ctx.request.entity_text
     candidates = ctx.resolver.resolve(entity_text) if entity_text else []
     ctx.calls.append(ToolCall(name="resolve_entity", args={"entity_text": entity_text}, status="ok" if candidates else "empty"))
-    if not candidates:
+
+    # §4.2: three distinct failure states, each with its own remedy, instead of
+    # one boolean that could only ever produce one message.
+    result = ctx.resolver.classify(entity_text, candidates)
+    ctx.entity_resolution = result
+    if result.state == "resolved":
+        ctx.resolved_listing_key = result.candidates[0].listing_key
+        return
+    if result.state == "not_found":
         ctx.clarify = GateDecision(
             action="abstain",
             rule_id="A-ENTITY-NOT-FOUND",
             reason="Không tìm thấy listing khớp entity/ID trong artifact hiện tại.",
         )
-    elif ctx.resolver.ambiguous(candidates):
-        ctx.clarify = GateDecision(action="clarify", rule_id="A-AMBIGUOUS", reason="Có nhiều listing gần giống; cần listing key hoặc URL chính xác hơn.")
-    else:
-        ctx.resolved_listing_key = candidates[0].listing_key
+        return
+    if result.state == "invalid_extraction":
+        ctx.clarify = GateDecision(
+            action="abstain",
+            rule_id="A-ENTITY-NOT-FOUND",
+            reason="Không tìm thấy listing nào khớp phần mô tả sản phẩm trong câu hỏi.",
+            answerable_alternative="Hãy nêu listing key, mã sản phẩm hoặc tên đầy đủ hơn.",
+        )
+        return
+    # ambiguous_broad: hand back the shortlist rather than guessing. §4.2 forbids
+    # breaking the tie by picking the best-selling listing, which would turn "which
+    # one did you mean" into a confident wrong answer. Scores stay in the trace;
+    # the message carries names only, and never a threshold.
+    shortlist = "; ".join(item.display_name[:70] for item in result.candidates)
+    ctx.clarify = GateDecision(
+        action="clarify", rule_id="A-AMBIGUOUS",
+        reason=f"Có nhiều listing gần giống nhau: {shortlist}.",
+        answerable_alternative="Hãy chọn một trong các listing trên, hoặc đưa listing key chính xác.",
+    )
 
 
 @tool("get_sales_transitions")
