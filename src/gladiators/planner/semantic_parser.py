@@ -94,6 +94,25 @@ class AnalyticalRequest(BaseModel):
     unsupported_operators: tuple[str, ...] = ()
 
 
+_EXPLICIT_TOP_N = re.compile(r"\btop\s*(\d{1,2})\b")
+# Vietnamese/Indonesian plural markers that ask for a list rather than one row.
+# Deliberately narrow: "cac san pham" as a *grouping domain* ("trung binh cua
+# cac san pham") must stay scalar, so only markers that introduce the ranked
+# subject count. Anything unmatched falls back to top_k=1, the old behaviour.
+_PLURAL_MARKERS = ("nhung ", "liet ke ", "danh sach ", "cac san pham nao", "produk apa saja")
+DEFAULT_PLURAL_TOP_K = 5
+
+
+def _requested_top_k(normalized: str) -> int:
+    """How many rows the question asks for; 1 unless it says otherwise."""
+    explicit = _EXPLICIT_TOP_N.search(normalized)
+    if explicit:
+        return max(1, min(int(explicit.group(1)), 10))  # AnalyticalRanking caps at 10
+    if any(marker in f" {normalized} " for marker in _PLURAL_MARKERS):
+        return DEFAULT_PLURAL_TOP_K
+    return 1
+
+
 class CatalogSlicer:
     def __init__(self, catalog: dict[str, CatalogObject] | None = None):
         self.catalog = catalog or CATALOG
@@ -235,7 +254,10 @@ class DeterministicSemanticParser:
         descending = any(term in normalized for term in ("cao nhat", "nhieu nhat", "lon nhat", "highest", "tertinggi", "top"))
         ascending = any(term in normalized for term in ("thap nhat", "it nhat", "lowest", "terendah"))
         rank_ref = next((item.ref for item in measures if item.ref), None)
-        ranking = AnalyticalRanking(order_by=rank_ref, direction="asc" if ascending else "desc", top_k=1) if rank_ref and (descending or ascending) else None
+        ranking = AnalyticalRanking(
+            order_by=rank_ref, direction="asc" if ascending else "desc",
+            top_k=_requested_top_k(normalized),
+        ) if rank_ref and (descending or ascending) else None
         grouping = tuple(item.ref for item in dimensions if item.ref and item.ref not in {"dim.country"})
         price_change_table = any(
             term in normalized

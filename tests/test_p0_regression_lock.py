@@ -360,12 +360,16 @@ def test_multi_country_scope_must_not_be_dropped(responses):
 @contract_test("p0-plurality-top-k")
 def test_plural_ranking_must_not_collapse_to_top_1(responses):
     response = responses["p0-plurality-top-k"]
-    # Count distinct listings, never len(evidence): this template emits two
-    # Evidence objects (product_name + price) for a single listing.
+    # Count distinct listings, never len(evidence): a single listing emits two
+    # Evidence objects (product_name + price). The certified template carries the
+    # name in attrs while the synthesizer emits it as a metric, so read both --
+    # the property being asserted is unchanged, only the shape it lives in.
     listings = {
         str(item.attrs["product_name"])
         for item in response.evidence
         if item.attrs.get("product_name")
+    } | {
+        str(item.value) for item in response.evidence if item.metric == "product_name"
     }
     assert len(ORACLE["p0_plurality_top_prices"]["value"]["candidates"]) > 1
     assert response.gate.action != "allow" or len(listings) > 1, (

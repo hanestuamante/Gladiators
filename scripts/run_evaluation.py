@@ -9,6 +9,11 @@ from collections import Counter
 from datetime import date
 from pathlib import Path
 
+import sys
+from pathlib import Path as _Path
+
+sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "src"))
+
 from gladiators.agent.llm import FakeLLMClient, GeminiLLMClient, GroqLLMClient, HuggingFaceLLMClient
 from gladiators.agent.verifier import verify_numeric_claims
 from gladiators.agent.workflow import AgentRuntime

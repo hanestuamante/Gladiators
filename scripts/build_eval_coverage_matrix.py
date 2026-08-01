@@ -7,6 +7,11 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import get_args
 
+import sys
+from pathlib import Path as _Path
+
+sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "src"))
+
 from gladiators.domain.catalog import CATALOG
 from gladiators.domain.relations import RELATIONS
 from gladiators.planner.query_ir import Op

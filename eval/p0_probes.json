@@ -383,7 +383,7 @@
       "spec_ref": "docs/ultimate solution.md §4.4 — output_shape_mismatch phải nằm trong alignment contract",
       "oracle_ref": "eval/independent/p0_probe_expected.json#p0_plurality_top_prices",
       "dr1_status": null,
-      "expected_state": "red",
+      "expected_state": "green",
       "red_reason": "ba điểm: analytical.py::_highest_listing hardcode limit=1/expected_cardinality='1'; alignment.py::_shape_issues chỉ kiểm ranking↔có node Rank chứ không kiểm top_k; tools.py lấy result.frame.iloc[0]",
       "baseline": {
         "action": "allow",
@@ -419,20 +419,94 @@
               "country": "vn",
               "observed_date": "2026-07-03"
             }
+          },
+          {
+            "metric": "product_name",
+            "value": "Bộ 4 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 284G",
+            "unit": "dimension",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
+          },
+          {
+            "metric": "price",
+            "value": 2395712.0,
+            "unit": "VND",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
+          },
+          {
+            "metric": "product_name",
+            "value": "Bộ 2 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 567G",
+            "unit": "dimension",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
+          },
+          {
+            "metric": "price",
+            "value": 2044260.0,
+            "unit": "VND",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
+          },
+          {
+            "metric": "product_name",
+            "value": "Bộ 3 Sữa Bột NESTLÉ BOOST OPTIMUM Singapore Bổ Sung Dinh Dưỡng Cho Người Lớn Tuổi 800G",
+            "unit": "dimension",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
+          },
+          {
+            "metric": "price",
+            "value": 1849920.0,
+            "unit": "VND",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
+          },
+          {
+            "metric": "product_name",
+            "value": "Bộ 3 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 284G",
+            "unit": "dimension",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
+          },
+          {
+            "metric": "price",
+            "value": 1832864.0,
+            "unit": "VND",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
           }
         ],
-        "n_claims": 2,
+        "n_claims": 10,
         "answer_markers": [
-          "Listing có giá cao nhất"
+          "Kết quả"
         ],
-        "answer_absent": []
+        "answer_absent": [
+          "Listing có giá cao nhất là"
+        ]
       },
       "contract": {
-        "statement": "action != allow OR more than one distinct listing is returned"
+        "statement": "a plural question returns more than one distinct listing, or is not answered"
       },
-      "observed_note": "Still red, now via the synthesizer instead of the highest_price_listing template. The plan and the number are right; what is still wrong is the cardinality: the deterministic parser hard-codes AnalyticalRanking.top_k=1, so a plural question produces a top-1 plan. The multi-row answer renderer added for grouping means the answer layer could now display several listings — the remaining gap is purely in parsing plurality into top_k, which is the output-shape contract work in P4.",
-      "fixed_in": null,
-      "fixed_at": null
+      "observed_note": "FIXED. Three sites had to move together. (1) DeterministicSemanticParser hard-coded AnalyticalRanking.top_k=1, so a plural question produced a top-1 plan; _requested_top_k now reads 'top N' and a narrow set of plural markers, deliberately excluding 'các X' used as a grouping domain so 'trung bình của các sản phẩm' stays scalar. (2) The synthesizer builds the Rank with the requested limit instead of 1. (3) The answer formatter routes multi-row results to the row renderer -- before that, by_metric kept only the last row and would have shown one listing as the whole answer. Now returns 5 distinct listings with 10 evidence and 10 claims. answer_absent pins the singular sentence so a collapse back to top-1 is caught.",
+      "fixed_in": "parser top_k + synthesizer limit + multi-row renderer",
+      "fixed_at": "2026-08-01"
     }
   ]
 }

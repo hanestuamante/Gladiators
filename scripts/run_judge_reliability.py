@@ -2,6 +2,11 @@
 import argparse, json
 from pathlib import Path
 from sklearn.metrics import accuracy_score, cohen_kappa_score
+import sys
+from pathlib import Path as _Path
+
+sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "src"))
+
 from gladiators.agent.llm import AnthropicLLMClient, FakeLLMClient, GeminiLLMClient, GroqLLMClient, HuggingFaceLLMClient
 
 ap=argparse.ArgumentParser(); ap.add_argument("--provider", choices=["fake","anthropic","gemini","huggingface","groq"], default="fake"); ap.add_argument("--fixture", default="eval/judge_reliability.json"); args=ap.parse_args()
