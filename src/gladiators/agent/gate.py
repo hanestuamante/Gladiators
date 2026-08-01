@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from gladiators.contracts import GateDecision, StructuredRequest
+from gladiators.contracts import GateDecision, GateIssue, IssueDetail, StructuredRequest
 from gladiators.domain.intent_registry import IntentRegistry
 from gladiators.planner.semantic_parser import AnalyticalRequest, classify_a19
 from gladiators.external.router import classify_external_need
@@ -20,6 +20,9 @@ _DEFAULT_COVERAGE = (
     "Dữ liệu nội bộ chỉ quan sát listing tại ba snapshot đầu kỳ hiện hành, "
     "gồm giá, voucher và các proxy lượt bán."
 )
+# §4.5: phase/priority ordering is versioned data, not control flow.
+PHASE_REGISTRY_VERSION = "gate-phases.v1"
+
 CAPABILITY_MESSAGES: dict[str, dict[str, str]] = {
     "profit": _message(
         "Dataset không có giá vốn, phí sàn hay chi phí vận hành nên không tính được lợi nhuận.",
@@ -97,13 +100,58 @@ CAPABILITY_MESSAGES: dict[str, dict[str, str]] = {
 
 
 class ContractDrivenGate:
+    """Phase-based gate — ultimate solution §4.5.
+
+    Every rule below used to ``return`` the moment it matched, so a request with
+    several problems only ever reported the first one and the trace could not
+    show what else was wrong.  Rules now append a :class:`GateIssue` and the
+    decision is chosen from the collected list by priority.
+
+    Priority is deliberately the original evaluation order: the selected rule is
+    identical to what the early-return chain produced, so this refactor changes
+    what is *observable* without changing what is *decided*.  Ordering is now
+    data in ``PHASE_REGISTRY_VERSION`` rather than control flow, which is what
+    makes the §4.5 requirement "country slot must not mask an out-of-scope,
+    rolling-window or fanout issue" expressible at all.
+    """
+
     def decide(self, request: StructuredRequest, registry: IntentRegistry, capabilities: dict[str, object]) -> GateDecision:
+        issues: list[GateIssue] = []
+        phases: list[int] = []
+
+        def add(
+            rule_id: str, phase: int, action: str, reason: str,
+            category: str, code: str, alternative: str | None = None,
+            refs: tuple[str, ...] = (),
+        ) -> None:
+            issues.append(GateIssue(
+                rule_id=rule_id, phase=phase, priority=len(issues) + 1,
+                action=action, reason=reason, answerable_alternative=alternative,
+                detail=IssueDetail(category=category, code=code, semantic_refs=refs),
+            ))
+
+        def decide_from(fallback: GateDecision) -> GateDecision:
+            """Select the highest-priority issue, or fall through to ``fallback``."""
+            if not issues:
+                return fallback.model_copy(update={
+                    "issues": (), "selected_issue_id": None,
+                    "evaluated_phases": tuple(sorted(set(phases))),
+                })
+            chosen = min(issues, key=lambda item: item.priority)
+            return GateDecision(
+                action="abstain" if chosen.action == "block" else chosen.action,
+                rule_id=chosen.rule_id, reason=chosen.reason,
+                answerable_alternative=chosen.answerable_alternative,
+                issues=tuple(issues), selected_issue_id=chosen.rule_id,
+                evaluated_phases=tuple(sorted(set(phases))),
+            )
+
+        # ---- phase 1: capability / out-of-scope / route --------------------
+        phases.append(1)
         route = classify_external_need(str(request.slots.get("raw_text", "")))
         if route.rule_id == "A16-CROSS-CURRENCY":
-            return GateDecision(
-                action="clarify", rule_id=route.rule_id, reason=route.reason,
-                answerable_alternative="Hãy hỏi riêng từng thị trường bằng đơn vị tiền địa phương.",
-            )
+            add(route.rule_id, 1, "clarify", route.reason, "currency", "cross_currency",
+                "Hãy hỏi riêng từng thị trường bằng đơn vị tiền địa phương.")
         if len(request.countries) >= 2 and request.analytical:
             refs = {
                 item.get("ref") for item in request.analytical.get("requested_measures", ())
@@ -113,70 +161,83 @@ class ContractDrivenGate:
                 ref in CATALOG and CATALOG[ref].unit == "local_currency"
                 for ref in refs
             ):
-                return GateDecision(
-                    action="clarify",
-                    rule_id="A16-CROSS-CURRENCY",
-                    reason="Không cộng hoặc so sánh trực tiếp giá trị VND với IDR.",
-                    answerable_alternative="Hãy hỏi riêng từng thị trường bằng đơn vị tiền địa phương.",
-                )
+                add("A16-CROSS-CURRENCY", 4, "clarify",
+                    "Không cộng hoặc so sánh trực tiếp giá trị VND với IDR.",
+                    "currency", "cross_currency_measure",
+                    "Hãy hỏi riêng từng thị trường bằng đơn vị tiền địa phương.",
+                    tuple(sorted(r for r in refs if r)))
         if route.rule_id == "A14-EXT":
-            return GateDecision(
-                action="abstain", rule_id=route.rule_id, reason=route.reason,
-                answerable_alternative="Có thể hỏi giá hoặc doanh thu proxy trong dataset nội bộ theo từng thị trường.",
-            )
+            add(route.rule_id, 1, "abstain", route.reason, "capability", "external_only_variable",
+                "Có thể hỏi giá hoặc doanh thu proxy trong dataset nội bộ theo từng thị trường.")
         if route.mode == "external_only" and request.intent != "external_context":
-            return GateDecision(
-                action="abstain", rule_id="A14-ROUTE-MISMATCH",
-                reason="Parser không bảo toàn live-context route; hệ thống chặn fail-closed thay vì chạy tool nội bộ sai.",
-                answerable_alternative="Hãy thử lại bằng câu hỏi chỉ nêu lịch chiến dịch hoặc sự kiện thị trường.",
-            )
+            add("A14-ROUTE-MISMATCH", 1, "abstain",
+                "Parser không bảo toàn live-context route; hệ thống chặn fail-closed thay vì chạy tool nội bộ sai.",
+                "route", "route_not_preserved",
+                "Hãy thử lại bằng câu hỏi chỉ nêu lịch chiến dịch hoặc sự kiện thị trường.")
         if request.intent.startswith("unsupported:"):
             missing = request.intent.split(":", 1)[1]
             message = CAPABILITY_MESSAGES[missing]
-            return GateDecision(
-                action="abstain",
-                rule_id=f"A-MISSING-{missing.upper()}",
-                reason=" ".join((
-                    message["missing"], message["coverage"], message["answerable"],
-                )),
-                answerable_alternative=message["alternative"],
-            )
+            add(f"A-MISSING-{missing.upper()}", 1, "abstain",
+                " ".join((message["missing"], message["coverage"], message["answerable"])),
+                "capability", f"unsupported_{missing}", message["alternative"])
+            # Terminal capability block: later phases cannot mean anything for a
+            # capability the system does not have (§4.5).
+            return decide_from(GateDecision(action="allow", rule_id="A-ALLOW", reason=""))
+        # ---- phase 2: intent and entity ------------------------------------
+        phases.append(2)
         spec = registry.get(request.intent)
         if spec is None:
-            return GateDecision(action="abstain", rule_id="A-UNKNOWN-INTENT", reason="Intent chưa được đăng ký.")
+            add("A-UNKNOWN-INTENT", 2, "abstain", "Intent chưa được đăng ký.",
+                "capability", "unknown_intent")
+            # Terminal: without a registered spec there are no slots to check.
+            return decide_from(GateDecision(action="allow", rule_id="A-ALLOW", reason=""))
         if request.intent == "external_context":
             if not bool(capabilities.get("live_search_enabled", False)):
-                return GateDecision(
-                    action="abstain", rule_id="A14-LIVE",
-                    reason="Câu hỏi cần live search nhưng cờ `sources.live_search.enabled` hiện đang OFF.",
-                    answerable_alternative="Có thể bật nguồn đã được duyệt rồi hỏi lại; dataset nội bộ không chứa lịch/sự kiện này.",
-                )
-            return GateDecision(action="allow", rule_id="A14-LIVE", reason="Live-search context path đã được bật có điều kiện.")
+                add("A14-LIVE", 2, "abstain",
+                    "Câu hỏi cần live search nhưng cờ `sources.live_search.enabled` hiện đang OFF.",
+                    "capability", "live_search_disabled",
+                    "Có thể bật nguồn đã được duyệt rồi hỏi lại; dataset nội bộ không chứa lịch/sự kiện này.")
+            return decide_from(GateDecision(
+                action="allow", rule_id="A14-LIVE",
+                reason="Live-search context path đã được bật có điều kiện."))
         if request.intent == "open_analytical":
             if not request.analytical:
-                return GateDecision(action="abstain", rule_id="A19-PLAN", reason="Thiếu AnalyticalRequest cho open analytical path.")
+                add("A19-PLAN", 2, "abstain",
+                    "Thiếu AnalyticalRequest cho open analytical path.",
+                    "capability", "missing_analytical")
+                return decide_from(GateDecision(action="allow", rule_id="A-ALLOW", reason=""))
             admission = classify_a19(AnalyticalRequest.model_validate(request.analytical))
             if admission:
                 action, rule_id, reason = admission
-                return GateDecision(action=action, rule_id=rule_id, reason=reason)
+                add(rule_id, 3, action, reason, "grain", "a19_admission")
+        # ---- phase 4: currency ---------------------------------------------
+        phases.append(4)
         if request.intent == "analytical_query" and not request.country:
-            return GateDecision(
-                action="clarify", rule_id="A-CROSS-CURRENCY-SCOPE",
-                reason="Cần chọn thị trường VN hoặc ID để không cộng/so sánh trực tiếp VND với IDR.",
-            )
+            add("A-CROSS-CURRENCY-SCOPE", 4, "clarify",
+                "Cần chọn thị trường VN hoặc ID để không cộng/so sánh trực tiếp VND với IDR.",
+                "currency", "missing_market_scope")
+        # ---- phase 6: missing slot -----------------------------------------
+        # Last on purpose (§4.5): a missing country slot must not mask an
+        # out-of-scope, rolling-window or fanout issue found in an earlier phase.
+        phases.append(6)
         values = {"entity_text": request.entity_text, "country": request.country, **request.slots}
         missing = [slot for slot in spec.required_slots if not values.get(slot)]
         if missing:
-            return GateDecision(action="clarify", rule_id="A-MISSING-SLOT", reason=f"Thiếu thông tin: {', '.join(missing)}")
+            add("A-MISSING-SLOT", 6, "clarify", f"Thiếu thông tin: {', '.join(missing)}",
+                "slot", "missing_required_slot")
         if request.country and request.country not in capabilities["countries"]:
-            return GateDecision(action="abstain", rule_id="A-COUNTRY", reason=f"Không có dữ liệu cho quốc gia {request.country}.")
+            add("A-COUNTRY", 6, "abstain", f"Không có dữ liệu cho quốc gia {request.country}.",
+                "capability", "country_absent")
         if request.intent == "promotion_effectiveness" and request.country == "id" and capabilities["voucher_structured_by_country"].get("id", 0) == 0:
-            return GateDecision(action="abstain", rule_id="A-VOUCHER-ID", reason="Indonesia không có voucher structured để so sánh.")
+            add("A-VOUCHER-ID", 6, "abstain", "Indonesia không có voucher structured để so sánh.",
+                "capability", "voucher_absent_market")
         if route.mode == "hybrid":
             if bool(capabilities.get("live_search_enabled", False)):
-                return GateDecision(action="allow", rule_id="A14-HYBRID", reason="Chạy internal analytics trước, sau đó bổ sung external context độc lập.")
-            return GateDecision(
+                return decide_from(GateDecision(
+                    action="allow", rule_id="A14-HYBRID",
+                    reason="Chạy internal analytics trước, sau đó bổ sung external context độc lập."))
+            return decide_from(GateDecision(
                 action="allow", rule_id="A14-HYBRID-PARTIAL",
-                reason="Internal path khả dụng; `sources.live_search.enabled` đang OFF nên chỉ trả phần nội bộ kèm limitation.",
-            )
-        return GateDecision(action="allow", rule_id="A-ALLOW", reason="Contract và slot đáp ứng yêu cầu.")
+                reason="Internal path khả dụng; `sources.live_search.enabled` đang OFF nên chỉ trả phần nội bộ kèm limitation."))
+        return decide_from(GateDecision(
+            action="allow", rule_id="A-ALLOW", reason="Contract và slot đáp ứng yêu cầu."))

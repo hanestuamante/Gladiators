@@ -51,11 +51,39 @@ class Candidate(BaseModel):
     final_score: float
 
 
+class IssueDetail(BaseModel):
+    """What kind of problem a gate rule found — ultimate solution §4.5."""
+
+    model_config = ConfigDict(extra="forbid")
+    category: Literal[
+        "capability", "entity", "grain", "fanout",
+        "currency", "alignment", "security", "slot", "route",
+    ]
+    code: str
+    semantic_refs: tuple[str, ...] = ()
+
+
+class GateIssue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    rule_id: str
+    phase: int
+    priority: int
+    action: Literal["clarify", "abstain", "block"]
+    reason: str
+    answerable_alternative: str | None = None
+    detail: IssueDetail
+
+
 class GateDecision(BaseModel):
     action: Literal["allow", "clarify", "abstain"]
     rule_id: str
     reason: str
     answerable_alternative: str | None = None
+    # §4.5: a phase collects every issue before one is selected, so the trace
+    # shows what else was wrong rather than only the first rule that fired.
+    issues: tuple[GateIssue, ...] = ()
+    selected_issue_id: str | None = None
+    evaluated_phases: tuple[int, ...] = ()
 
 
 class Evidence(BaseModel):
