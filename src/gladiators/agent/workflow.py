@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from gladiators.analytics import AnalyticsTools
 from gladiators.contracts import AgentResponse, Evidence, GateDecision, ResponseClaim, StructuredRequest, ToolCall
 from gladiators.data.repository import ArtifactRepository
+from gladiators.domain.capability import match, specs_from_macros
 from gladiators.domain.intent_registry import default_registry
 from gladiators.planner.macros import default_macro_registry
 from gladiators.planner.analytical import AnalyticalPlanError, build_analytical_plan, infer_deterministic_template
@@ -176,6 +177,8 @@ class AgentRuntime:
         self.repo = ArtifactRepository(data_dir)
         self.registry = default_registry()
         self.macros = default_macro_registry()
+        # §3.5: derived from the macro registry, never a second hand-written list.
+        self.capabilities = specs_from_macros(self.macros)
         self.enable_gate, self.enable_verifier = enable_gate, enable_verifier
         self.llm_client = llm_client
         self.enable_critic = os.getenv("GLADIATORS_ENABLE_CRITIC") == "1" if enable_critic is None else enable_critic
@@ -200,6 +203,20 @@ class AgentRuntime:
         dense = BGEIndex() if os.getenv("GLADIATORS_ENABLE_BGE") == "1" else None
         self.resolver = EntityResolver(self.repo.products, embeddings=dense)
         self.traces = TraceStore(trace_dir)
+
+    def _capability_serves(self, capability_id: str, request: StructuredRequest) -> bool:
+        """Does this capability's contract actually cover the request (§3.5)?
+
+        Unknown capability ids pass through: only a *certified* macro claiming a
+        request it cannot serve is the failure mode here.
+        """
+        spec = next(
+            (item for item in self.capabilities if item.capability_id == capability_id),
+            None,
+        )
+        if spec is None:
+            return True
+        return match(request_digest(request), spec).eligible
 
     def _parse(self, user_text: str) -> tuple[StructuredRequest, dict[str, Any]]:
         meta = {"provider": "deterministic", "parse_fallback": False, "parse_attempts": 0}
@@ -233,23 +250,20 @@ class AgentRuntime:
                 elif parsed.intent.startswith("unsupported:") and (parsed.intent.split(":", 1)[1] not in UNSUPPORTED or self.registry.get(deterministic.intent) is not None):
                     parsed = parsed.model_copy(update={"intent": deterministic.intent}); adjustments.append("unsupported_taxonomy_normalized")
                 elif (
-                    deterministic.intent in {"analytical_query", "open_analytical"}
-                    and parsed.intent != deterministic.intent
+                    parsed.intent != deterministic.intent
                     and self.macros.get(parsed.intent) is not None
-                    and any(
-                        item.get("ref") for item in
-                        (deterministic.analytical or {}).get("requested_measures", ())
-                    )
+                    and not self._capability_serves(parsed.intent, deterministic)
                 ):
-                    # §3.6 A-CAPABILITY-MISS: a question whose measure the semantic
-                    # parser bound belongs on the analytical path. Letting P1 route
-                    # it to a descriptive macro answers a different question --
-                    # DeepSeek labelled "Có bao nhiêu listing ở VN?" as
-                    # dataset_coverage, which replies "no listing evidence, the
-                    # data covers 01-03/07" for a question the analytical path
-                    # answers with 668.
+                    # §3.5/§3.6: a macro may only take a request whose semantic
+                    # contract it actually satisfies. The label P1 chose is not
+                    # evidence of that -- DeepSeek labelled "Có bao nhiêu listing
+                    # ở VN?" as dataset_coverage, whose certified shape cannot
+                    # produce a scalar count, and the macro duly answered a
+                    # different question. The matcher decides on the contract,
+                    # so the check is about capability rather than about which
+                    # intent names happen to be involved.
                     parsed = parsed.model_copy(update={"intent": deterministic.intent})
-                    adjustments.append("analytical_capability_precedence")
+                    adjustments.append("capability_contract_precedence")
                 spec = self.registry.get(parsed.intent)
                 if spec:
                     updates = {}
