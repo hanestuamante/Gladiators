@@ -76,6 +76,10 @@ def test_capability_probe_still_reports_missing_methods():
 
 
 def test_deepseek_client_requires_key_and_explicit_model(monkeypatch):
+    # The client calls load_dotenv() itself, which would repopulate whatever we
+    # delete here from a developer's real .env. Neutralise it so the test asserts
+    # the guard rather than the machine it runs on.
+    monkeypatch.setattr("gladiators.agent.llm.load_dotenv", lambda *a, **k: False)
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     with pytest.raises(RuntimeError, match="DEEPSEEK_API_KEY"):
         DeepSeekLLMClient()

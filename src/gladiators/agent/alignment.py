@@ -249,6 +249,18 @@ def check_evidence_alignment(
     return AlignmentVerdict(not issues, tuple(issues))
 
 
+def _country_codes(value: str) -> set[str]:
+    """Expand an evidence country attribute into the codes it actually covers.
+
+    Cross-market macros label their scope compositely -- ``"vn+id"`` and
+    ``"vn+id_separate_nonmonetary"`` both mean *both* markets.  Comparing those
+    strings to a digest of ``("vn",)`` made the country coverage check report a
+    dropped scope for a question that was fully answered (found by the DeepSeek
+    smoke test; offline the LLM parser never routed here).
+    """
+    return {part for part in value.replace("_", "+").split("+") if len(part) == 2}
+
+
 def _scope_issues(
     digest: RequestDigest, evidence: list[Evidence],
 ) -> list[AlignmentIssue]:
@@ -267,7 +279,9 @@ def _scope_issues(
     # judged when the evidence carries country attributes at all -- otherwise the
     # producer has no way to express scope and there is nothing to compare.
     covered_countries = {
-        str(item.attrs["country"]) for item in evidence if item.attrs.get("country")
+        code
+        for item in evidence if item.attrs.get("country")
+        for code in _country_codes(str(item.attrs["country"]))
     }
     if digest.countries and covered_countries:
         dropped = tuple(sorted(set(digest.countries) - covered_countries))

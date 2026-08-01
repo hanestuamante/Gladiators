@@ -14,6 +14,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from gladiators.contracts import Evidence, StructuredRequest
 from gladiators.external.injection_guard import sanitize_internal_text
 
+from .parser import normalize_date_range
+
 Stage = Literal["parse", "plan", "critic", "alternate", "adjudicate", "generate", "extract"]
 
 BUDGETS: dict[tuple[Stage, str], int] = {
@@ -137,7 +139,7 @@ def request_digest(request: StructuredRequest) -> RequestDigest:
         requested_dimensions=refs("requested_dimensions"),
         requested_output_shape=str(analytical.get("requested_output_shape") or "table"),
         qualifiers=tuple(str(x) for x in request.slots.get("qualifiers", ())),
-        date_range=tuple(str(x) for x in request.date_range),
+        date_range=tuple(normalize_date_range(request.date_range)),
         sub_request_ids=tuple(
             str(item.get("sub_id")) for item in request.slots.get("sub_requests", ())
             if isinstance(item, dict) and item.get("sub_id")

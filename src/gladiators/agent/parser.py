@@ -36,6 +36,18 @@ def extract_date_range(normalized: str) -> list[str]:
     return [ordered[0], ordered[-1]] if ordered else []
 
 
+def normalize_date_range(values) -> list[str]:
+    """Canonicalise a date range coming from *any* parser into ``[start, end]``.
+
+    The deterministic parser already emits ISO dates, but the LLM parser fills
+    ``StructuredRequest.date_range`` with whatever the model echoed -- e.g.
+    ``["01/07"]``.  Left raw, that is neither ISO nor length-2, so every
+    downstream date check silently no-ops and A22-ALIGN-DATE protects only the
+    deterministic path.  Found by the DeepSeek smoke test.
+    """
+    return extract_date_range(normalize_text(" ".join(str(v) for v in values or ())))
+
+
 def strip_presentation_quotes(value: str) -> str:
     """Remove only a quote pair that wraps the entire user utterance."""
     candidate = value.strip().strip("*").strip()
