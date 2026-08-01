@@ -11,6 +11,7 @@ from gladiators.domain.relations import RELATIONS
 from gladiators.agent.context import ContextBundle
 
 from .analytical import build_analytical_plan, infer_deterministic_template
+from .synthesizer import synthesize
 from .query_ir import LogicalQueryPlan
 from .semantic_parser import AnalyticalRequest, CatalogSlicer
 from .validator import PlanIssue, validate_plan
@@ -28,6 +29,25 @@ class OpenPlannerResult:
     feedback: tuple[dict[str, Any], ...] = ()
     catalog_refs: tuple[str, ...] = ()
     context: dict[str, Any] | None = None
+
+
+LATEST_SNAPSHOT = "2026-07-03"
+
+
+def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
+    """True when a certified template would answer this request incorrectly.
+
+    Two signals, both verified against the data:
+
+    * ascending ranking -- every template ranks descending, so "giá thấp nhất"
+      came back as 3.033.180 instead of 1.000;
+    * a named date other than the latest snapshot -- templates hard-code
+      2026-07-03, so "ngày 01/07" came back with 668 instead of 581.
+    """
+    if request.ranking is not None and request.ranking.direction == "asc":
+        return True
+    dates = tuple(request.time_scope.dates) if request.time_scope else ()
+    return len(dates) == 1 and dates[0] != LATEST_SNAPSHOT
 
 
 def _used_refs(plan: LogicalQueryPlan) -> set[str]:
@@ -93,6 +113,24 @@ class OpenAnalyticalPlanner:
         self, question: str, request: AnalyticalRequest, country: str,
         context_bundle: ContextBundle | None = None,
     ) -> OpenPlannerResult:
+        # §5, first slice. The synthesizer only takes over where the frozen
+        # templates are known to be *wrong* rather than merely absent: an
+        # ascending ranking (templates are all "highest" and inverted the answer)
+        # and a named non-latest date (templates hard-code 2026-07-03). In both
+        # cases today's alternative is an A22 block, so synthesising is strictly
+        # better than the status quo.
+        #
+        # It deliberately does NOT take over every in-grammar question yet. Doing
+        # so answered "Rating theo brand không tồn tại tại VN" -- an adversarial
+        # empty-result case -- with all 19 brands, because the parser never bound
+        # the non-existent brand and the synthesizer silently widened the
+        # question. Widening the trigger needs the entity-binding guard first.
+        if _synthesis_beats_template(request):
+            synthesized = synthesize(request, country)
+            if synthesized is not None and validate_plan(synthesized.plan).valid:
+                return OpenPlannerResult(
+                    plan=synthesized.plan, mode="deterministic_synthesis", attempts=0,
+                )
         template = infer_deterministic_template(request)
         if template:
             return OpenPlannerResult(

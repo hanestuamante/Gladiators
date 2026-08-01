@@ -5,7 +5,10 @@ import unicodedata
 
 from gladiators.contracts import StructuredRequest
 from gladiators.domain.intent_registry import IntentRegistry
-from gladiators.planner.semantic_parser import DeterministicSemanticParser
+from gladiators.planner.semantic_parser import (
+    DeterministicSemanticParser,
+    extract_date_range,
+)
 from gladiators.external.router import classify_external_need
 from .entity_extract import extract_countries, extract_entities
 
@@ -14,26 +17,6 @@ def normalize_text(value: str) -> str:
     value = value.lower().replace("đ", "d")
     value = "".join(c for c in unicodedata.normalize("NFD", value) if unicodedata.category(c) != "Mn")
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9\s:/._-]", " ", value)).strip()
-
-
-_DATE_ISO = re.compile(r"2026-07-0[1-3]")
-_DATE_DAY_MONTH = re.compile(r"(?<![0-9])0?([123])\s*/\s*0?7(?![0-9])")
-
-
-def extract_date_range(normalized: str) -> list[str]:
-    """Return ``[start, end]`` for the snapshot dates the question names.
-
-    The dataset only holds 2026-07-01..03, so both ``2026-07-01`` and the
-    colloquial ``01/07`` resolve to the same snapshot.  A single named date
-    yields ``[d, d]`` -- a point range, which still has to be honoured: asking
-    for 01/07 and being answered with the 03/07 snapshot is a wrong answer, not
-    a rounding difference.  No date at all yields ``[]`` and every downstream
-    date check stays silent.
-    """
-    dates = list(_DATE_ISO.findall(normalized))
-    dates += [f"2026-07-0{day}" for day in _DATE_DAY_MONTH.findall(normalized)]
-    ordered = sorted(dict.fromkeys(dates))
-    return [ordered[0], ordered[-1]] if ordered else []
 
 
 def normalize_date_range(values) -> list[str]:

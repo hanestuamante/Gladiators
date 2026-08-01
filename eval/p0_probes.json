@@ -266,23 +266,42 @@
       "expected_state": "green",
       "red_reason": null,
       "baseline": {
-        "action": "abstain",
-        "rule_id": "A19-PLAN",
+        "action": "allow",
+        "rule_id": "A-ALLOW",
         "request_countries": ["vn"],
         "planning": {
-          "mode": "blocked",
-          "a19_rule": "A19-PLAN"
+          "mode": "deterministic_synthesis",
+          "plan_id": "synth:measure.price:median:dim.product_name:asc:vn:2026-07-03:1.0",
+          "semantic_refs": [
+            "dim.country",
+            "dim.date",
+            "dim.product_name",
+            "measure.price"
+          ]
         },
-        "evidence": [],
-        "n_claims": 0,
-        "answer_markers": ["Không thể trả lời chắc chắn"],
-        "answer_absent": ["3033180", "cao nhất"]
+        "evidence": [
+          {
+            "metric": "product_name",
+            "value": "[Tặng quà đơn từ 129k]Bánh Richy KARO trứng tươi chà bông (Gà/ Phô Mai/ Sữa), HSD 45-90 ngày",
+            "unit": "dimension",
+            "attrs": {"country": "vn", "observed_date": "2026-07-03"}
+          },
+          {
+            "metric": "price",
+            "value": 1000.0,
+            "unit": "VND",
+            "attrs": {"country": "vn", "observed_date": "2026-07-03"}
+          }
+        ],
+        "n_claims": 2,
+        "answer_markers": ["Listing có giá thấp nhất là", "xếp hạng tăng dần"],
+        "answer_absent": ["3033180", "giá cao nhất"]
       },
       "contract": {
-        "statement": "action != allow while no certified ascending-ranking template exists"
+        "statement": "an ascending question is answered with the minimum, or not answered at all — never with the maximum"
       },
-      "observed_note": "Worst inversion found in P1. The parser read direction='asc' correctly, but infer_deterministic_template only checked `if request.ranking:` and matched the descending highest_price_listing template, returning 3.033.180 — the maximum — when the true minimum is 1.000, roughly 3000x off. The answer sentence still read 'Listing có giá cao nhất là', openly contradicting the question. Fixed by requiring direction == 'desc' before matching any certified template; ascending now falls through to the semantic planner, which is fail-closed offline. answer_absent pins both the wrong number and the wrong wording.",
-      "fixed_in": "P1 ranking direction guard",
+      "observed_note": "Full arc of this case. Originally ALLOW returning 3.033.180 (the maximum) for a minimum question, ~3000x off, under a sentence reading 'Listing có giá cao nhất là'. P1 first made it abstain by requiring direction=='desc' before matching a template — safer, but the system simply stopped answering. §5 DeterministicPlanSynthesizer now answers it correctly with 1.000, and the superlative in the answer follows the plan's real sort order instead of being hard-coded. answer_absent still pins the old wrong number and the old wrong wording, so either regression is caught.",
+      "fixed_in": "§5 DeterministicPlanSynthesizer + direction-aware wording",
       "fixed_at": "2026-08-01"
     },
     {

@@ -393,13 +393,24 @@ class AgentRuntime:
             elif "product_name" in by_metric and ({"price", "monthly_sold"} & by_metric.keys()):
                 product = by_metric["product_name"]
                 metric = by_metric.get("price") or by_metric["monthly_sold"]
-                label = "giá cao nhất" if metric.metric == "price" else "monthly_sold cao nhất"
+                # The superlative has to follow the plan's actual sort order.
+                # It used to be hard-coded to "cao nhất", so an ascending plan
+                # returned the correct minimum under a sentence claiming it was
+                # the maximum -- the answer contradicted the question it answered.
+                ranking = (request.analytical or {}).get("ranking") or {}
+                descending = ranking.get("direction", "desc") != "asc"
+                superlative = "cao nhất" if descending else "thấp nhất"
+                measure_label = "giá" if metric.metric == "price" else "monthly_sold"
+                label = f"{measure_label} {superlative}"
                 formatted_value = f"{metric.value:.0f}" if metric.metric == "price" else f"{metric.value:g}"
                 result = (
                     f"Listing có {label} là {product.value} [{product.evidence_id}], "
                     f"với giá trị {formatted_value} {metric.unit} [{metric.evidence_id}]."
                 )
-                method = "Lọc thị trường và snapshot mới nhất, loại giá trị không hợp lệ rồi xếp hạng giảm dần."
+                method = (
+                    "Lọc thị trường và snapshot, loại giá trị không hợp lệ rồi xếp hạng "
+                    + ("giảm dần." if descending else "tăng dần.")
+                )
                 limitation = (
                     "Kết quả ở cấp listing, không phải SKU. monthly_sold là proxy hiển thị với cửa sổ chưa xác nhận."
                     if metric.metric == "monthly_sold" else

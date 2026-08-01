@@ -307,8 +307,15 @@ def test_ascending_ranking_must_not_be_answered_by_a_descending_template(respons
     oracle = ORACLE["p0_rank_direction_vn"]["value"]
     # ~3000x apart, so an inverted answer can never be mistaken for a near miss.
     assert oracle["max_price"] > oracle["min_price"] * 1000
-    assert response.gate.action != "allow"
     assert str(int(oracle["max_price"])) not in response.answer
+    if response.gate.action == "allow":
+        # Answering is allowed only with the actual minimum, and the sentence
+        # must not call it the maximum.
+        assert any(
+            item.metric == "price" and item.value == oracle["min_price"]
+            for item in response.evidence
+        )
+        assert oracle["min_price_product"] in response.answer
 
 
 # ------------------------------------------------------------ red contracts --

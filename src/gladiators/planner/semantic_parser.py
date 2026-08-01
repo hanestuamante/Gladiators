@@ -11,6 +11,25 @@ from rapidfuzz import fuzz
 from gladiators.domain.catalog import CATALOG, CatalogObject
 
 
+_DATE_ISO = re.compile(r"2026-07-0[1-3]")
+_DATE_DAY_MONTH = re.compile(r"(?<![0-9])0?([123])\s*/\s*0?7(?![0-9])")
+
+
+def extract_date_range(normalized: str) -> list[str]:
+    """Return ``[start, end]`` for the snapshot dates named in a normalised text.
+
+    The dataset holds only 2026-07-01..03, so ``2026-07-01`` and the colloquial
+    ``01/07`` denote the same snapshot.  A single named date yields ``[d, d]``:
+    asking for 01/07 and being handed the 03/07 snapshot is a wrong answer, not
+    a defensible default.  Lives here rather than in ``agent.parser`` so both the
+    intent parser and the plan synthesizer read dates the same way.
+    """
+    dates = list(_DATE_ISO.findall(normalized))
+    dates += [f"2026-07-0{day}" for day in _DATE_DAY_MONTH.findall(normalized)]
+    ordered = sorted(dict.fromkeys(dates))
+    return [ordered[0], ordered[-1]] if ordered else []
+
+
 def normalize(value: str) -> str:
     value = value.lower().replace("đ", "d")
     value = "".join(c for c in unicodedata.normalize("NFD", value) if unicodedata.category(c) != "Mn")
@@ -202,7 +221,7 @@ class DeterministicSemanticParser:
                 (("forecast", "du bao", "ramalan"), "forecast"),
             ) if any(term in normalized for term in terms)
         )
-        dates = tuple(dict.fromkeys(re.findall(r"2026-07-0[1-3]", normalized)))
+        dates = tuple(dict.fromkeys(extract_date_range(normalized)))
         assumptions: list[str] = []
         if not dates:
             dates = ("2026-07-03",)
