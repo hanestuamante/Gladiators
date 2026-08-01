@@ -127,13 +127,15 @@ class CatalogSlicer:
                 score += 25
             scored.append((score, obj.ref, obj))
         scored.sort(key=lambda item: (-item[0], item[1]))
-        selected = [item[2] for item in scored[:limit]]
-        for required in ("dim.country", "dim.date"):
-            obj = self.catalog[required]
-            if obj not in selected:
-                if len(selected) >= limit:
-                    selected.pop()
-                selected.append(obj)
+        required_refs = ("dim.country", "dim.date")
+        # Reserve room for the scope refs before filling, instead of evicting
+        # afterwards: the old code popped from the end, so when *both* were
+        # missing the second eviction removed the first one just appended and
+        # the slice silently shipped without a country scope.
+        missing = [ref for ref in required_refs if ref not in {item[1] for item in scored[:limit]}]
+        room = max(limit - len(missing), 0)
+        selected = [item[2] for item in scored[:room]]
+        selected.extend(self.catalog[ref] for ref in missing)
         return tuple(selected)
 
 

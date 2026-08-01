@@ -76,8 +76,8 @@ _BASE_OBJECTS = [
     _object("entity.product_listing", "entity", ("listing", "sản phẩm", "produk"), (), grain="listing"),
     _object("entity.platform_category", "entity", ("danh mục sàn", "platform category"), (), grain="platform_category"),
     _object("entity.shop_category", "entity", ("kệ shop", "shop shelf"), (), grain="shop_category"),
-    _object("entity.promotion_id_observation", "entity", ("promotion id quan sát",), (), grain="listing_snapshot"),
-    _object("entity.voucher_observation", "entity", ("voucher quan sát",), (), grain="listing_snapshot"),
+    _object("entity.promotion_id_observation", "entity", ("promotion id quan sát", "promotion id observation", "observasi promo"), (), grain="listing_snapshot"),
+    _object("entity.voucher_observation", "entity", ("voucher quan sát", "voucher observation", "observasi voucher"), (), grain="listing_snapshot"),
     _object("entity.content", "entity", ("nội dung listing", "content"), (), grain="listing_snapshot"),
     _object("entity.sales_metric", "entity", ("chỉ số bán", "sales metric"), (), grain="snapshot_or_transition"),
     _object("entity.date_snapshot", "entity", ("snapshot ngày", "date snapshot"), (), grain="snapshot"),
@@ -101,7 +101,7 @@ _BASE_OBJECTS = [
             ("products_clean.csv.tier_variation_name", "products_clean.csv.tier_variation_options"), traps=(13,)),
     _object("dim.shopee_verified", "dimension", ("shopee verified", "đã xác minh"),
             ("products_clean.csv.shopee_verified_bool",), type="bool"),
-    _object("dim.platform_category_has_children", "dimension", ("danh mục có nhánh con",),
+    _object("dim.platform_category_has_children", "dimension", ("danh mục có nhánh con", "category has children", "kategori punya subkategori"),
             ("category_platform_clean.csv.has_children_bool",), type="bool"),
     # Phase 6 context namespace is intentionally non-physical. These objects can
     # help routing/catalog slicing but must never compile into SQL (E1/ADR-E1).
@@ -128,6 +128,38 @@ _BASE_OBJECTS = [
     ),
 ]
 
+
+# §3.2: every exposed object needs a Vietnamese alias and at least one English or
+# Bahasa alias. Without these a measure is present in the catalogue but
+# unreachable from a question -- exposed on paper, absent in practice. The
+# technical name stays first so existing ref-shaped lookups keep working.
+_MEASURE_ALIASES: dict[str, tuple[str, ...]] = {
+    "price": ("giá", "giá bán", "harga"),
+    "price_original": ("giá gốc", "giá niêm yết", "original price", "harga asli"),
+    "discount_percent": ("phần trăm giảm giá", "mức giảm giá", "discount", "diskon"),
+    "monthly_sold": ("lượt bán tháng", "đã bán trong tháng", "monthly sold", "terjual per bulan"),
+    "history_sold": ("lượt bán tích luỹ", "tổng đã bán", "total sold", "total terjual"),
+    "voucher_discount": ("giá trị voucher", "mức giảm của voucher", "voucher value", "nilai voucher"),
+    "voucher_min_spend": ("giá trị đơn tối thiểu", "chi tiêu tối thiểu", "minimum spend", "minimum belanja"),
+    "voucher_start_time": ("thời điểm bắt đầu voucher", "voucher start", "mulai voucher"),
+    "voucher_end_time": ("thời điểm kết thúc voucher", "voucher end", "akhir voucher"),
+    "rating": ("điểm đánh giá", "sao đánh giá", "rating", "penilaian"),
+    "rating_count": ("số lượt đánh giá", "số đánh giá", "review count", "jumlah ulasan"),
+    "liked_count": ("số lượt thích", "lượt yêu thích", "likes", "jumlah suka"),
+    "images_count": ("số ảnh", "số lượng hình", "image count", "jumlah gambar"),
+    "variation_options_count": ("số phân loại", "số tuỳ chọn hiển thị", "variation count", "jumlah variasi"),
+    "vouchers_count": ("số nhãn voucher", "voucher label count", "jumlah voucher"),
+    "shop_rating": ("điểm đánh giá shop", "sao của shop", "shop rating", "penilaian toko"),
+    "shop_followers": ("số người theo dõi shop", "lượt theo dõi", "followers", "pengikut toko"),
+    "shop_items": ("số sản phẩm của shop", "quy mô shop", "shop item count", "jumlah produk toko"),
+    "shop_response_rate": ("tỷ lệ phản hồi của shop", "mức phản hồi", "response rate", "tingkat respons"),
+    "shop_response_time": ("thời gian phản hồi của shop", "tốc độ phản hồi", "response time", "waktu respons"),
+    "shop_rating_good": ("số đánh giá tốt", "đánh giá tích cực", "good reviews", "ulasan baik"),
+    "shop_rating_normal": ("số đánh giá trung bình", "đánh giá trung tính", "neutral reviews", "ulasan netral"),
+    "shop_rating_bad": ("số đánh giá xấu", "đánh giá tiêu cực", "bad reviews", "ulasan buruk"),
+    "shop_cancellation_rate": ("tỷ lệ huỷ đơn của shop", "mức huỷ đơn", "cancellation rate", "tingkat pembatalan"),
+    "shop_category_total": ("tổng sản phẩm trong kệ", "số sản phẩm mỗi kệ", "shelf total", "total rak"),
+}
 
 _MEASURES: dict[str, tuple[tuple[str, ...], str, str, tuple[int, ...], Answerability]] = {
     "price": (("products_clean.csv.price_num", "product_snapshot_metrics.csv.price_num"), "local_currency", "number", (5,), "exposed_as_measure"),
@@ -166,12 +198,49 @@ for name, (physical, unit, type_, traps, status) in _MEASURES.items():
     if name == "variation_options_count":
         caveats.append("Số option hiển thị không phải số SKU.")
     _BASE_OBJECTS.append(_object(
-        f"measure.{name}", "measure", (name.replace("_", " "),), physical,
+        f"measure.{name}", "measure",
+        (name.replace("_", " "),) + _MEASURE_ALIASES.get(name, ()), physical,
         type=type_, unit=unit, aggregations=("median", "min", "max"),
         filters=("eq", "lt", "lte", "gt", "gte"), traps=traps, answerability=status,
         caveats=tuple(caveats),
     ))
 
+
+# §3.2: same rule as measures -- a derived metric with only its technical name
+# cannot be reached from a Vietnamese question, which is how a governed metric
+# ends up looking absent to the user.
+_DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
+    "estimated_recent_revenue": ("doanh thu ước tính", "doanh thu proxy", "estimated revenue", "pendapatan perkiraan"),
+    "monthly_sold_delta": ("thay đổi lượt bán tháng", "biến động lượt bán", "monthly sold change"),
+    "history_sold_delta_raw": ("thay đổi lượt bán tích luỹ", "cumulative sold change"),
+    "history_sold_delta_clean": ("thay đổi lượt bán đã làm sạch", "clean sold change"),
+    "history_sold_decrease_flag": ("cờ lượt bán giảm", "sold decrease flag"),
+    "price_change": ("thay đổi giá", "biến động giá", "price change", "perubahan harga"),
+    "price_change_pct": ("phần trăm thay đổi giá", "mức biến động giá", "price change percent"),
+    "discount_point_change": ("thay đổi điểm giảm giá", "discount point change"),
+    "voucher_state_transition": ("thay đổi trạng thái voucher", "voucher state change"),
+    "rating_change": ("thay đổi điểm đánh giá", "rating change"),
+    "rating_count_delta": ("số đánh giá mới", "new ratings"),
+    "liked_delta": ("thay đổi lượt thích", "likes change"),
+    "has_structured_voucher": ("có voucher", "có mã giảm giá", "has voucher", "punya voucher"),
+    "has_voucher_label": ("có nhãn voucher", "has voucher label"),
+    "has_promo": ("có khuyến mãi", "đang khuyến mãi", "has promotion", "ada promo"),
+    "discount_bucket": ("nhóm mức giảm giá", "khoảng giảm giá", "discount bucket"),
+    "median_monthly_sold": ("lượt bán trung vị", "median monthly sold"),
+    "median_estimated_recent_revenue": ("doanh thu ước tính trung vị", "median estimated revenue"),
+    "product_count": ("số listing", "số sản phẩm", "listing count", "jumlah produk"),
+    "descriptive_gap_vs_baseline": ("chênh lệch so với nhóm nền", "gap versus baseline"),
+    "descriptive_gap_median_sold": ("chênh lệch lượt bán trung vị", "median sold gap"),
+    "text_sim": ("độ tương đồng tiêu đề", "title similarity"),
+    "category_overlap_depth": ("độ trùng danh mục", "category overlap"),
+    "brand_match": ("trùng thương hiệu", "brand match"),
+    "price_distance": ("khoảng cách giá", "price distance"),
+    "same_shelf_bonus": ("cùng kệ shop", "same shelf"),
+    "similarity_score": ("điểm tương đồng", "similarity score", "skor kemiripan"),
+    "voucher_rate": ("tỷ lệ có voucher", "voucher rate"),
+    "median_discount_ratio": ("tỷ lệ giảm giá trung vị", "median discount ratio"),
+    "voucher_profile_score": ("điểm hồ sơ voucher", "voucher profile score"),
+}
 
 _DERIVED_PHYSICAL = {
     "estimated_recent_revenue": ("product_snapshot_metrics.csv.estimated_recent_revenue",),
@@ -190,7 +259,9 @@ _DERIVED_PHYSICAL = {
 
 for name, spec in METRICS.items():
     _BASE_OBJECTS.append(_object(
-        f"derived.{name}", "derived_metric", (name.replace("_", " "),), _DERIVED_PHYSICAL.get(name, ()),
+        f"derived.{name}", "derived_metric",
+        (name.replace("_", " "),) + _DERIVED_ALIASES.get(name, ()),
+        _DERIVED_PHYSICAL.get(name, ()),
         type="number", unit=spec.unit, grain=spec.grain,
         aggregations=spec.valid_aggregations, filters=("eq", "lt", "lte", "gt", "gte"),
         caveats=spec.caveats, traps=spec.traps,
