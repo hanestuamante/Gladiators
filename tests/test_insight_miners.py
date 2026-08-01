@@ -108,6 +108,30 @@ def test_evidence_points_back_to_an_artifact_and_row():
 
 # --- price move -----------------------------------------------------------
 
+def test_tied_top_movers_say_the_order_is_not_a_ranking():
+    """Observed in the real bundle: in one market every positive delta topped
+    out at the same round number with several listings sharing it. Presenting
+    five of them as the biggest movers reads as a ranking when it is a tie."""
+    tied = pd.DataFrame([
+        dict(product_listing_key=f"id:{i}", country_code="id", date=AS_OF,
+             transition_metric_eligible=True, snapshot_sales_delta_clean=1000.0,
+             price_change_percent=0.0)
+        for i in range(8)
+    ])
+    output = mine_top_movers(tied, as_of_date=AS_OF, dataset_version=DS)
+    assert len(output.cards) == 5
+    for item in output.evidence:
+        assert "8 listing cùng mức thay đổi" in item.caveat
+        assert "bậc hiển thị" in item.caveat
+
+
+def test_an_untied_top_mover_keeps_the_plain_caveat():
+    output = mine_top_movers(transitions(3), as_of_date=AS_OF, dataset_version=DS)
+    for item in output.evidence:
+        assert "không có ý nghĩa xếp hạng" not in item.caveat
+        assert "chỉ báo hiển thị" in item.caveat
+
+
 def test_price_move_needs_both_a_drop_and_a_rise():
     assert mine_price_moves(transitions(pct=-2.0), as_of_date=AS_OF,
                             dataset_version=DS).cards == []

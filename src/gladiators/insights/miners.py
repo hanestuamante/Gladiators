@@ -90,6 +90,29 @@ def _evidence(insight_id: str, metric: str, value, unit: str, formula: str,
     )
 
 
+BASE_SOLD_CAVEAT = "Sold proxy là chỉ báo hiển thị, không phải doanh số đã xác minh."
+
+
+def _top_mover_caveat(tied: int, at_ceiling: bool) -> str:
+    """Say when a "top mover" is one of several listings tied at the same value.
+
+    Observed in the real bundle: in one market every positive delta topped out
+    at the same round number, with several listings sharing it. Presenting five
+    of them as the biggest movers reads as a ranking when it is a tie at what
+    looks like a display-bucket boundary. Whether to exclude such rows is a
+    product decision (§1.5); describing them accurately is not.
+    """
+    if not tied or tied <= 1:
+        return BASE_SOLD_CAVEAT
+    note = f"Có {tied} listing cùng mức thay đổi này nên thứ tự giữa chúng không có ý nghĩa xếp hạng."
+    if at_ceiling:
+        note += (
+            " Mức này cũng là giá trị cao nhất quan sát được trong nhóm, phù hợp với "
+            "việc sold proxy được làm tròn theo bậc hiển thị hơn là một phép đếm thật."
+        )
+    return f"{BASE_SOLD_CAVEAT} {note}"
+
+
 def _num(value) -> float | None:
     try:
         result = float(value)
@@ -122,9 +145,17 @@ def mine_top_movers(
             ["delta", "product_listing_key"], ascending=[False, True]
         ).head(config.top_k)
         threshold = group["delta"].quantile(config.high_priority_percentile)
+        # How many listings share each delta. A "top mover" tied with several
+        # others is not the listing that moved most -- it is one of N listings
+        # whose display bucket ticked over, and picking 5 of them by key order
+        # would present an arbitrary choice as a ranking.
+        tie_counts = group["delta"].value_counts()
+        group_max = group["delta"].max()
         for _, row in top.iterrows():
             listing = str(row["product_listing_key"])
             delta = _num(row["delta"])
+            tied = int(tie_counts.get(row["delta"], 1))
+            at_ceiling = delta is not None and delta == group_max and tied > 1
             insight_id = stable_id("ic:top_mover", dataset_version, listing, as_of_date)
             scope = InsightScope(
                 country_code=str(country), as_of_date=as_of_date,
@@ -134,7 +165,7 @@ def mine_top_movers(
                 insight_id, "snapshot_sales_delta_clean", delta, "sold_proxy_delta",
                 "latest eligible transition delta", "product_transition_metrics.csv",
                 f"{listing}@{row.get('date')}", dataset_version,
-                caveat="Sold proxy là chỉ báo hiển thị, không phải doanh số đã xác minh.",
+                caveat=_top_mover_caveat(tied, at_ceiling),
             )
             evidence.append(item)
             cards.append(InsightCard(
