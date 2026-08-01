@@ -46,6 +46,29 @@ from .alignment import (
 from .context import BUDGETS, ContextBundle, guarded_evidence_payload, request_digest
 
 
+_METRIC_LABELS = {
+    "with_voucher": "nhóm có voucher", "without_voucher": "nhóm không voucher",
+    "listing_count": "số listing", "mean_monthly_sold_proxy": "lượt bán proxy trung bình",
+    "median_monthly_sold_proxy": "lượt bán proxy trung vị",
+    "monthly_sold_proxy": "lượt bán proxy",
+}
+
+
+def _metric_label(metric: str) -> str:
+    """Business wording for an internal metric name (§4.7 jargon lint).
+
+    Evidence metrics are trace vocabulary; printing them raw put strings like
+    ``with_voucher_median_monthly_sold_proxy`` in front of a reader, who cannot
+    act on a column name.
+    """
+    for prefix in ("with_voucher_", "without_voucher_"):
+        if metric.startswith(prefix):
+            group = _METRIC_LABELS[prefix.rstrip("_")]
+            rest = _METRIC_LABELS.get(metric[len(prefix):], metric[len(prefix):])
+            return f"{rest} {group}"
+    return _METRIC_LABELS.get(metric, metric.replace("_", " "))
+
+
 def _plan_properties(plan, request: StructuredRequest) -> dict[str, Any]:
     """Structural summary of a plan for the §4.9 plan-oracle layer.
 
@@ -371,7 +394,13 @@ class AgentRuntime:
             parts = [f"{e.attrs['product_name']} (điểm {e.value:g}) [{e.evidence_id}]" for e in evidence]
             return "Các listing tương tự gần nhất theo lexical/embedding: " + "; ".join(parts) + ". Điểm chỉ dùng để xếp hạng tương đồng; không khẳng định cùng mẫu hoặc cùng SKU."
         if request.intent == "promotion_effectiveness" and evidence:
-            values = "; ".join(f"{e.metric}={e.value:g} {e.unit} [{e.evidence_id}]" for e in evidence)
+            # §4.7 jargon lint: internal metric names ("..._monthly_sold_proxy")
+            # are trace vocabulary. A reader needs the group and the quantity,
+            # not the column that produced it.
+            values = "; ".join(
+                f"{_metric_label(e.metric)}={e.value:g} {e.unit} [{e.evidence_id}]"
+                for e in evidence
+            )
             return f"So sánh quan sát tại một snapshot: {values}. Đây là tương quan nhóm, không chứng minh khuyến mãi gây ra thay đổi."
         if request.intent == "voucher_coverage" and evidence:
             values = "; ".join(
@@ -396,7 +425,7 @@ class AgentRuntime:
             end = by_metric["coverage_end_date"]
             count = by_metric["coverage_snapshot_count"]
             return (
-                f"Artifact chỉ phủ từ {start.value} [{start.evidence_id}] đến "
+                f"Dữ liệu nội bộ chỉ phủ từ {start.value} [{start.evidence_id}] đến "
                 f"{end.value} [{end.evidence_id}], gồm {count.value:g} snapshot "
                 f"[{count.evidence_id}]. Ngoài khoảng này không có quan sát nội bộ."
             )
@@ -536,7 +565,7 @@ class AgentRuntime:
                     "Kết quả\n" + "\n".join(lines) + "\n\n"
                     f"Phạm vi\nThị trường {str(scope_evidence.attrs.get('country', 'unknown')).upper()}, "
                     f"snapshot {scope_evidence.attrs.get('observed_date', 'không xác định')}.{scope}\n\n"
-                    "Cách tính\nLogicalQueryPlan đã qua deterministic validator và compiler read-only.\n\n"
+                    "Cách tính\nTruy vấn được sinh tự động, kiểm tra ràng buộc rồi chạy ở chế độ chỉ đọc.\n\n"
                     f"Giới hạn\nKết quả chỉ phản ánh các semantic object được catalog expose.{truncation}\n\n"
                     f"Độ tin cậy\n{confidence_text}"
                 )
@@ -1003,7 +1032,7 @@ class AgentRuntime:
                     reason="Evidence do macro tạo ra không khớp certified evidence contract.",
                 )
             elif decision.action == "allow" and not evidence and self.enable_gate:
-                decision = GateDecision(action="abstain", rule_id="A-NO-EVIDENCE", reason="Tool không tạo được evidence đủ điều kiện từ artifact hiện tại.")
+                decision = GateDecision(action="abstain", rule_id="A-NO-EVIDENCE", reason="Dữ liệu hiện có không đủ điều kiện để trả lời câu hỏi này.")
 
         # Hybrid always preserves the completed internal path. External failure
         # becomes an explicit limitation rather than an all-or-nothing abstain.
@@ -1056,7 +1085,7 @@ class AgentRuntime:
             decision = GateDecision(
                 action="abstain", rule_id="A-VERIFICATION-FINAL",
                 reason="Câu trả lời deterministic cuối không qua evidence/claim verification; hệ thống từ chối fail-closed.",
-                answerable_alternative="Hãy thu hẹp câu hỏi hoặc kiểm tra lại artifact/evidence contract.",
+                answerable_alternative="Hãy thu hẹp câu hỏi, ví dụ nêu rõ thị trường, ngày hoặc sản phẩm cụ thể.",
             )
             answer = self._deterministic_answer(decision, request, [])
             evidence, claims = [], ()

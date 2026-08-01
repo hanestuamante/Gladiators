@@ -306,11 +306,11 @@ def classify_a19(request: AnalyticalRequest) -> tuple[str, str, str] | None:
     if any(item.reason == "metric_ungoverned" for item in unresolved):
         return "clarify", "A19-METRIC", "Metric nghiệp vụ chưa có định nghĩa được duyệt; có thể chuyển sang so sánh mô tả nếu bạn xác nhận."
     if any(item.reason == "catalog_gap" for item in unresolved):
-        return "abstain", "A19-CAT", "Dữ liệu vật lý có thể tồn tại nhưng semantic catalog chưa expose trường được hỏi."
+        return "abstain", "A19-CAT", "Trường dữ liệu được hỏi chưa được mở cho truy vấn."
     if any(item.reason == "data_absent" for item in unresolved):
         return "abstain", "A-DATA-ABSENT", "Dataset không có biến nghiệp vụ được yêu cầu."
     if not any(item.ref for item in request.requested_measures):
-        return "clarify", "A19-CAT", "Chưa ánh xạ được measure nào vào semantic catalog."
+        return "clarify", "A19-CAT", "Chưa xác định được chỉ số nào cần đo từ câu hỏi."
     return None
 
 

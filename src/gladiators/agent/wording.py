@@ -49,6 +49,21 @@ _RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
 _REVENUE_TERMS = ("doanh thu", "revenue", "pendapatan")
 _ESTIMATE_LABELS = ("uoc tinh", "proxy", "estimated")
 
+# §4.7 jargon blacklist. Internal vocabulary that is meaningful in a trace and
+# meaningless to a user: naming an "expected_cardinality" or an "A22" rule in a
+# sentence tells them nothing they can act on, and a raw exception tells them
+# about our stack rather than their question. Rule ids stay available in the
+# trace and in machine-facing API fields -- this only governs the prose.
+JARGON_LEXICON_VERSION = "jargon.v1"
+_JARGON_TERMS: tuple[str, ...] = (
+    "artifact", "monthly_sold_proxy", "semantic catalog", "expected_cardinality",
+    "analytical template", "logicalqueryplan", "analyticalrequest",
+    "requestdigest", "plan_hash", "semantic_ref", "catalog slice",
+    "validation error", "traceback", "pydantic", "stacktrace",
+)
+# Rule ids: A19-*, A22-*, A14-*, A16-* ... spoken at the user is an internal code.
+_RULE_ID = re.compile(r"\bA\d{2}[-\w]*\b")
+
 
 def check_wording(answer: str) -> list[dict[str, str]]:
     """Trả danh sách violation; rỗng = answer qua gate."""
@@ -66,4 +81,25 @@ def check_wording(answer: str) -> list[dict[str, str]]:
         label in folded for label in _ESTIMATE_LABELS
     ):
         violations.append({"rule": "revenue_missing_estimate_label", "term": "doanh thu/revenue"})
+    violations.extend(check_jargon(answer))
+    return violations
+
+
+def check_jargon(answer: str) -> list[dict[str, str]]:
+    """§4.7 jargon lint, applied to *every* answer, generated or templated.
+
+    Deliberately separate from the causal/forecast rules above: those only apply
+    to LLM prose because certified templates are reviewed, whereas jargon can
+    leak from a template just as easily -- a formatter that interpolates a rule
+    id or an exception is exactly how internals reach a UI.
+    """
+    folded = _fold(answer)
+    violations = [
+        {"rule": "jargon", "term": term}
+        for term in _JARGON_TERMS if term in folded
+    ]
+    violations.extend(
+        {"rule": "internal_rule_id", "term": match}
+        for match in dict.fromkeys(_RULE_ID.findall(answer))
+    )
     return violations

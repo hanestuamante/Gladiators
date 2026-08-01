@@ -85,7 +85,7 @@ CAPABILITY_MESSAGES: dict[str, dict[str, str]] = {
         "Ví dụ: 'Có bao nhiêu listing ở VN tại snapshot mới nhất?'",
     ),
     "category_type": _message(
-        "Semantic catalog chưa chứng nhận trường loại danh mục được yêu cầu.",
+        "Trường phân loại danh mục được hỏi chưa được mở cho truy vấn.",
         "Hiện phân biệt platform category và shop shelf với quan hệ riêng.",
         "Vẫn trả lời được grouping theo danh mục đã expose.",
         "Ví dụ: 'Liệt kê listing theo platform category ở VN.'",

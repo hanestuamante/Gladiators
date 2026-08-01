@@ -75,7 +75,7 @@ def _resolve_entity(ctx: ToolContext) -> None:
         ctx.clarify = GateDecision(
             action="abstain",
             rule_id="A-ENTITY-NOT-FOUND",
-            reason="Không tìm thấy listing khớp entity/ID trong artifact hiện tại.",
+            reason="Không tìm thấy listing nào khớp mã hoặc tên trong dữ liệu hiện có.",
         )
         return
     if result.state == "invalid_extraction":
