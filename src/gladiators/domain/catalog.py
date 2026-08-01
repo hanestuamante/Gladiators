@@ -141,7 +141,8 @@ _MEASURE_ALIASES: dict[str, tuple[str, ...]] = {
     # single largest alias gap measured over the eval corpus. It is distinct from
     # "doanh thu" (revenue), which belongs to derived.estimated_recent_revenue.
     "monthly_sold": ("lượt bán tháng", "đã bán trong tháng", "doanh số", "lượt bán",
-                     "monthly sold", "sales", "terjual per bulan", "penjualan"),
+                     "tình hình bán", "monthly sold", "sales", "terjual per bulan",
+                     "penjualan"),
     "history_sold": ("lượt bán tích luỹ", "tổng đã bán", "total sold", "total terjual"),
     "voucher_discount": ("giá trị voucher", "mức giảm của voucher", "voucher value", "nilai voucher"),
     "voucher_min_spend": ("giá trị đơn tối thiểu", "chi tiêu tối thiểu", "minimum spend", "minimum belanja"),
@@ -216,7 +217,7 @@ for name, (physical, unit, type_, traps, status) in _MEASURES.items():
 _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "estimated_recent_revenue": ("doanh thu ước tính", "doanh thu proxy", "estimated revenue", "pendapatan perkiraan"),
     "monthly_sold_delta": ("thay đổi lượt bán tháng", "biến động lượt bán",
-                           "biến động doanh số", "thay đổi doanh số",
+                           "biến động doanh số", "thay đổi doanh số", "biến động bán",
                            "monthly sold change", "perubahan penjualan"),
     "history_sold_delta_raw": ("thay đổi lượt bán tích luỹ", "cumulative sold change"),
     "history_sold_delta_clean": ("thay đổi lượt bán đã làm sạch", "clean sold change"),
@@ -228,9 +229,15 @@ _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "rating_change": ("thay đổi điểm đánh giá", "rating change"),
     "rating_count_delta": ("số đánh giá mới", "new ratings"),
     "liked_delta": ("thay đổi lượt thích", "likes change"),
-    "has_structured_voucher": ("có voucher", "có mã giảm giá", "has voucher", "punya voucher"),
+    # Bare concept words ("voucher", "khuyến mãi") had no binding at all, so a
+    # question like "So sánh voucher tại Việt Nam" resolved to nothing and routed
+    # as unknown even though T3 answers it. Longest-alias-first matching means
+    # the more specific phrases above still win where they appear.
+    "has_structured_voucher": ("có voucher", "có mã giảm giá", "voucher",
+                               "mã giảm giá", "has voucher", "punya voucher"),
     "has_voucher_label": ("có nhãn voucher", "has voucher label"),
-    "has_promo": ("có khuyến mãi", "đang khuyến mãi", "has promotion", "ada promo"),
+    "has_promo": ("có khuyến mãi", "đang khuyến mãi", "khuyến mãi", "promotion",
+                  "promo", "has promotion", "ada promo"),
     "discount_bucket": ("nhóm mức giảm giá", "khoảng giảm giá", "discount bucket"),
     "median_monthly_sold": ("lượt bán trung vị", "median monthly sold"),
     "median_estimated_recent_revenue": ("doanh thu ước tính trung vị", "median estimated revenue"),
@@ -243,8 +250,9 @@ _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "price_distance": ("khoảng cách giá", "price distance"),
     "same_shelf_bonus": ("cùng kệ shop", "same shelf"),
     "similarity_score": ("điểm tương đồng", "sản phẩm tương tự", "sản phẩm giống",
-                         "tương tự", "giống", "similarity score", "skor kemiripan",
-                         "similar", "mirip", "serupa"),
+                         "tương tự", "giống", "đối thủ cạnh tranh", "đối thủ",
+                         "similarity score", "skor kemiripan", "similar",
+                         "competitor", "mirip", "serupa", "pesaing"),
     "voucher_rate": ("tỷ lệ có voucher", "voucher rate"),
     "median_discount_ratio": ("tỷ lệ giảm giá trung vị", "median discount ratio"),
     "voucher_profile_score": ("điểm hồ sơ voucher", "voucher profile score"),
