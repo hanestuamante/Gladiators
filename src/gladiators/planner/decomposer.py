@@ -29,6 +29,11 @@ from pydantic import BaseModel, ConfigDict
 from .atoms import RequestAtom, atomize_request
 from .execution_plan import (
     AtomicExecutionPlan,
+    CompositeOutputContract,
+    ScopePartition,
+    SectionSpec,
+    SideBySideSpec,
+    UnionScopeSpec,
     DecomposedExecutionPlan,
     DecompositionProposal,
     ExecutionContextSnapshot,
@@ -37,6 +42,7 @@ from .execution_plan import (
     SubrequestProposal,
     UnionScopeProposal,
 )
+from .decomposition_validator import validate_decomposition_proposal
 from .feasibility import analyze
 
 DECOMPOSER_VERSION = "decomposer.v1"
@@ -179,6 +185,81 @@ def infer_deterministic_decomposition(
     return None
 
 
+def _proposal_hash(proposal) -> str:
+    return hashlib.sha256(
+        f"{proposal.request_hash}|{proposal.composition.op}|"
+        f"{','.join(sorted(s.subplan_id for s in proposal.subrequests))}".encode("utf-8")
+    ).hexdigest()[:16]
+
+
+def build_composition_spec(proposal, subplans):
+    """§8.4 step 7: derive the contract from the planned subplans.
+
+    The output contract is *derived*, never restated. A hand-written schema that
+    drifts from what the subplans actually produce is a mismatch nothing catches
+    until the composition tries to line two frames up.
+    """
+    by_id = {spec.subplan_id: spec for spec in subplans}
+    op = proposal.composition.op
+
+    if op == "union_scope":
+        # Every partition computes the same measurement, so the fields come from
+        # one subplan and the schema-equality check at compose time enforces the
+        # rest. Scope values are read back from each subrequest's own country
+        # atoms rather than assumed from ordering.
+        first = subplans[0]
+        contract = CompositeOutputContract(
+            presentation="single_frame", output_shape_kind="table",
+            output_grain=first.plan.nodes[-1].output_grain,
+            fields=first.output_fields,
+            expected_cardinality=f"<={sum(1 for _ in subplans) * 10000}",
+        )
+        partitions = tuple(
+            ScopePartition(
+                subplan_id=sub.subplan_id,
+                scope_values=_scope_values_of(proposal, sub.subplan_id),
+            )
+            for sub in subplans
+        )
+        return UnionScopeSpec(
+            scope_ref=proposal.composition.scope_ref,
+            partitions=partitions, dedupe_policy_id="one_row_per_listing",
+            # Money from two markets may be stacked to look at, never averaged.
+            allow_post_union_aggregate=all(
+                f.aggregatable_across_scope for sub in subplans for f in sub.output_fields
+            ),
+            output_contract=contract,
+        )
+
+    contract = CompositeOutputContract(
+        presentation="sections", output_shape_kind="comparison",
+        output_grain=subplans[0].plan.nodes[-1].output_grain,
+        expected_cardinality=str(len(subplans)),
+    )
+    return SideBySideSpec(
+        sections=tuple(
+            SectionSpec(
+                section_id=f"sec{index + 1}", title_key=f"section.{sub.subplan_id}",
+                subplan_id=sub.subplan_id, order=index,
+            )
+            for index, sub in enumerate(subplans)
+        ),
+        output_contract=contract,
+    )
+
+
+def _scope_values_of(proposal, subplan_id: str) -> tuple[str, ...]:
+    by_atom = {atom.atom_id: atom for atom in proposal.request_atoms}
+    for sub in proposal.subrequests:
+        if sub.subplan_id != subplan_id:
+            continue
+        return tuple(
+            str(by_atom[a].value) for a in sub.covered_atom_ids
+            if a in by_atom and by_atom[a].kind == "country" and by_atom[a].value
+        )
+    return ()
+
+
 def _digest_hash(digest) -> str:
     payload = getattr(digest, "model_dump", lambda **_: {})(mode="json")
     return hashlib.sha256(
@@ -197,6 +278,9 @@ class AnalyticalDecomposer:
 
     def __init__(self, *, synthesizer=None, proposal_service=None,
                  subrequest_planner=None):
+        """``subrequest_planner`` is injected: §8.4 forbids the decomposer from
+        routing the root again, so the only component allowed to route is one it
+        was handed, and only ever for a new subrequest."""
         self.synthesizer = synthesizer
         self.proposal_service = proposal_service
         self.subrequest_planner = subrequest_planner
@@ -231,14 +315,30 @@ class AnalyticalDecomposer:
 
         proposal = infer_deterministic_decomposition(digest, request, atoms, feasibility)
         if proposal is not None:
-            return DecomposerResult(
-                execution_plan=None, mode="deterministic_decomposed",
-                attempts=0, decomposition_attempts=0,
-                planning_meta=meta | {
-                    "proposal_op": proposal.composition.op,
-                    "subplan_count": len(proposal.subrequests),
-                    "proposal_source": "deterministic",
-                },
+            proposal_meta = meta | {
+                "proposal_op": proposal.composition.op,
+                "subplan_count": len(proposal.subrequests),
+                "proposal_source": "deterministic",
+            }
+            # §8.5: grammar is checked before any subplan is planned. Planning
+            # first would spend the whole call budget proving a split that was
+            # never admissible.
+            issues = validate_decomposition_proposal(proposal)
+            if issues:
+                return DecomposerResult(
+                    execution_plan=None, mode="deterministic_decomposed",
+                    planning_meta=proposal_meta | {"proposal_valid": False},
+                    issues=issues,
+                )
+            if self.subrequest_planner is None:
+                return DecomposerResult(
+                    execution_plan=None, mode="deterministic_decomposed",
+                    planning_meta=proposal_meta | {
+                        "proposal_valid": True, "next_step": "subrequest_planning",
+                    },
+                )
+            return self._plan_decomposed(
+                proposal, decomposer_input, atoms, countries, proposal_meta,
             )
 
         # Nothing could be derived. Whether a model is asked is the caller's
@@ -249,6 +349,47 @@ class AnalyticalDecomposer:
             planning_meta=meta | {
                 "next_step": "llm_decomposition_proposal",
                 "proposal_source": "none",
+            },
+        )
+
+    def _plan_decomposed(
+        self, proposal, decomposer_input, atoms, countries, meta,
+    ) -> DecomposerResult:
+        """§8.4 steps 5-8: plan each subrequest, then build the composition."""
+        country = countries[0] if countries else ""
+        try:
+            planned = self.subrequest_planner.plan_all(
+                proposal.subrequests, decomposer_input.digest, country=country,
+            )
+        except Exception as error:  # noqa: BLE001 - reported, never a crash
+            return DecomposerResult(
+                execution_plan=None, mode="deterministic_decomposed",
+                planning_meta=meta | {
+                    "proposal_valid": True,
+                    "subplan_error": f"{type(error).__name__}: {error}"[:200],
+                },
+            )
+
+        subplans = tuple(result.spec for result in planned)
+        composition = build_composition_spec(proposal, subplans)
+        plan = DecomposedExecutionPlan(
+            execution_plan_id=f"ep:{_digest_hash(decomposer_input.digest)}",
+            request_hash=proposal.request_hash, digest_hash=proposal.digest_hash,
+            capability_id="analytical", context_snapshot=decomposer_input.context_snapshot,
+            request_atoms=atoms,
+            output_shape_kind=composition.output_contract.output_shape_kind,
+            root_routing=decomposer_input.routing,
+            decomposition_proposal_hash=_proposal_hash(proposal),
+            subplans=subplans, composition=composition,
+        )
+        return DecomposerResult(
+            execution_plan=plan, mode="deterministic_decomposed",
+            attempts=sum(r.attempts for r in planned),
+            subplan_attempts={r.spec.subplan_id: r.attempts for r in planned},
+            planning_meta=meta | {
+                "proposal_valid": True,
+                "subplan_sources": {r.spec.subplan_id: r.source for r in planned},
+                "composition_op": composition.op,
             },
         )
 
