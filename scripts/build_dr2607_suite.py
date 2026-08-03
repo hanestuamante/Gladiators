@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "docs" / "DR TASK 1407.md"
+SOURCE = ROOT / "docs" / "qa" / "DR TASK 1407.md"
 OUTPUT = ROOT / "eval" / "dr2607.json"
 
 _HEADING = re.compile(r"^## .*\bTestcase\s+(\d+):", re.IGNORECASE)
@@ -249,7 +249,7 @@ def build() -> list[dict[str, object]]:
         suite.append(
             {
                 "id": f"tc{number:02d}",
-                "source": "docs/DR TASK 1407.md",
+                "source": "docs/qa/DR TASK 1407.md",
                 "question": cases[number],
                 **contract,
             }

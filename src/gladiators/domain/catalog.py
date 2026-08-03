@@ -63,7 +63,8 @@ def _object(
         answerability = "exposed_as_dimension" if kind in {"entity", "dimension"} else "exposed_as_measure"
     return CatalogObject(
         ref, kind, aliases, physical, type, unit, grain, aggregations, time, filters,
-        cardinality, caveats, traps, "V2_Unified_Architecture.md", value_index, answerability,
+        cardinality, caveats, traps, "docs/design/V2_Unified_Architecture.md",
+        value_index, answerability,
         source_tier,
     )
 
