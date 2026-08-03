@@ -364,8 +364,8 @@ Trên mỗi lớp ghi một acceptance gate; dưới cùng là một đường b
 
 ## Nguồn tổng hợp nội bộ
 
-- `docs/V2_Unified_Architecture.md`
+- `docs/design/V2_Unified_Architecture.md`
 - `docs/External Data Integration.md`
 - `docs/2207.md`
-- `docs/2507.md`
+- `docs/archive/implementation/2507.md`
 - `docs/Context_harness20% and TC fix 2607.md`

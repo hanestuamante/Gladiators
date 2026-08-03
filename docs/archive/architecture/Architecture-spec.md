@@ -1,5 +1,10 @@
 # ARCHITECTURE DESIGN DOC — Verifiable Product Intelligence Agent
 
+> **Lưu trữ:** Đây là đặc tả trước V2, không mô tả runtime hiện tại. Đọc
+> [CURRENT_ARCHITECTURE_SPEC.md](../../CURRENT_ARCHITECTURE_SPEC.md) cho hiện
+> trạng và [V2_Unified_Architecture.md](../../design/V2_Unified_Architecture.md)
+> cho thiết kế mục tiêu.
+
 **Gladiators · Track 01 · v1.0 — 15/7/2026**
 
 **Hai bảo đảm cốt lõi của hệ thống:**

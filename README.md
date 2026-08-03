@@ -15,14 +15,15 @@ Gladiators/
 │   └── tests/
 │       └── test_data_pipeline.ipynb
 ├── docs/
-│   ├── Data_Context_and_Analysis_Notes.md
-│   ├── V2_Unified_Architecture.md # Kiến trúc Agent mục tiêu hiện hành
-│   ├── V1_Architecture.md      # Runtime baseline kế thừa
-│   ├── Architecture-spec.md    # Kiến trúc tham chiếu chi tiết
-│   ├── V1_Implementation_Limitations.md
-│   ├── data-pipeline.md        # Pipeline contract, metrics and run instructions
-│   ├── codegraph.md            # Data flow, function graph and metric dependencies
-│   └── V0_Architecture.md      # Superseded architecture retained for history
+│   ├── README.md               # Mục lục và giá trị của từng tài liệu
+│   ├── CURRENT_ARCHITECTURE_SPEC.md
+│   ├── reference/              # Data context, pipeline và code graph
+│   ├── design/                 # Kiến trúc mục tiêu và đặc tả chuyên đề
+│   ├── topics/                 # Topic cards và projection cho topic routing
+│   ├── agents/                 # Ownership và quy ước triage/vận hành
+│   ├── qa/                     # Kết quả và phân tích kiểm thử
+│   ├── acceptance/             # Checklist nghiệm thu đang mở
+│   └── archive/                # Kiến trúc cũ, handoff và báo cáo theo ngày
 ├── requirements.txt
 └── requirements-dev.txt
 ```
@@ -77,17 +78,16 @@ This is a snapshot revenue proxy, not GMV, net revenue or profit. `monthly_sold_
 
 Read in this order:
 
-1. [Data context](docs/Data_Context_and_Analysis_Notes.md)
-2. [Pipeline and metrics](docs/data-pipeline.md)
-3. [Code graph](docs/codegraph.md)
-4. [Kiến trúc Agent V2 hợp nhất](docs/V2_Unified_Architecture.md)
-5. [Kiến trúc V1 baseline](docs/V1_Architecture.md)
-6. [Architecture Spec chi tiết](docs/Architecture-spec.md)
-7. [Các phần V1 chưa thể thực hiện đầy đủ](docs/V1_Implementation_Limitations.md)
-8. [Historical V0 architecture](docs/V0_Architecture.md)
-9. [Implementation handoff 23/07/2026](docs/IMPLEMENTATION_HANDOFF_2026-07-23.md)
+1. [Mục lục tài liệu](docs/README.md)
+2. [Đặc tả kiến trúc hiện tại](docs/CURRENT_ARCHITECTURE_SPEC.md)
+3. [Ngữ cảnh dữ liệu](docs/reference/Data_Context_and_Analysis_Notes.md)
+4. [Pipeline và metrics](docs/reference/data-pipeline.md)
+5. [Code graph](docs/reference/codegraph.md)
+6. [Kiến trúc V2 mục tiêu](docs/design/V2_Unified_Architecture.md)
 
-Data Context and current artifacts remain the source of truth for data. `V2_Unified_Architecture.md` is the current target Agent architecture; V1 remains the compatibility and parity baseline. `V0_Architecture.md` is retained only to explain superseded decisions.
+Source code, test và artifact hiện tại được ưu tiên cao nhất.
+`CURRENT_ARCHITECTURE_SPEC.md` mô tả hiện trạng; `V2_Unified_Architecture.md`
+mô tả thiết kế mục tiêu. Tài liệu V0/V1 được giữ trong `docs/archive` để truy vết.
 
 # Gladiators V2 runtime
 
@@ -176,7 +176,10 @@ PYTHONPATH=. .venv/bin/python scripts/run_phase5_evaluation.py \
 
 Không đặt `--gold-review-status approved` trước khi reviewer nghiệp vụ duyệt đủ semantics/gold của sáu case. Runner đo riêng denotation accuracy, plan/result disagreement, false-consensus, adjudication, stability và latency; offline provider không thể cho kết quả `GO`.
 
-Kiến trúc chuẩn: [docs/V2_Unified_Architecture.md](docs/V2_Unified_Architecture.md). V1 được giữ làm parity baseline: [docs/V1_Architecture.md](docs/V1_Architecture.md).
+Kiến trúc hiện trạng:
+[docs/CURRENT_ARCHITECTURE_SPEC.md](docs/CURRENT_ARCHITECTURE_SPEC.md).
+Thiết kế mục tiêu:
+[docs/design/V2_Unified_Architecture.md](docs/design/V2_Unified_Architecture.md).
 
 Chạy API demo nội bộ:
 

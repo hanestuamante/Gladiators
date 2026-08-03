@@ -1,14 +1,14 @@
 # Gladiators V2 — Implementation Handoff 22/07/2026
 
 > **Lịch sử, đã được thay thế:** trạng thái và lệnh vận hành hiện hành nằm ở
-> `docs/IMPLEMENTATION_HANDOFF_2026-07-23.md`. Hai biến
+> `docs/archive/implementation/IMPLEMENTATION_HANDOFF_2026-07-23.md`. Hai biến
 > `GLADIATORS_LIVE_SOURCE_REVIEWED` và `GLADIATORS_LIVE_SEARCH_LICENSE` trong bản
 > bàn giao ngày 22/07 đã bị loại theo E0; không dùng các lệnh cũ bên dưới để vận hành.
 
 ## 1. Trạng thái tổng quát
 
 - Branch triển khai: `MVP_Dai_V2`.
-- Kiến trúc đích: `docs/V2_Unified_Architecture.md`.
+- Kiến trúc đích: `docs/design/V2_Unified_Architecture.md`.
 - Phase 1–5 đã có code và test offline.
 - Phase 6 E1–E5 đã hoàn tất ở mức code/offline acceptance.
 - Phase 6 E6 chưa được tuyên bố hoàn tất vì còn live rehearsal, human review và sign-off.
@@ -107,7 +107,7 @@
 ## 3. Phase 6 E6 còn thiếu
 
 E6 không thể tự động hoàn thành chỉ bằng code. Checklist chính thức nằm tại
-`docs/PHASE6_ACCEPTANCE_SIGNOFF.md` và còn các điều kiện:
+`docs/acceptance/PHASE6_ACCEPTANCE_SIGNOFF.md` và còn các điều kiện:
 
 1. Chạy rehearsal bốn câu ở `record/live`, sau đó replay ở `cache_only`.
 2. DR1 đọc và duyệt wording/source label của ít nhất 10 answer lấy từ nguồn thật.
@@ -168,9 +168,9 @@ Kết quả gần nhất:
 
 ## 7. File chính cần đọc
 
-- `docs/V2_Unified_Architecture.md`
+- `docs/design/V2_Unified_Architecture.md`
 - `docs/External Data Integration.md`
-- `docs/PHASE6_ACCEPTANCE_SIGNOFF.md`
+- `docs/acceptance/PHASE6_ACCEPTANCE_SIGNOFF.md`
 - `src/gladiators/external/router.py`
 - `src/gladiators/external/pipeline.py`
 - `src/gladiators/external/search_executor.py`

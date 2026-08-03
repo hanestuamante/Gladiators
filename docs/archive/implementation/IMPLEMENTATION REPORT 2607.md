@@ -3,7 +3,7 @@
 Ngày xác minh: 2026-07-26  
 Branch: `MVP_Dai_V2`  
 Remote HEAD đã pull: `6242c73`  
-Nguồn testcase mới: `docs/DR TASK 1407.md`
+Nguồn testcase mới: `docs/qa/DR TASK 1407.md`
 
 ## 1. Phạm vi đã triển khai
 

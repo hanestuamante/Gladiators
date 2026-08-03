@@ -7,7 +7,7 @@
 > | --- | --- |
 > | Ngày lập | 26/07/2026 |
 > | Baseline code | working tree 26/07/2026, `pytest -q` = 285 passed |
-> | Baseline hành vi | `docs/Testcases result 2607 analysis.md` (chạy lại DR40, 40 case × 3) |
+> | Baseline hành vi | `docs/qa/Testcases result 2607 analysis.md` (chạy lại DR40, 40 case × 3) |
 > | Tài liệu ràng buộc | `V2_Unified_Architecture.md`, `External Data Integration.md`, `2207.md`, `2507.md` |
 > | Phạm vi | P0 semantic alignment + entity/ID/country + macro qualifier + compound + context carrier + cassette + oracle DR40 |
 

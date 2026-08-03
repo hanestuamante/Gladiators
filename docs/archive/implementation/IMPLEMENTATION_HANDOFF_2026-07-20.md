@@ -1,6 +1,6 @@
 # Bàn giao triển khai V2 — trạng thái đến 20/07/2026
 
-Tài liệu này giúp người tiếp tục có thể bắt đầu ngay mà không phải suy đoán từ lịch sử chat. Nguồn kiến trúc chuẩn là `docs/V2_Unified_Architecture.md`. Trạng thái dưới đây được đối chiếu với code và test trong workspace ngày 20/07/2026.
+Tài liệu này giúp người tiếp tục có thể bắt đầu ngay mà không phải suy đoán từ lịch sử chat. Nguồn kiến trúc chuẩn là `docs/design/V2_Unified_Architecture.md`. Trạng thái dưới đây được đối chiếu với code và test trong workspace ngày 20/07/2026.
 
 ## 1. Tóm tắt điều hành
 
@@ -357,7 +357,7 @@ Không xóa các thay đổi hiện tại. Nhóm file đang modified/untracked g
 - Planner stack: toàn bộ `src/gladiators/planner/`.
 - Eval/scripts: các suite V2, independent oracle, coverage builders, `scripts/run_evaluation.py`.
 - Tests: `tests/test_v1.py`, `tests/test_planner_mutations.py`.
-- Docs/config/deps: `README.md`, `docs/V2_Unified_Architecture.md`, `configs/default.yaml`, `requirements.txt`.
+- Docs/config/deps: `README.md`, `docs/design/V2_Unified_Architecture.md`, `configs/default.yaml`, `requirements.txt`.
 
 Trước khi commit nên chạy:
 
@@ -426,14 +426,14 @@ Sau Phase 5, Phase 6 vẫn là conditional external integration. Không tự đ�
 - E4: verifier Pass 4 kiểm label nguồn + thời điểm, 15 trường provenance live (provider/query/rank/span), A20 không trộn tier; wording gate chặn thêm nhân quả ngầm (`nhờ/do/bởi/kéo theo/dẫn đến/vì vậy giá`).
 - E5: thêm `eval/questions_external.json` (EF-13…EF-24), fixture normalized + injection, test router/integration/retry/quota/replay/Pass 4 tại `test_external_phase6_e4.py` và `test_external_phase6_e5.py`.
 - Targeted Phase 6 cuối: **42 passed**. Full regression cuối: **212 passed in 75.91s**; `git diff --check` sạch. Coverage matrix đã regenerate sau khi thêm suite external. Runtime còn bắt buộc `GLADIATORS_LIVE_SOURCE_REVIEWED=1` và license ID đã duyệt, nên một cờ live đơn lẻ không thể mở nguồn.
-- E6 **chưa ký hoàn tất**: không giả lập DR1/Lead approval. Còn ≥10 answer live được DR1 review, rehearsal 4 câu ở cả `live` và `cache_only`, và Lead/ADR sign-off. Checklist bàn giao: `docs/PHASE6_ACCEPTANCE_SIGNOFF.md`. Cờ mặc định vẫn OFF.
+- E6 **chưa ký hoàn tất**: không giả lập DR1/Lead approval. Còn ≥10 answer live được DR1 review, rehearsal 4 câu ở cả `live` và `cache_only`, và Lead/ADR sign-off. Checklist bàn giao: `docs/acceptance/PHASE6_ACCEPTANCE_SIGNOFF.md`. Cờ mặc định vẫn OFF.
 
 
 ---
 
 ## 13. Review chống-hallucination 21/07 — kết quả audit + kế hoạch sửa (ĐÃ thực thi — xem 13.6)
 
-Ngày review: 21/07/2026. Phạm vi: toàn bộ đường sinh câu trả lời (`workflow._generate` → `verifier`), planner stack (`open_planner`, `critic`, `consensus`, `risk`, `validator`, `compiler`, `executor`), LLM adapters, và đối chiếu với `docs/V2_Unified_Architecture.md` (v2.3). Mục này là **kế hoạch được duyệt trước khi code** — mỗi fix dưới đây đã được thiết kế ở mức implementation-ready (file, hàm, hành vi, edge case, test contract) nhưng **chưa merge dòng nào**.
+Ngày review: 21/07/2026. Phạm vi: toàn bộ đường sinh câu trả lời (`workflow._generate` → `verifier`), planner stack (`open_planner`, `critic`, `consensus`, `risk`, `validator`, `compiler`, `executor`), LLM adapters, và đối chiếu với `docs/design/V2_Unified_Architecture.md` (v2.3). Mục này là **kế hoạch được duyệt trước khi code** — mỗi fix dưới đây đã được thiết kế ở mức implementation-ready (file, hàm, hành vi, edge case, test contract) nhưng **chưa merge dòng nào**.
 
 ### 13.1. Mô hình mối đe dọa — 4 lớp hallucination của hệ này
 

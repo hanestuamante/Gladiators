@@ -1,8 +1,12 @@
 # Kiến trúc Agent V1 — Verifiable E-commerce Intelligence MVP
 
+> **Lưu trữ:** V1 là baseline lịch sử và đã được V2 thay thế. Đọc
+> [CURRENT_ARCHITECTURE_SPEC.md](../../CURRENT_ARCHITECTURE_SPEC.md) để biết
+> runtime hiện tại.
+
 > **Trạng thái:** Kiến trúc hiện hành, có runtime, API và UI chạy được.
 > **Ngày đối soát:** 2026-07-16.
-> **Phạm vi:** Hợp nhất [Architecture Spec](Architecture-spec.md), [V0 Architecture](V0_Architecture.md), [Data Context and Analysis Notes](Data_Context_and_Analysis_Notes.md) và implementation thực tế trong repository.
+> **Phạm vi:** Hợp nhất [Architecture Spec](Architecture-spec.md), [V0 Architecture](V0_Architecture.md), [Data Context and Analysis Notes](../../reference/Data_Context_and_Analysis_Notes.md) và implementation tại thời điểm V1.
 
 Tài liệu này mô tả cả thiết kế V1 và phần đã được triển khai. Một component chỉ được ghi là **Implemented** khi có code hoặc artifact kiểm chứng trong repository. Phần chưa đạt đầy đủ so với Architecture Spec được tập trung tại [V1 Implementation Limitations](V1_Implementation_Limitations.md).
 
@@ -12,7 +16,7 @@ Khi schema, semantics hoặc đường dẫn mâu thuẫn, dùng thứ tự sau:
 
 1. Artifact hiện tại trong `data/processed/` và preprocessing notebook có thể chạy lại.
 2. `pipeline_report.json`, `data_quality_issues.csv` và các report thực thi hiện có.
-3. [Data Context and Analysis Notes](Data_Context_and_Analysis_Notes.md) cho grain, key, field semantics và analysis guardrail.
+3. [Data Context and Analysis Notes](../../reference/Data_Context_and_Analysis_Notes.md) cho grain, key, field semantics và analysis guardrail.
 4. Code, test và config V1 hiện tại cho trạng thái implementation.
 5. Tài liệu này cho ranh giới component và contract V1.
 6. [Architecture Spec](Architecture-spec.md) cho kiến trúc chuẩn và acceptance criteria chưa mâu thuẫn dữ liệu.

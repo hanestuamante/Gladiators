@@ -114,7 +114,7 @@ phải SHA dùng cho live rehearsal; chưa có commit SHA cuối cho W8.
 - `tests/test_external_phase6_e2.py` … `e5.py`, `test_antihallucination.py`,
   `test_planner_mutations.py`: positive/adversarial/regression coverage.
 - `README.md`, `docs/External Data Integration.md`,
-  `docs/V2_Unified_Architecture.md`, `docs/PHASE6_ACCEPTANCE_SIGNOFF.md`, file này:
+  `docs/design/V2_Unified_Architecture.md`, `docs/acceptance/PHASE6_ACCEPTANCE_SIGNOFF.md`, file này:
   W9 status/handoff.
 
 ## Tests
