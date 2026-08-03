@@ -191,6 +191,27 @@ def test_dataset_version_is_cached(monkeypatch):
     assert calls == 3
 
 
+def test_dataset_version_is_independent_of_checkout_line_endings(tmp_path):
+    names = (
+        "products_clean.csv",
+        "product_snapshot_metrics.csv",
+        "product_transition_metrics.csv",
+    )
+    lf_root = tmp_path / "lf"
+    crlf_root = tmp_path / "crlf"
+    lf_root.mkdir()
+    crlf_root.mkdir()
+    for index, name in enumerate(names):
+        rows = f"column,value\nrow-{index},1\n".encode()
+        (lf_root / name).write_bytes(rows)
+        (crlf_root / name).write_bytes(rows.replace(b"\n", b"\r\n"))
+
+    assert (
+        ArtifactRepository(lf_root, validate=False).dataset_version
+        == ArtifactRepository(crlf_root, validate=False).dataset_version
+    )
+
+
 def test_cardinality_schema_and_executor_enforcement():
     with pytest.raises(ValidationError):
         PlanNode(
