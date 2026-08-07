@@ -37,10 +37,27 @@ def stable_id(prefix: str, *parts: Any) -> str:
 
 
 def sha256_of(path) -> str:
+    """Hash a text artifact by canonical bytes, not by OS line endings.
+
+    Git checks these CSVs out as CRLF on Windows and LF on Linux, so hashing raw
+    bytes gives one dataset two identities. The bundle directory is named from
+    this hash, so the same data built on two platforms would land in two
+    directories, the collision check would never fire, and there would be two
+    "immutable" bundles for one dataset -- exactly what immutability was for.
+    """
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
+        trailing_cr = b""
         for chunk in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(chunk)
+            chunk = trailing_cr + chunk
+            # A CRLF split across the chunk boundary would normalise to "\n\n"
+            # if handled naively, so hold a trailing CR back for the next chunk.
+            trailing_cr = b"\r" if chunk.endswith(b"\r") else b""
+            if trailing_cr:
+                chunk = chunk[:-1]
+            digest.update(chunk.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
+        if trailing_cr:
+            digest.update(b"\n")
     return digest.hexdigest()
 
 

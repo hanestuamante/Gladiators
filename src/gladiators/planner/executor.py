@@ -116,6 +116,16 @@ class QueryExecutor:
         explain_rows = self.connection.execute("EXPLAIN " + query.sql, query.parameters).fetchall()
         explain = "\n".join(str(row[-1]) for row in explain_rows)
         frame = self.connection.execute(query.sql, query.parameters).fetchdf()
+        if not query.ordered and len(frame) > 1:
+            # A grouped result with no Rank is a set, and DuckDB returns sets in
+            # whatever order its hash table iterated -- observed differing between
+            # two processes on identical data. That makes the rendered answer
+            # differ run to run, which a system built on content hashes, cassette
+            # replay and a pinned evidence lock cannot afford. Imposing a
+            # canonical order changes no value, only reproducibility.
+            frame = frame.sort_values(
+                by=list(frame.columns), kind="mergesort",
+            ).reset_index(drop=True)
         if len(frame) > self.max_result_rows:
             raise ExecutionFailure(
                 ExecutionIssue(

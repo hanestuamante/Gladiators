@@ -181,6 +181,36 @@ def test_two_builds_of_the_same_data_produce_identical_files(tmp_path):
         assert (first / name).read_bytes() == (second / name).read_bytes()
 
 
+def test_source_hash_is_the_same_on_windows_and_linux_checkouts(tmp_path):
+    """Git checks these CSVs out as CRLF on Windows and LF on Linux.
+
+    The bundle directory is named from this hash, so hashing raw bytes gives one
+    dataset two identities: the same data built on two platforms lands in two
+    directories, the collision check never fires, and there are two "immutable"
+    bundles for one dataset — exactly what immutability was meant to prevent.
+    """
+    from gladiators.insights.contracts import sha256_of
+
+    crlf = tmp_path / "crlf.csv"
+    lf = tmp_path / "lf.csv"
+    crlf.write_bytes(b"a,b\r\n1,2\r\n3,4\r\n")
+    lf.write_bytes(b"a,b\n1,2\n3,4\n")
+    assert sha256_of(crlf) == sha256_of(lf)
+
+
+def test_source_hash_handles_a_line_ending_split_across_a_read_chunk(tmp_path):
+    """A CRLF straddling the 1MB boundary would normalise to "\\n\\n" if the
+    trailing CR were not carried into the next chunk."""
+    from gladiators.insights.contracts import sha256_of
+
+    chunk = 1 << 20
+    crlf = tmp_path / "edge_crlf.csv"
+    lf = tmp_path / "edge_lf.csv"
+    crlf.write_bytes(b"a" * (chunk - 1) + b"\r\n" + b"b" * 10)
+    lf.write_bytes(b"a" * (chunk - 1) + b"\n" + b"b" * 10)
+    assert sha256_of(crlf) == sha256_of(lf)
+
+
 def test_stable_id_is_content_addressed():
     assert stable_id("ic:x", "a", 1) == stable_id("ic:x", "a", 1)
     assert stable_id("ic:x", "a", 1) != stable_id("ic:x", "a", 2)

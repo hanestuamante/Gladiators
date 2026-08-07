@@ -30,6 +30,9 @@ class CompiledQuery:
     expected_columns: tuple[str, ...]
     postconditions: tuple[str, ...]
     expected_cardinality: str = "<=10000"
+    # True when the plan asked for a specific order (a Rank node). When false the
+    # result is a set and the executor is free to impose a canonical order.
+    ordered: bool = False
 
 
 _VIEW_NAMES = {
@@ -293,4 +296,5 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
         expected_columns=tuple(field.name for field in plan.requested_output_shape),
         postconditions=output.invariants,
         expected_cardinality=output.expected_cardinality,
+        ordered=any(node.op == "Rank" for node in plan.nodes),
     )
