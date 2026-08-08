@@ -134,8 +134,22 @@ cho câu hỏi về mức giảm giá. A22 sinh ra để lấp đúng khe đó.
 .venv/Scripts/python.exe scripts/build_topic_gate.py
 ```
 
-Ngưỡng không được tụt: legacy 60×3, V2 11×3, A19 6×3, critic 4×3, boundaries 9×3
-đều **1.0**; Phase 6 **12/12** `offline-no-network`.
+Trạng thái đo ngày 08/08 tại `1df8e5b` — **có regression chưa sửa**:
+
+| Suite | Hiện tại | Mốc cũ |
+| --- | --- | --- |
+| `pytest -q` | **804 passed, 1 skipped** | — |
+| boundaries 9×3 | **1.0** | 1.0 |
+| Phase 6 external | **12/12** `offline-no-network` | 12/12 |
+| legacy `questions` 60×3 | **0.65** (21 case fail) | 1.0 |
+| V2 11×3 | **0.879** (2 fail) | 1.0 |
+| A19 6×3 | **0.833** (1 fail) | 1.0 |
+
+Cả 21 case fail chung **một** nguyên nhân, và nó là biến thể của bẫy §3.1: message
+`A-AMBIGUOUS` echo tên listing ứng viên, tên chứa chữ số (`"... Cream 30 Gr"`) →
+`verifier.scan_numbers` đọc thành claim `30.0` không có evidence → `passed=False`.
+Đây là **false positive của verifier**, không phải câu trả lời sai — nhưng chưa sửa.
+Regression đã có sẵn ở `origin/MVP_Dai_V2` (645d558), không phải do commit local.
 
 **Bất kỳ câu legacy nào chuyển sang `A22-*` là false positive của alignment — sửa
 checker, không sửa expected.**

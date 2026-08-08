@@ -269,6 +269,26 @@ class AgentRuntime:
                     # intent names happen to be involved.
                     parsed = parsed.model_copy(update={"intent": deterministic.intent})
                     adjustments.append("capability_contract_precedence")
+                elif (
+                    parsed.intent != deterministic.intent
+                    and deterministic.intent == "open_analytical"
+                    and self.registry.get(parsed.intent) is not None
+                    and not str(
+                        parsed.slots.get("analytical_kind")
+                        or deterministic.slots.get("analytical_kind") or ""
+                    )
+                ):
+                    # The deterministic parser saying ``open_analytical`` means it
+                    # found no certified template. An LLM label like
+                    # ``analytical_query`` claims the opposite -- that a template
+                    # path applies -- while naming no template, and that pair is
+                    # self-contradictory: it routes to build_analytical_plan("")
+                    # and dies as "no analytical template", so the open planner is
+                    # never even asked. Measured on the eval corpus, this silently
+                    # blocked 22 answerable questions and disguised a routing bug
+                    # as a missing capability.
+                    parsed = parsed.model_copy(update={"intent": deterministic.intent})
+                    adjustments.append("open_analytical_precedence")
                 spec = self.registry.get(parsed.intent)
                 if spec:
                     updates = {}
