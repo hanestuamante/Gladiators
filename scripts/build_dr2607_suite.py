@@ -8,10 +8,19 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# The generator validates labels against the live intent registry, so it needs
+# the package importable even when run without PYTHONPATH set.
+sys.path.insert(0, str(ROOT / "src"))
+
+# The Windows console defaults to cp1252 and cannot encode Vietnamese; without
+# this the generator does its work and then dies on its own progress message.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 SOURCE = ROOT / "docs" / "qa" / "DR TASK 1407.md"
 OUTPUT = ROOT / "eval" / "dr2607.json"
 
@@ -213,6 +222,40 @@ CONTRACTS: dict[int, dict[str, object]] = {
 }
 
 
+_INTENT = re.compile(r"Intent mong đợi:\**\s*`?([a-z_]+)`?")
+
+
+def _expected_intents() -> tuple[dict[int, str], dict[int, str]]:
+    """Read "Intent mong đợi" per testcase, keeping only real intents.
+
+    The labels are parsed from the source document rather than restated here:
+    a second copy drifts from the document the moment QA edits it, and the drift
+    is invisible.
+
+    A label is kept only when the registry actually has that intent. The
+    document contains ``entity_resolution``, which names a mechanism rather than
+    an intent -- scoring a parser against a label it can never emit would report
+    a permanent failure that no fix could clear. Rejected labels are returned
+    separately so they are reported, not silently dropped.
+    """
+    from gladiators.domain.intent_registry import default_registry
+
+    known = set(default_registry().names())
+    kept: dict[int, str] = {}
+    rejected: dict[int, str] = {}
+    current: int | None = None
+    for line in SOURCE.read_text(encoding="utf-8").splitlines():
+        heading = _HEADING.match(line)
+        if heading:
+            current = int(heading.group(1))
+            continue
+        found = _INTENT.search(line)
+        if current is not None and found and current not in kept and current not in rejected:
+            label = found.group(1)
+            (kept if label in known else rejected)[current] = label
+    return kept, rejected
+
+
 def build() -> list[dict[str, object]]:
     cases: dict[int, str] = {}
     current: int | None = None
@@ -226,6 +269,8 @@ def build() -> list[dict[str, object]]:
                 raise ValueError(f"TC{current:02d} có nhiều hơn một câu hỏi")
             cases[current] = _question_text(line)
 
+    intents, rejected_intents = _expected_intents()
+
     expected_ids = set(range(1, 41))
     if set(cases) != expected_ids or set(CONTRACTS) != expected_ids:
         raise ValueError(
@@ -233,10 +278,16 @@ def build() -> list[dict[str, object]]:
             f"contracts={sorted(CONTRACTS)}"
         )
 
+    if rejected_intents:
+        # Loud, not silent: a label the registry does not know means either the
+        # document or the taxonomy moved, and both need a human to reconcile.
+        for number, label in sorted(rejected_intents.items()):
+            print(f"  [bỏ nhãn] TC{number:02d}: '{label}' không có trong intent registry")
+
     suite = []
     for number in sorted(cases):
         contract = {
-            "legacy_expected_intent": None,
+            "legacy_expected_intent": intents.get(number),
             "expected_action": None,
             "allowed_rule_ids": [],
             "forbidden_rule_ids": [],
