@@ -34,7 +34,11 @@ class ArtifactRepository:
     def dataset_version(self) -> str:
         h = hashlib.sha256()
         for name in sorted(["products_clean.csv", "product_snapshot_metrics.csv", "product_transition_metrics.csv"]):
-            h.update((self.root / name).read_bytes())
+            # Git may check text artifacts out as CRLF on Windows and LF on
+            # Linux.  The dataset is identical in both cases, so its version
+            # must be based on canonical text bytes rather than OS line endings.
+            payload = (self.root / name).read_bytes()
+            h.update(payload.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
         return h.hexdigest()[:16]
 
     def capability_profile(self) -> dict[str, object]:

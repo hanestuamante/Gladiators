@@ -1,7 +1,11 @@
 # Các giới hạn triển khai V1 còn tồn tại
 
+> **Lưu trữ:** Danh sách này phản ánh gap tại mốc V1. Không dùng trực tiếp làm
+> backlog hiện tại nếu chưa đối chiếu
+> [CURRENT_ARCHITECTURE_SPEC.md](../../CURRENT_ARCHITECTURE_SPEC.md).
+
 > **Ngày đối soát:** 2026-07-16.
-> Tài liệu này chỉ ghi những khoảng cách **chưa được giải quyết** so với [Architecture Spec](Architecture-spec.md), sau khi đối chiếu [V0 Architecture](V0_Architecture.md), [Data Context](Data_Context_and_Analysis_Notes.md), [V1 Architecture](V1_Architecture.md) và repository hiện tại.
+> Tài liệu này chỉ ghi những khoảng cách **chưa được giải quyết tại mốc V1** so với [Architecture Spec](Architecture-spec.md), sau khi đối chiếu [V0 Architecture](V0_Architecture.md), [Data Context](../../reference/Data_Context_and_Analysis_Notes.md), [V1 Architecture](V1_Architecture.md) và repository tại thời điểm đó.
 
 “MVP chạy được” không tự động có nghĩa là mọi acceptance criterion của Architecture Spec đã đạt.
 

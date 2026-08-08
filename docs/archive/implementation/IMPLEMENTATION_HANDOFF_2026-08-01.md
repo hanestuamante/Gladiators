@@ -1,6 +1,6 @@
 # Implementation handoff — 2026-08-01
 
-Bàn giao vòng triển khai `docs/ultimate solution.md` trên nhánh `MVP_Dai_V2`.
+Bàn giao vòng triển khai `docs/design/ultimate solution.md` trên nhánh `MVP_Dai_V2`.
 
 Trạng thái: **801 passed, 1 skipped, 0 failed**. Ước lượng **~85%** của 62 hạng
 mục con trong §16. Phần còn lại gần như toàn bộ chờ quyết định của người, không

@@ -170,13 +170,13 @@ Thứ tự khi mâu thuẫn: **code đang chạy > test/eval thực chạy > tà
 
 | File | Dùng khi |
 | --- | --- |
-| `docs/2-8.md` | **Vì sao** vòng này chọn như đã chọn, kèm số đo |
-| `docs/IMPLEMENTATION_HANDOFF_2026-08-01.md` | Trạng thái + danh sách chờ người |
-| `docs/ultimate solution.md` | Spec hiện hành đang triển khai |
-| `docs/V2_Unified_Architecture.md` | Kiến trúc nền, trục L0–L4 × C1–C4 |
-| `docs/Data_Context_and_Analysis_Notes.md` | Định nghĩa nghiệp vụ từng cột |
-| `docs/2507.md` | Sáu defect + acceptance A1–A10 |
-| `docs/External Data Integration.md` | Chính sách external/live search |
+| `docs/archive/implementation/2-8.md` | **Vì sao** vòng này chọn như đã chọn, kèm số đo |
+| `docs/archive/implementation/IMPLEMENTATION_HANDOFF_2026-08-01.md` | Trạng thái + danh sách chờ người |
+| `docs/design/ultimate solution.md` | Spec hiện hành đang triển khai |
+| `docs/design/V2_Unified_Architecture.md` | Kiến trúc nền, trục L0–L4 × C1–C4 |
+| `docs/reference/Data_Context_and_Analysis_Notes.md` | Định nghĩa nghiệp vụ từng cột |
+| `docs/archive/implementation/2507.md` | Sáu defect + acceptance A1–A10 |
+| `docs/design/External Data Integration.md` | Chính sách external/live search |
 
 ---
 

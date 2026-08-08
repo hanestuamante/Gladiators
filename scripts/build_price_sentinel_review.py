@@ -165,7 +165,7 @@ def main() -> None:
     manifest = {
         "schema_version": "data-review.v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "spec_ref": "docs/ultimate solution.md §4.8",
+        "spec_ref": "docs/design/ultimate solution.md §4.8",
         "data_contract_hash": hashlib.sha256(
             (root / "product_snapshot_metrics.csv").read_bytes(),
         ).hexdigest()[:32],

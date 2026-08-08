@@ -24,7 +24,7 @@ def responses(runtime):
 def test_dr2607_suite_contains_exactly_40_unique_source_questions():
     assert [case["id"] for case in SUITE] == [f"tc{i:02d}" for i in range(1, 41)]
     assert len({case["question"] for case in SUITE}) == 40
-    assert all(case["source"] == "docs/DR TASK 1407.md" for case in SUITE)
+    assert all(case["source"] == "docs/qa/DR TASK 1407.md" for case in SUITE)
     assert "sentinel" not in SUITE[18]["question"].casefold()
     assert "một mã hoàn toàn" not in SUITE[19]["question"].casefold()
 

@@ -63,7 +63,7 @@
 > executable EF-13…EF-24. Full regression local macOS: **254 passed in 80.35s**.
 > Default external vẫn `OFF/cache_only`, admission vẫn `context_only`; W8 Tavily,
 > cross-platform CI và human/ADR sign-off chưa có bằng chứng nên E6 vẫn `PENDING`.
-> Xem `docs/IMPLEMENTATION_HANDOFF_2026-07-23.md` cho trạng thái và limitation chính xác.
+> Xem `docs/archive/implementation/IMPLEMENTATION_HANDOFF_2026-07-23.md` cho trạng thái và limitation chính xác.
 
 **Bảng baseline lịch sử trước implementation:**
 

@@ -1,6 +1,7 @@
 # Data Context and Analysis Notes
 
-> **Status:** Current data-context and analysis-notes entry point.
+> **Status:** Tài liệu tham chiếu chuyên sâu về dữ liệu. Với kiến trúc/runtime
+> hiện tại, đọc `../CURRENT_ARCHITECTURE_SPEC.md` trước.
 > Nếu dùng `business-dictionary.md` làm system prompt cho Agent, **bắt buộc đọc [mục 9](#9-business-dictionary-chuẩn-hóa-đối-chiếu-business-dictionarymd) trước** — file đó có 4 lỗi/thiếu caveat đã kiểm chứng và sửa ở mục 9.
 > Lần cuối cập nhật: 14/7/2026 — đồng bộ theo cấu trúc repo hiện hành và pipeline tái lập trong `notebooks/pipeline`.
 
@@ -16,7 +17,7 @@ Thứ tự ưu tiên khi nguồn mâu thuẫn:
 2. `data/processed/pipeline_report.json` và `data_quality_issues.csv`: kết quả kiểm định có thể tái lập.
 3. Tài liệu này: grain, semantics, anomaly và guardrail đã tổng hợp.
 4. [Pipeline documentation](data-pipeline.md): contract xử lý và metric hiện hành.
-5. [V0 Architecture](V0_Architecture.md): lịch sử thiết kế đã superseded, không phải source of truth.
+5. [V0 Architecture](../archive/architecture/V0_Architecture.md): lịch sử thiết kế đã superseded, không phải source of truth.
 
 Các số liệu ghi là “kiểm tra trực tiếp” bên dưới được đối soát read-only trên:
 
@@ -509,13 +510,14 @@ Gladiators/
 Điểm vào theo nhu cầu:
 
 - Context, grain, semantics và guardrail: tài liệu này (mục 1–7).
-- Kiến trúc Agent mục tiêu hiện hành: [V1_Architecture.md](V1_Architecture.md).
-- Thiết kế tham chiếu chi tiết và các capability còn bị chặn: [Architecture-spec.md](Architecture-spec.md) và [V1_Implementation_Limitations.md](V1_Implementation_Limitations.md).
+- Kiến trúc runtime hiện tại: [CURRENT_ARCHITECTURE_SPEC.md](../CURRENT_ARCHITECTURE_SPEC.md).
+- Kiến trúc mục tiêu V2: [V2_Unified_Architecture.md](../design/V2_Unified_Architecture.md).
+- Thiết kế cũ và gap V1 để tra lịch sử: [Architecture-spec.md](../archive/architecture/Architecture-spec.md) và [V1_Implementation_Limitations.md](../archive/architecture/V1_Implementation_Limitations.md).
 - Pipeline và output columns: [data-pipeline.md](data-pipeline.md).
 - Luồng code và dependency metric: [codegraph.md](codegraph.md).
 - Phân tích snapshot nhanh: `data/processed/product_snapshot_metrics.csv`.
 - Evidence chất lượng: `data/processed/data_quality_issues.csv` và `pipeline_report.json`.
-- Thiết kế V0 để tra cứu lịch sử: [V0_Architecture.md](V0_Architecture.md), không dùng làm data source of truth.
+- Thiết kế V0 để tra cứu lịch sử: [V0_Architecture.md](../archive/architecture/V0_Architecture.md), không dùng làm data source of truth.
 
 Image download không còn thuộc phạm vi code hiện hành. Nếu bổ sung lại sau này, cache binary phải tách khỏi artifact phân tích lõi và có kiểm tra coverage riêng.
 

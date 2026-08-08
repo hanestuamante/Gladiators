@@ -31,11 +31,13 @@
 
 Các tài liệu được dùng:
 
-- [`DR TASK 1407 .md`](<DR TASK 1407 .md>) — testcase và narrative lịch sử ngày 14/07.
-- [`V2_Unified_Architecture.md`](V2_Unified_Architecture.md) — kiến trúc V2 hiện hành.
-- [`External Data Integration.md`](<External Data Integration.md>) — chính sách và acceptance của external/live search.
-- [`2207.md`](2207.md) — checklist sửa và hardening Phase 6.
-- [`2507.md`](2507.md) — sáu defect đã xác minh ngày 25/07.
+- `DR TASK 1407.md` — testcase và narrative lịch sử ngày 14/07; file không còn
+  trong worktree, xem Git history nếu cần audit.
+- [`V2_Unified_Architecture.md`](../design/V2_Unified_Architecture.md) — kiến trúc V2 mục tiêu.
+- [`External Data Integration.md`](<../design/External Data Integration.md>) — chính sách và acceptance của external/live search.
+- `2207.md` — checklist được báo cáo viện dẫn nhưng không có trong worktree hiện tại.
+- `2507.md` — sáu defect ngày 25/07; file không còn trong worktree, xem Git
+  history hoặc phân tích 28/07 đã thay thế.
 
 Thứ tự tin cậy áp dụng trong báo cáo:
 
@@ -115,7 +117,7 @@ Cho tôi biết vì sao ...?
 
 Các khẳng định dữ liệu được tính trực tiếp từ ba CSV bằng pandas; không import planner, compiler, macro hoặc analytics production. Kết quả ở:
 
-- [`independent_oracle.json`](../artifacts/dr1407_retest_2026-07-26/independent_oracle.json)
+- [`independent_oracle.json`](../../artifacts/dr1407_retest_2026-07-26/independent_oracle.json)
 
 ### 4.4 Rubric thủ công
 
@@ -603,11 +605,11 @@ Không trộn kết quả các mode vào một pass rate.
 
 Artifact local, hiện nằm trong thư mục gitignored:
 
-- [`normalized_api_results.json`](../artifacts/dr1407_retest_2026-07-26/normalized_api_results.json) — 40 case × 3 full API responses.
-- [`gladiators_dr2607_offline_20260726.json`](../artifacts/dr1407_retest_2026-07-26/gladiators_dr2607_offline_20260726.json) — direct runtime cross-check.
-- [`verbatim_markdown_with_quotes_results.json`](../artifacts/dr1407_retest_2026-07-26/verbatim_markdown_with_quotes_results.json) — sensitivity run giữ quote.
-- [`independent_oracle.json`](../artifacts/dr1407_retest_2026-07-26/independent_oracle.json) — oracle trực tiếp từ CSV.
-- [`gladiators_dr2607_runner.py`](../artifacts/dr1407_retest_2026-07-26/gladiators_dr2607_runner.py) — runner tái lập.
+- [`normalized_api_results.json`](../../artifacts/dr1407_retest_2026-07-26/normalized_api_results.json) — 40 case × 3 full API responses.
+- [`gladiators_dr2607_offline_20260726.json`](../../artifacts/dr1407_retest_2026-07-26/gladiators_dr2607_offline_20260726.json) — direct runtime cross-check.
+- [`verbatim_markdown_with_quotes_results.json`](../../artifacts/dr1407_retest_2026-07-26/verbatim_markdown_with_quotes_results.json) — sensitivity run giữ quote.
+- [`independent_oracle.json`](../../artifacts/dr1407_retest_2026-07-26/independent_oracle.json) — oracle trực tiếp từ CSV.
+- [`gladiators_dr2607_runner.py`](../../artifacts/dr1407_retest_2026-07-26/gladiators_dr2607_runner.py) — runner tái lập.
 
 Lệnh PowerShell:
 

@@ -6,7 +6,7 @@
 > | --- | --- |
 > | Baseline code | `645d558`, `pytest -q` = **801 passed, 1 skipped** |
 > | Code graph | `graphify-out/` — 3601 node, 7880 edge, 263 community, 0 import cycle |
-> | Ràng buộc | `CLAUDE.md` §3 (7 bất biến), `docs/2-8.md`, `docs/ultimate solution.md` |
+> | Ràng buộc | `CLAUDE.md` §3 (7 bất biến), `docs/archive/implementation/2-8.md`, `docs/design/ultimate solution.md` |
 > | Phạm vi | S1 intent parsing. **Không** đụng gate, alignment, verifier, compiler |
 
 ---
@@ -240,7 +240,7 @@ Không tự chọn — trình reviewer.
 ### W5 — Shadow
 
 **Việc:** chạy LLM parse trên request thật, ghi `intent_shadow` vào trace, **không
-đổi câu trả lời**. Theo đúng tiền lệ P5/P6 (`docs/2-8.md` §5).
+đổi câu trả lời**. Theo đúng tiền lệ P5/P6 (`docs/archive/implementation/2-8.md` §5).
 
 **DoD:** `tests/test_shadow_wiring.py` mở rộng — câu trả lời **giống hệt** khi
 bật và tắt shadow. Đo latency p50/p95 trên đường chạy thật (tham chiếu: topic

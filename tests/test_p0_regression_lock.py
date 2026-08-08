@@ -1,4 +1,4 @@
-"""P0 regression lock — docs/ultimate solution.md §16 P0.
+"""P0 regression lock — docs/design/ultimate solution.md §16 P0.
 
 Locks the runtime's current behaviour on six probes *before* any P1+ package
 changes it, so every later commit has to prove it is an improvement rather than
