@@ -232,7 +232,18 @@ def _claim_binding_gaps(
 def verify_numeric_claims(
     text: str, evidence: list[Evidence], tolerance: float | None = None,
     *, claims: tuple[ResponseClaim, ...] = (), require_claims: bool = False,
+    ignore_texts: tuple[str, ...] = (),
 ) -> dict:
+    """``ignore_texts`` are spans quoted back from the dataset, not claims.
+
+    An ambiguity shortlist has to echo listing names so the user can choose, and
+    those names contain digits ("... Cleanser 100ml", "... Cream 30 Gr"). With no
+    evidence attached -- a clarify carries none -- every such digit scanned as an
+    unsupported number and failed the answer. Measured on the legacy suite that
+    was 21 of 60 cases: end-to-end accuracy 0.65 while trajectory, evidence,
+    citation and routing all stayed at 1.0, i.e. the answers were right and the
+    checker was wrong.
+    """
     known_ids = {item.evidence_id for item in evidence}
     unknown_citations = sorted({c for c in CITATION.findall(text) if c not in known_ids})
 
@@ -243,7 +254,7 @@ def verify_numeric_claims(
     # nhiễu số kép; bản thân token lạ đã fail qua unknown_citations.
     metric_text = CITATION.sub(" ", metric_text)
 
-    ignored_strings: list[str] = []
+    ignored_strings: list[str] = [t for t in ignore_texts if t]
     for item in evidence:
         if isinstance(item.value, str) and item.value:
             ignored_strings.extend(_date_variants(item.value))

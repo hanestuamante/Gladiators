@@ -90,9 +90,12 @@ def _resolve_entity(ctx: ToolContext) -> None:
     # breaking the tie by picking the best-selling listing, which would turn "which
     # one did you mean" into a confident wrong answer. Scores stay in the trace;
     # the message carries names only, and never a threshold.
-    shortlist = "; ".join(item.display_name[:70] for item in result.candidates)
+    names = tuple(item.display_name[:70] for item in result.candidates)
+    shortlist = "; ".join(names)
     ctx.clarify = GateDecision(
         action="clarify", rule_id="A-AMBIGUOUS",
+        # Carried so the verifier can tell an echoed product name from a claim.
+        quoted_texts=names,
         reason=f"Có nhiều listing gần giống nhau: {shortlist}.",
         answerable_alternative="Hãy chọn một trong các listing trên, hoặc đưa listing key chính xác.",
     )

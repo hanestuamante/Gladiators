@@ -1118,6 +1118,7 @@ class AgentRuntime:
         verification = verify_numeric_claims(
             answer, evidence, claims=claims,
             require_claims=decision.action == "allow" and bool(evidence),
+            ignore_texts=decision.quoted_texts,
         ) if self.enable_verifier else {"passed": True, "coverage": None, "disabled": True}
         answer_alignment = (
             check_answer_alignment(digest, evidence, claims, answer)

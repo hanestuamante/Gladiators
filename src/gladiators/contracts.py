@@ -84,6 +84,11 @@ class GateDecision(BaseModel):
     issues: tuple[GateIssue, ...] = ()
     selected_issue_id: str | None = None
     evaluated_phases: tuple[int, ...] = ()
+    # Spans quoted back from the dataset -- listing names in an ambiguity
+    # shortlist, for instance. They are data being echoed so the user can pick,
+    # not numeric claims: a product called "... Cleanser 100ml" would otherwise
+    # have its "100" scanned as an unsupported number.
+    quoted_texts: tuple[str, ...] = ()
 
 
 class Evidence(BaseModel):
