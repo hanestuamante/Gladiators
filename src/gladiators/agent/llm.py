@@ -18,8 +18,27 @@ def _unsupported_intents() -> tuple[str, ...]:
     return tuple(f"unsupported:{name}" for name in UNSUPPORTED)
 
 
+def _intent_vocabulary() -> tuple[str, ...]:
+    """Every intent string the runtime accepts, derived from the registries.
+
+    Built, never hand-listed: a second copy drifts from the registry the moment a
+    macro is added, and the drift shows up as the model "hallucinating" an intent
+    that is in fact perfectly valid. That already happened once -- three intents
+    reported as invented were later added as real macros.
+    """
+    from gladiators.domain.intent_registry import default_registry
+
+    return tuple(sorted(default_registry().names())) + tuple(
+        sorted(_unsupported_intents())
+    )
+
+
+INTENT_VOCABULARY = _intent_vocabulary()
+IntentName = Literal[INTENT_VOCABULARY]  # type: ignore[valid-type]
+
+
 class GeminiParseOutput(BaseModel):
-    intent: str
+    intent: IntentName
     entity_text: str | None = None
     country: str | None = None
     date_range: list[str] = Field(default_factory=list)
@@ -28,7 +47,12 @@ class GeminiParseOutput(BaseModel):
 
 class GroqParseOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    intent: str
+    # A free ``str`` here gave constrained decoding nothing to constrain: the
+    # schema went out with strict=True and the decoder was still free to emit
+    # any token sequence. As a Literal it becomes an enum in the JSON schema, so
+    # an out-of-registry intent is unrepresentable at the token layer -- before
+    # any validator runs.
+    intent: IntentName
     entity_text: str | None
     country: str | None
     date_range: list[str]
