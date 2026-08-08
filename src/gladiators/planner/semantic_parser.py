@@ -260,6 +260,22 @@ class DeterministicSemanticParser:
             order_by=rank_ref, direction="asc" if ascending else "desc",
             top_k=_requested_top_k(normalized),
         ) if rank_ref and (descending or ascending) else None
+        # "Cửa hàng nào có nhiều SẢN PHẨM nhất" counts products per shop: the
+        # counted noun is the unit, not a second grouping key. It only looked
+        # like one because "sản phẩm" binds to dim.product_name while the
+        # synonymous "listing" binds to entity.product_listing, so the two
+        # phrasings of one question took different paths and A22 rejected the
+        # plan for "dropping" a dimension nobody grouped by.
+        counted_unit = any(
+            term in normalized
+            for term in ("nhieu nhat", "terbanyak", "most", "bao nhieu", "nhieu san pham")
+        )
+        if counted_unit and any(item.ref == "entity.shop" for item in dimensions):
+            dimensions = [
+                SemanticBinding(surface_text=item.surface_text, ref="entity.product_listing")
+                if item.ref == "dim.product_name" else item
+                for item in dimensions
+            ]
         grouping = tuple(item.ref for item in dimensions if item.ref and item.ref not in {"dim.country"})
         price_change_table = any(
             term in normalized
