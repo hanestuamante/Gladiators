@@ -11,6 +11,31 @@
 
 Tài liệu này là đầu vào kỹ thuật duy nhất cho đội triển khai. Mọi hạng mục chỉ được coi là đã có sau khi code, test và proof artifact tương ứng tồn tại. `docs/CURRENT_ARCHITECTURE_SPEC.md` chỉ được cập nhật sau khi implementation đã qua acceptance.
 
+## 0. Bổ sung vòng 09/08 — sáu lớp lỗi đã đo
+
+Nguồn bằng chứng: `docs/qa/BGK_20_ANALYSIS.md` (20 câu, ground truth tính bằng
+pandas thuần, không import `gladiators`). Điểm khởi đầu: 2/20 trả lời đúng,
+3 hiển thị số sai, 2 crash, 9 bỏ lỡ câu trả lời được.
+
+| Lớp lỗi | Ca | Mục spec | Trạng thái |
+| --- | --- | --- | --- |
+| A. Entity ref là đơn vị phân tích, không phải khoá gom nhóm | bgk01, bgk02, bgk08, bgk11 | **§3.1.1** | đã hiện thực |
+| B. Coverage ≠ containment; tiền đề và câu hỏi nhân quả không được kiểm | bgk13 | **§4.4** | đã hiện thực |
+| C. Phép đếm thừa hưởng bộ lọc của phép đo | bgk03, bgk10 | **§4.11** | đã hiện thực |
+| D. Blocker không khắc phục được phải thắng blocker khắc phục được | bgk14, bgk16 | **§4.5.1** | spec, chưa hiện thực |
+| E. Ánh xạ chữ → ký hiệu | bgk05, bgk11 | **§3.2.1–3.2.2** | spec, chưa hiện thực |
+| F. Chính sách trọng tài LLM | toàn bộ | **§4.12** | spec, chưa hiện thực |
+
+Hai lớp nguy hiểm nhất là A/B/C dạng *ràng buộc bị thu hẹp im lặng*: chúng tạo
+ra output **trông đúng** — một con số có evidence, một mục "Phạm vi", một mục
+"Độ tin cậy: High". Crash thì ồn ào nên không thể bị bỏ qua; câu trả lời trôi
+chảy và sai thì không.
+
+Chỉ số **không được đánh đổi**: "hiển thị số sai" phải về 0. Tăng số câu trả lời
+được bằng cách nới lỏng kiểm tra là đi ngược toàn bộ mục đích của kiến trúc này.
+Sau mỗi thay đổi, `verifier_mutation_detection` phải giữ **1.0**; nếu nó tụt,
+bản vá đã tắt một phép kiểm chứ không sửa một lỗi.
+
 ---
 
 # 1. MỤC TIÊU VÀ RANH GIỚI
@@ -373,6 +398,46 @@ CI phải fail khi:
 - `context_only` hoặc `unavailable` xuất hiện trong SQL plan;
 - relation cần thiết không có đường hợp lệ hoặc fanout không có dedupe strategy.
 
+### 3.1.1. Vai trò phân tích — trục trực giao với `BindingKind`
+
+`BindingKind` trả lời *"ref này lấy giá trị từ đâu"*. Nó không trả lời *"ref này
+đóng vai gì trong một câu hỏi"*, và spec bản đầu không có value nào cho vai
+"chỉ định danh đơn vị phân tích". Khoảng trống đó là nguyên nhân gốc của
+`CompilationError` ở bgk02/bgk11 (`docs/qa/BGK_20_ANALYSIS.md` §4).
+
+```python
+AnalysisRole = Literal[
+    "physical_dimension",   # chia kết quả; BẮT BUỘC có cột vật lý
+    "analysis_unit",        # định danh một dòng là gì; đếm được, không gom nhóm được
+    "computed_value",       # đại lượng đo hoặc dẫn xuất
+    "context_only",         # không bao giờ vào LogicalQueryPlan
+]
+```
+
+Hai trục **trực giao**, không thay thế nhau. `derived.product_count` là
+`binding=aggregate` (cách lấy giá trị) **và** `counts_unit=entity.product_listing`
+(đếm đơn vị nào). `entity.shop` là `analysis_unit` **và** có cột `shop_id`, nên
+vừa gom nhóm được vừa đếm được — hai năng lực độc lập:
+
+| Năng lực | Điều kiện | Ví dụ |
+| --- | --- | --- |
+| Gom nhóm (`GROUP BY`) | `physical` khác rỗng | `entity.shop` được, `entity.product_listing` không |
+| Đếm phân biệt | `counting_key` khác rỗng | cả hai đều được |
+
+`answerability` giữ nguyên nghĩa cũ; trục mới là additive. Việc dùng chung một
+trục cho cả hai vai là lý do 10 entity ref tự khai `exposed_as_dimension` trong
+khi không có gì để `GROUP BY`.
+
+Ba tầng phải hỏi **cùng một câu hỏi**, nếu không chúng sẽ bất đồng đúng như
+trước: catalog kiểm lúc build (`CatalogError`, eager tại import, cùng convention
+C1–C8 của topic registry); `validate_plan` trả issue `non_physical_grouping`
+(rule_id `A19-PLAN-GROUPING`); compiler tra `counting_key` thay vì so tên ref.
+Trước đây chỉ compiler đối chiếu với thực tế, và nó làm việc đó bằng exception.
+
+Mỗi đơn vị đếm được có đúng một count metric (`counts_unit` trỏ ngược về entity).
+Không đặc cách theo tên ref trong compiler — thêm một đơn vị đếm được là sửa
+catalog, không phải thêm nhánh `if`.
+
 Migration catalog không được suy binding chỉ từ việc `physical` rỗng hay không:
 
 | Nhóm                                                                                                   | Phân loại bắt buộc                                                                                         |
@@ -417,6 +482,67 @@ Thứ tự match:
 Fuzzy score không được tự phá hòa. Nếu top candidates khác ref cùng priority và margin dưới ngưỡng config, parser trả typed ambiguity với candidate refs; CapabilityMatcher chưa được chạy. Không còn priority ngầm giữa seed hard-code và catalog vì seed hard-code bị xóa.
 
 Không nhận diện được ref trả `A19-CAT-UNMAPPED`; nhận diện được nhưng binding `unavailable` trả `A19-CAT-UNBOUND`. Hai reason có trace/blocker và message nghiệp vụ riêng.
+
+### 3.2.1. Hai bộ máy khớp alias đang tồn tại song song — nợ kiến trúc
+
+Yêu cầu "Xóa `DeterministicSemanticParser.MEASURES` và `.DIMENSIONS`" ở trên
+**chưa xảy ra**. Thực tế đo được trong code hiện tại: có **hai** bộ máy khớp
+alias độc lập, thuật toán gần giống nhưng không giống hẳn.
+
+| Bộ máy | File | Ai tiêu thụ | Ảnh hưởng câu trả lời? |
+| --- | --- | --- | --- |
+| `AliasIndex.find_in` | `domain/alias_index.py` | `TopicRouter._alias_fallback` | **Không** — routing đang shadow |
+| `DeterministicSemanticParser._link` | `planner/semantic_parser.py` | mọi request | **Có** |
+
+Cộng thêm nguồn thứ ba: `DeterministicSemanticParser.MEASURES/DIMENSIONS` vẫn
+là danh sách hard-code, vẫn được tra **trước** `CatalogObject.aliases`
+(seed priority 0 so với 1).
+
+Hệ quả đã đo: bug `"giá trị"` → `measure.price` được vá ad-hoc bằng một regex
+`\bgia tri\b` **chỉ trong `_link`**, và vẫn còn sống nguyên trong
+`AliasIndex.find_in` — cùng một lỗi, vá một nơi. Đây chính là cơ chế mà §3.2 nói
+tới khi cấm TopicCard có trigger lexicon riêng: hai từ vựng cho một khái niệm
+thì trôi khỏi nhau.
+
+**Lộ trình dọn cần người quyết**, không tự ý làm trong một bản vá lỗi: hợp nhất
+về một binder, xoá seed hard-code, và giữ `index_hash` là thứ duy nhất đi vào
+prompt/cache version.
+
+### 3.2.2. Khớp một phần của cụm dài hơn là lỗi, không phải fallback
+
+Longest-match hiện chỉ chặn được cụm con khi cụm dài hơn **có trong index**
+(`consumed` accumulator). Không tầng nào xử lý ca ngược lại: cụm dài hơn xuất
+hiện trong câu nhưng **không có trong index**. Khi đó surface ngắn nằm bên trong
+nó vẫn khớp, âm thầm.
+
+Đo được:
+
+```
+lookup("giảm giá")            → None            ← không phải alias
+lookup("giá")                 → measure.price
+find_in("... listing giam gia tren 50% ...") → gia → measure.price
+```
+
+Hệ quả kép: khái niệm *giảm giá* biến mất khỏi request, và `measure.price` bị
+liên kết dù người dùng không hỏi về giá. A22 sau đó chặn đúng theo luật của nó —
+nó đang bảo vệ một measure mà chính khâu parse gán nhầm (bgk05).
+
+Yêu cầu:
+
+- Bổ sung alias cho các cụm nghiệp vụ đang thiếu, lấy `business-dictionary.md`
+  làm nguồn thuật ngữ. **Lưu ý**: file đó là data contract bằng văn xuôi, không
+  phải bảng alias — không có tương ứng 1:1 với `CATALOG`, và không script nào
+  đang đọc nó. Chỉ lấy cụm có mặt thật trong đó, không tự nghĩ từ mới.
+- Một surface **không được** khớp khi nó là substring của một cụm dài hơn cũng
+  xuất hiện trong câu và cụm đó bind sang ref khác. Nếu cụm dài hơn không có
+  trong index, đó là **alias gap** — phải báo được, không âm thầm khớp phần con.
+- Đo lại độ phủ trên toàn corpus sau khi sửa (`scripts/build_alias_coverage.py`,
+  `scripts/build_topic_gate.py`) và ghi số vào commit. Tiền lệ: `topic_scoped`
+  35.6% → 72.3% sau một vòng vá alias.
+
+Guard này có phạm vi hẹp có chủ đích — một danh sách tường minh các cụm ghép đã
+gây lỗi thật (`giá trị`, `giảm giá`, `đánh giá` dạng động từ) — chứ không phải
+một bộ tách từ tổng quát. Nói rõ giới hạn thay vì để người sau tưởng nó tổng quát.
 
 CI sinh `alias_coverage.json` và fail khi:
 
@@ -815,6 +941,36 @@ Stable outward codes:
 | output shape/grouping sai               | `A22-ALIGN-SHAPE`, `A22-ALIGN-GROUPING`                            |
 | compound part/composition thiếu        | `A22-ALIGN-COMPOSITION`                                              |
 | unit/ratio component sai                | `A22-ALIGN-UNIT`, `A22-ALIGN-RATIO`                                |
+| câu hỏi nguyên nhân bị trả bằng một con số | `A22-ALIGN-SHAPE` (`causal_question_unanswered`)              |
+| tiền đề chiều biến động trái dữ liệu | `A22-ALIGN-PREMISE` (`premise_contradicted`)                     |
+
+#### Coverage, không phải containment
+
+Nhánh snapshot của kiểm ngày hỏi *"evidence có nằm TRONG cửa sổ không"*; câu hỏi
+đòi *"evidence có PHỦ cửa sổ không"*. Một snapshot cuối kỳ **luôn** nằm trong
+cửa sổ chứa nó, nên điều kiện đó không bao giờ bắt được việc thu hẹp cửa sổ.
+Nhánh transition ngay bên dưới đã so `min/max` của span với cửa sổ đã hỏi — hai
+nhánh giờ dùng **cùng một** phép so, không phải khái niệm thứ ba. Cả hai vẫn
+phát cùng mã `date_range_narrowed`.
+
+#### Ràng buộc do chính câu hỏi mang theo
+
+Hai lỗi dưới đây là thuộc tính của **request**, không của plan hay evidence, nên
+chúng được kiểm ở biên pre-answer nơi digest + evidence + answer cùng có mặt:
+
+- **Câu hỏi nguyên nhân** (`vì sao`, `tại sao`, `do đâu`, `mengapa`, `why`)
+  không được trả lời bằng một đại lượng đơn. Guard cấm *khẳng định* nhân quả đã
+  tồn tại cho insight card; đây là chiều ngược lại — im lặng trả lời một câu hỏi
+  khác. Phạm vi hẹp có chủ đích: chỉ câu trả lời thuần số mới bị chặn, để câu
+  trả lời mô tả đồng biến (mức tối đa dataset này được phép nói) vẫn đi qua.
+- **Tiền đề về chiều biến động** (`giảm mạnh`, `tăng vọt`, `sụt`, `chậm lại`) là
+  một khẳng định về dữ liệu, không phải cách diễn đạt. Nếu dữ liệu đi ngược, hệ
+  phải nói điều đó; giải thích một cú giảm không xảy ra tệ hơn là từ chối.
+
+Khi tiền đề sai, quyết định cuối phải mang `rule_id` của chính vấn đề đó, không
+phải `A-VERIFICATION-FINAL` chung chung: người dùng chỉ được báo "xác minh thất
+bại" sẽ diễn đạt lại và nhận đúng lời từ chối đó lần nữa, vì trở ngại nằm ở tiền
+đề chứ không ở cách hỏi.
 
 - Tách tool dispatch:
 
@@ -901,6 +1057,59 @@ class GateDecision(BaseModel):
 Một phase được thu thập hết issue rồi mới chọn theo priority registry. Phase sau chỉ không chạy khi thiếu typed input bắt buộc hoặc phase trước đã tạo terminal security/capability block. Country slot không được che out-of-scope, rolling-window hoặc fanout issue; cross-currency chỉ chạy khi measure unit là `local_currency`.
 
 Phase/priority registry có version và ADR; test nhiều issue cùng kích hoạt phải khóa toàn bộ issue list lẫn selected reason.
+
+### 4.5.1. Khả năng khắc phục thắng thứ tự phase
+
+Priority hiện tại **là thứ tự gọi trong source** (`priority = len(issues) + 1`),
+không phải trường `phase`. Trường `phase` chỉ đi vào `evaluated_phases` của trace
+và không tham gia chọn issue. Hệ quả: gate chọn rule **bắn sớm nhất**, không phải
+rule **mô tả đúng vấn đề**.
+
+Đo được (`docs/qa/BGK_20_ANALYSIS.md` §6):
+
+| Câu | Vấn đề thật | Lý do hệ đưa ra |
+| --- | --- | --- |
+| bgk16 mã `99999999999` không tồn tại | thực thể không có trong dữ liệu | *"Cần chọn thị trường VN hoặc ID"* |
+| bgk14 hỏi lợi nhuận | dataset không có cột lợi nhuận | *"Thiếu country để khóa scope"* |
+
+Cả hai đều gợi ý nêu rõ thị trường — một hành động **không thể giúp gì**: thêm
+thị trường không làm mã sản phẩm tồn tại và không tạo ra cột lợi nhuận. Người
+dùng làm theo gợi ý sẽ nhận đúng lời từ chối đó lần nữa.
+
+```python
+class GateIssue(BaseModel):
+    rule_id: str
+    phase: int
+    priority: int
+    action: Literal["clarify", "abstain", "block"]
+    detail: IssueDetail
+    # False khi không thông tin nào của người dùng gỡ được trở ngại.
+    fixable: bool = True
+```
+
+Luật chọn đổi thành `min(issues, key=lambda i: (not i.fixable, i.priority))`:
+issue **không khắc phục được thắng** bất kể thứ tự phase; trong cùng nhóm, thứ tự
+cũ vẫn phá hoà. Vì vậy các câu chỉ có issue fixable **không đổi hành vi** — đây
+là điều kiện để `questions_boundaries`/`questions_a19` không hồi quy.
+
+Ba nguồn issue `fixable=False`:
+
+1. **Thực thể không tồn tại.** Kiểm tồn tại hiện nằm trong `tool_dispatch`, chạy
+   **sau** khi gate đã trả `allow`, nên với câu thiếu country nó không bao giờ
+   tới lượt. Khi câu hỏi nêu một định danh tường minh (mã số, listing key),
+   resolver chạy **trước** `gate.decide` và kết quả `not_found` vào cuộc thi
+   issue như mọi issue khác. Đây là thay đổi thứ tự có chủ đích: một định danh
+   không tồn tại là sự thật về **dữ liệu**, còn thiếu country là sự thật về
+   **câu hỏi**.
+2. **Capability dataset không có** (`profit`, `inventory`, …).
+3. **Mệnh đề `UNSUPPORTED` trong câu nhiều mệnh đề.** Hiện phần không làm được
+   bị tách thành `partial_unsupported` và chỉ được in thêm ở cuối câu trả lời
+   khi phần còn lại **allow**. Khi phần còn lại cũng không trả lời được, nó bị
+   nuốt hoàn toàn và quyết định cuối mô tả một vấn đề khác. Nó phải là một
+   `GateIssue` cạnh tranh bình đẳng, `fixable=False`.
+
+Issue không khắc phục được **không** đi kèm `answerable_alternative` dạng "hãy
+nêu rõ X" — gợi ý một hành động vô ích là một dạng câu trả lời sai.
 
 ## 4.6. Similarity
 
@@ -998,6 +1207,81 @@ Zero-row sau plan hợp lệ là kết quả, không phải `ExecutionIssue`:
 - diagnostic tùy chọn có thể bỏ từng predicate trên bản sao chỉ để đếm predicate nào làm tập rỗng; kết quả chỉ vào Evidence/trace, không mutate plan và không feed repair;
 - zero-row sau một repair cũng dừng;
 - `eval/empty_result_acceptance.json` là regression gate bắt buộc.
+
+## 4.11. Phép đếm không thừa hưởng bộ lọc của phép đo
+
+Đo được (`docs/qa/BGK_20_ANALYSIS.md` §3): "Có bao nhiêu listing có voucher tại
+Việt Nam ngày 03/07?" — ground truth 577 có voucher / 91 không (tổng 668). Hệ
+trả 551 / 77 (tổng 628). Chênh 40 khớp chính xác số listing có `monthly_sold`
+null.
+
+Macro tính trung bình/trung vị sold-proxy nên loại listing không đo được sold.
+Việc loại đó **đúng cho phép trung bình**. Nhưng phép **đếm** trong cùng macro
+thừa hưởng cùng bộ lọc, nên câu trả lời cho "bao nhiêu listing có voucher" thực
+chất là "bao nhiêu listing có voucher **và đo được lượt bán**" — và không dòng
+nào trong câu trả lời cho biết điều kiện thứ hai tồn tại.
+
+Cùng họ với §4.4: một ràng buộc được thêm vào im lặng, output trông hoàn chỉnh.
+Cũng là biến thể của cạm bẫy "thiếu dữ liệu thì gắn cờ, không điền 0": ở đây hệ
+không điền 0, nó **bỏ hàng đi**, hệ quả tương đương — "không đo được" biến mất
+khỏi kết quả thay vì hiện ra.
+
+**Contract.** Trong mọi macro/analytics tính đồng thời một phép đếm và một phép
+tổng hợp:
+
+| | Chạy trên | Mang gì trong `Evidence.attrs` |
+| --- | --- | --- |
+| Phép đếm | **toàn bộ** phạm vi nghiệp vụ | — |
+| Phép tổng hợp | tập con đo được | `unmeasurable_excluded_count`, `measurable_basis` |
+
+Hai con số đến từ hai tập khác nhau và **cả hai đều phải xuất hiện**. Số hàng bị
+loại phải được nêu trong câu trả lời, không chỉ nằm trong `attrs`: một phép tổng
+hợp bỏ 40/668 hàng mà không nói là một phép tổng hợp mô tả một tập khác với tập
+người dùng hỏi.
+
+Bộ lọc "đo được" áp **trong từng phép tổng hợp**, không áp lên dataframe dùng
+chung. `discount_bucket_observation` đã đúng theo mẫu này và là tham chiếu.
+
+Ngưỡng sample size cũng là một phép đếm: `n_listings` của một shop là thuộc tính
+của shop, không phải của phần đo được. Lọc trước khi đếm khiến shop đủ listing
+nhưng ít hàng đo được bị báo là "low coverage", đọc thành "shop quá nhỏ".
+
+Oracle của eval phải phản ánh cùng phân tách này. Oracle cũ dùng một frame đã
+lọc cho cả hai nên nó **chứng nhận** 551/77 — đổi oracle ở đây là sửa một
+expected sai, có bằng chứng dữ liệu, không phải nới lỏng phép kiểm.
+
+## 4.12. Chính sách trọng tài LLM ↔ deterministic
+
+Đo được (`docs/qa/BGK_20_ANALYSIS.md` §7), cùng 20 câu, hai chế độ:
+
+| | offline | LLM |
+| --- | ---: | ---: |
+| Tổng thời gian | 0,9s | 394,1s (**438×**) |
+| Kết cục giống hệt nhau | | **19/20** |
+
+Câu khác duy nhất chỉ đổi một lý do từ chối thành một lý do từ chối khác. Phép
+đo độc lập trên 32 case có nhãn: LLM thô đúng 71,9%, deterministic 53,1%, nhưng
+intent **sau khi merge** đúng 53,1% — bằng đúng deterministic.
+
+LLM đang đúng hơn ở tầng intent thô, nhưng luật precedence trong khâu merge cho
+deterministic thắng, nên đóng góp thực tế bằng 0. Đây **không** phải lỗi cần vá
+gấp — nó là một quyết định an toàn đang quá chặt. Nhưng nó phải trở thành một
+quyết định **tường minh và có bằng chứng**, không phải hệ quả phụ của thứ tự các
+nhánh `elif`.
+
+Phạm vi cho vòng này, cố ý hẹp:
+
+- **Không đổi luật precedence.** Đổi nó là quyết định về an toàn, cần W3/W4 của
+  `docs/PLAN_LLM_INTENT_PARSING.md` cùng sign-off.
+- **Ghi chi phí/lợi ích vào trace theo từng request**: `llm_intent` (giá trị
+  trước khi bất kỳ nhánh precedence nào ghi đè), `deterministic_intent`,
+  `merge_winner`, `merge_reason`. `AgentResponse.llm` đã là `dict[str, Any]` nên
+  đây là thay đổi additive, không cần migrate schema. Không có số này thì W4
+  không có dữ liệu để quyết.
+- **Không gọi LLM ở nhánh mà precedence chắc chắn ghi đè kết quả của nó.** Hai
+  trong năm nhánh chỉ phụ thuộc kết quả deterministic (route safety, unsupported
+  safety), nên kiểm được **trước** khi gọi. Đây là tối ưu chi phí thuần; bất kỳ
+  thay đổi hành vi nào ở đây đều vượt phạm vi và phải bị coi là lỗi.
 
 ---
 
