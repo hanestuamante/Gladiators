@@ -1,6 +1,7 @@
 """Deterministic request↔plan↔evidence↔answer alignment (A22)."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Literal
 
@@ -25,6 +26,11 @@ IssueCode = Literal[
     "aggregation_mismatch",
     "grouping_dropped",
     "filter_dropped",
+    # Theme B: the question itself carries constraints. A "vì sao" question is
+    # not answered by a count, and "giảm mạnh" is a claim about the data that
+    # has to hold before anything downstream explains it.
+    "causal_question_unanswered",
+    "premise_contradicted",
 ]
 
 
@@ -57,6 +63,8 @@ class AlignmentVerdict:
             "aggregation_mismatch": "A22-ALIGN-AGGREGATION",
             "grouping_dropped": "A22-ALIGN-GROUPING",
             "filter_dropped": "A22-ALIGN-FILTER",
+            "causal_question_unanswered": "A22-ALIGN-SHAPE",
+            "premise_contradicted": "A22-ALIGN-PREMISE",
         }[self.issues[0].code]
 
     def as_dict(self) -> dict:
@@ -318,6 +326,24 @@ def _scope_issues(
                 tuple(digest.date_range),
                 tuple(observed),
             ))
+        # B1: containment is not coverage. An end-of-period snapshot always sits
+        # inside the window that contains it, so the check above could never see
+        # a two-day question answered from one day -- "vì sao listing giảm từ
+        # 01/07 đến 03/07" came back with the 03/07 count alone, gate=allow,
+        # verified, "Độ tin cậy: High". The transition branch below already
+        # compares the span it covers against the span asked for; this is the
+        # same comparison, not a third concept.
+        elif observed and asked_start != asked_end:
+            covered = (min(observed), max(observed))
+            if covered != (asked_start, asked_end):
+                issues.append(AlignmentIssue(
+                    "date_range_narrowed",
+                    "Evidence chỉ phủ {}→{} thay vì {}→{} đã hỏi.".format(
+                        covered[0], covered[1], asked_start, asked_end,
+                    ),
+                    tuple(digest.date_range),
+                    tuple(observed),
+                ))
 
         # Transition evidence: the span has to match the asked range exactly.
         # Only meaningful for a real range -- a single date cannot bound a delta.
@@ -338,6 +364,96 @@ def _scope_issues(
                     (start, end),
                 ))
     return issues
+
+
+# A question that asks for a cause. Answering it with a count answers a
+# different question -- exactly the substitution A22 exists to catch, but on the
+# question side, which nothing inspected.
+_CAUSAL_QUESTION_MARKERS = (
+    "vi sao", "tai sao", "do dau", "nguyen nhan", "ly do",
+    "mengapa", "kenapa", "why",
+)
+
+# A direction the question asserts about the data. It is a claim, not framing:
+# "giảm mạnh" is false when the number rose, and explaining a fall that did not
+# happen is worse than refusing.
+_DECREASE_MARKERS = ("giam manh", "giam sut", "sut giam", "sut", "tut", "lao doc",
+                     "chan lai", "cham lai", "turun", "menurun", "drop", "decline", "fell")
+_INCREASE_MARKERS = ("tang manh", "tang vot", "tang truong", "but pha", "naik",
+                     "melonjak", "surge", "spike", "rose", "grew")
+
+_NUMBER = re.compile(r"\d")
+
+
+def _premise_direction(question: str) -> int | None:
+    """+1 when the question asserts a rise, -1 a fall, None when it asserts neither."""
+    decrease = any(marker in question for marker in _DECREASE_MARKERS)
+    increase = any(marker in question for marker in _INCREASE_MARKERS)
+    if decrease == increase:
+        return None  # neither, or both -- nothing unambiguous to check
+    return -1 if decrease else 1
+
+
+def _observed_direction(evidence: list[Evidence]) -> int | None:
+    """Sign of the change the evidence shows across the observed dates."""
+    by_date: dict[str, float] = {}
+    for item in evidence:
+        observed = item.attrs.get("observed_date")
+        if observed is None or not isinstance(item.value, (int, float)) or isinstance(item.value, bool):
+            continue
+        by_date[str(observed)] = float(item.value)
+    if len(by_date) < 2:
+        return None
+    dates = sorted(by_date)
+    delta = by_date[dates[-1]] - by_date[dates[0]]
+    if delta == 0:
+        return 0
+    return 1 if delta > 0 else -1
+
+
+def check_question_alignment(
+    digest: RequestDigest, answer: str, evidence: list[Evidence] | None = None,
+) -> AlignmentVerdict:
+    """Constraints the *question* carries, checked before its answer stands.
+
+    Two failures live here because both are properties of the request, not of
+    the plan or the evidence:
+
+    * a causal question answered by a quantity (bgk13 asked *why* listings fell
+      and was told *how many* there were);
+    * a stated direction the data contradicts (they rose, 581 → 668).
+
+    Both were invisible to every existing layer: the gate allowed it, the plan
+    aligned, and the verifier passed because 668 genuinely had evidence behind
+    it. It was the answer to a question nobody asked.
+    """
+    question = digest.normalized_question
+    issues: list[AlignmentIssue] = []
+
+    if any(marker in question for marker in _CAUSAL_QUESTION_MARKERS):
+        # A quantity alone is not an account of a cause. Deliberately narrow:
+        # only a bare numeric answer trips this, so a descriptive co-movement
+        # answer (the most this dataset may claim) still passes.
+        sentences = [part for part in re.split(r"[.;\n]", answer) if part.strip()]
+        if len(sentences) <= 1 and _NUMBER.search(answer):
+            issues.append(AlignmentIssue(
+                "causal_question_unanswered",
+                "Câu hỏi hỏi nguyên nhân nhưng câu trả lời chỉ đưa một con số.",
+                ("causal_question",),
+                ("scalar_answer",),
+            ))
+
+    stated = _premise_direction(question)
+    observed = _observed_direction(evidence or [])
+    if stated is not None and observed is not None and stated != observed:
+        issues.append(AlignmentIssue(
+            "premise_contradicted",
+            "Câu hỏi giả định chiều biến động mà dữ liệu không xác nhận.",
+            ("tăng" if stated > 0 else "giảm",),
+            ("tăng" if observed > 0 else "giảm" if observed < 0 else "không đổi",),
+        ))
+
+    return AlignmentVerdict(not issues, tuple(issues))
 
 
 def check_evidence_scope_alignment(

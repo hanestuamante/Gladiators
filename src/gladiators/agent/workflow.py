@@ -39,6 +39,7 @@ from .verifier import verify_numeric_claims
 from .wording import check_wording
 from .alignment import (
     check_answer_alignment,
+    check_question_alignment,
     check_evidence_alignment,
     check_evidence_scope_alignment,
     check_macro_shape,
@@ -1148,18 +1149,44 @@ class AgentRuntime:
             )
         )
         verification["alignment"] = answer_alignment.as_dict()
+        # B2/B3: constraints the question carries. Checked here because this is
+        # the one point where the digest, the final evidence and the answer text
+        # are all in hand. bgk13 asked *why* listings fell over 01/07→03/07;
+        # they rose, and it was answered with a count -- allowed, verified,
+        # "Độ tin cậy: High", because every layer was asking a different question.
+        question_alignment = check_question_alignment(digest, answer, evidence)
+        verification["question_alignment"] = question_alignment.as_dict()
         final_verification_failed = bool(
             self.enable_verifier
             and decision.action == "allow"
-            and (not verification["passed"] or not answer_alignment.aligned)
+            and (
+                not verification["passed"]
+                or not answer_alignment.aligned
+                or not question_alignment.aligned
+            )
         )
         if final_verification_failed:
             planning_meta["final_verification_failure"] = verification
-            decision = GateDecision(
-                action="abstain", rule_id="A-VERIFICATION-FINAL",
-                reason="Câu trả lời deterministic cuối không qua evidence/claim verification; hệ thống từ chối fail-closed.",
-                answerable_alternative="Hãy thu hẹp câu hỏi, ví dụ nêu rõ thị trường, ngày hoặc sản phẩm cụ thể.",
-            )
+            if not question_alignment.aligned:
+                # Naming the real problem matters here: told only that
+                # verification failed, a user would rephrase and get the same
+                # refusal, because the obstacle is the question's premise.
+                decision = GateDecision(
+                    action="clarify",
+                    rule_id=question_alignment.rule_id or "A22-ALIGN-PREMISE",
+                    reason="; ".join(item.detail for item in question_alignment.issues),
+                    answerable_alternative=(
+                        "Hệ thống có thể trình bày mức thay đổi quan sát được giữa hai "
+                        "snapshot và các chỉ số biến động cùng lúc, nhưng không kết luận "
+                        "nguyên nhân."
+                    ),
+                )
+            else:
+                decision = GateDecision(
+                    action="abstain", rule_id="A-VERIFICATION-FINAL",
+                    reason="Câu trả lời deterministic cuối không qua evidence/claim verification; hệ thống từ chối fail-closed.",
+                    answerable_alternative="Hãy thu hẹp câu hỏi, ví dụ nêu rõ thị trường, ngày hoặc sản phẩm cụ thể.",
+                )
             answer = self._deterministic_answer(decision, request, [])
             evidence, claims = [], ()
             verification = verify_numeric_claims(
