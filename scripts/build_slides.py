@@ -927,7 +927,7 @@ for i, (act, q, ans, why, c) in enumerate(cases):
 box(s, MARGIN, Inches(6.75), W - 2 * MARGIN, Emu(9525), fill=LINE)
 
 # --- 15 CHART 3: BGK-20 ----------------------------------------------------
-s = d.slide("Đánh giá độc lập 20 câu — và bốn lớp lỗi đã khắc phục",
+s = d.slide("Đánh giá độc lập 20 câu — và sáu lớp lỗi đã khắc phục",
             "CHART 3/4 · Ground truth tính bằng pandas thuần, KHÔNG import gladiators")
 
 cd = CategoryChartData()
@@ -968,25 +968,26 @@ table(s, Inches(7.05), Inches(1.78), Inches(5.68), [
     ["A · Entity ref là đơn vị phân tích,\nkhông phải khoá gom nhóm", "bgk01 · 02\nbgk08 · 11", "✔ đã hiện thực"],
     ["B · Coverage ≠ containment;\ntiền đề không được kiểm", "bgk13", "✔ đã hiện thực"],
     ["C · Phép đếm thừa hưởng bộ lọc\ncủa phép đo", "bgk03 · 10", "✔ đã hiện thực"],
-    ["D · Blocker không khắc phục được\nphải thắng blocker khắc phục được", "bgk14 · 16", "spec, chưa hiện thực"],
-    ["E · Ánh xạ chữ → ký hiệu", "bgk05 · 11", "spec, chưa hiện thực"],
-    ["F · Chính sách trọng tài LLM", "toàn bộ", "spec, chưa hiện thực"],
+    ["D · Blocker không khắc phục được\nphải thắng blocker khắc phục được", "bgk14 · 16", "✔ đã hiện thực"],
+    ["E · Ánh xạ chữ → ký hiệu", "bgk05 · 11", "✔ đã hiện thực"],
+    ["F · Chính sách trọng tài LLM", "toàn bộ", "✔ trace; precedence giữ nguyên"],
 ], col_w=[52, 18, 30], row_h=Inches(0.6), size=9.5, head_size=10)
 
 tf = tb(s, Inches(7.05), Inches(6.05), Inches(5.68), Inches(0.55))
-_txt(tf, "Xác minh lại 09/08:", 10.5, GREEN, bold=True, space_after=3)
+_txt(tf, "Xác minh lại 10/08:", 10.5, GREEN, bold=True, space_after=3)
 p = tf.add_paragraph()
-_txt(tf, "bgk01 → shop_count=10 ✔  ·  bgk02/11 crash → clarify có rule_id ✔  ·  "
-         "bgk03 → 577/91 khớp oracle ✔  ·  bgk13 → clarify coverage ✔", 9.5, BODY, para=p)
+_txt(tf, "bgk01 → shop_count=10 ✔ · bgk02/11 crash → clarify có rule_id ✔ · "
+         "bgk03 → 577/91 khớp oracle ✔ · bgk13 → clarify coverage ✔ · "
+         "bgk16 → A-ENTITY-NOT-FOUND ✔ · bgk14 → A-MISSING-PROFIT ✔", 9.5, BODY, para=p)
 
 # --- 16 CHART 4: EVAL SUITES -----------------------------------------------
-s = d.slide("Trạng thái đo — sáu suite, và một regression được nói thẳng",
-            "CHART 4/4 · Đo tại HEAD nhánh MVP_Dai_V2, provider=offline")
+s = d.slide("Trạng thái đo — bảy suite, đo lại sau vòng sửa sáu lớp lỗi",
+            "CHART 4/4 · Đo tại HEAD nhánh MVP_Dai_V2 (1cf7327), provider=offline, --runs 3")
 
 cd = CategoryChartData()
-cd.categories = ["boundaries\n9×3", "Phase 6\nexternal 12/12", "eval report\n09/08 4×3",
-                 "V2\n11×3", "A19\n6×3", "legacy questions\n60×3"]
-cd.add_series("Điểm", (1.0, 1.0, 1.0, 0.879, 0.833, 0.65))
+cd.categories = ["legacy questions\n60×3", "V2\n11×3", "A19\n6×3", "boundaries\n9×3",
+                 "ambiguity\n4×3", "critic\n4×3", "counting\n3×3"]
+cd.add_series("Điểm", (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
 gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, MARGIN, Inches(1.78),
                         Inches(7.4), Inches(3.35), cd)
 ch = gf.chart
@@ -1001,7 +1002,7 @@ dl.font.size = Pt(10.5)
 dl.font.bold = True
 dl.font.color.rgb = INK
 dl.font.name = FONT
-color_points(pl, [GREEN, GREEN, GREEN, AMBER, AMBER, RED])
+color_points(pl, [GREEN] * 7)
 va = ch.value_axis
 va.maximum_scale = 1.0
 va.minimum_scale = 0.0
@@ -1009,16 +1010,16 @@ va.has_major_gridlines = True
 va.major_gridlines.format.line.color.rgb = LINE
 va.format.line.fill.background()
 
-box(s, MARGIN, Inches(5.32), Inches(7.4), Inches(1.28), fill=RGBColor(0xFD, 0xF4, 0xF5))
-box(s, MARGIN, Inches(5.32), Inches(0.05), Inches(1.28), fill=RED)
+box(s, MARGIN, Inches(5.32), Inches(7.4), Inches(1.28), fill=RGBColor(0xFF, 0xFB, 0xF0))
+box(s, MARGIN, Inches(5.32), Inches(0.05), Inches(1.28), fill=AMBER)
 tf = tb(s, MARGIN + Inches(0.25), Inches(5.46), Inches(7.0), Inches(1.1))
-_txt(tf, "Cả 21 case fail của suite legacy có CHUNG một nguyên nhân — và đó là false positive "
-         "của verifier", 11, RED, bold=True, space_after=5)
+_txt(tf, "Regression legacy 0.65 ghi trong CLAUDE.md §5 KHÔNG còn tái lập — và không phải do "
+         "vòng sửa này", 11, AMBER, bold=True, space_after=5)
 p = tf.add_paragraph()
-_txt(tf, "Message A-AMBIGUOUS echo tên listing ứng viên; tên chứa chữ số (“… Cream 30 Gr”) → "
-         "verifier.scan_numbers đọc “30” thành một claim không có evidence → passed=False. "
-         "Câu trả lời KHÔNG sai; phép kiểm đang quá nhạy. Regression có sẵn ở origin/MVP_Dai_V2 "
-         "(645d558), không do commit local.", 10, BODY, para=p)
+_txt(tf, "Đo lại chính suite đó ở commit gốc TRƯỚC vòng sửa (31c1d6b, dựng worktree riêng) "
+         "cũng cho 1.0. Con số 0.65/0.879/0.833 trong CLAUDE.md §5 đo ngày 08/08 tại 1df8e5b "
+         "và đã cũ; nguyên nhân nó biến mất chưa được truy, nên deck KHÔNG nhận công. "
+         "Điều kiểm được là trạng thái hiện tại, đo bằng lệnh in ở phụ đề.", 10, BODY, para=p)
 
 card(s, Inches(8.32), Inches(1.78), Inches(4.41), Inches(2.35),
      "Chỉ số giữ nguyên 1.0 — không được phép tụt", [

@@ -10,7 +10,7 @@ Deck trình bày kiến trúc và điểm mạnh hệ thống, dựng từ **m�
 | Script dựng | [`scripts/build_slides.py`](../../scripts/build_slides.py) |
 | Dựng lại | `.venv/Scripts/python.exe scripts/build_slides.py` |
 | Phụ thuộc | `python-pptx>=1.0` (chart là native PowerPoint chart, sửa được trực tiếp trong PowerPoint) |
-| Ngày dựng | 09–10/08/2026, nhánh `MVP_Dai_V2` |
+| Ngày dựng | 10/08/2026, nhánh `MVP_Dai_V2` tại `1cf7327` |
 
 ---
 
@@ -50,7 +50,7 @@ trong số đó có chart** (07, 12, 15, 16), **5 slide thông tin dự án chuy
 | 07 | Thành phần catalog — 86 semantic object | doughnut | đo tại HEAD từ `gladiators.domain.catalog.CATALOG` |
 | 12 | Token budget theo stage (8 stage) | column | spec §7.2, bảng "Default budget" |
 | 15 | Kết quả BGK-20 theo 4 nhóm kết cục | bar | `docs/qa/BGK_20_ANALYSIS.md` §1 |
-| 16 | Điểm 6 eval suite | column | `eval/reports/2026-08-09.json` + §5 CLAUDE.md |
+| 16 | Điểm 7 eval suite | column | đo tại HEAD, `scripts/run_evaluation.py --runs 3 --provider offline` |
 
 Chart là **native PowerPoint chart** (không phải ảnh), nên mở trong PowerPoint
 vẫn sửa được số, đổi màu, đổi loại biểu đồ. Bảng dữ liệu nhúng theo file.
@@ -73,9 +73,10 @@ bộ số liệu định lượng xuất hiện trên slide.
 | offline 0,9s vs LLM 394,1s = **438×**; 19/20 kết cục giống hệt | `BGK_20_ANALYSIS.md` §7 | `artifacts/bgk_offline_run.json`, `artifacts/bgk_agent_run.json` |
 | LLM thô 71,9% · deterministic 53,1% · sau merge 53,1% | spec §4.12 | 32 case có nhãn |
 | Token budget 6000/6000/4000/4000/3000/3000/3000/2000 | spec §7.2 | — |
-| boundaries 9×3 = 1.0 · Phase 6 = 12/12 · V2 11×3 = 0.879 · A19 6×3 = 0.833 · legacy 60×3 = 0.65 | `CLAUDE.md` §5 | các lệnh ở §5 CLAUDE.md |
-| eval report 09/08 = 1.0; mutation detection 1.0 | `eval/reports/2026-08-09.json` → `metrics` | — |
-| 21 case legacy fail do verifier false positive (`"… Cream 30 Gr"` → claim `30.0`) | `CLAUDE.md` §5 | có sẵn ở `origin/MVP_Dai_V2` (645d558) |
+| 7 suite offline đều 1.0 (legacy 60×3 · V2 11×3 · A19 6×3 · boundaries 9×3 · ambiguity 4×3 · critic 4×3 · counting 3×3) | đo tại HEAD `1cf7327` | `scripts/run_evaluation.py --suite eval/<tên>.json --runs 3 --provider offline` |
+| Phase 6 external 12/12 `offline-no-network` | đo tại HEAD | `PYTHONPATH=src python scripts/run_phase6_evaluation.py --suite eval/questions_external.json` |
+| `pytest -q` = 841 passed, 1 skipped | đo tại HEAD | `.venv/Scripts/python.exe -m pytest -q` |
+| mutation detection 1.0 trên cả 7 suite | đo tại HEAD | trường `verifier_mutation_detection` trong output runner |
 | 63 listing bị void điểm gán nhãn "Steady" (`nan is None`) | `CLAUDE.md` §3.1 | — |
 | 188 phép đo chạy với input rỗng do harness nuốt exception | `CLAUDE.md` §5.1 | — |
 | pam_score = 100 × (0,30·activity + 0,40·momentum + 0,30·monetary) | spec §12.2 | — |
@@ -116,36 +117,46 @@ vòng sửa này chúng cho kết quả khác:
 
 ## 3. Trạng thái kiểm chứng tại thời điểm dựng deck
 
-Ghi đúng như đo được, không làm tròn lên.
+Ghi đúng như đo được, không làm tròn lên. Đo tại `1cf7327`:
 
 ```
 .venv/Scripts/python.exe -m pytest -q
-→ 12 failed, 822 passed, 1 skipped in 103.45s
+→ 841 passed, 1 skipped in 88.25s
 ```
 
-Toàn bộ failure quan sát được nằm trong `tests/test_p0_regression_lock.py`, tham
-số `p0-tc23-voucher-oracle`.
+### Hai đính chính so với bản README trước
 
-**Nhưng chạy riêng file đó thì xanh:**
+**(1) "12 failed, 822 passed" không còn đúng.** Bản trước ghi 12 failure ở
+`p0-tc23-voucher-oracle` và chẩn đoán là *"lỗi phụ thuộc thứ tự chạy"*. Chẩn
+đoán đó **chưa từng được xác minh** và không tái lập được: full run hiện cho 0
+failure. Nguyên nhân thật của 12 failure đó là deck được dựng khi cây làm việc
+còn chứa thay đổi Theme D **chưa commit** — bản vá lúc ấy cho issue
+`partial_unsupported` cạnh tranh vô điều kiện, làm abstain cả những câu compound
+vốn trả lời được (`tc08/tc23/tc25/tc31` + P0 lock + external E4). Bản vá đã được
+thu hẹp trước khi commit (`1222472`).
 
-```
-.venv/Scripts/python.exe -m pytest tests/test_p0_regression_lock.py -q
-→ 59 passed in 2.92s
-```
+Bài học đúng bằng luật §5.1 của `CLAUDE.md` — nhưng theo chiều ngược lại: harness
+báo lạ thì nghi harness trước, **và cũng phải nghi cây làm việc của chính mình**
+trước khi kết luận là flakiness.
 
-Hai kết quả trái nhau trên cùng một file ⇒ đây là **lỗi phụ thuộc thứ tự chạy**
-(state rò rỉ giữa các test), không phải bằng chứng hành vi tc23 sai. Đúng theo
-luật vận hành §5.1 của `CLAUDE.md`: *"Harness báo lạ thì nghi harness trước."*
+**(2) Regression legacy 0.65 trong `CLAUDE.md` §5 không còn tái lập, và không
+phải do vòng sửa này.** Đo lại `eval/questions.json` 60 case:
 
-Việc này **chưa được sửa** và nằm ngoài phạm vi công việc dựng deck — sửa nó đụng
-vào golden fixture của P0 regression lock, mà theo §8 `CLAUDE.md` thì đổi expected
-phải là thay đổi contract có chủ đích, có commit riêng ghi rõ lý do. Deck **không**
-tuyên bố "all tests pass" ở bất kỳ slide nào; slide 16 chỉ báo điểm sáu eval suite
-kèm nguyên nhân của regression legacy.
+| Đo ở đâu | Kết quả |
+| --- | --- |
+| HEAD `1cf7327` (sau 6 theme) | **1.0** |
+| `31c1d6b` — commit gốc TRƯỚC vòng sửa, dựng bằng `git worktree` riêng | **1.0** |
 
-Bối cảnh liên quan: tc23 là ca voucher-count mà spec §4.11 vừa đổi oracle có chủ
-đích (551/77 → 577/91, "sửa một expected sai, có bằng chứng dữ liệu"). Đây là chỗ
-đầu tiên nên nhìn khi điều tra.
+Vì cả hai đều 1.0, vòng sửa này **không** được nhận công cho việc regression biến
+mất. Con số 0.65/0.879/0.833 trong `CLAUDE.md` §5 đo ngày 08/08 tại `1df8e5b`;
+nguyên nhân nó biến mất giữa `1df8e5b` và `31c1d6b` chưa được truy. Slide 16 nói
+đúng như vậy thay vì im lặng đổi số.
+
+`CLAUDE.md` §5 vì thế đang mang số cũ và nên được cập nhật trong một commit riêng
+có người xác nhận — nằm ngoài phạm vi việc dựng deck.
+
+Deck **không** tuyên bố "all tests pass" ở bất kỳ slide nào; slide 16 báo điểm
+bảy eval suite kèm đúng lệnh tái lập ở phụ đề.
 
 ---
 
@@ -159,9 +170,11 @@ Bốn ràng buộc tự áp, để deck không trở thành thứ mà chính h�
    "2/20 trả lời đúng". Slide 16 in điểm 0.65. Slide 17 kết luận LLM đóng góp
    thực tế bằng 0. Một deck kiến trúc về hệ thống chống-nói-quá mà tự nói quá thì
    tự phản bác chính nó.
-3. **Trạng thái spec-nhưng-chưa-code được gắn nhãn rõ.** Bảng slide 15 phân biệt
-   "đã hiện thực" (A, B, C) với "spec, chưa hiện thực" (D, E, F). Slide 19 ghi
-   E6 `PENDING`, cờ live search mặc định OFF.
+3. **Trạng thái được gắn nhãn theo đúng cái đã đo.** Bảng slide 15 giờ ghi cả
+   sáu lớp lỗi là đã hiện thực, vì cả sáu đều đã commit và có test tái hiện lỗi
+   đi kèm; riêng F ghi rõ phạm vi là *trace, precedence giữ nguyên* — đổi luật
+   precedence cần W3/W4 và sign-off, không thuộc vòng này. Slide 19 vẫn ghi E6
+   `PENDING`, cờ live search mặc định OFF.
 4. **Giới hạn của phép đo được nói kèm số đo.** Slide 15 in ba giới hạn của chính
    BGK-20 (N=20; bộ câu soạn sau khi đã biết điểm yếu; chấm bằng luật máy).
 

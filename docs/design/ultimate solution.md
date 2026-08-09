@@ -22,9 +22,9 @@ pandas thuần, không import `gladiators`). Điểm khởi đầu: 2/20 trả l
 | A. Entity ref là đơn vị phân tích, không phải khoá gom nhóm | bgk01, bgk02, bgk08, bgk11 | **§3.1.1** | đã hiện thực |
 | B. Coverage ≠ containment; tiền đề và câu hỏi nhân quả không được kiểm | bgk13 | **§4.4** | đã hiện thực |
 | C. Phép đếm thừa hưởng bộ lọc của phép đo | bgk03, bgk10 | **§4.11** | đã hiện thực |
-| D. Blocker không khắc phục được phải thắng blocker khắc phục được | bgk14, bgk16 | **§4.5.1** | spec, chưa hiện thực |
-| E. Ánh xạ chữ → ký hiệu | bgk05, bgk11 | **§3.2.1–3.2.2** | spec, chưa hiện thực |
-| F. Chính sách trọng tài LLM | toàn bộ | **§4.12** | spec, chưa hiện thực |
+| D. Blocker không khắc phục được phải thắng blocker khắc phục được | bgk14, bgk16 | **§4.5.1** | đã hiện thực |
+| E. Ánh xạ chữ → ký hiệu | bgk05, bgk11 | **§3.2.1–3.2.2** | đã hiện thực |
+| F. Chính sách trọng tài LLM | toàn bộ | **§4.12** | trace đã hiện thực; precedence giữ nguyên (cần W3/W4) |
 
 Hai lớp nguy hiểm nhất là A/B/C dạng *ràng buộc bị thu hẹp im lặng*: chúng tạo
 ra output **trông đúng** — một con số có evidence, một mục "Phạm vi", một mục
