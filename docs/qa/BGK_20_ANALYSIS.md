@@ -163,13 +163,13 @@ thi hành thực tế; không tầng nào đối chiếu hai điều đó với 
 Phạm vi mâu thuẫn không chỉ một ref:
 
 ```
-ref khai "exposed" nhưng physical rỗng: 19/83
+ref khai "exposed" nhưng physical rỗng: 28/83
   entity.date_snapshot, derived.product_count, derived.has_promo,
   derived.discount_bucket, derived.median_monthly_sold, derived.similarity_score,
-  derived.voucher_rate, … (19 ref)
+  derived.voucher_rate, … (28 ref: 10 entity, 18 derived_metric)
 ```
 
-Bất kỳ ref nào trong 19 ref đó rơi vào `group_by` hoặc `Scan` đều dẫn tới cùng
+Bất kỳ ref nào trong 28 ref đó rơi vào `group_by` hoặc `Scan` đều dẫn tới cùng
 một crash, trong khi validator coi chúng hợp lệ.
 
 Đáng chú ý: lỗi thoát ra ngoài dưới dạng **exception chưa bắt**, không phải một
@@ -281,7 +281,7 @@ parse khiến nhánh deterministic quyết định 19/20 lần**. Kết quả kh
 | --- | --- | --- | --- |
 | 1 | Ràng buộc bị thu hẹp im lặng | bgk13 (cửa sổ ngày), bgk03/10 (bộ lọc thừa) | output hoàn chỉnh, thiếu một ràng buộc, không dấu hiệu |
 | 2 | Đổi câu hỏi | bgk13 | trả lời đúng một câu hỏi khác, verifier vẫn pass |
-| 3 | Bất đồng giữa các tầng | bgk02, bgk11 | validator cho qua, compiler crash; 19/83 ref mang mâu thuẫn |
+| 3 | Bất đồng giữa các tầng | bgk02, bgk11 | validator cho qua, compiler crash; 28/83 ref mang mâu thuẫn |
 | 4 | Ánh xạ chữ → ký hiệu | bgk05, bgk01 | alias thiếu hoặc ref không tồn tại làm request lệch |
 | 5 | Lý do từ chối không khớp vấn đề | bgk14, bgk16 | hành động đúng, gợi ý khắc phục vô ích |
 | 6 | Chi phí không đổi lấy chất lượng | toàn bộ | 438× thời gian, 19/20 kết cục không đổi |
