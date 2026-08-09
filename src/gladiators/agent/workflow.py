@@ -441,7 +441,20 @@ class AgentRuntime:
                 f"{_metric_label(e.metric)}={e.value:g} {e.unit} [{e.evidence_id}]"
                 for e in evidence
             )
-            return f"So sánh quan sát tại một snapshot: {values}. Đây là tương quan nhóm, không chứng minh khuyến mãi gây ra thay đổi."
+            # §4.11: the count covers every listing, the proxy averages only the
+            # ones where sold is measurable. Saying so in words, not digits --
+            # the excluded count is trace data, and a bare number in the answer
+            # would be read as a claim with no evidence behind it (§3.1).
+            excluded = any(
+                item.attrs.get("unmeasurable_excluded_count") for item in evidence
+            )
+            note = (
+                " Số listing là toàn bộ nhóm; lượt bán proxy chỉ tính trên phần "
+                "listing đo được lượt bán, phần còn lại bị loại khỏi phép trung "
+                "bình/trung vị."
+                if excluded else ""
+            )
+            return f"So sánh quan sát tại một snapshot: {values}.{note} Đây là tương quan nhóm, không chứng minh khuyến mãi gây ra thay đổi."
         if request.intent == "voucher_coverage" and evidence:
             values = "; ".join(
                 f"{str(e.attrs['country']).upper()}={e.value:g} {e.unit} [{e.evidence_id}]"

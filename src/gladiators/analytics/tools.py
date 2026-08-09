@@ -123,19 +123,39 @@ class AnalyticsTools:
         if snapshots.empty:
             return []
         latest_date = str(snapshots.date.astype(str).max())
-        latest = snapshots.loc[snapshots.date.astype(str) == latest_date]
-        valid = latest.loc[latest.monthly_sold_value_num.notna()].copy()
-        if valid.empty or valid.has_structured_voucher.nunique() < 2:
+        latest = snapshots.loc[
+            snapshots.date.astype(str) == latest_date
+        ].drop_duplicates("product_listing_key")
+        valid = latest.loc[latest.monthly_sold_value_num.notna()]
+        if valid.empty or latest.has_structured_voucher.nunique() < 2:
             return []
         result = []
-        for has_voucher, group in valid.groupby("has_structured_voucher", observed=True):
+        # The count runs over the whole scope; the aggregates run over the rows
+        # where the proxy is measurable. Sharing one filtered frame made
+        # "bao nhiêu listing có voucher" answer "...và đo được lượt bán": 551
+        # instead of 577, with the two groups summing to 628 against a scope of
+        # 668 and nothing reporting the missing 40. Same separation as
+        # ``discount_bucket_observation`` below.
+        for has_voucher, group in latest.groupby("has_structured_voucher", observed=True):
             label = "with_voucher" if bool(has_voucher) else "without_voucher"
+            measurable = group.loc[group.monthly_sold_value_num.notna()]
+            excluded = int(len(group) - len(measurable))
             attrs = {"country": country, "snapshot_date": latest_date, "group": label, "observational_only": True}
             common = dict(source_tier="btc_dataset", source_locator=SourceLocator(kind="internal", value="product_snapshot_metrics"), dataset_version=self.repo.dataset_version, attrs=attrs)
+            # A count of the whole scope and an aggregate over a subset are two
+            # different populations; only the aggregate carries the exclusion.
+            proxy_attrs = {
+                **attrs,
+                "unmeasurable_excluded_count": excluded,
+                "measurable_basis": "monthly_sold_value_num",
+            }
+            proxy_common = {**common, "attrs": proxy_attrs}
+            result.append(Evidence(evidence_id=self.evidence_id(), metric=f"{label}_listing_count", value=int(len(group)), unit="listings", source_path="has_structured_voucher", **common))
+            if measurable.empty:
+                continue
             result.extend([
-                Evidence(evidence_id=self.evidence_id(), metric=f"{label}_listing_count", value=int(len(group)), unit="listings", source_path="has_structured_voucher", **common),
-                Evidence(evidence_id=self.evidence_id(), metric=f"{label}_mean_monthly_sold_proxy", value=round(float(group.monthly_sold_value_num.mean()), 6), unit="items", source_path="monthly_sold_value_num", **common),
-                Evidence(evidence_id=self.evidence_id(), metric=f"{label}_median_monthly_sold_proxy", value=round(float(group.monthly_sold_value_num.median()), 6), unit="items", source_path="monthly_sold_value_num", **common),
+                Evidence(evidence_id=self.evidence_id(), metric=f"{label}_mean_monthly_sold_proxy", value=round(float(measurable.monthly_sold_value_num.mean()), 6), unit="items", source_path="monthly_sold_value_num", **proxy_common),
+                Evidence(evidence_id=self.evidence_id(), metric=f"{label}_median_monthly_sold_proxy", value=round(float(measurable.monthly_sold_value_num.median()), 6), unit="items", source_path="monthly_sold_value_num", **proxy_common),
             ])
         return result
 
@@ -267,17 +287,22 @@ class AnalyticsTools:
         latest = snapshots.loc[snapshots.date.astype(str) == latest_date]
         # G6: một snapshot + dedupe listing trước mọi thống kê.
         rows = latest.drop_duplicates("product_listing_key").copy()
-        rows = rows.loc[rows.monthly_sold_value_num.notna()]
 
         components: list[dict] = []
         low_coverage_excluded = 0
         missing_group_excluded = 0
+        # Same separation as ``promotion_observation``: the shop's size and the
+        # min-listings gate are properties of the shop, not of how much of it is
+        # measurable. Filtering first reported a shop with enough listings but
+        # few measurable ones as low-coverage, which reads as "too small".
         for shop_id, group in rows.groupby("shop_id", observed=True):
             if len(group) < self.VOUCHER_PROFILE_MIN_LISTINGS:
                 low_coverage_excluded += 1
                 continue
             flags = group.has_structured_voucher.astype(bool)
-            with_voucher, without_voucher = group.loc[flags], group.loc[~flags]
+            measurable = group.loc[group.monthly_sold_value_num.notna()]
+            with_voucher = measurable.loc[measurable.has_structured_voucher.astype(bool)]
+            without_voucher = measurable.loc[~measurable.has_structured_voucher.astype(bool)]
             if with_voucher.empty or without_voucher.empty:
                 missing_group_excluded += 1
                 continue
@@ -289,6 +314,7 @@ class AnalyticsTools:
                 continue
             components.append({
                 "shop_id": str(shop_id), "n_listings": int(len(group)),
+                "n_measurable_listings": int(len(measurable)),
                 "voucher_rate": float(flags.mean()),
                 "median_discount_ratio": float((priced.voucher_discount_num / priced.price_num).median()),
                 "descriptive_gap_median_sold": float(

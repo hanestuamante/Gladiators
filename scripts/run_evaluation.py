@@ -70,11 +70,16 @@ def evidence_correct(case, response, runtime) -> bool:
     if case["expected_intent"] == "promotion_effectiveness":
         required = {f"{group}_{metric}" for group in ("with_voucher", "without_voucher") for metric in ("listing_count", "mean_monthly_sold_proxy", "median_monthly_sold_proxy")}
         if set(metrics) != required: return False
-        country = response.request.country; snapshots = runtime.repo.snapshots.query("country_code == @country").copy(); latest = snapshots.loc[snapshots.date.astype(str) == snapshots.date.astype(str).max()]; valid = latest.loc[latest.monthly_sold_value_num.notna()]
+        country = response.request.country; snapshots = runtime.repo.snapshots.query("country_code == @country").copy(); latest = snapshots.loc[snapshots.date.astype(str) == snapshots.date.astype(str).max()].drop_duplicates("product_listing_key")
+        # Theme C: the count covers the whole scope, the aggregates only the rows
+        # where the sold proxy is measurable. The oracle used one filtered frame
+        # for both, so it certified 551/77 -- the answer to a question with an
+        # extra condition nobody asked for.
         expected = {}
-        for flag, group in valid.groupby("has_structured_voucher", observed=True):
+        for flag, group in latest.groupby("has_structured_voucher", observed=True):
             label = "with_voucher" if bool(flag) else "without_voucher"
-            expected.update({f"{label}_listing_count": len(group), f"{label}_mean_monthly_sold_proxy": group.monthly_sold_value_num.mean(), f"{label}_median_monthly_sold_proxy": group.monthly_sold_value_num.median()})
+            measurable = group.loc[group.monthly_sold_value_num.notna()]
+            expected.update({f"{label}_listing_count": len(group), f"{label}_mean_monthly_sold_proxy": measurable.monthly_sold_value_num.mean(), f"{label}_median_monthly_sold_proxy": measurable.monthly_sold_value_num.median()})
         return all(math.isclose(float(e.value), float(expected[e.metric]), rel_tol=1e-6, abs_tol=1e-6) for e in response.evidence)
     if case["expected_intent"] == "analytical_query":
         kind = response.request.slots.get("analytical_kind")
