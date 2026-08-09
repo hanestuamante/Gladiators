@@ -33,6 +33,10 @@ class CompiledQuery:
     # True when the plan asked for a specific order (a Rank node). When false the
     # result is a set and the executor is free to impose a canonical order.
     ordered: bool = False
+    # Set when a Rank limits rows: the executor fetches one extra row to detect a
+    # tie straddling the cut, then trims back to rank_limit.
+    rank_column: str | None = None
+    rank_limit: int | None = None
 
 
 _VIEW_NAMES = {
@@ -125,7 +129,9 @@ def _compile_node(
     compiled: dict[str, exp.Query],
     nodes: dict[str, PlanNode],
     params: list[object],
+    rank_state: dict[str, object] | None = None,
 ) -> exp.Query:
+    rank_state = {} if rank_state is None else rank_state
     if node.op == "Scan":
         return exp.select("*").from_(exp.to_table(_VIEW_NAMES[node.source]))
     if node.op in {"ResolveValue", "Similarity"}:
@@ -183,7 +189,14 @@ def _compile_node(
                 None,
             )
         column = materialized_alias or _column_for(node.rank_by, source)
-        return _from_input(inputs[0], f"q_{node.node_id}").order_by(exp.Ordered(this=exp.column(column), desc=node.descending)).limit(node.limit)
+        # One row beyond the requested limit, so the executor can see whether the
+        # cut lands in the middle of a run of equal values. Without it a "highest
+        # rating brand" query returns one arbitrary brand out of 21 tied at the
+        # same rating, and the cut is invisible to everything downstream.
+        rank_state["column"] = column
+        rank_state["limit"] = node.limit
+        fetch = node.limit + 1 if node.limit is not None else None
+        return _from_input(inputs[0], f"q_{node.node_id}").order_by(exp.Ordered(this=exp.column(column), desc=node.descending)).limit(fetch)
     if node.op == "Project":
         base = inputs[0].subquery(f"q_{node.node_id}")
         fields = []
@@ -274,12 +287,13 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
     nodes = {node.node_id: node for node in plan.nodes}
     compiled: dict[str, exp.Query] = {}
     params: list[object] = []
+    rank_state: dict[str, object] = {}
     pending = list(plan.nodes)
     while pending:
         progressed = False
         for node in pending[:]:
             if all(parent in compiled for parent in node.inputs):
-                compiled[node.node_id] = _compile_node(node, compiled, nodes, params)
+                compiled[node.node_id] = _compile_node(node, compiled, nodes, params, rank_state)
                 pending.remove(node)
                 progressed = True
         if not progressed:
@@ -297,4 +311,6 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
         postconditions=output.invariants,
         expected_cardinality=output.expected_cardinality,
         ordered=any(node.op == "Rank" for node in plan.nodes),
+        rank_column=rank_state.get("column"),
+        rank_limit=rank_state.get("limit"),
     )

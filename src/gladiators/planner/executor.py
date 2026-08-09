@@ -53,6 +53,10 @@ class ExecutionResult:
     explain: str
     row_count: int
     postconditions: tuple[str, ...]
+    # True when the rank limit cut through a run of equal values, i.e. the rows
+    # returned are one arbitrary selection among several that tie. Presenting
+    # them as "the highest" would answer a different question than the one asked.
+    rank_tie_at_cut: bool = False
 
 
 class QueryExecutor:
@@ -116,6 +120,13 @@ class QueryExecutor:
         explain_rows = self.connection.execute("EXPLAIN " + query.sql, query.parameters).fetchall()
         explain = "\n".join(str(row[-1]) for row in explain_rows)
         frame = self.connection.execute(query.sql, query.parameters).fetchdf()
+        rank_tie_at_cut = False
+        if query.rank_limit is not None and len(frame) > query.rank_limit:
+            column = query.rank_column
+            if column in frame.columns:
+                boundary = frame.iloc[query.rank_limit - 1][column]
+                rank_tie_at_cut = bool(frame.iloc[query.rank_limit][column] == boundary)
+            frame = frame.iloc[: query.rank_limit].reset_index(drop=True)
         if not query.ordered and len(frame) > 1:
             # A grouped result with no Rank is a set, and DuckDB returns sets in
             # whatever order its hash table iterated -- observed differing between
@@ -206,6 +217,7 @@ class QueryExecutor:
         return ExecutionResult(
             frame=frame, plan_hash=query.plan_hash, explain=explain,
             row_count=len(frame), postconditions=tuple(passed),
+            rank_tie_at_cut=rank_tie_at_cut,
         )
 
     def close(self) -> None:

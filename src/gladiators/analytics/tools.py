@@ -380,6 +380,16 @@ class AnalyticsTools:
             "postconditions_passed": len(result.postconditions),
             "has_invariants": bool(output_node.invariants),
         }
+        if result.rank_tie_at_cut:
+            # A tie straddling the cut means different things at different
+            # limits. At limit 1 the question asks which single row is highest
+            # and the data does not determine one, so the answer would be
+            # arbitrary. At limit N the caller asked for a sample of the top;
+            # the sample is still valid even though its boundary is arbitrary,
+            # so this is recorded for the trace rather than refused.
+            key = ("rank_tie_at_cut" if compiled.rank_limit == 1
+                   else "rank_tie_beyond_cut")
+            execution_attrs[key] = True
         known_kinds = {
             "highest_revenue_day", "listing_count", "highest_price_listing",
             "highest_monthly_sold_listing", "top_shop_by_listing_count",

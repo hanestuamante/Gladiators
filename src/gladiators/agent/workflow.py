@@ -1055,6 +1055,24 @@ class AgentRuntime:
                 )
             if ctx.clarify is not None:
                 decision = ctx.clarify
+            elif decision.action == "allow" and evidence and any(
+                item.attrs.get("rank_tie_at_cut") for item in evidence
+            ):
+                # The rank cut landed inside a run of equal values, so the rows
+                # returned are one arbitrary pick among several that tie. Naming
+                # one of them "the highest" answers a question the user did not
+                # ask -- the same reason §4.2 forbids breaking an entity tie by
+                # picking the best seller, and the same reason the feasibility
+                # analyzer refuses an ambiguous grain rather than choosing one.
+                evidence = []
+                decision = GateDecision(
+                    action="abstain",
+                    rule_id="A22-ALIGN-RANK-TIE",
+                    reason="Nhiều nhóm cùng đạt giá trị cao nhất nên không xếp hạng được; "
+                           "chọn một nhóm trong số đó sẽ là một câu trả lời tuỳ tiện.",
+                    answerable_alternative="Hãy hỏi danh sách các nhóm đạt mức cao nhất, "
+                                           "hoặc thêm tiêu chí phụ để phân định.",
+                )
             elif decision.action == "allow" and (
                 logical_plan is not None or macro is not None
             ) and evidence:
