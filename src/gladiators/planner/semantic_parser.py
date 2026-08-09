@@ -10,6 +10,9 @@ from rapidfuzz import fuzz
 
 from gladiators.domain.catalog import CATALOG, CatalogObject
 
+# Wordings that make the noun beside them the thing being counted rather than a
+# key to group by.
+_COUNTING_CUES = ("nhieu nhat", "terbanyak", "most", "bao nhieu", "nhieu san pham", "berapa")
 
 _DATE_ISO = re.compile(r"2026-07-0[1-3]")
 _DATE_DAY_MONTH = re.compile(r"(?<![0-9])0?([123])\s*/\s*0?7(?![0-9])")
@@ -265,18 +268,29 @@ class DeterministicSemanticParser:
         # like one because "sản phẩm" binds to dim.product_name while the
         # synonymous "listing" binds to entity.product_listing, so the two
         # phrasings of one question took different paths and A22 rejected the
-        # plan for "dropping" a dimension nobody grouped by.
-        counted_unit = any(
-            term in normalized
-            for term in ("nhieu nhat", "terbanyak", "most", "bao nhieu", "nhieu san pham")
-        )
-        if counted_unit and any(item.ref == "entity.shop" for item in dimensions):
+        # plan for "dropping" a dimension nobody grouped by. The original patch
+        # required entity.shop to be present; the concept does not, and two rules
+        # for one concept drift apart.
+        counted_unit = any(term in normalized for term in _COUNTING_CUES)
+        if counted_unit:
             dimensions = [
                 SemanticBinding(surface_text=item.surface_text, ref="entity.product_listing")
                 if item.ref == "dim.product_name" else item
                 for item in dimensions
             ]
-        grouping = tuple(item.ref for item in dimensions if item.ref and item.ref not in {"dim.country"})
+        # A5: a unit with no column of its own is not a dimension at all, so it must
+        # not be reported as one: A22 would otherwise see the plan "drop" a
+        # dimension nobody could have grouped by. entity.shop stays -- owning
+        # shop_id is what makes a unit groupable as well as countable.
+        dimensions = [
+            item for item in dimensions
+            if not item.ref or CATALOG[item.ref].analysis_role != "analysis_unit"
+            or CATALOG[item.ref].physical
+        ]
+        grouping = tuple(
+            item.ref for item in dimensions
+            if item.ref and item.ref not in {"dim.country"} and CATALOG[item.ref].physical
+        )
         price_change_table = any(
             term in normalized
             for term in ("gia thay doi", "bien dong gia", "price change", "perubahan harga")

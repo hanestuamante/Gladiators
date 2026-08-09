@@ -154,6 +154,28 @@ _METRIC_SPECS = [
         formula="count listing trong nhóm sau dedupe về grain products",
         caveats=("1 snapshot + dedupe listing; group theo kệ được double count nhưng tổng phải dedupe",),
     ),
+    # "Count the distinct instances of X" was modelled for exactly one entity, so
+    # "có bao nhiêu shop ở VN" bound no measure at all and fell to A19-CAT even
+    # though shop_id sits in the data. One spec per countable unit, all reading
+    # their key from the entity's catalog entry rather than a compiler special-case.
+    MetricSpec(
+        name="shop_count", grain="group", unit="shops",
+        dedupe="one_snapshot_per_listing", traps=(), valid_aggregations=("count",),
+        formula="count distinct shop_id trong nhóm tại 1 snapshot",
+        caveats=("đếm shop quan sát được trong dataset, không phải toàn bộ shop trên sàn",),
+    ),
+    MetricSpec(
+        name="brand_count", grain="group", unit="brands",
+        dedupe="one_snapshot_per_listing", traps=(), valid_aggregations=("count",),
+        formula="count distinct brand trong nhóm tại 1 snapshot",
+        caveats=("brand là raw attribute chưa chuẩn hoá; listing thiếu brand không được đếm",),
+    ),
+    MetricSpec(
+        name="category_count", grain="group", unit="categories",
+        dedupe="one_snapshot_per_listing", traps=(2,), valid_aggregations=("count",),
+        formula="count distinct catid_num trong nhóm tại 1 snapshot",
+        caveats=("đếm danh mục sàn gắn với listing quan sát được, không phải toàn bộ cây danh mục",),
+    ),
     MetricSpec(
         name="descriptive_gap_vs_baseline", grain="group", unit="same_as_source_metric",
         dedupe="one_snapshot_per_listing", traps=(9, 19),

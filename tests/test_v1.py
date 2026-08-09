@@ -43,7 +43,11 @@ def test_metric_registry_covers_v2_metric_contract():
         "discount_point_change", "voucher_state_transition", "rating_change",
         "rating_count_delta", "liked_delta", "estimated_recent_revenue",
         "has_structured_voucher", "has_voucher_label", "has_promo", "discount_bucket",
-        "product_count", "median_monthly_sold", "median_estimated_recent_revenue",
+        # One count metric per countable analysis unit (Theme A/A4): modelling
+        # "count distinct instances" for listings only left "có bao nhiêu shop"
+        # with no measure to bind, and it refused a question the data answers.
+        "product_count", "shop_count", "brand_count", "category_count",
+        "median_monthly_sold", "median_estimated_recent_revenue",
         "descriptive_gap_vs_baseline", "text_sim", "category_overlap_depth",
         "brand_match", "price_distance", "same_shelf_bonus", "similarity_score",
         # voucher_profile_rank_v1 (V2 §2.8, T-11)

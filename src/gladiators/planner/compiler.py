@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import sqlglot
 from sqlglot import exp
 
-from gladiators.domain.catalog import CATALOG
+from gladiators.domain.catalog import CATALOG, counting_column
 from gladiators.domain.relations import RELATIONS
 
 from .query_ir import LogicalQueryPlan, PlanNode, Predicate
@@ -84,8 +84,9 @@ def _column_for(ref: str, preferred_source: str | None = None) -> str:
                 return physical[len(prefix):]
     if obj.physical:
         return obj.physical[0].rsplit(".", 1)[1]
-    if ref == "derived.product_count":
-        return "product_listing_key"
+    counting = counting_column(ref)
+    if counting:
+        return counting
     raise CompilationError(f"Semantic ref chưa có physical mapping: {ref}")
 
 
@@ -166,8 +167,13 @@ def _compile_node(
         for ref in node.refs:
             column = _column_for(ref, source)
             alias = next((field.name for field in node.expected_schema if field.semantic_ref == ref), ref.split(".")[-1])
-            if ref == "derived.product_count":
-                aggregate = exp.Count(this=exp.column(column), distinct=True)
+            if CATALOG[ref].counts_unit:
+                # exp.Count(distinct=True) renders as a plain COUNT in this
+                # sqlglot version. It went unnoticed while listing keys were the
+                # only thing counted -- they are unique per snapshot, so the two
+                # forms agreed. shop_id is not, and COUNT(shop_id) returned 668
+                # rows where COUNT(DISTINCT shop_id) is 10 shops.
+                aggregate = exp.Count(this=exp.Distinct(expressions=[exp.column(column)]))
             else:
                 functions = {
                     "count": exp.Count, "sum": exp.Sum, "mean": exp.Avg,

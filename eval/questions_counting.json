@@ -1,0 +1,98 @@
+[
+  {
+    "id": "cnt01",
+    "question": "Có bao nhiêu shop ở Việt Nam?",
+    "expected_intent": "open_analytical",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate"
+      ],
+      "semantic_refs": [
+        "dim.country",
+        "dim.date",
+        "entity.shop",
+        "derived.shop_count"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "country_snapshot"
+      ],
+      "scenarios": [
+        "count_distinct_unit"
+      ]
+    },
+    "expected_evidence": {
+      "shop_count": 10
+    }
+  },
+  {
+    "id": "cnt02",
+    "question": "Có bao nhiêu thương hiệu tại Việt Nam ngày 03/07?",
+    "expected_intent": "open_analytical",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate"
+      ],
+      "semantic_refs": [
+        "dim.country",
+        "dim.date",
+        "entity.brand",
+        "derived.brand_count"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "country_snapshot"
+      ],
+      "scenarios": [
+        "count_distinct_unit"
+      ]
+    },
+    "expected_evidence": {
+      "brand_count": 30
+    }
+  },
+  {
+    "id": "cnt03",
+    "question": "Có bao nhiêu danh mục tại Indonesia ngày 03/07?",
+    "expected_intent": "open_analytical",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate"
+      ],
+      "semantic_refs": [
+        "dim.country",
+        "dim.date",
+        "entity.platform_category",
+        "derived.category_count"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "country_snapshot"
+      ],
+      "scenarios": [
+        "count_distinct_unit"
+      ]
+    },
+    "expected_evidence": {
+      "category_count": 4
+    }
+  }
+]

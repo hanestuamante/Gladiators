@@ -59,6 +59,14 @@ def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
     if len(dates) == 1 and dates[0] != LATEST_SNAPSHOT:
         return True
+    # Counting any unit other than the listing has no template at all, so the
+    # alternative here is not a wrong number but an A19 refusal for a question
+    # the data answers ("có bao nhiêu shop ở VN" -> 10).
+    if any(
+        item.ref and item.ref != "derived.product_count" and CATALOG[item.ref].counts_unit
+        for item in request.requested_measures
+    ):
+        return True
     # A grouping the templates lack: listing_count collapses "theo từng shop"
     # into one unfiltered number. Enabling this needed the multi-row answer
     # renderer first -- before that, by_metric kept only the last row and the

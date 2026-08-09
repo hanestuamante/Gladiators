@@ -160,7 +160,7 @@ def _choose_aggregation(measure_ref: str, request: AnalyticalRequest) -> str | N
         return None
     if "mean_requested" in request.assumptions or "mean" in request.analytical_operators:
         return "mean" if "mean" in allowed else None
-    if measure_ref == "derived.product_count":
+    if CATALOG[measure_ref].counts_unit:
         return "count" if "count" in allowed else None
     return "median" if "median" in allowed else allowed[0]
 
@@ -181,7 +181,12 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     if CATALOG[measure_ref].answerability in {"absent", "context_only"}:
         return None
 
-    dimensions = [ref for ref in _bound_refs(request.requested_dimensions) if ref not in SCOPE_REFS]
+    # A unit of analysis carries no column to GROUP BY. Keeping it here produced a
+    # plan the validator accepted and the compiler could not build.
+    dimensions = [
+        ref for ref in _bound_refs(request.requested_dimensions)
+        if ref not in SCOPE_REFS and CATALOG[ref].physical
+    ]
     dimensions = list(dict.fromkeys(dimensions))
     if len(dimensions) > MAX_DIMENSIONS:
         return None
@@ -202,8 +207,10 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     date = dates[0]
 
     # --- source and relation ------------------------------------------------
+    counted_unit = CATALOG[measure_ref].counts_unit
     needed = {measure_ref, *dimensions, *(p.field_ref for p in extra)}
-    needed.discard("derived.product_count")  # counted, not scanned
+    if counted_unit:
+        needed.discard(measure_ref)  # counted, not scanned
     source = next(
         (
             candidate for candidate in _BASE_SOURCES
@@ -243,9 +250,9 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     output = tuple(fields)
 
     scan_refs = tuple(dict.fromkeys(
-        [ref for ref in (*dimensions, measure_ref) if ref != "derived.product_count"]
+        [ref for ref in (*dimensions, measure_ref) if not counted_unit or ref != measure_ref]
         + (["dim.product_name"] if (not dimensions and ranking) else [])
-        + (["entity.product_listing"] if measure_ref == "derived.product_count" else [])
+        + ([counted_unit] if counted_unit else [])
     ))
     scan_refs = tuple(ref for ref in scan_refs if not relation or _sources_of(ref) != {"shop_info_clean.csv"})
 
@@ -290,7 +297,7 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
         cursor = "n3"
 
     grain = "listing_snapshot"
-    if dimensions or measure_ref == "derived.product_count":
+    if dimensions or counted_unit:
         nodes.append(PlanNode(
             node_id="n4", op="Aggregate", inputs=(cursor,), refs=(measure_ref,),
             group_by=tuple(dimensions), aggregation=aggregation,

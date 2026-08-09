@@ -18,6 +18,21 @@ Answerability = Literal[
 ]
 SourceTier = Literal["btc_dataset", "reference", "external"]
 
+# ``answerability`` conflates two questions that have different answers: "may a
+# question reach this ref" and "what role does it play in a plan". An entity ref
+# names the *unit* a measurement is taken over ("median price of listings"); a
+# dimension names the *column* a result is split by ("median price by brand").
+# Only the second needs a physical column, but both defaulted to
+# ``exposed_as_dimension``, so 10 entity refs advertised themselves as groupable
+# while owning nothing to GROUP BY. ``analysis_role`` states the role directly;
+# ``answerability`` keeps its existing meaning so fixtures do not shift.
+AnalysisRole = Literal[
+    "physical_dimension",   # splits a result; must own a physical column
+    "analysis_unit",        # names what one row is; countable, not a group key
+    "computed_value",       # measured or derived quantity
+    "context_only",         # never enters a LogicalQueryPlan
+]
+
 
 @dataclass(frozen=True)
 class CatalogObject:
@@ -38,6 +53,22 @@ class CatalogObject:
     value_index: tuple[str, ...] | None
     answerability: Answerability
     source_tier: SourceTier = "btc_dataset"
+    analysis_role: AnalysisRole = "computed_value"
+    # Physical column identifying one instance of an analysis unit, for
+    # COUNT(DISTINCT ...). Absent means the unit cannot be counted.
+    counting_key: str | None = None
+    # For a count metric: the entity ref whose instances it counts.
+    counts_unit: str | None = None
+
+
+def _default_analysis_role(kind: CatalogKind, answerability: Answerability) -> AnalysisRole:
+    if answerability == "context_only" or kind == "context":
+        return "context_only"
+    if kind == "entity":
+        return "analysis_unit"
+    if kind == "dimension":
+        return "physical_dimension"
+    return "computed_value"
 
 
 def _object(
@@ -58,6 +89,8 @@ def _object(
     value_index: tuple[str, ...] | None = None,
     answerability: Answerability | None = None,
     source_tier: SourceTier = "btc_dataset",
+    counting_key: str | None = None,
+    counts_unit: str | None = None,
 ) -> CatalogObject:
     if answerability is None:
         answerability = "exposed_as_dimension" if kind in {"entity", "dimension"} else "exposed_as_measure"
@@ -66,16 +99,24 @@ def _object(
         cardinality, caveats, traps, "docs/design/V2_Unified_Architecture.md",
         value_index, answerability,
         source_tier,
+        _default_analysis_role(kind, answerability),
+        counting_key,
+        counts_unit,
     )
 
 
 _BASE_OBJECTS = [
-    _object("entity.country", "entity", ("quốc gia", "country", "negara"), (), grain="country"),
+    _object("entity.country", "entity", ("quốc gia", "country", "negara"), (), grain="country",
+            counting_key="country_code"),
     _object("entity.shop", "entity", ("shop", "cửa hàng", "toko"),
-            tuple(f"{t}.shop_id" for t in ("products_clean.csv", "shop_info_clean.csv", "category_list_clean.csv", "product_categories_clean.csv", "product_snapshot_metrics.csv", "product_transition_metrics.csv")), grain="shop"),
-    _object("entity.brand", "entity", ("thương hiệu", "brand", "merek"), (), grain="brand"),
-    _object("entity.product_listing", "entity", ("listing", "sản phẩm", "produk"), (), grain="listing"),
-    _object("entity.platform_category", "entity", ("danh mục sàn", "platform category"), (), grain="platform_category"),
+            tuple(f"{t}.shop_id" for t in ("products_clean.csv", "shop_info_clean.csv", "category_list_clean.csv", "product_categories_clean.csv", "product_snapshot_metrics.csv", "product_transition_metrics.csv")), grain="shop",
+            counting_key="shop_id"),
+    _object("entity.brand", "entity", ("thương hiệu", "brand", "merek"), (), grain="brand",
+            counting_key="brand"),
+    _object("entity.product_listing", "entity", ("listing", "sản phẩm", "produk"), (), grain="listing",
+            counting_key="product_listing_key"),
+    _object("entity.platform_category", "entity", ("danh mục sàn", "platform category"), (), grain="platform_category",
+            counting_key="catid_num"),
     _object("entity.shop_category", "entity", ("kệ shop", "shop shelf"), (), grain="shop_category"),
     _object("entity.promotion_id_observation", "entity", ("promotion id quan sát", "promotion id observation", "observasi promo"), (), grain="listing_snapshot"),
     _object("entity.voucher_observation", "entity", ("voucher quan sát", "voucher observation", "observasi voucher"), (), grain="listing_snapshot"),
@@ -243,6 +284,10 @@ _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "median_monthly_sold": ("lượt bán trung vị", "median monthly sold"),
     "median_estimated_recent_revenue": ("doanh thu ước tính trung vị", "median estimated revenue"),
     "product_count": ("số listing", "số sản phẩm", "listing count", "jumlah produk"),
+    "shop_count": ("số shop", "số cửa hàng", "bao nhiêu shop", "bao nhiêu cửa hàng",
+                   "shop count", "berapa toko", "jumlah toko"),
+    "brand_count": ("số thương hiệu", "bao nhiêu thương hiệu", "brand count", "jumlah merek"),
+    "category_count": ("số danh mục", "bao nhiêu danh mục", "category count", "jumlah kategori"),
     "descriptive_gap_vs_baseline": ("chênh lệch so với nhóm nền", "gap versus baseline"),
     "descriptive_gap_median_sold": ("chênh lệch lượt bán trung vị", "median sold gap"),
     "text_sim": ("độ tương đồng tiêu đề", "title similarity"),
@@ -274,6 +319,16 @@ _DERIVED_PHYSICAL = {
     "has_structured_voucher": ("product_snapshot_metrics.csv.has_structured_voucher", "product_transition_metrics.csv.has_structured_voucher", "product_transition_metrics.csv.previous_has_structured_voucher"),
 }
 
+# Which analysis unit each count metric counts. The compiler reads the physical
+# key from the entity rather than matching a ref name, so adding a countable unit
+# is a catalog edit, not another branch in ``_column_for``.
+_COUNTS_UNIT = {
+    "product_count": "entity.product_listing",
+    "shop_count": "entity.shop",
+    "brand_count": "entity.brand",
+    "category_count": "entity.platform_category",
+}
+
 for name, spec in METRICS.items():
     _BASE_OBJECTS.append(_object(
         f"derived.{name}", "derived_metric",
@@ -283,7 +338,12 @@ for name, spec in METRICS.items():
         aggregations=spec.valid_aggregations, filters=("eq", "lt", "lte", "gt", "gte"),
         caveats=spec.caveats, traps=spec.traps,
         answerability="proxy_only" if name in {"estimated_recent_revenue", "monthly_sold_delta", "history_sold_delta_raw", "history_sold_delta_clean"} else "exposed_as_measure",
+        counts_unit=_COUNTS_UNIT.get(name),
     ))
+
+
+class CatalogError(ValueError):
+    """Raised at import when the catalog contradicts itself. Build-breaking by design."""
 
 
 def _build_catalog(objects: list[CatalogObject]) -> dict[str, CatalogObject]:
@@ -291,16 +351,45 @@ def _build_catalog(objects: list[CatalogObject]) -> dict[str, CatalogObject]:
     physical: dict[str, str] = {}
     for obj in objects:
         if obj.ref in catalog:
-            raise ValueError(f"Catalog ref trùng: {obj.ref}")
+            raise CatalogError(f"Catalog ref trùng: {obj.ref}")
         for column in obj.physical:
             if column in physical:
-                raise ValueError(f"Physical column {column} thuộc cả {physical[column]} và {obj.ref}")
+                raise CatalogError(f"Physical column {column} thuộc cả {physical[column]} và {obj.ref}")
             physical[column] = obj.ref
+        # A2: a ref that claims it can be grouped by must own a column to group
+        # by. Without this the contradiction only surfaced at compile time, as an
+        # uncaught CompilationError rather than a decision with a rule_id.
+        if obj.analysis_role == "physical_dimension" and not obj.physical:
+            raise CatalogError(
+                f"{obj.ref} khai physical_dimension nhưng không có cột vật lý nào để GROUP BY."
+            )
+        if obj.counts_unit and obj.counts_unit not in {item.ref for item in objects}:
+            raise CatalogError(f"{obj.ref} đếm đơn vị không tồn tại: {obj.counts_unit}")
         catalog[obj.ref] = obj
+    for obj in catalog.values():
+        if obj.counts_unit and not catalog[obj.counts_unit].counting_key:
+            raise CatalogError(
+                f"{obj.ref} đếm {obj.counts_unit} nhưng đơn vị đó không có counting_key."
+            )
     return catalog
 
 
 CATALOG = _build_catalog(_BASE_OBJECTS)
+
+# Reverse of ``counts_unit``: the metric that counts a given analysis unit.
+COUNT_METRIC_BY_UNIT: dict[str, str] = {
+    obj.counts_unit: ref for ref, obj in CATALOG.items() if obj.counts_unit
+}
+
+
+def counting_column(ref: str) -> str | None:
+    """Physical column for COUNT(DISTINCT ...) behind a count metric or unit."""
+    obj = CATALOG.get(ref)
+    if obj is None:
+        return None
+    if obj.counts_unit:
+        return CATALOG[obj.counts_unit].counting_key
+    return obj.counting_key
 
 
 def get(ref: str) -> CatalogObject | None:

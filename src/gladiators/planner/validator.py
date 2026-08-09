@@ -14,8 +14,20 @@ from .query_ir import LogicalQueryPlan, PlanNode
 IssueCode = Literal[
     "missing_semantic_object", "wrong_filter", "wrong_join_path", "grain_mismatch",
     "fanout_risk", "unit_mismatch", "temporal_mismatch", "unsupported_claim",
-    "budget_exceeded", "schema_invalid", "tier_violation",
+    "budget_exceeded", "schema_invalid", "tier_violation", "non_physical_grouping",
 ]
+
+# Outward code for a validation issue, so a plan defect reaches the caller as a
+# decision that can be looked up rather than an uncaught CompilationError.
+RULE_ID_BY_ISSUE: dict[str, str] = {"non_physical_grouping": "A19-PLAN-GROUPING"}
+DEFAULT_PLAN_RULE_ID = "A19-PLAN"
+
+
+def plan_rule_id(issues: tuple[PlanIssue, ...] | list[PlanIssue]) -> str:
+    for issue in issues:
+        if issue.code in RULE_ID_BY_ISSUE:
+            return RULE_ID_BY_ISSUE[issue.code]
+    return DEFAULT_PLAN_RULE_ID
 ALLOWED_DATES = {"2026-07-01", "2026-07-02", "2026-07-03"}
 
 
@@ -108,6 +120,20 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
                 issues.append(PlanIssue(
                     code="tier_violation", node_id=node.node_id,
                     message=f"{ref} thuộc tier/context ngoài btc_dataset và không được vào LogicalQueryPlan.",
+                ))
+
+        # A3: grouping by a ref with no physical column used to pass validation
+        # and then fail in ``_column_for``. The validator believed the catalog's
+        # declaration; only the compiler consulted reality. Ask the same question
+        # the compiler will ask, one layer earlier.
+        for ref in sorted(set(node.group_by) | ({node.rank_by} if node.rank_by else set())):
+            obj = CATALOG.get(ref)
+            if obj is not None and not obj.physical and not obj.counts_unit:
+                issues.append(PlanIssue(
+                    code="non_physical_grouping", node_id=node.node_id,
+                    message=(
+                        f"{ref} là đơn vị phân tích, không có cột vật lý để GROUP BY/ORDER BY."
+                    ),
                 ))
 
         for predicate in node.predicates:

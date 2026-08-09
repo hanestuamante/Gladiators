@@ -46,6 +46,16 @@ def trajectory_correct(case, response, runtime) -> bool:
 def evidence_correct(case, response, runtime) -> bool:
     if case["expected_action"] != "allow":
         return response.evidence == []
+    # Oracle declared in the fixture, for capabilities the branches below do not
+    # enumerate (open_analytical had no scoring path at all and fell through to
+    # the fail-closed ``return False``). Cases without the key are unaffected.
+    if "expected_evidence" in case:
+        actual = {e.metric: e.value for e in response.evidence}
+        expected = case["expected_evidence"]
+        return set(actual) == set(expected) and all(
+            math.isclose(float(actual[metric]), float(value), rel_tol=1e-6, abs_tol=1e-6)
+            for metric, value in expected.items()
+        )
     metrics = [e.metric for e in response.evidence]
     if case["expected_intent"] == "sales_decline":
         if set(metrics) != {"monthly_sold_delta", "days_since_previous"} or not response.resolved_listing_key:
