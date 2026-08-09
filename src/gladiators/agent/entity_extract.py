@@ -122,7 +122,12 @@ def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
     patterns = (
         r"(?:san pham|product|produk)\s+(.+?)(?=\s+(?:o|tai|thi truong|vn|viet nam|indonesia|indo|dang thuoc)\b|$)",
         r"(?:tinh hinh ban|doanh so|sales decline|cek penjualan|san pham tuong tu|similar to)\s+(.+?)(?=\s+(?:o|tai|thi truong|vn|viet nam|indonesia|indo)\b|$)",
-        r"(?:luot ban cua)\s+(.+?)\s+(?:giam|tang|thay doi)\b",
+        # The scope boundary matters as much here as in the two patterns above.
+        # Without it "lượt bán của kẹo dẻo Chupa Chups TẠI SHOP Perfetti Van
+        # Melle Vietnam lại giảm" yielded a product name carrying the shop
+        # clause, and the resolver then scored on the words the shop and the
+        # category share -- handing back a shortlist of a different brand.
+        r"(?:luot ban cua)\s+(.+?)(?=\s+(?:o|tai|cua shop|thi truong)\b|\s+(?:giam|tang|thay doi)\b)",
     )
     if not any(item.kind in {"listing_key", "item_id", "name"} for item in entities):
         for pattern in patterns:

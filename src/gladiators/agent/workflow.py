@@ -704,6 +704,7 @@ class AgentRuntime:
                 answer_claims = self._claims_for_answer(answer, evidence)
                 verdict = verify_numeric_claims(
                     answer, evidence, claims=answer_claims, require_claims=True,
+                    ignore_texts=decision.quoted_texts,
                 )
                 wording_violations = check_wording(answer)
                 if verdict["passed"] and not wording_violations:
@@ -1161,7 +1162,10 @@ class AgentRuntime:
             )
             answer = self._deterministic_answer(decision, request, [])
             evidence, claims = [], ()
-            verification = verify_numeric_claims(answer, [], claims=(), require_claims=False)
+            verification = verify_numeric_claims(
+                answer, [], claims=(), require_claims=False,
+                ignore_texts=decision.quoted_texts,
+            )
         llm_meta["generation"] = generation_meta
         if generation_meta.get("context_guard_hits"):
             llm_meta["context_guard_hits"] = generation_meta["context_guard_hits"]

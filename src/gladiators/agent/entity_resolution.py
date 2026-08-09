@@ -96,11 +96,47 @@ class EntityResolutionResult(BaseModel):
 
 
 class EntityResolver:
+    # A token in at most this share of listings names something specific; above
+    # it the word is just vocabulary for the category. Measured from the corpus
+    # rather than listed by hand: a stop lexicon cannot know that "kẹo" is
+    # generic in a confectionery dataset while "chupa" is not.
+    _RARE_TOKEN_MAX_SHARE = 0.05
+
     def __init__(self, products, embeddings=None):
         self.products = products.drop_duplicates("product_listing_key").reset_index(drop=True)
         self.names = self.products.product_name.fillna("").astype(str).tolist()
         self.key_to_index = {str(row.product_listing_key): idx for idx, row in self.products.iterrows()}
         self.embeddings = embeddings
+        self._token_share = self._build_token_share()
+
+    def _build_token_share(self) -> dict[str, float]:
+        """Share of listings whose name contains each token."""
+        from collections import Counter
+
+        counts: Counter[str] = Counter()
+        for name in self.names:
+            counts.update(distinctive_tokens(normalize_text(name)))
+        total = max(1, len(self.names))
+        return {token: count / total for token, count in counts.items()}
+
+    def _rare_token_indices(self, normalized: str, limit: int) -> set[int]:
+        """Listings whose name carries every rare token the query offers."""
+        rare = self.rare_tokens(distinctive_tokens(normalized))
+        if not rare:
+            return set()
+        hits = {
+            idx for idx, name in enumerate(self.names)
+            if rare <= distinctive_tokens(normalize_text(name))
+        }
+        # Bounded: a single very rare token could otherwise pull in a long tail.
+        return set(sorted(hits)[: max(limit, 20)])
+
+    def rare_tokens(self, wanted: set[str]) -> set[str]:
+        """The subset of query tokens that actually narrow the corpus."""
+        return {
+            token for token in wanted
+            if self._token_share.get(token, 0.0) <= self._RARE_TOKEN_MAX_SHARE
+        }
 
     def resolve(self, query: str, limit: int = 20) -> list[Candidate]:
         direct = self.products.loc[self.products.product_listing_key.astype(str) == str(query).strip()]
@@ -125,6 +161,13 @@ class EntityResolver:
         semantic = self.embeddings.search(query, top_k=max(limit, 20)) if self.embeddings is not None else {}
         lexical = {idx: (name, score / 100) for name, score, idx in matches}
         indices = set(lexical) | {self.key_to_index[k] for k in semantic if k in self.key_to_index}
+        # Rare tokens must RECALL candidates, not merely filter them. Fuzzy
+        # ranking scores whole strings, so a query dominated by category words
+        # ("kẹo dẻo", "bánh quy") can fill its top-N with the wrong brand and
+        # never surface the listing the rare token names. Filtering that list
+        # then throws everything away and reports "not found" for a product that
+        # plainly exists. Pulling the rare-token matches in first fixes both.
+        indices |= self._rare_token_indices(normalize_text(query), limit)
         result = []
         for idx in indices:
             row = self.products.iloc[idx]
@@ -171,6 +214,12 @@ class EntityResolver:
             item.listing_key == text for item in ranked[:1]
         )
         if wanted and not by_identifier:
+            # Deliberately a broad OR over distinctive tokens. Narrowing it to
+            # the rarest token was tried and rejected: a rare token that names a
+            # brand appearing in one product *title* then eliminated every
+            # candidate for a query whose brand lives in a separate column, and
+            # "which of these" became "not found" for a product that exists.
+            # Recall above is where rare tokens do their work.
             relevant = [
                 item for item in ranked
                 if wanted & distinctive_tokens(normalize_text(item.product_name))

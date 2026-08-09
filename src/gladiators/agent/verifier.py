@@ -254,7 +254,13 @@ def verify_numeric_claims(
     # nhiễu số kép; bản thân token lạ đã fail qua unknown_citations.
     metric_text = CITATION.sub(" ", metric_text)
 
-    ignored_strings: list[str] = [t for t in ignore_texts if t]
+    # Normalised the same way as the text they are masked out of. The scan runs
+    # on unicode-normalised text, so a name carrying an en dash ("Hair Mask
+    # 150ml – Masker") no longer matched itself and its digits survived as an
+    # unsupported claim.
+    ignored_strings: list[str] = [
+        _normalize_unicode_punctuation(t) for t in ignore_texts if t
+    ]
     for item in evidence:
         if isinstance(item.value, str) and item.value:
             ignored_strings.extend(_date_variants(item.value))
