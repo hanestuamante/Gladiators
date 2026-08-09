@@ -31,6 +31,7 @@ CITATION = re.compile(r"\[(ev:[^\[\]\s]+)\]")
 # Chỉ 1 lần lặp ("745.078") vẫn mơ hồ với số thập phân nên KHÔNG gộp.
 _THOUSANDS_GROUP = re.compile(r"(?<![\w.,])\d{1,3}(?:[,.\s]\d{3}){2,}(?!\d)")
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_ISO_DATE_LITERAL = re.compile(r"(?<!\d)\d{4}[-/.]\d{2}[-/.]\d{2}(?!\d)")
 # LLM đôi khi sinh dấu gạch nối/khoảng trắng kiểu "typographic" (non-breaking
 # hyphen, narrow no-break space...) thay vì ASCII thường — cùng giá trị hiển
 # thị nhưng lệch ký tự khiến so khớp chuỗi/ghép nhóm-nghìn thất bại.
@@ -285,6 +286,11 @@ def verify_numeric_claims(
     for value in sorted(set(ignored_strings), key=len, reverse=True):
         metric_text = metric_text.replace(value, "")
 
+    # An ISO date is a date, not a measurement. Left in, the scanner read the
+    # year out of "2026-07-02" and reported 2026 as an unsupported claim -- and
+    # it was not even checking the date, just its first four digits. Date scope
+    # is checked by A22-ALIGN-DATE, which compares whole dates against the digest.
+    metric_text = _ISO_DATE_LITERAL.sub(" ", metric_text)
     metric_text = _normalize_thousands_grouping(metric_text)
     claimed_tokens = scan_number_tokens(metric_text)
     claimed = [value for value, _ in claimed_tokens]
