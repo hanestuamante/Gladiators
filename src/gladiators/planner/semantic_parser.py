@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz
 
+from gladiators.domain.alias_index import compound_shadowed
 from gladiators.domain.catalog import CATALOG, CatalogObject
 
 # Wordings that make the noun beside them the thing being counted rather than a
@@ -192,6 +193,11 @@ class DeterministicSemanticParser:
             # ``rating``; seed priority resolves same-surface entity/dim aliases.
             if any(alias == chosen for chosen, _ in accepted):
                 continue
+            # §3.2.2: the same compound guard the alias index uses. It lived
+            # here as a local `gia tri` regex, so the identical bug stayed alive
+            # in the other binder -- one concept, one place.
+            if compound_shadowed(normalized, alias):
+                continue
             residual = normalized
             for chosen, _ in accepted:
                 if self._contains_phrase(chosen, alias):
@@ -206,10 +212,7 @@ class DeterministicSemanticParser:
 
     def parse(self, text: str, language: str, country: str | None) -> AnalyticalRequest:
         normalized = normalize(text)
-        # "giá trị" means "value", not the price measure. Keep explicit
-        # "price/giá" elsewhere available to the linker.
-        measure_text = re.sub(r"\bgia tri\b", "value", normalized)
-        measures = self._link(measure_text, self.MEASURES, {"measure", "derived_metric"})
+        measures = self._link(normalized, self.MEASURES, {"measure", "derived_metric"})
         dimension_text = normalized
         for measure in measures:
             dimension_text = re.sub(

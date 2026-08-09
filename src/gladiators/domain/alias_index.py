@@ -46,6 +46,39 @@ def normalize_surface(value: str) -> str:
     return re.sub(r"\s+", " ", stripped).strip()
 
 
+# Compound nouns whose meaning is not the meaning of the word inside them.
+# Longest-match already suppresses a nested surface when the longer phrase is
+# itself indexed; these are the cases where it is *not*, so nothing stopped the
+# inner word from matching. Each entry here is a bug that was actually observed
+# (CLAUDE.md §3.1), not a guess -- this is a named exception list, not a
+# general-purpose tokeniser, and it should stay that way.
+_COMPOUND_TRAPS: tuple[tuple[str, str], ...] = (
+    ("gia tri", "gia"),      # "giá trị" = value, not the price measure
+    ("danh gia", "gia"),     # "đánh giá" = to assess, not price
+    ("giam gia", "gia"),     # "giảm giá" = discount, not price
+    ("khuyen mai", "mai"),
+)
+
+
+def compound_shadowed(normalized_text: str, surface: str) -> bool:
+    """True when ``surface`` only appears inside a compound that means something else.
+
+    Returns False as soon as the surface occurs anywhere outside such a
+    compound, so "giá trung vị của listing" still binds the price measure while
+    "giảm giá" no longer does.
+    """
+    residual = normalized_text
+    shadowed = False
+    for compound, inner in _COMPOUND_TRAPS:
+        if inner != surface or not _contains_word(residual, compound):
+            continue
+        shadowed = True
+        residual = re.sub(
+            rf"(?<![a-z0-9]){re.escape(compound)}(?![a-z0-9])", " ", residual,
+        )
+    return shadowed and not _contains_word(residual, surface)
+
+
 @dataclass(frozen=True)
 class AliasEntry:
     normalized_surface: str
@@ -108,6 +141,8 @@ class AliasIndex:
                 continue
             if _contains_word(consumed, surface):
                 continue  # already covered by a longer alias
+            if compound_shadowed(normalized_text, surface):
+                continue  # only occurs inside a compound that means something else
             refs = self._by_surface[surface]
             if kinds is not None:
                 refs = [ref for ref in refs if self.catalog[ref].kind in kinds]

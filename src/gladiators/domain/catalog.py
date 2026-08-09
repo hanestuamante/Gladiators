@@ -178,7 +178,13 @@ _BASE_OBJECTS = [
 _MEASURE_ALIASES: dict[str, tuple[str, ...]] = {
     "price": ("giá", "giá bán", "harga"),
     "price_original": ("giá gốc", "giá niêm yết", "original price", "harga asli"),
-    "discount_percent": ("phần trăm giảm giá", "mức giảm giá", "discount", "diskon"),
+    # "giảm giá" is the everyday phrasing and was not an alias at all, so
+    # longest-match only caught the "giá" nested inside it: the discount concept
+    # disappeared and measure.price was bound to a question about discounts.
+    # Wording taken from business-dictionary.md Metric 6/7 ("mức giảm giá",
+    # "chương trình giảm giá"), not invented here.
+    "discount_percent": ("phần trăm giảm giá", "mức giảm giá", "giảm giá",
+                         "chương trình giảm giá", "discount", "diskon"),
     # "doanh số" is the everyday Vietnamese word for sales volume and was the
     # single largest alias gap measured over the eval corpus. It is distinct from
     # "doanh thu" (revenue), which belongs to derived.estimated_recent_revenue.
