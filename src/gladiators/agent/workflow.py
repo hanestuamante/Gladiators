@@ -233,8 +233,29 @@ class AgentRuntime:
         for attempt in range(2):
             meta["parse_attempts"] = attempt + 1
             try:
-                parsed = self.llm_client.parse_intent(user_text, self.registry.names())
+                # F3: the route-safety branch depends only on the deterministic
+                # result and overwrites every field the LLM produced, so calling
+                # the provider first buys nothing. Parsing deterministically up
+                # front lets those requests skip a call whose result is
+                # discarded by construction. The adjustment name is still
+                # recorded, because the outcome is the same branch as before --
+                # only the wasted call is gone.
+                #
+                # Deliberately not extended to the unsupported branch: that path
+                # is where provider failures are retried, and skipping the call
+                # there would remove the retry/fallback behaviour rather than
+                # just its cost.
                 deterministic = self.parser.parse(user_text, self.registry)
+                meta["deterministic_intent"] = deterministic.intent
+                if deterministic.route_mode in {"external_only", "hybrid"}:
+                    meta.update(
+                        llm_intent=None, merge_winner="deterministic",
+                        merge_reason="deterministic_route_safety_precedence",
+                        parse_adjustments=["deterministic_route_safety_precedence"],
+                    )
+                    return deterministic, meta
+                parsed = self.llm_client.parse_intent(user_text, self.registry.names())
+                meta["llm_intent"] = parsed.intent
                 adjustments = []
                 if deterministic.route_mode in {"external_only", "hybrid"} and (
                     parsed.intent != deterministic.intent or parsed.route_mode != deterministic.route_mode
@@ -327,6 +348,20 @@ class AgentRuntime:
                         adjustments.append("analytical_from_deterministic_parser")
                     if updates: parsed = parsed.model_copy(update=updates)
                 if adjustments: meta["parse_adjustments"] = adjustments
+                # F2: what the two parsers each said and which one the merge
+                # kept. Without this the 438x cost of the LLM branch has no
+                # record showing whether it ever changed an outcome, and W4 has
+                # nothing to decide the arbitration policy from.
+                intent_overridden = [
+                    name for name in adjustments if name.endswith("precedence")
+                    or name == "unsupported_taxonomy_normalized"
+                ]
+                meta["merge_winner"] = "deterministic" if intent_overridden else "llm"
+                meta["merge_reason"] = (
+                    intent_overridden[0] if intent_overridden
+                    else "llm_intent_kept" if parsed.intent != deterministic.intent
+                    else "parsers_agreed"
+                )
                 if self.registry.get(parsed.intent) is None and not parsed.intent.startswith("unsupported:"):
                     raise ValueError(f"Intent ngoài registry: {parsed.intent}")
                 return parsed, meta
@@ -757,7 +792,20 @@ class AgentRuntime:
             **self.repo.capability_profile(),
             "live_search_enabled": self.enable_live_search,
         }
-        decision = self.gate.decide(request, self.registry, capabilities) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
+        # §4.5.1/D3: resolve an explicitly named identifier before the gate, so
+        # "does this exist" can compete with "which market did you mean".
+        # Deliberately narrow -- only a code-shaped entity, never a free-text
+        # description, because a name that fails to resolve is usually a
+        # clarify, not a statement that the product is absent.
+        entity_check = None
+        if request.entity_text and any(
+            str(item.get("kind")) in {"listing_key", "item_id"}
+            for item in request.entities if isinstance(item, dict)
+        ):
+            entity_check = self.resolver.classify(
+                request.entity_text, self.resolver.resolve(request.entity_text),
+            )
+        decision = self.gate.decide(request, self.registry, capabilities, entity_check) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
         if (
             decision.action == "allow" and request.intent == "voucher_profile_rank"
             and not self.enable_voucher_profile

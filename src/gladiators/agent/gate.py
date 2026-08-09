@@ -99,6 +99,19 @@ CAPABILITY_MESSAGES: dict[str, dict[str, str]] = {
 }
 
 
+def select_issue(issues: list[GateIssue]) -> GateIssue:
+    """The issue that describes the problem, not the one that fired first.
+
+    §4.5.1. Priority is source-call order, so the gate used to report whichever
+    rule happened to be written earliest. bgk16 (a product code that is not in
+    the data) and bgk14 (a profit column that does not exist) were both told to
+    name a market -- an action that cannot help either one. Ranking unfixable
+    ahead of fixable changes nothing for a request whose issues are all fixable,
+    which is what keeps the boundary and A19 suites stable.
+    """
+    return min(issues, key=lambda item: (item.fixable, item.priority))
+
+
 class ContractDrivenGate:
     """Phase-based gate — ultimate solution §4.5.
 
@@ -115,19 +128,27 @@ class ContractDrivenGate:
     rolling-window or fanout issue" expressible at all.
     """
 
-    def decide(self, request: StructuredRequest, registry: IntentRegistry, capabilities: dict[str, object]) -> GateDecision:
+    def decide(
+        self, request: StructuredRequest, registry: IntentRegistry,
+        capabilities: dict[str, object],
+        entity_check: object | None = None,
+    ) -> GateDecision:
         issues: list[GateIssue] = []
+        # Issues that only matter if the request is refused for some other
+        # reason; see the partial_unsupported block below.
+        deferred: list[GateIssue] = []
         phases: list[int] = []
 
         def add(
             rule_id: str, phase: int, action: str, reason: str,
             category: str, code: str, alternative: str | None = None,
-            refs: tuple[str, ...] = (),
+            refs: tuple[str, ...] = (), fixable: bool = True,
         ) -> None:
             issues.append(GateIssue(
                 rule_id=rule_id, phase=phase, priority=len(issues) + 1,
                 action=action, reason=reason, answerable_alternative=alternative,
                 detail=IssueDetail(category=category, code=code, semantic_refs=refs),
+                fixable=fixable,
             ))
 
         def decide_from(fallback: GateDecision) -> GateDecision:
@@ -137,17 +158,61 @@ class ContractDrivenGate:
                     "issues": (), "selected_issue_id": None,
                     "evaluated_phases": tuple(sorted(set(phases))),
                 })
-            chosen = min(issues, key=lambda item: item.priority)
+            pool = issues + deferred
+            chosen = select_issue(pool)
             return GateDecision(
                 action="abstain" if chosen.action == "block" else chosen.action,
                 rule_id=chosen.rule_id, reason=chosen.reason,
                 answerable_alternative=chosen.answerable_alternative,
-                issues=tuple(issues), selected_issue_id=chosen.rule_id,
+                issues=tuple(pool), selected_issue_id=chosen.rule_id,
                 evaluated_phases=tuple(sorted(set(phases))),
             )
 
         # ---- phase 1: capability / out-of-scope / route --------------------
         phases.append(1)
+        # D3: an identifier the dataset does not contain is a fact about the
+        # data. The existence check used to live in tool_dispatch, which only
+        # runs once the gate has already said allow, so a question that was also
+        # missing a country never reached it and was told to name a market
+        # instead -- advice that cannot make the code exist (bgk16).
+        if entity_check is not None and getattr(entity_check, "state", "") in {
+            "not_found", "invalid_extraction",
+        }:
+            add("A-ENTITY-NOT-FOUND", 1, "abstain",
+                "Không tìm thấy listing nào khớp mã hoặc tên trong dữ liệu hiện có.",
+                "entity", "entity_absent",
+                "Hãy kiểm tra lại mã sản phẩm hoặc nêu tên đầy đủ hơn.",
+                fixable=False)
+        # D2: a clause the system cannot serve must reach the final decision. It
+        # used to be split into partial_unsupported and only printed when the
+        # *other* clause answered; when neither could, the decision described a
+        # different problem entirely (bgk14 asked for profit and was told the
+        # country slot was missing).
+        # Only a *competitor*, never a blocker on its own: when the supported
+        # clause can still be answered, the unsupported part stays a limitation
+        # appended to the answer, which is the existing compound-request
+        # contract. It is promoted into the decision only when something else
+        # already refuses, so it can displace a fixable reason that describes
+        # the wrong problem.
+        for item in request.slots.get("partial_unsupported", ()) or ():
+            if not isinstance(item, dict):
+                continue
+            missing = str(item.get("capability", ""))
+            message = CAPABILITY_MESSAGES.get(missing)
+            # External/reference variables are not a missing column; they are a
+            # routing decision with its own A14-* chain and its own live-search
+            # flag. Letting the generic capability issue displace it would
+            # replace a precise reason with a vaguer one.
+            if not message or missing in {"external", "reference"}:
+                continue
+            deferred.append(GateIssue(
+                rule_id=f"A-MISSING-{missing.upper()}", phase=1, priority=1_000,
+                action="abstain",
+                reason=" ".join((message["missing"], message["coverage"], message["answerable"])),
+                answerable_alternative=message["alternative"],
+                detail=IssueDetail(category="capability", code=f"unsupported_{missing}"),
+                fixable=False,
+            ))
         route = classify_external_need(str(request.slots.get("raw_text", "")))
         if route.rule_id == "A16-CROSS-CURRENCY":
             add(route.rule_id, 1, "clarify", route.reason, "currency", "cross_currency",
@@ -179,7 +244,8 @@ class ContractDrivenGate:
             message = CAPABILITY_MESSAGES[missing]
             add(f"A-MISSING-{missing.upper()}", 1, "abstain",
                 " ".join((message["missing"], message["coverage"], message["answerable"])),
-                "capability", f"unsupported_{missing}", message["alternative"])
+                "capability", f"unsupported_{missing}", message["alternative"],
+                fixable=missing in {"external", "reference"})
             # Terminal capability block: later phases cannot mean anything for a
             # capability the system does not have (§4.5).
             return decide_from(GateDecision(action="allow", rule_id="A-ALLOW", reason=""))

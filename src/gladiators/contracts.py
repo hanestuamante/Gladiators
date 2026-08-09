@@ -72,6 +72,10 @@ class GateIssue(BaseModel):
     reason: str
     answerable_alternative: str | None = None
     detail: IssueDetail
+    # §4.5.1: False when no information the user could supply removes the
+    # obstacle. A missing country is a fact about the question; a product code
+    # that does not exist is a fact about the data, and no rephrasing fixes it.
+    fixable: bool = True
 
 
 class GateDecision(BaseModel):
