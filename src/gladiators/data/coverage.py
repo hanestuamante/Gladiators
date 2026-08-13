@@ -8,6 +8,7 @@ from typing import Literal, TypedDict
 import pandas as pd
 
 from gladiators.domain.catalog import CATALOG, physical_index
+from gladiators.domain.tables import ARTIFACT_NAMES
 
 CoverageStatus = Literal[
     "exposed_as_dimension", "exposed_as_measure", "identifier_only", "provenance_only",
@@ -15,11 +16,9 @@ CoverageStatus = Literal[
     "intentionally_hidden",
 ]
 
-ARTIFACTS = (
-    "products_clean.csv", "shop_info_clean.csv", "category_list_clean.csv",
-    "product_categories_clean.csv", "category_platform_clean.csv",
-    "product_snapshot_metrics.csv", "product_transition_metrics.csv",
-)
+# §E1: danh sách artifact sống ở ``domain.tables``. Trước đây bốn consumer mỗi
+# cái giữ một bản; bốn bản trùng nhau là ngẫu nhiên, không phải bất biến.
+ARTIFACTS = ARTIFACT_NAMES
 
 PROVENANCE_COLUMNS = {"source_file", "source_row", "path_country_code", "path_dataset", "path_shop_id"}
 IDENTIFIER_COLUMNS = {

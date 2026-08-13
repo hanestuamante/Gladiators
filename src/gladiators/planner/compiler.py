@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
+from typing import Callable
 
 import sqlglot
 from sqlglot import exp
 
 from gladiators.domain.catalog import CATALOG, counting_column
 from gladiators.domain.relations import RELATIONS
+from gladiators.domain.tables import VIEW_NAMES
 
 from .query_ir import LogicalQueryPlan, PlanNode, Predicate
 from .validator import validate_plan
@@ -39,32 +41,10 @@ class CompiledQuery:
     rank_limit: int | None = None
 
 
-_VIEW_NAMES = {
-    "products_clean.csv": "products",
-    "shop_info_clean.csv": "shop_info",
-    "category_list_clean.csv": "category_list",
-    "product_categories_clean.csv": "product_categories",
-    "category_platform_clean.csv": "category_platform",
-    "product_snapshot_metrics.csv": "product_snapshot_metrics",
-    "product_transition_metrics.csv": "product_transition_metrics",
-}
-_RIGHT_VIEW = {
-    "belongs_to": "shop_info", "in_platform_category": "category_platform",
-    "in_shop_category": "category_list", "has_sales_metric": "product_snapshot_metrics",
-}
-_INLINE_RELATIONS = {
-    "observed_at", "has_brand", "observed_promotion_id",
-    "observed_structured_voucher", "has_content", "has_display_variation",
-}
-_PHYSICAL_JOIN_KEYS = {
-    "belongs_to": (("country_code", "country_code"), ("shop_id", "shop_id")),
-    "in_platform_category": (("country_code", "country_code"), ("catid_num", "category_id_num")),
-    "in_shop_category": (
-        ("country_code", "country_code"), ("shop_id", "shop_id"),
-        ("category_id_num", "shop_category_id_num"), ("date", "date"),
-    ),
-    "has_sales_metric": (("product_listing_key", "product_listing_key"),),
-}
+# §E1/§E2: tên view và join key KHÔNG còn được khai ở đây. Mọi thứ vật lý đến từ
+# TableRegistry và RelationBinding, nên compiler không thể thi hành một contract
+# khác với contract mà registry/review nhìn thấy.
+_VIEW_NAMES = dict(VIEW_NAMES)
 _BANNED_AST = (exp.Insert, exp.Update, exp.Delete, exp.Create, exp.Drop, exp.Command, exp.Copy)
 _BANNED_FUNCTIONS = {"READ_CSV", "READ_PARQUET", "HTTPFS", "GLOB", "INSTALL", "LOAD"}
 _ALLOWED_FUNCTIONS = {
@@ -123,6 +103,52 @@ def _source_hint(node: PlanNode, nodes: dict[str, PlanNode]) -> str | None:
 
 def _from_input(query: exp.Query, alias: str) -> exp.Select:
     return exp.select("*").from_(query.subquery(alias))
+
+
+def _project_belongs_to(left: str, right: str) -> list[exp.Expression]:
+    return [
+        exp.column("product_listing_key", table=left),
+        exp.column("country_code", table=left),
+        exp.column("shop_id", table=left),
+        exp.column("item_id", table=left),
+        exp.column("date", table=left),
+        exp.alias_(exp.column("shop_name", table=right), "shop_name", quoted=True),
+    ]
+
+
+def _project_platform_category(left: str, right: str) -> list[exp.Expression]:
+    return [
+        exp.Column(this=exp.Star(), table=exp.Identifier(this=left)),
+        exp.alias_(exp.column("display_category_name", table=right), "display_category_name", quoted=True),
+        exp.alias_(exp.column("has_children_bool", table=right), "has_children_bool", quoted=True),
+    ]
+
+
+def _project_shop_category(left: str, right: str) -> list[exp.Expression]:
+    return [
+        exp.Column(this=exp.Star(), table=exp.Identifier(this=left)),
+        exp.alias_(exp.column("display_name", table=right), "display_name", quoted=True),
+        exp.alias_(exp.column("total_num", table=right), "total_num", quoted=True),
+        exp.alias_(exp.column("is_parent_category_bool", table=right), "is_parent_category_bool", quoted=True),
+        exp.alias_(exp.column("is_sub_category_bool", table=right), "is_sub_category_bool", quoted=True),
+    ]
+
+
+def _project_star(left: str, right: str) -> list[exp.Expression]:
+    return [
+        exp.Column(this=exp.Star(), table=exp.Identifier(this=left)),
+        exp.Column(this=exp.Star(), table=exp.Identifier(this=right)),
+    ]
+
+
+# ``RelationBinding.projection_id`` phải resolve tới đúng một entry ở đây; một
+# projection_id không có adapter là compile error, không phải im lặng SELECT *.
+_JOIN_PROJECTIONS: dict[str, Callable[[str, str], list[exp.Expression]]] = {
+    "belongs_to": _project_belongs_to,
+    "in_platform_category": _project_platform_category,
+    "in_shop_category": _project_shop_category,
+    "has_sales_metric": _project_star,
+}
 
 
 def _compile_node(
@@ -217,47 +243,32 @@ def _compile_node(
         return exp.Union(this=inputs[0], expression=inputs[1], distinct=False)
     if node.op == "Join":
         relation = RELATIONS[node.relation]
-        if relation.name in _INLINE_RELATIONS:
+        binding = relation.binding
+        # Không fallback về ``relation.join_keys``: thiếu binding phải là lỗi
+        # compile, vì fallback là đúng cơ chế đã cho key giả sống sót (§E2.3).
+        if binding is None:
+            raise CompilationError(f"Relation {relation.name} chưa có binding vật lý")
+        if binding.mode == "inline":
             return _from_input(inputs[0], f"q_{node.node_id}")
-        right_view = _RIGHT_VIEW.get(relation.name)
-        if right_view is None:
-            raise CompilationError(f"Relation {relation.name} chưa có SQL join adapter")
+        if binding.right_source is None or not binding.join_keys:
+            raise CompilationError(f"Relation {relation.name} khai left_join nhưng thiếu key/right source")
+        right_view = _VIEW_NAMES[binding.right_source.value]
         left_alias, right_alias = "l", "r"
         conditions = [
-            exp.EQ(this=exp.column(left, table=left_alias), expression=exp.column(right, table=right_alias))
-            for left, right in _PHYSICAL_JOIN_KEYS.get(relation.name, relation.join_keys)
+            exp.EQ(this=exp.column(key.left.column, table=left_alias),
+                   expression=exp.column(key.right.column, table=right_alias))
+            for key in binding.join_keys
         ]
         on = conditions[0]
         for condition in conditions[1:]:
             on = exp.and_(on, condition)
-        if relation.name == "belongs_to":
-            selections = [
-                exp.column("product_listing_key", table=left_alias),
-                exp.column("country_code", table=left_alias),
-                exp.column("shop_id", table=left_alias),
-                exp.column("item_id", table=left_alias),
-                exp.column("date", table=left_alias),
-                exp.alias_(exp.column("shop_name", table=right_alias), "shop_name", quoted=True),
-            ]
-        elif relation.name == "in_platform_category":
-            selections = [
-                exp.Column(this=exp.Star(), table=exp.Identifier(this=left_alias)),
-                exp.alias_(exp.column("display_category_name", table=right_alias), "display_category_name", quoted=True),
-                exp.alias_(exp.column("has_children_bool", table=right_alias), "has_children_bool", quoted=True),
-            ]
-        elif relation.name == "in_shop_category":
-            selections = [
-                exp.Column(this=exp.Star(), table=exp.Identifier(this=left_alias)),
-                exp.alias_(exp.column("display_name", table=right_alias), "display_name", quoted=True),
-                exp.alias_(exp.column("total_num", table=right_alias), "total_num", quoted=True),
-                exp.alias_(exp.column("is_parent_category_bool", table=right_alias), "is_parent_category_bool", quoted=True),
-                exp.alias_(exp.column("is_sub_category_bool", table=right_alias), "is_sub_category_bool", quoted=True),
-            ]
-        else:
-            selections = [
-                exp.Column(this=exp.Star(), table=exp.Identifier(this=left_alias)),
-                exp.Column(this=exp.Star(), table=exp.Identifier(this=right_alias)),
-            ]
+        projection = _JOIN_PROJECTIONS.get(binding.projection_id or "")
+        if projection is None:
+            raise CompilationError(
+                f"Relation {relation.name}: projection_id không resolve adapter: "
+                f"{binding.projection_id!r}"
+            )
+        selections = projection(left_alias, right_alias)
         return exp.select(*selections).from_(inputs[0].subquery(left_alias)).join(
             exp.to_table(right_view).as_(right_alias), on=on, join_type="LEFT"
         )

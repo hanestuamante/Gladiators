@@ -6,10 +6,11 @@ Catalog ánh xạ semantic refs sang cột vật lý. Planner chỉ thấy refs;
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 from .metrics import METRICS
+from .tables import PhysicalColumnRef, TableRegistryError, parse_physical
 
 CatalogKind = Literal["entity", "dimension", "measure", "derived_metric", "context"]
 Answerability = Literal[
@@ -59,6 +60,11 @@ class CatalogObject:
     counting_key: str | None = None
     # For a count metric: the entity ref whose instances it counts.
     counts_unit: str | None = None
+    # Bản đã parse của ``physical``, sinh ở ``_build_catalog``. ``physical`` giữ
+    # nguyên một release cho fixture/serializer cũ; writer và compiler mới chỉ
+    # đọc ``physical_bindings`` vì chỉ nó biết artifact nào là artifact nào
+    # (chuỗi "a.b.csv.c" tách sai là một lỗi im lặng).
+    physical_bindings: tuple[PhysicalColumnRef, ...] = ()
 
 
 def _default_analysis_role(kind: CatalogKind, answerability: Answerability) -> AnalysisRole:
@@ -362,6 +368,13 @@ def _build_catalog(objects: list[CatalogObject]) -> dict[str, CatalogObject]:
             if column in physical:
                 raise CatalogError(f"Physical column {column} thuộc cả {physical[column]} và {obj.ref}")
             physical[column] = obj.ref
+        # Parse ngay tại build: một mapping trỏ artifact không tồn tại phải làm
+        # import fail, không đợi tới lúc compile một câu hỏi cụ thể.
+        try:
+            bindings = tuple(parse_physical(column) for column in obj.physical)
+        except TableRegistryError as exc:
+            raise CatalogError(f"{obj.ref}: {exc}") from exc
+        obj = replace(obj, physical_bindings=bindings)
         # A2: a ref that claims it can be grouped by must own a column to group
         # by. Without this the contradiction only surfaced at compile time, as an
         # uncaught CompilationError rather than a decision with a rule_id.

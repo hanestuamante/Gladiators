@@ -10,6 +10,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field
 
 from gladiators.data.coverage import ARTIFACTS
+from gladiators.domain.tables import VIEW_NAMES
 
 from .compiler import CompiledQuery, assert_read_only_sql
 
@@ -69,9 +70,10 @@ class QueryExecutor:
         self.connection.execute("SET enable_external_access = false")
         self.connection.execute("SET autoload_known_extensions = false")
         self.connection.execute("SET allow_community_extensions = false")
+        # View name đến từ TableRegistry, không suy từ tên file: một artifact đổi
+        # tên file mà quên đổi view sẽ tạo view lạ thay vì fail.
         for artifact in ARTIFACTS:
-            view = artifact.removesuffix("_clean.csv").removesuffix(".csv")
-            self.connection.register(view, repository.read(artifact))
+            self.connection.register(VIEW_NAMES[artifact], repository.read(artifact))
         self.connection.execute("SET lock_configuration = true")
 
     def settings(self) -> dict[str, object]:

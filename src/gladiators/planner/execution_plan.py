@@ -60,6 +60,9 @@ class ExecutionContextSnapshot(BaseModel):
     config_hash: str
     topic_gate_version: str
     decomposition_gate_version: str
+    # §E1: hash phủ cả năm registry sau khi binding đã được kiểm chéo. Additive
+    # với default rỗng để fixture cũ vẫn parse; mọi plan mới đều mang nó.
+    binding_hash: str = ""
     execution_context_hash: str = ""
 
     @model_validator(mode="after")

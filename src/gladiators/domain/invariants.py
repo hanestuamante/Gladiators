@@ -16,6 +16,7 @@ against an artifact built under the old rules.
 from __future__ import annotations
 
 import hashlib
+import json
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -60,9 +61,14 @@ _SPECS: tuple[InvariantSpec, ...] = (
         traps=(12,),
     ),
     InvariantSpec(
-        invariant_id="INV-PRICE-SENTINEL-EXCLUDED", version="1.0", severity="hard",
+        # §J1 (quyết định của Data Owner, phương án 1): spec khai một ref trong
+        # khi validator đã chặn cả hai từ lâu. Trap #1/#5 coi original price nhạy
+        # sentinel như sale price, nên spec được bổ sung cho khớp code đang chạy
+        # thay vì bỏ một check đang có hiệu lực.
+        invariant_id="INV-PRICE-SENTINEL-EXCLUDED", version="1.1", severity="hard",
         applies_to=("plan", "execution"),
-        semantic_refs=("measure.price",), operators=("Aggregate", "Rank"),
+        semantic_refs=("measure.price", "measure.price_original"),
+        operators=("Aggregate", "Rank"),
         validator_id="sentinel.price_excluded_before_rank",
         message_key="invariant.price_sentinel_excluded", owner="data-owner",
         traps=(5,),
@@ -153,11 +159,21 @@ def _build(specs: tuple[InvariantSpec, ...]) -> dict[str, InvariantSpec]:
 
 INVARIANTS: dict[str, InvariantSpec] = _build(_SPECS)
 
+def spec_payload(specs: dict[str, InvariantSpec]) -> list[dict[str, object]]:
+    return [
+        spec.model_dump(mode="json")
+        for spec in sorted(specs.values(), key=lambda item: item.invariant_id)
+    ]
+
+
+# Hash cũ chỉ ký ``id@version:severity:validator_id``, nên ``semantic_refs``,
+# ``applies_to``, ``operators``, ``traps``, ``message_key`` và ``owner`` đổi được
+# mà chữ ký không đổi — cache, topic gate và proof pack sẽ coi bộ rule mới là bộ
+# rule cũ. Giờ hash phủ toàn bộ spec. Phần handler (id/version/stage) nằm trong
+# ``bindings.invariant_hash``: nó thuộc về tầng biết cả spec lẫn handler, và đặt
+# ở đây sẽ tạo cycle invariants ↔ invariant_handlers.
 REGISTRY_HASH: str = hashlib.sha256(
-    "|".join(
-        f"{spec.invariant_id}@{spec.version}:{spec.severity}:{spec.validator_id}"
-        for spec in sorted(INVARIANTS.values(), key=lambda item: item.invariant_id)
-    ).encode("utf-8")
+    json.dumps(spec_payload(INVARIANTS), sort_keys=True, ensure_ascii=False).encode("utf-8")
 ).hexdigest()[:16]
 
 

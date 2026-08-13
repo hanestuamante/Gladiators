@@ -5,6 +5,7 @@ import pytest
 
 from gladiators.domain import invariants
 from gladiators.domain.catalog import CATALOG
+from gladiators.domain.invariant_handlers import INVARIANT_HANDLERS
 from gladiators.domain.invariants import (
     INVARIANTS,
     REGISTRY_HASH,
@@ -19,9 +20,12 @@ def test_registry_builds_and_is_hashed():
 
 def test_every_invariant_points_at_a_real_handler_and_message_key():
     for spec in INVARIANTS.values():
-        # A rule whose handler or message is a placeholder is prose wearing a
-        # schema; §3.8 exists to stop deciding anything from prose.
-        assert spec.validator_id and "." in spec.validator_id
+        # §E3: cũ chỉ đòi validator_id "có dấu chấm" — mà mười một ID đều có dấu
+        # chấm và không ID nào được dereference ở runtime. Contract giờ là: ID
+        # phải resolve tới một handler thật, phủ đủ mọi stage nó khai.
+        handler = INVARIANT_HANDLERS.get(spec.validator_id)
+        assert handler is not None, f"{spec.invariant_id} -> {spec.validator_id}"
+        assert set(spec.applies_to) <= handler.stages, spec.invariant_id
         assert spec.message_key.startswith("invariant.")
         assert spec.owner
 
@@ -48,21 +52,57 @@ def test_unknown_semantic_ref_fails_the_build():
         invariants._build((broken,))
 
 
-def test_hash_changes_when_a_rule_changes():
-    # The hash gates caches, topic/decomposition artifacts and the proof pack, so
-    # it must move when severity or handler moves.
-    spec = next(iter(INVARIANTS.values()))
-    changed = spec.model_copy(update={"severity": "warning"})
+@pytest.mark.parametrize("field,value", [
+    ("severity", "warning"),
+    ("semantic_refs", ("dim.country",)),
+    ("applies_to", ("plan",)),
+    ("operators", ("Union",)),
+    ("traps", (99,)),
+    ("message_key", "invariant.something_else"),
+    ("owner", "someone-else"),
+    ("version", "9.9"),
+])
+def test_hash_changes_when_any_semantic_field_changes(field, value):
+    """Hash gate cache, topic/decomposition artifact và proof pack.
+
+    §E3.1: hash cũ chỉ ký ``id@version:severity:validator_id``, nên đổi
+    ``semantic_refs``, ``applies_to``, ``operators``, ``traps``, ``message_key``
+    hay ``owner`` giữ nguyên chữ ký — một bộ rule khác được phục vụ dưới danh
+    nghĩa bộ rule đã ký. Test dùng chính hàm hash của registry thay vì chép lại
+    công thức: một bản sao công thức trong test chỉ chứng minh test khớp test.
+    """
+    spec = INVARIANTS["INV-PRICE-SENTINEL-EXCLUDED"]
+    changed = spec.model_copy(update={field: value})
+    others = [s for s in INVARIANTS.values() if s.invariant_id != spec.invariant_id]
+    mutated = {s.invariant_id: s for s in [changed, *others]}
+
+    baseline = _digest(invariants.spec_payload(INVARIANTS))
+    assert baseline == REGISTRY_HASH
+    assert _digest(invariants.spec_payload(mutated)) != baseline
+
+
+def _digest(payload) -> str:
     import hashlib
+    import json
 
-    def digest(specs):
-        return hashlib.sha256("|".join(
-            f"{s.invariant_id}@{s.version}:{s.severity}:{s.validator_id}"
-            for s in sorted(specs, key=lambda i: i.invariant_id)
-        ).encode()).hexdigest()[:16]
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()[:16]
 
-    assert digest(INVARIANTS.values()) == REGISTRY_HASH
-    assert digest([changed, *[s for s in INVARIANTS.values() if s.invariant_id != spec.invariant_id]]) != REGISTRY_HASH
+
+def test_handler_version_reaches_the_binding_hash():
+    """Đổi CÁCH một rule được thi hành cũng là đổi rule.
+
+    ``invariants.REGISTRY_HASH`` chỉ phủ spec (handler nằm ở module khác, ký ở
+    đó sẽ tạo import cycle). Chữ ký phủ cả hai là ``bindings.invariant_hash``.
+    """
+    from gladiators.domain.bindings import _invariant_payload
+
+    payload = _invariant_payload(INVARIANTS)
+    versions = {entry["id"]: entry["version"] for entry in payload["handlers"]}
+    assert versions, "handler payload rỗng thì handler version không được ký"
+    for spec in INVARIANTS.values():
+        assert spec.validator_id in versions
 
 
 @pytest.mark.parametrize("stage", ["request", "plan", "execution", "evidence", "answer"])

@@ -7,6 +7,12 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from gladiators.domain.catalog import CATALOG
+from gladiators.domain.invariant_handlers import (
+    GOVERNED_DATES,
+    InvariantContext,
+    InvariantViolation,
+    enforce_invariants,
+)
 from gladiators.domain.relations import RELATIONS, RELATION_LEFT_SOURCES
 
 from .query_ir import LogicalQueryPlan, PlanNode
@@ -28,7 +34,10 @@ def plan_rule_id(issues: tuple[PlanIssue, ...] | list[PlanIssue]) -> str:
         if issue.code in RULE_ID_BY_ISSUE:
             return RULE_ID_BY_ISSUE[issue.code]
     return DEFAULT_PLAN_RULE_ID
-ALLOWED_DATES = {"2026-07-01", "2026-07-02", "2026-07-03"}
+# §E3: ba snapshot được quản trị sống ở ``domain.invariant_handlers`` cùng rule
+# thi hành chúng (INV-SNAPSHOT-SCOPE). Giữ một set thứ hai ở đây là cách hai
+# danh sách ngày lệch nhau khi dataset đổi.
+ALLOWED_DATES = frozenset(GOVERNED_DATES)
 
 
 class PlanIssue(BaseModel):
@@ -100,8 +109,8 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
     elif nodes[plan.output_node].expected_schema != plan.requested_output_shape:
         issues.append(PlanIssue(code="schema_invalid", node_id=plan.output_node,
                                 message="Schema output node không khớp requested_output_shape."))
-    if not set(plan.time_scope).issubset(ALLOWED_DATES):
-        issues.append(PlanIssue(code="temporal_mismatch", message="time_scope nằm ngoài 3 snapshot được quản trị."))
+    # time_scope ngoài 3 snapshot: kiểm bởi INV-SNAPSHOT-SCOPE qua dispatcher ở
+    # cuối hàm. Nhánh hard-code cũ bị xoá cùng merge unit để không chấm hai lần.
 
     consumers: dict[str, list[PlanNode]] = defaultdict(list)
     for node in plan.nodes:
@@ -187,44 +196,12 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
                     issues.append(PlanIssue(code="wrong_filter", node_id=node.node_id,
                                             message=f"Aggregation {node.aggregation} không hợp lệ cho {ref}."))
             ancestors = _ancestors(node, nodes)
-            fanout_joins = [x for x in ancestors if x.op == "Join" and x.relation in RELATIONS
-                            and RELATIONS[x.relation].fanout_effect != "none"]
-            dedupes = [x for x in ancestors if x.op == "Dedupe"]
-            if fanout_joins and not dedupes:
-                issues.append(PlanIssue(code="fanout_risk", node_id=node.node_id,
-                                        message="Aggregate sau Join fanout phải đi qua Dedupe."))
             has_single_snapshot = len(plan.time_scope) == 1 or "dim.date" in node.group_by or any(
                 p.ref == "dim.date" and p.op == "eq" for ancestor in ancestors for p in ancestor.predicates
             )
             if not has_single_snapshot:
                 issues.append(PlanIssue(code="temporal_mismatch", node_id=node.node_id,
                                         message="Aggregate cross-sectional phải chọn đúng một snapshot."))
-
-        # Trap #5: sentinel 999999999 is an invalid price, not a legitimate
-        # maximum. Ranking/aggregation over either price measure must prove it
-        # was excluded upstream so correctness does not depend on the planner's
-        # prose or the LLM critic.
-        sensitive_refs = {"measure.price", "measure.price_original"}
-        consumed_refs = set(node.refs)
-        if node.rank_by:
-            consumed_refs.add(node.rank_by)
-        required_sentinel_filters = consumed_refs & sensitive_refs
-        if node.op in {"Aggregate", "Rank"} and required_sentinel_filters:
-            ancestors = _ancestors(node, nodes)
-            for ref in sorted(required_sentinel_filters):
-                excluded = any(
-                    predicate.ref == ref
-                    and predicate.op in {"lt", "lte"}
-                    and isinstance(predicate.value, (int, float))
-                    and float(predicate.value) <= 999_999_999
-                    for ancestor in ancestors
-                    for predicate in ancestor.predicates
-                )
-                if not excluded:
-                    issues.append(PlanIssue(
-                        code="wrong_filter", node_id=node.node_id,
-                        message=f"{ref} phải loại sentinel bằng filter < 999999999 trước {node.op}.",
-                    ))
 
         if node.op == "TemporalCompare" and len(plan.time_scope) < 2:
             issues.append(PlanIssue(code="temporal_mismatch", node_id=node.node_id,
@@ -260,4 +237,31 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
             issues.append(PlanIssue(code="unsupported_claim", node_id=node.node_id,
                                     message="IR v1.0 không hỗ trợ causal/forecast claim."))
 
+    # §E3: hard invariant của stage "plan" chạy qua dispatcher, không còn bản
+    # hard-code song song. Sentinel/dedupe/shelf/currency/snapshot-scope trước
+    # đây được kiểm ở đây bằng set ref riêng — và set đó đã lệch khỏi spec.
+    issues.extend(_issue_from(violation) for violation in enforce_invariants(
+        "plan", InvariantContext(stage="plan", plan=plan)
+    ))
     return PlanValidationResult(valid=not issues, issues=tuple(issues), depth=depth)
+
+
+# Violation typed → ``PlanIssue``. Dispatcher chỉ nói rule nào vỡ; ánh xạ sang
+# code mà planner/critic đã biết đọc thuộc về tầng này.
+_INVARIANT_ISSUE_CODE: dict[str, str] = {
+    "INV-PRICE-SENTINEL-EXCLUDED": "wrong_filter",
+    "INV-DEDUPE-BEFORE-AGGREGATE": "fanout_risk",
+    "INV-SHELF-NOT-PLATFORM-CATEGORY": "wrong_join_path",
+    "INV-CURRENCY-NO-MIX": "unit_mismatch",
+    "INV-SNAPSHOT-SCOPE": "temporal_mismatch",
+}
+
+
+def _issue_from(violation: InvariantViolation) -> PlanIssue:
+    detail = ", ".join(f"{key}={value}" for key, value in sorted(violation.details.items()))
+    return PlanIssue(
+        code=_INVARIANT_ISSUE_CODE.get(violation.invariant_id, "schema_invalid"),
+        node_id=violation.node_id,
+        message=f"{violation.invariant_id}: {violation.message_key}"
+                + (f" ({detail})" if detail else ""),
+    )

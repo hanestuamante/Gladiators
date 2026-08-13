@@ -6,6 +6,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from gladiators.domain.tables import ArtifactName
+
 Op = Literal[
     "Scan", "ResolveValue", "Filter", "Join", "Dedupe", "Aggregate",
     "DeriveMetric", "TemporalCompare", "Rank", "Similarity", "Project", "Union",
@@ -61,10 +63,13 @@ class PlanNode(BaseModel):
     refs: tuple[str, ...] = ()
     predicates: tuple[Predicate, ...] = ()
     relation: str | None = None
+    # §E1: ``ArtifactName`` là StrEnum nên plan JSON cũ (chuỗi tên file) vẫn
+    # parse và vẫn serialize ra đúng chuỗi đó; khác biệt là source giờ phải là
+    # một artifact có trong TableRegistry, không phải một chuỗi trùng hình.
     source: Literal[
-        "products_clean.csv", "shop_info_clean.csv", "category_list_clean.csv",
-        "product_categories_clean.csv", "category_platform_clean.csv",
-        "product_snapshot_metrics.csv", "product_transition_metrics.csv",
+        ArtifactName.PRODUCTS, ArtifactName.SHOP_INFO, ArtifactName.CATEGORY_LIST,
+        ArtifactName.PRODUCT_CATEGORIES, ArtifactName.CATEGORY_PLATFORM,
+        ArtifactName.SNAPSHOT_METRICS, ArtifactName.TRANSITION_METRICS,
     ] | None = None
     aggregation: Aggregation | None = None
     group_by: tuple[str, ...] = ()

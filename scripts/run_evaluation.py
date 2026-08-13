@@ -14,7 +14,13 @@ from pathlib import Path as _Path
 
 sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "src"))
 
-from gladiators.agent.llm import FakeLLMClient, GeminiLLMClient, GroqLLMClient, HuggingFaceLLMClient
+from gladiators.agent.llm import (
+    DeepSeekLLMClient,
+    FakeLLMClient,
+    GeminiLLMClient,
+    GroqLLMClient,
+    HuggingFaceLLMClient,
+)
 from gladiators.agent.verifier import verify_numeric_claims
 from gladiators.agent.workflow import AgentRuntime
 
@@ -141,7 +147,17 @@ def main():
     ap.add_argument("--enable-critic", action="store_true", help="Bật escalation critic; offline dùng deterministic acceptance stub")
     ap.add_argument("--resume", action="store_true", help="Tiếp tục từ checkpoint.json trong output directory")
     args = ap.parse_args(); cases = json.loads(Path(args.suite).read_text(encoding="utf-8"))
-    llm = GeminiLLMClient() if args.provider == "gemini" else HuggingFaceLLMClient() if args.provider == "huggingface" else GroqLLMClient() if args.provider == "groq" else None
+    # `deepseek` nằm trong --provider choices nhưng trước đây không có nhánh nào
+    # dựng client, nên nó rơi vào `else None`: runner chạy 100% offline rồi ghi
+    # report mang nhãn "provider": "deepseek". Một phép đo trông như đã đo mà
+    # không gọi model lần nào là thứ tệ hơn không đo (§5.1 luật 2).
+    _CLIENTS = {
+        "gemini": GeminiLLMClient, "huggingface": HuggingFaceLLMClient,
+        "groq": GroqLLMClient, "deepseek": DeepSeekLLMClient,
+    }
+    llm = _CLIENTS[args.provider]() if args.provider in _CLIENTS else None
+    if args.provider != "offline" and llm is None:
+        raise SystemExit(f"Provider {args.provider} không dựng được client; từ chối chạy offline dưới nhãn đó.")
     critic = llm if llm is not None else FakeLLMClient() if args.enable_critic else None
     runtime = AgentRuntime(
         enable_gate=args.mode != "direct", enable_verifier=args.mode == "full",

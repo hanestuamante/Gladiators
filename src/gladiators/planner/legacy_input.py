@@ -79,17 +79,23 @@ class LegacyPlanningInputFactory:
     def _snapshot(self) -> ExecutionContextSnapshot:
         from ..domain import topics
         from ..domain.alias_index import default_alias_index
-        from ..domain.invariants import REGISTRY_HASH as INVARIANT_HASH
+        from ..domain.bindings import default_binding_snapshot
         from .decomposition_validator import DECOMPOSITION_GATE_VERSION
         from .topic_router import TOPIC_GATE_VERSION
 
+        # §E1.3: catalog_hash và relation_hash trước đây điền bằng
+        # ``topics.REGISTRY_HASH``, tức chữ ký của registry KHÁC. Catalog hoặc
+        # relation đổi mà topic không đổi thì snapshot vẫn khai là cùng một thế
+        # giới ngữ nghĩa — đúng loại lỗi mà snapshot sinh ra để chặn.
+        binding = default_binding_snapshot()
         return ExecutionContextSnapshot(
             dataset_version=self.dataset_version,
-            catalog_hash=topics.REGISTRY_HASH, alias_index_hash=default_alias_index().index_hash,
-            relation_hash=topics.REGISTRY_HASH, invariant_hash=INVARIANT_HASH,
+            catalog_hash=binding.catalog_hash, alias_index_hash=default_alias_index().index_hash,
+            relation_hash=binding.relation_hash, invariant_hash=binding.invariant_hash,
             capability_hash="legacy", topic_hash=topics.REGISTRY_HASH,
             config_hash="legacy", topic_gate_version=TOPIC_GATE_VERSION,
             decomposition_gate_version=DECOMPOSITION_GATE_VERSION,
+            binding_hash=binding.binding_hash,
         )
 
     def _packed(self, context_bundle, routing, snapshot) -> PackedContext:

@@ -20,3 +20,6 @@ graphify-out/
 data/external_cache/
 models/cache/
 data/image-cache/
+
+# Output tạm của các lần chạy eval thăm dò; artifact chính thức nằm ở eval/reports/.
+scratch/

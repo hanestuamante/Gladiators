@@ -3,7 +3,7 @@
 # Topic registry
 
 - topics hash: `c1cf992e1d852a27`
-- invariants hash: `dd15c9001a9f4ac5`
+- invariants hash: `9439b87095d47d42`
 - refs được sở hữu: 86
 
 | id | tên | kind | refs | relations | invariants |
