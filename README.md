@@ -33,6 +33,28 @@ py -3.13 -m venv .venv
 Không cần `PYTHONPATH=src` cho `pytest` và `scripts/run_evaluation.py` (chúng tự
 chèn `src/`). Các script còn lại thì cần — đã ghi rõ trong từng lệnh bên dưới.
 
+### Đã kiểm tái lập trên clone sạch
+
+Không chỉ chạy được trên máy phát triển. Clone mới hoàn toàn từ GitHub
+(`git clone --depth 1 --branch MVP_Dai_V2`), chạy bằng interpreter nằm ngoài
+repo, không dùng file local nào:
+
+| Phép đo | Máy phát triển | Clone sạch |
+| --- | --- | --- |
+| `pytest -q` | 933 passed, 1 skipped | **933 passed, 1 skipped** |
+| `questions` 60×3 | 1.0, `failures={}` | **1.0, `failures={}`** |
+| Phase 6 external | 12/12 | **12/12** |
+| `binding_hash` | `985b40a09229803a` | **`985b40a09229803a`** |
+| Dựng 2 bộ slide | OK | **OK, 20 + 20 slide** |
+
+`data/raw` (82 file) và `data/processed` (10 file) đều **được commit**, nên không
+cần dựng lại pipeline trước khi chạy test hay eval.
+
+**Một hạn chế còn lại:** `streamlit` chưa được khai trong `requirements`, nên
+`src/gladiators/insights/dashboard.py` không chạy được sau khi cài theo hướng dẫn
+trên. Đây là trạng thái đã biết và có chủ đích (xem `CLAUDE.md` §10) — mọi thứ
+khác trong README này chạy được mà không cần nó.
+
 ---
 
 ## 2. Trạng thái đo được
