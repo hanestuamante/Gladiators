@@ -127,8 +127,25 @@ def create_runtime(provider: str | None = None) -> AgentRuntime:
             ),
             WebExtractor(llm), mode=live.mode, license=source.license,
         )
+    # LLM parser mặc định TẮT, kể cả khi đã chọn provider.
+    #
+    # Đo được, không phải phán đoán:
+    #   eval/questions.json 60×3   offline 1.0   ·   deepseek 0.622
+    #   BGK-20                     offline 0,9s  ·   LLM 394,1s (438×)
+    #                              19/20 kết cục giống hệt nhau
+    # Ba nhóm fail của nhánh LLM đều nằm ở khâu parse/plan chứ không ở khâu
+    # sinh câu chữ: mất country (A-CROSS-CURRENCY-SCOPE), macro chạy sai
+    # (A-ALLOW), plan bị chặn (A19-PLAN). Verifier vẫn giữ 1.0 ở cả hai chế độ
+    # nên không số bịa nào lọt — nhưng "không sai số" không bù được việc trả
+    # lời sai câu hỏi.
+    #
+    # Một nhánh đắt hơn 438× và kém chính xác hơn thì không phải tính năng đang
+    # chờ bật, nó là nợ. Bật lại cần W3/W4 của docs/PLAN_LLM_INTENT_PARSING.md
+    # (proposer/validator + chính sách trọng tài) và một phép đo chứng minh
+    # nhánh LLM thắng, không phải hoà. SẼ CẢI THIỆN SAU.
+    llm_parser_enabled = os.getenv("GLADIATORS_ENABLE_LLM_PARSER") == "1"
     return AgentRuntime(
-        llm_client=llm, use_llm_parser=llm is not None,
+        llm_client=llm, use_llm_parser=llm is not None and llm_parser_enabled,
         use_llm_generation=llm is not None,
         external_pipeline=external_pipeline, enable_live_search=live_enabled,
     )

@@ -175,6 +175,7 @@ class AgentRuntime:
         external_pipeline: Any | None = None,
         enable_live_search: bool | None = None,
         enable_voucher_profile: bool | None = None,
+        llm_parser_scope: str = "always",
     ):
         self.repo = ArtifactRepository(data_dir)
         self.registry = default_registry()
@@ -195,6 +196,15 @@ class AgentRuntime:
             self.repo, alternate_planner_client or llm_client, adjudicator_client or llm_client,
         )
         self.use_llm_parser, self.use_llm_generation = use_llm_parser, use_llm_generation
+        # "always"        — gọi P1 rồi để precedence kéo field về deterministic.
+        # "fallback_only" — chỉ gọi P1 khi parser deterministic KHÔNG tìm được
+        #                   đường đi (``open_analytical``). Đo được ở BGK-20:
+        #                   nhánh deterministic đã quyết 19/20 lần, nên với những
+        #                   câu đó lời gọi P1 là 438× thời gian đổi lấy một kết
+        #                   cục bị ghi đè ngay sau đó.
+        if llm_parser_scope not in {"always", "fallback_only"}:
+            raise ValueError(f"llm_parser_scope không hợp lệ: {llm_parser_scope}")
+        self.llm_parser_scope = llm_parser_scope
         self.external_pipeline = external_pipeline
         requested_live = os.getenv("GLADIATORS_ENABLE_LIVE_SEARCH") == "1" if enable_live_search is None else enable_live_search
         # A flag without a wired, bounded pipeline is not a capability.
@@ -224,6 +234,36 @@ class AgentRuntime:
             return True
         return match(request_digest(request), spec).eligible
 
+    def _parser_found_a_path(self, deterministic: StructuredRequest) -> bool:
+        """Parser deterministic có bám được một macro đã chứng nhận không?
+
+        ``open_analytical`` là cách parser nói "không có template nào khớp" —
+        đó chính là chỗ đáng trao quyền cho LLM. Ngược lại, một intent có macro
+        thật nghĩa là đường đi đã xác định và nhãn của P1 không thêm thông tin.
+
+        ``unsupported:*`` và ``external_context`` cố ý KHÔNG tính là "tìm được
+        đường": nhánh unsupported là nơi retry/fallback của provider sống, bỏ
+        lời gọi ở đó là bỏ hành vi chứ không chỉ bỏ chi phí.
+        """
+        intent = deterministic.intent
+        if intent == "open_analytical" or intent.startswith("unsupported:"):
+            return False
+        if intent == "external_context" or deterministic.route_mode in {
+            "external_only", "hybrid",
+        }:
+            return False
+        if self.macros.get(intent) is None:
+            return False
+        # Macro chỉ nhận request thoả contract của nó (§3.5/§3.6). Thiếu slot bắt
+        # buộc thì đây không phải "đường đi đã xác định".
+        spec = self.registry.get(intent)
+        if spec is None:
+            return False
+        return all(
+            getattr(deterministic, slot, None) or deterministic.slots.get(slot)
+            for slot in spec.required_slots
+        )
+
     def _parse(self, user_text: str) -> tuple[StructuredRequest, dict[str, Any]]:
         meta = {"provider": "deterministic", "parse_fallback": False, "parse_attempts": 0}
         if not (self.use_llm_parser and self.llm_client):
@@ -247,6 +287,27 @@ class AgentRuntime:
                 # just its cost.
                 deterministic = self.parser.parse(user_text, self.registry)
                 meta["deterministic_intent"] = deterministic.intent
+                if self.llm_parser_scope == "fallback_only" and self._parser_found_a_path(
+                    deterministic
+                ):
+                    # Parser đã bám được một macro đã chứng nhận, nên bỏ lời gọi
+                    # P1 ở đây.
+                    #
+                    # ĐÂY KHÔNG PHẢI tối ưu chi phí thuần — đo được bằng fake
+                    # client đếm lời gọi: 6/7 câu giữ nguyên kết cục, 1 câu đổi.
+                    # Precedence chỉ backfill country/entities khi LLM để TRỐNG;
+                    # khi LLM trả country SAI thì giá trị sai đó được giữ. Bỏ
+                    # lời gọi ⇒ deterministic giữ country đúng ⇒ kết cục khác.
+                    # Khác biệt đó nhiều khả năng có lợi (khớp nhóm fail
+                    # A-CROSS-CURRENCY-SCOPE đo được ở deepseek 60×3) nhưng chưa
+                    # được chứng minh, nên scope này KHÔNG phải mặc định.
+                    meta.update(
+                        llm_intent=None, merge_winner="deterministic",
+                        merge_reason="deterministic_macro_confident",
+                        parse_adjustments=["deterministic_macro_confident"],
+                        llm_parse_skipped=True,
+                    )
+                    return deterministic, meta
                 if deterministic.route_mode in {"external_only", "hybrid"}:
                     meta.update(
                         llm_intent=None, merge_winner="deterministic",
