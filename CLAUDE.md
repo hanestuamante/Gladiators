@@ -184,13 +184,15 @@ Thứ tự khi mâu thuẫn: **code đang chạy > test/eval thực chạy > tà
 
 | File | Dùng khi |
 | --- | --- |
-| `docs/archive/implementation/2-8.md` | **Vì sao** vòng này chọn như đã chọn, kèm số đo |
-| `docs/archive/implementation/IMPLEMENTATION_HANDOFF_2026-08-01.md` | Trạng thái + danh sách chờ người |
-| `docs/design/ultimate solution.md` | Spec hiện hành đang triển khai |
-| `docs/design/V2_Unified_Architecture.md` | Kiến trúc nền, trục L0–L4 × C1–C4 |
-| `docs/reference/Data_Context_and_Analysis_Notes.md` | Định nghĩa nghiệp vụ từng cột |
-| `docs/archive/implementation/2507.md` | Sáu defect + acceptance A1–A10 |
-| `docs/design/External Data Integration.md` | Chính sách external/live search |
+| `docs/Archibefore2208.md` | **Đặc tả kiến trúc hiện tại** — 9 chặng, 3 lớp kiểm, 11 invariant, mô hình dữ liệu (§14), mã lỗi (§11) |
+| `docs/TCresultbefore2208.md` | Testcase, ground truth, kết quả; mỗi lớp kiểm sinh ra từ ca thật nào |
+| `docs/Backlogbefore2208.md` | Chưa hiện thực, chia theo thứ đang chặn nó |
+| `docs/design/Metadata_Model_And_Binding_Layer.md` | Thiết kế tầng binding metadata ↔ vật lý |
+| `docs/qa/DR TASK 1407.md` | Nguồn của `eval/dr2607.json` — **script parse file này, không được xoá** |
+
+Toàn bộ tài liệu plan/handoff/kiến trúc cũ đã gộp vào ba file `*before2208.md` và
+xoá khỏi `docs/` ở `24efc77`. Bản gốc nằm trong git history; **đừng khôi phục vào
+cây làm việc** — chúng mâu thuẫn với code đang chạy, và đó là lý do bị gộp.
 
 ---
 

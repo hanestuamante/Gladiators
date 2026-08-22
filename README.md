@@ -280,7 +280,7 @@ GLADIATORS_ENABLE_LLM_PARSER=1 GLADIATORS_LLM_PROVIDER=groq PYTHONIOENCODING=utf
 PYTHONPATH=src .venv/Scripts/python.exe -m gladiators.cli "..."
 ```
 
-Muốn bật mặc định thì cần W3/W4 của `docs/PLAN_LLM_INTENT_PARSING.md` và một
+Muốn bật mặc định thì cần W3/W4 (xem `docs/Backlogbefore2208.md` §3.1) và một
 phép đo chứng minh nhánh LLM **thắng**, không phải hoà. Sẽ cải thiện sau.
 
 Cấu hình key (chỉ lưu local, không commit):
@@ -375,12 +375,16 @@ narrative viết tay**.
 | --- | --- |
 | [`CLAUDE.md`](CLAUDE.md) | **Đọc trước khi sửa bất cứ thứ gì** — bất biến + cạm bẫy |
 | [`business-dictionary.md`](business-dictionary.md) | Data contract, 12 công thức metric, guardrails |
-| [`docs/design/ultimate solution.md`](docs/design/ultimate%20solution.md) | Spec hiện hành đang triển khai |
-| [`docs/design/Metadata_Model_And_Binding_Layer.md`](docs/design/Metadata_Model_And_Binding_Layer.md) | Tầng binding metadata ↔ vật lý |
-| [`docs/design/V2_Unified_Architecture.md`](docs/design/V2_Unified_Architecture.md) | Kiến trúc nền L0–L4 × C1–C4 |
-| [`docs/reference/Data_Context_and_Analysis_Notes.md`](docs/reference/Data_Context_and_Analysis_Notes.md) | Định nghĩa nghiệp vụ từng cột |
-| [`docs/qa/BGK_20_ANALYSIS.md`](docs/qa/BGK_20_ANALYSIS.md) | Đánh giá độc lập 20 câu, 6 lớp lỗi |
-| [`docs/CURRENT_ARCHITECTURE_SPEC.md`](docs/CURRENT_ARCHITECTURE_SPEC.md) | Hiện trạng đã qua acceptance |
+| [`docs/Archibefore2208.md`](docs/Archibefore2208.md) | **Đặc tả kiến trúc hiện tại** — 9 chặng, 3 lớp kiểm, mô hình dữ liệu |
+| [`docs/TCresultbefore2208.md`](docs/TCresultbefore2208.md) | Testcase, ground truth, kết quả đo |
+| [`docs/Backlogbefore2208.md`](docs/Backlogbefore2208.md) | Hạng mục chưa hiện thực, chia theo thứ đang chặn nó |
+| [`docs/design/Metadata_Model_And_Binding_Layer.md`](docs/design/Metadata_Model_And_Binding_Layer.md) | Thiết kế tầng binding metadata ↔ vật lý |
+| [`docs/qa/DR TASK 1407.md`](docs/qa/DR%20TASK%201407.md) | Nguồn của `eval/dr2607.json` — **script parse file này** |
+
+> Toàn bộ tài liệu plan/handoff/kiến trúc cũ đã được gộp vào ba file
+> `*before2208.md` và xoá khỏi `docs/` ở commit `24efc77`. Cần bản gốc thì lấy
+> từ git history, đừng khôi phục vào cây làm việc: chúng mâu thuẫn với code
+> đang chạy, và đó là lý do chúng bị gộp.
 
 ---
 

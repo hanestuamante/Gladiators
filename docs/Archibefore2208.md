@@ -939,3 +939,86 @@ from gladiators.planner.compiler import compile_plan
 p = synthesize(DeterministicSemanticParser().parse('Có bao nhiêu shop ở Việt Nam?','vi','vn'),'vn').plan
 print(compile_plan(p).sql)"
 ```
+
+---
+
+## 14. Mô hình dữ liệu chi tiết
+
+Phần này gộp từ `docs/reference/Data_Context_and_Analysis_Notes.md` — kiến thức
+nghiệp vụ về cột, khoá và quan hệ, **không** trùng với `business-dictionary.md`
+(file kia định nghĩa 12 công thức metric; phần này định nghĩa cấu trúc dữ liệu).
+
+### 14.1. Grain và khoá logic từng bảng
+
+| Bảng | Khoá logic |
+| --- | --- |
+| `products_clean` | `country_code + shop_id + item_id + date` |
+| `shop_info_clean` | `country_code + shop_id` — **chỉ một ngày 03/07** |
+| `category_list_clean` | `country_code + shop_id + shop_category_id + date` |
+| `product_categories_clean` | `country_code + shop_id + item_id + category_id + date` |
+| `category_platform_clean` | `path_country_code + category_id` |
+
+Mỗi khoá trên có **0 duplicate-key group** trong bảng tương ứng.
+
+### 14.2. Join được phép — không được rút gọn
+
+```text
+products → shop_info          country_code, shop_id
+products → product_categories country_code, shop_id, item_id, date
+product_categories → category_list
+                              country_code, shop_id, category_id=shop_category_id, date
+products → category_platform  country_code=path_country_code, catid=category_id
+```
+
+> Join `products → shop_info` hiện chỉ là **enrichment latest/static** vì
+> `shop_info` chỉ có một ngày. Nếu sau này có nhiều snapshot, **bắt buộc** đổi
+> sang join theo ngày hoặc as-of join.
+
+### 14.3. Hai hệ category khác nhau — cạm bẫy đặt tên
+
+| Hệ | Field | Ý nghĩa |
+| --- | --- | --- |
+| Shopee platform | `category_platform.category_id`, `products.catid`/`global_catids` | Taxonomy dùng chung trong một thị trường |
+| Shop nội bộ | `category_list.shop_category_id`, `product_categories.category_id` | Kệ do từng shop tự tổ chức |
+
+> **Cấm** join `product_categories.category_id` hoặc
+> `category_list.shop_category_id` với `category_platform.category_id` chỉ vì
+> chúng cùng tên `category_id`. Đây chính là thứ invariant
+> `INV-SHELF-NOT-PLATFORM-CATEGORY` thi hành (§6.3).
+
+### 14.4. Vai trò thật của `catid` và `global_catids`
+
+Kiểm trực tiếp trên 3.341 snapshot:
+
+- `global_catids` không rỗng và parse được ở **3.341/3.341** dòng
+- `catid` bằng **phần tử đầu** của `global_catids` ở 3.341/3.341 dòng
+- Category ứng với `catid` có `parent_category_id = 0` ở 3.341/3.341 dòng
+  ⇒ **`catid` là top-level category, KHÔNG phải category cụ thể nhất**
+- Phần tử **cuối** của `global_catids` có `has_children = False` ở 3.341/3.341
+  ⇒ dùng phần tử cuối khi cần leaf category
+- Độ dài path: 395 snapshot 2 cấp · 2.623 snapshot 3 cấp · 323 snapshot 4 cấp
+
+### 14.5. Referential coverage đã kiểm
+
+| Quan hệ | Kết quả | Hệ quả |
+| --- | ---: | --- |
+| `products.catid` → platform category (có country) | 0 orphan / 3.341 | Coverage đầy đủ |
+| Mọi ID trong `global_catids` → platform category | 0 orphan / 9.951 ref | Path map được đầy đủ |
+| `products` → `shop_info` | 0 orphan / 3.341 | Đầy đủ, nhưng là enrichment static |
+| `product_categories` → `category_list` | 0 orphan / 4.054 | Đầy đủ |
+| `product_categories` → `products` | **5 orphan / 4.054** | **Không được tuyên bố referential integrity tuyệt đối** |
+| Snapshot **không có** dòng `product_categories` | **1.132 / 3.341** | Phải dùng LEFT JOIN nếu cần giữ toàn bộ population |
+
+Năm mapping orphan đều ở VN, shop `289646907`, ngày `2026-07-01`, thuộc ba
+`item_id` khác nhau. **Không tự đoán nguyên nhân** — giữ chúng như data-quality
+exception.
+
+### 14.6. Luật fanout của kệ shop
+
+Một listing có thể thuộc **nhiều** shop category. Phân tích theo từng kệ có thể
+cố ý ghi nhận listing ở nhiều kệ, nhưng **không được cộng các kệ** để suy ra tổng
+shop hay tổng thị trường. Tổng hợp toàn cục phải trở về grain
+`country_code + shop_id + item_id + date`.
+
+Đây là lý do `INV-DEDUPE-BEFORE-AGGREGATE` tồn tại (§6.3): aggregate sau một join
+gây fanout mà không qua `Dedupe` là đếm trùng.
