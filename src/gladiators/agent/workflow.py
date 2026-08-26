@@ -31,6 +31,7 @@ from gladiators.planner.risk import EscalationConfig, score_plan
 from gladiators.planner.critic import PlanCritic
 from .embedding import BGEIndex
 from .entity_resolution import EntityResolver, expected_entity_types
+from .suggestions import nearest_answerable
 from .gate import ContractDrivenGate
 from .parser import MultilingualIntentParser, UNSUPPORTED
 from .tool_dispatch import ToolContext, dispatch
@@ -1373,6 +1374,23 @@ class AgentRuntime:
         response_context = dict(planning_meta.get("contexts", {}))
         if context_meta:
             response_context["generate"] = context_meta
+        # WP-A8: mỗi lời từ chối kèm câu hỏi gần nhất hệ THẬT SỰ trả lời được.
+        # answerable_alternative trước đây là chuỗi viết tay cố định theo rule —
+        # nó không biết câu hỏi vừa rồi hỏi về cái gì. A8-R3: chỉ thay phần gợi
+        # ý, giữ nguyên rule_id và reason.
+        if decision.action != "allow" and not getattr(self, "_in_suggestion_trial", False):
+            self._in_suggestion_trial = True
+            try:
+                hints = nearest_answerable(request, self)
+            except Exception:                        # noqa: BLE001 — gợi ý hỏng không được làm hỏng câu trả lời
+                hints = ()
+            finally:
+                self._in_suggestion_trial = False
+            if hints:
+                decision = decision.model_copy(update={
+                    "answerable_alternative": "Hệ thống trả lời được: " + " · ".join(hints),
+                })
+
         # Verdict shadow phải sống sót qua MỌI nhánh: planning_meta bị gán đè ở
         # nhánh macro và nhánh analytical, nên gộp ở đây, ngay trước khi dựng
         # response. Một thành phần chạy shadow mà verdict biến mất thì nó không
