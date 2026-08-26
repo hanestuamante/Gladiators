@@ -33,6 +33,122 @@ INDEPENDENT_GOLDEN = json.loads(
 def div(a, b): return a / b if b else 0.0
 
 
+# --- WP-B1 · chỉ số dự đoán có chọn lọc -----------------------------------
+# Một hệ được phép nói "không biết" phải được chấm bằng ĐỘ PHỦ và RỦI RO, không
+# phải bằng một tỷ lệ pass duy nhất. Chỉ số từ chối cũ chỉ đếm `abstain`, nên
+# `clarify` -- 32% bộ đề chính, 52,5% của DR-40 -- nằm ngoài toàn bộ phép đo:
+# một câu TRẢ LỜI ĐƯỢC mà hệ trả `clarify` không rơi vào chỉ số nào cả.
+
+REFUSAL_ACTIONS = frozenset({"clarify", "abstain"})
+
+
+def majority_action(rows: list[dict], case_id: str) -> str | None:
+    """Hành động thắng đa số qua các lần chạy, không phải hành động của run 1.
+
+    Lấy `run == 1` là lấy một mẫu, không phải lấy hành vi. Hoà thì trả hành động
+    của lần chạy sớm nhất trong nhóm hoà — có tie-break tất định còn hơn để thứ
+    tự dict quyết định.
+    """
+    actions = [r.get("action") for r in rows if r["id"] == case_id and r.get("action")]
+    if not actions:
+        return None
+    counts = Counter(actions)
+    best = max(counts.values())
+    for action in actions:                       # thứ tự xuất hiện = tie-break
+        if counts[action] == best:
+            return action
+    return None
+
+
+def action_stability_rate(rows: list[dict]) -> float:
+    """Tỷ lệ case cho cùng một `action` ở MỌI lần chạy.
+
+    Một hệ không ổn định về `action` là một hệ mà mọi chỉ số khác đều mất nghĩa,
+    nên con số này phải đứng cạnh chúng chứ không nằm trong phần phụ lục.
+    """
+    by_case: dict[str, set] = {}
+    for row in rows:
+        if row.get("action"):
+            by_case.setdefault(row["id"], set()).add(row["action"])
+    return div(sum(len(v) == 1 for v in by_case.values()), len(by_case))
+
+
+def _answerable(case: dict) -> bool | None:
+    """§B1.2. Khai tường minh thắng luật suy diễn. ``None`` = CHƯA GÁN NHÃN.
+
+    Luật suy diễn đúng THEO ĐỊNH NGHĨA với bộ tự viết, vì chúng được viết cùng
+    lúc với bộ luật -- và chính vì thế `over_refusal_rate` trên bộ tự viết LUÔN
+    bằng 0. Con số đó chỉ có nghĩa trên bộ đề độc lập (WP-B3).
+
+    DR-40 cố ý để `expected_action = null` ở 19/40 case (nhóm "từ chối là đúng"
+    chưa có oracle người duyệt). ``None`` nghĩa là CHƯA BIẾT, không phải "không
+    trả lời được" -- gộp chúng vào nhóm không-answerable sẽ bịa ra 19 nhãn.
+    """
+    if "answerable" in case:
+        return bool(case["answerable"])
+    expected = case.get("expected_action")
+    return None if expected is None else expected == "allow"
+
+
+def selective_metrics(cases: list[dict], rows: list[dict]) -> dict[str, float]:
+    labelled = {c["id"]: _answerable(c) for c in cases if _answerable(c) is not None}
+    answerable = {cid for cid, flag in labelled.items() if flag}
+    unanswerable = {cid for cid, flag in labelled.items() if not flag}
+    unlabelled = len(cases) - len(labelled)
+
+    answered, refused, correct = set(), set(), set()
+    unscored_answered: set[str] = set()
+    for case in cases:
+        cid = case["id"]
+        action = majority_action(rows, cid)
+        if action in REFUSAL_ACTIONS:
+            refused.add(cid)
+            continue
+        if action != "allow":
+            continue
+        allow_rows = [r for r in rows if r["id"] == cid and r.get("action") == "allow"]
+        # `allow` mà không có evidence thì chưa trả lời được gì.
+        if not any(r.get("evidence_count", 0) for r in allow_rows):
+            continue
+        answered.add(cid)
+        scored = [r for r in allow_rows if r.get("passed") is not None]
+        if scored and all(r["passed"] for r in scored):
+            correct.add(cid)
+        elif not scored:
+            unscored_answered.add(cid)   # không biết đúng/sai, không được tính là sai
+
+    def rate(numerator: int, denominator: int) -> float | None:
+        """``None`` khi mẫu số rỗng — KHÔNG phải 0.0.
+
+        `CLAUDE.md` §3.1: điền 0 làm "không đo được" trông giống hệt "đo được và
+        bằng 0". Một suite không có case answerable (`questions_a19`,
+        `questions_ambiguity`) mà báo `coverage = 0.0` sẽ đọc thành "hệ không
+        phủ được gì", trong khi sự thật là không có gì để phủ.
+        """
+        return numerator / denominator if denominator else None
+
+    # Mọi chỉ số chỉ tính trên case CÓ NHÃN. Để case chưa gán nhãn nằm trong mẫu
+    # số của `refusal_precision` làm con số đó tụt mà không có nghĩa gì: 19 case
+    # DR-40 bị từ chối nhưng chưa ai nói chúng đáng lẽ trả lời được hay không.
+    answered &= labelled.keys()
+    refused &= labelled.keys()
+    correct &= labelled.keys()
+    unscored_answered &= labelled.keys()
+
+    return {
+        "selective_unlabelled_cases": unlabelled,
+        "coverage": rate(len(answered & answerable), len(answerable)),
+        # Chỉ chấm rủi ro trên câu đã trả lời VÀ chấm được đúng/sai. Gộp câu
+        # chưa chấm được vào tử số là biến "chưa biết" thành "sai".
+        "risk": rate(len(answered - correct - unscored_answered),
+                     len(answered - unscored_answered)),
+        "over_refusal_rate": rate(len(refused & answerable), len(answerable)),
+        "over_answer_rate": rate(len(answered & unanswerable), len(unanswerable)),
+        "refusal_precision": rate(len(refused & unanswerable), len(refused)),
+        "refusal_recall": rate(len(refused & unanswerable), len(unanswerable)),
+    }
+
+
 def expected_plan(runtime, intent: str) -> list[str]:
     spec = runtime.registry.get(intent)
     return list(spec.tool_plan) if spec else []
@@ -126,7 +242,37 @@ def citation_metrics(response) -> tuple[float, float]:
 
 def run_case(case, runtime):
     response = runtime.run(case["question"])
-    intent_action = response.request.intent == case["expected_intent"] and response.gate.action == case["expected_action"]
+    # DR-40 dùng schema khác (`legacy_expected_intent`, `expected_action` nullable
+    # ở 19/40 case chưa có oracle người duyệt). Trước đây `case["expected_intent"]`
+    # ném KeyError, bị nuốt thành `passed: false`, và harness in ra
+    # `end_to_end_accuracy = 0.0` -- một con số TRÔNG NHƯ phép đo trong khi thật
+    # ra là 120/120 row lỗi đọc suite. Đúng bẫy `CLAUDE.md` §5.1 luật 2.
+    #
+    # Case không đủ nhãn thì KHÔNG chấm, chứ không chấm trượt.
+    expected_intent = case.get("expected_intent") or case.get("legacy_expected_intent")
+    expected_action = case.get("expected_action")
+    if expected_action is None:
+        return response, {
+            "scoreable": False, "passed": None,
+            "unscoreable_reason": "expected_action chưa gán nhãn",
+        }
+    if expected_intent is None:
+        # Suite kiểu DR-40: có `expected_action` + `allowed_rule_ids` nhưng KHÔNG
+        # có nhãn intent. Chấm theo hành động và mã rule -- đó là hợp đồng mà
+        # suite này thật sự khai. Bỏ qua nó vì thiếu một nhãn KHÁC là vứt đi 21
+        # case đo được.
+        allowed = case.get("allowed_rule_ids") or []
+        forbidden = case.get("forbidden_rule_ids") or []
+        rule_id = response.gate.rule_id
+        action_ok = response.gate.action == expected_action
+        rule_ok = (rule_id in allowed if allowed else True) and rule_id not in forbidden
+        return response, {
+            "scoreable": True, "scoring_mode": "action_rule_only",
+            "intent_action": action_ok, "gate_rule": rule_ok,
+            "passed": action_ok and rule_ok,
+        }
+    case = {**case, "expected_intent": expected_intent}
+    intent_action = response.request.intent == expected_intent and response.gate.action == expected_action
     gate_rule = not case.get("expected_rule") or response.gate.rule_id == case["expected_rule"]
     entity = not case.get("expected_listing_key") or response.resolved_listing_key == case["expected_listing_key"]
     trajectory = trajectory_correct(case, response, runtime)
@@ -137,7 +283,7 @@ def run_case(case, runtime):
     mutation_detected = runtime.enable_verifier and not mutation["passed"]
     llm_path = runtime.llm_client is None or (not response.llm.get("parse_fallback") and not response.llm.get("generation", {}).get("fallback"))
     passed = all((intent_action, gate_rule, entity, trajectory, evidence, citation_recall == 1.0, citation_precision == 1.0, verifier, mutation_detected, llm_path))
-    return response, {"intent_action": intent_action, "gate_rule": gate_rule, "entity": entity, "trajectory": trajectory, "evidence": evidence, "citation_recall": citation_recall, "citation_precision": citation_precision, "verifier": verifier, "mutation_detected": mutation_detected, "llm_path": llm_path, "passed": passed}
+    return response, {"scoreable": True, "intent_action": intent_action, "gate_rule": gate_rule, "entity": entity, "trajectory": trajectory, "evidence": evidence, "citation_recall": citation_recall, "citation_precision": citation_precision, "verifier": verifier, "mutation_detected": mutation_detected, "llm_path": llm_path, "passed": passed}
 
 
 def main():
@@ -184,6 +330,7 @@ def main():
                     "escalation_mode": response.planning.get("escalation_mode"),
                     "parse_fallback": bool(response.llm.get("parse_fallback")),
                     "generation_fallback": bool(response.llm.get("generation", {}).get("fallback")),
+                    "evidence_count": len(response.evidence),
                     **checks,
                 }
             except Exception as exc:
@@ -216,9 +363,13 @@ def main():
     complexity_rows = [row for row in rows if row.get("expected_complexity_level") and row.get("complexity_level")]
     a19_rows = [row for row in rows if str(row.get("gate_rule_id", "")).startswith("A19")]
     expected_a19_rows = [row for row in rows if any(case["id"] == row["id"] and case.get("expected_rule", "").startswith("A19") for case in cases)]
+    # Row không chấm được không được lẫn vào mẫu số của accuracy: chia cho
+    # chúng là biến "chưa đo" thành "đo được và trượt".
+    scoreable_rows = [r for r in rows if r.get("scoreable") is not False and "error" not in r]
     metrics = {
         "mode": args.mode, "provider": args.provider, "cases": len(cases), "completed_cases": len({r["id"] for r in rows}), "runs": args.runs, "stop_reason": stop_reason,
-        "end_to_end_accuracy": div(sum(r["passed"] for r in rows), len(rows)), "pass_pow_runs": div(sum(c.get("pass_all", False) for c in cases), len(cases)),
+        "end_to_end_accuracy": (sum(bool(r["passed"]) for r in scoreable_rows) / len(scoreable_rows)) if scoreable_rows else None, "pass_pow_runs": div(sum(c.get("pass_all", False) for c in cases), len(cases)),
+        "unscoreable_rows": len(rows) - len(scoreable_rows),
         "trajectory_accuracy": div(sum(r.get("trajectory", False) for r in rows), len(rows)), "evidence_accuracy": div(sum(r.get("evidence", False) for r in rows), len(rows)),
         "citation_recall": div(sum(r.get("citation_recall", 0) for r in rows), len(rows)), "citation_precision": div(sum(r.get("citation_precision", 0) for r in rows), len(rows)),
         "verifier_pass_rate": div(sum(r.get("verifier", False) for r in rows), len(rows)), "verifier_mutation_detection": div(sum(r.get("mutation_detected", False) for r in rows), len(rows)),
@@ -232,6 +383,16 @@ def main():
         "complexity_classification_accuracy": div(sum(r["complexity_level"] == r["expected_complexity_level"] for r in complexity_rows), len(complexity_rows)) if complexity_rows else None,
         "escalation_rate": div(sum(r.get("escalation_mode") in {"critic", "nversion"} for r in rows), len(rows)),
         "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)),
+        # WP-B1: cặp abstention_* ở trên chỉ đếm `abstain` nên mù hoàn toàn
+        # với `clarify`. Giữ chúng để so chuỗi thời gian (B1-R1), thêm sáu
+        # chỉ số dưới đây để đo đúng thứ hệ đang làm.
+        **selective_metrics(cases, rows),
+        "action_stability_rate": action_stability_rate(rows),
+        "selective_metrics_caveat": (
+            "over_refusal_rate tren bo tu viet LUON bang 0 vi nhan answerable "
+            "duoc suy ra tu expected_action (Spec2308 B1.2). Chi so nay chi co "
+            "nghia tren bo de doc lap (WP-B3)."
+        ),
         "failures": Counter(r["id"] for r in rows if not r["passed"]),
     }
     if runtime.llm_client and hasattr(runtime.llm_client, "telemetry"):
