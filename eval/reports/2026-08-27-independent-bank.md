@@ -87,3 +87,23 @@ PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe scripts/build_question_bank.py
 .venv/Scripts/python.exe scripts/run_evaluation.py \
   --suite eval/independent/answerable_manual.json --runs 1 --provider offline
 ```
+
+---
+
+## 6. Phát hiện kèm theo: topic router yếu hẳn trên cách diễn đạt từ dữ liệu
+
+Đo riêng hai corpus bằng cùng một `TopicRouter`:
+
+| Corpus | Số câu | `topic_scoped` | `core_only` |
+| --- | ---: | ---: | ---: |
+| Suite viết tay (199 câu) | 199 | **69,3%** | 11,6% |
+| Bộ đề sinh từ dữ liệu | 44 | **34,1%** | **61,4%** |
+
+Router route được **một nửa** tỷ lệ so với corpus viết tay, và 61,4% câu rơi về
+`core_only` — tức nó **không thu hẹp được** lát cắt ngữ nghĩa.
+
+Đây là cùng một hiện tượng với con số ở §1, nhìn từ một tầng khác: từ vựng và
+cách diễn đạt của bộ luật hẹp hơn từ vựng của dữ liệu. Nó cũng là lý do
+`eval/independent/` được tách khỏi corpus đo topic gate: ngưỡng `topic_scoped`
+được hiệu chỉnh trên suite viết tay, nên trộn hai corpus lại sẽ làm một ngưỡng
+đo lẫn hai thứ khác nhau — và làm mất chính con số đối chiếu ở bảng trên.

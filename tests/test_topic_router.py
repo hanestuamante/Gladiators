@@ -48,7 +48,15 @@ def corpus() -> tuple[str, ...]:
             for value in node:
                 walk(value)
 
+    # `eval/independent/` giữ ORACLE và đáp án, không phải corpus câu hỏi để đo
+    # routing — ngưỡng topic_scoped được hiệu chỉnh trên các suite viết tay. Đo riêng
+    # cho thấy khác biệt là thật chứ không phải nhiễu: corpus cũ route được 69,3%,
+    # bộ đề sinh từ dữ liệu chỉ 34,1% (61,4% rơi về core_only). Con số đó được ghi ở
+    # eval/reports/2026-08-27-independent-bank.md thay vì bị trộn vào một ngưỡng
+    # không dành cho nó.
     for path in glob.glob("eval/**/*.json", recursive=True):
+        if "independent" in path.replace("\\", "/").split("/"):
+            continue
         try:
             with open(path, encoding="utf-8") as handle:
                 walk(json.load(handle))
