@@ -107,3 +107,28 @@ cách diễn đạt của bộ luật hẹp hơn từ vựng của dữ liệu. 
 `eval/independent/` được tách khỏi corpus đo topic gate: ngưỡng `topic_scoped`
 được hiệu chỉnh trên suite viết tay, nên trộn hai corpus lại sẽ làm một ngưỡng
 đo lẫn hai thứ khác nhau — và làm mất chính con số đối chiếu ở bảng trên.
+
+---
+
+## 7. Đo lại sau khi sửa lỗi mà chính bộ đề này tìm ra
+
+Bộ đề bắt được một `wrong_value` thật: *"Có bao nhiêu listing đã hết hàng tại
+Việt Nam ngày 03/07?"* trả **668** trong khi đáp án là **0** — `is_sold_out` là
+`False` trên toàn bộ dữ liệu, và điều kiện bị bỏ âm thầm vì đường template không
+diễn đạt được nó (xem commit `12c4c9d`).
+
+Sau khi sửa:
+
+| Chỉ số | Trước | Sau |
+| --- | ---: | ---: |
+| `coverage` | 0.579 | **0.526** |
+| `over_refusal_rate` | 0.421 | **0.474** |
+| `risk` | 0.0 | **0.0** |
+| `over_answer_rate` | 0.0 | **0.0** |
+
+**Con số xấu đi, và đó là hướng đúng.** Một câu trả lời **sai** đã trở thành một
+lời **từ chối**. `coverage` giảm vì phép đo trước đó tính câu 668 là "đã trả lời"
+— nó có trả lời, chỉ là trả lời sai.
+
+Đây chính là lý do `risk` phải đứng cạnh `coverage`: tối ưu riêng `coverage` sẽ
+thưởng cho việc đoán bừa. Cặp chỉ số này khiến điều đó không xảy ra được.
