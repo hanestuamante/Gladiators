@@ -30,6 +30,7 @@ import re
 from dataclasses import dataclass
 
 from gladiators.domain.catalog import CATALOG
+from gladiators.domain.qualifiers import QUALIFIERS
 from gladiators.domain.relations import RELATIONS
 
 from .query_ir import LogicalQueryPlan, OutputField, PlanNode, Predicate
@@ -66,11 +67,21 @@ _TYPE_BY_CATALOG_TYPE = {
 # through to templates or the planner; a false accept would be a wrong number.
 _ITEM_ID = re.compile(r"\d{8,}")
 
-_UNBOUND_QUALIFIER_MARKERS = (
+# WP-A4.4: marker của điều kiện SINH TỪ registry, không giữ bản thứ hai ở đây.
+# Marker của một điều kiện đã bind được sẽ tự rời khỏi guard khi registry đổi —
+# trước đây phải nhớ sửa hai chỗ, và hai danh sách thì sẽ lệch nhau.
+_QUALIFIER_MARKER_REF: dict[str, str] = {
+    surface: spec.ref
+    for spec in QUALIFIERS
+    for surface in spec.surfaces + spec.negations
+}
+# Marker CHƯA có ref nào bind được. Chúng ở lại nguyên trong phần literal dư —
+# đó chính là lý do guard vẫn phải tồn tại sau WP-A4.
+_LITERAL_QUALIFIER_MARKERS = (
     "khong", "chua", "chi rieng", "rieng", "ngoai tru", "tru",
-    "official", "chinh hang", "verified", "da xac minh",
-    "nghi ban", "vacation", "sold out", "het hang",
+    "verified", "sold out", "het hang",
 )
+_UNBOUND_QUALIFIER_MARKERS = tuple(_QUALIFIER_MARKER_REF) + _LITERAL_QUALIFIER_MARKERS
 
 
 class SynthesisError(ValueError):
@@ -81,6 +92,16 @@ def _has_unbound_qualifier(request: AnalyticalRequest) -> bool:
     """True when the question restricts something the request never bound."""
     text = f" {request.normalized_question} "
     bound = {predicate.field_ref for predicate in request.filters}
+
+    # §A4.4: khớp một điều kiện thì XOÁ span đó khỏi văn bản còn lại. Không xoá
+    # thì marker phủ định trần ("khong") vẫn bắn cho câu "shop KHÔNG CHÍNH HÃNG"
+    # — dù mệnh đề phủ định đó đã trở thành predicate hẳn hoi. Guard sẽ chặn một
+    # câu mà chính nó vừa xác nhận là bind được.
+    # Dài trước: xoá "chinh hang" trước "khong chinh hang" sẽ để lại "khong"
+    # trần, và marker phủ định chung đó lại bắn cho đúng câu vừa bind được.
+    for surface in sorted(_QUALIFIER_MARKER_REF, key=len, reverse=True):
+        if _QUALIFIER_MARKER_REF[surface] in bound and surface in text:
+            text = text.replace(surface, " ")
 
     # A question naming a specific listing/shop id is asking about that row. The
     # grammar has no way to bind an id, so synthesising would answer about the
@@ -95,11 +116,10 @@ def _has_unbound_qualifier(request: AnalyticalRequest) -> bool:
     for marker in _UNBOUND_QUALIFIER_MARKERS:
         if f" {marker} " not in text and not text.rstrip().endswith(f" {marker}"):
             continue
-        # An "official" question is fine once the parser actually bound the
-        # official-shop dimension as a filter.
-        if marker in {"official", "chinh hang"} and "dim.shop_official" in bound:
-            continue
-        if marker in {"nghi ban", "vacation"} and "dim.shop_vacation" in bound:
+        # Guard vẫn MỘT CHIỀU: một điều kiện chỉ ngừng chặn khi nó THẬT SỰ đã
+        # trở thành predicate. Không có đường nào để điều kiện chưa bind lọt qua.
+        ref = _QUALIFIER_MARKER_REF.get(marker)
+        if ref is not None and ref in bound:
             continue
         return True
     return False

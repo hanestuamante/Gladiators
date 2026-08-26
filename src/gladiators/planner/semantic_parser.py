@@ -14,6 +14,7 @@ from gladiators.domain.alias_index import (
     default_alias_index,
 )
 from gladiators.domain.catalog import CATALOG, CatalogObject
+from gladiators.domain.qualifiers import match as qualifier_match
 
 # Wordings that make the noun beside them the thing being counted rather than a
 # key to group by.
@@ -234,6 +235,23 @@ class DeterministicSemanticParser:
             filters.append(AnalyticalPredicate(field_ref="dim.country", op="eq", value_binding=country))
         if len(dates) == 1:
             filters.append(AnalyticalPredicate(field_ref="dim.date", op="eq", value_binding=dates[0]))
+        # WP-A4.4: điều kiện boolean đã có cột vật lý thì bind thành predicate.
+        # Trước đây parse chỉ sinh predicate cho country và date, nên mọi câu có
+        # điều kiện đều làm synthesize() trả None — kể cả điều kiện hệ thừa sức
+        # lọc. Phủ định được xét trước trong `qualifier_match`.
+        qualifier_refs: set[str] = set()
+        for spec, value, _surface in qualifier_match(normalized):
+            filters.append(AnalyticalPredicate(
+                field_ref=spec.ref, op="eq", value_binding=value,
+            ))
+            qualifier_refs.add(spec.ref)
+        # Một ref đã thành điều kiện lọc thì KHÔNG còn là thứ được đo. "Bao nhiêu
+        # listing CÓ VOUCHER" đo số listing; "có voucher" là điều kiện. Để nó ở
+        # cả hai chỗ làm request khai hai measure cho một câu hỏi một measure, và
+        # synthesizer từ chối vì đúng lý do sai.
+        if qualifier_refs:
+            measures = [item for item in measures if item.ref not in qualifier_refs]
+            dimensions = [item for item in dimensions if item.ref not in qualifier_refs]
 
         descending = any(term in normalized for term in ("cao nhat", "nhieu nhat", "lon nhat", "highest", "tertinggi", "top"))
         ascending = any(term in normalized for term in ("thap nhat", "it nhat", "lowest", "terendah"))
