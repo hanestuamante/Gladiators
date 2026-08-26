@@ -230,6 +230,90 @@ def _claim_binding_gaps(
     return gaps
 
 
+
+def _caveat_clauses(caveat: str) -> list[str]:
+    """Mệnh đề dùng được của một caveat đã khai.
+
+    Bỏ mệnh đề có chữ số: chúng không bao giờ được phép xuất hiện trong câu trả
+    lời, nên đòi chúng là đòi một điều bất khả. Bỏ mệnh đề quá ngắn: một cụm ba
+    chữ khớp ngẫu nhiên thì phép kiểm không còn nghĩa.
+    """
+    parts = re.split(r"[—;(),]", caveat or "")
+    return [
+        clause for clause in (part.strip() for part in parts)
+        if len(clause.split()) >= 4 and not any(char.isdigit() for char in clause)
+    ]
+
+
+def _lineage_gaps(
+    text: str, evidence: list[Evidence], claims: tuple[ResponseClaim, ...],
+) -> list[dict[str, object]]:
+    """WP-A9 — chỉ số DẪN XUẤT phải kèm evidence tổ tiên, hoặc caveat đã khai.
+
+    ``MetricGraph`` biết ``derived.estimated_recent_revenue`` dựng trên những gì.
+    Verifier trước đây chỉ hỏi "số này có evidence không", không hỏi "cái nó dựng
+    TRÊN có không" — nên một số dẫn xuất được trình bày y hệt một số đo trực tiếp.
+
+    Hoặc đưa đủ evidence tổ tiên, hoặc nói rõ đây là số dẫn xuất kèm đúng caveat
+    đã khai ở ``MetricSpec.caveats``. Không có đường thứ ba.
+    """
+    from gladiators.domain.metrics import METRICS, build_metric_graph
+
+    graph = build_metric_graph(METRICS)
+    by_id = {item.evidence_id: item for item in evidence}
+    # A9-R3: tier ngoài đã có A20-TIER / A21-PROV lo.
+    present = {
+        item.metric for item in evidence if item.source_tier == "btc_dataset"
+    }
+    gaps: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for claim in claims:
+        item = by_id.get(claim.evidence_id)
+        if item is None or item.source_tier != "btc_dataset":
+            continue
+        metric = item.metric
+        if metric in seen or metric not in graph.specs:
+            continue
+        seen.add(metric)
+        ancestors = graph.ancestors(metric)
+        if not ancestors:
+            continue
+        # Cờ boolean (`unit == "bool"`) là VỊ TỪ mà chỉ số dẫn xuất tính trên,
+        # không phải một đại lượng được hiển thị. Đòi một dòng Evidence cho
+        # `has_structured_voucher` cạnh `voucher_rate` là đòi bằng chứng cho
+        # một thứ không ai đọc. Phân biệt này lấy từ metadata ĐÃ KHAI, không
+        # phải từ khoá tự nghĩ (A9-R2).
+        missing = [
+            name for name in ancestors
+            if name not in present
+            and graph.specs[name].unit != "bool"
+        ]
+        if not missing:
+            continue
+        # A9-R2: đối chiếu theo caveat text ĐÃ KHAI, không bằng từ khoá tự nghĩ.
+        #
+        # So nguyên văn cả chuỗi thì quá giòn: caveat của `similarity_score` là
+        # "'tương tự' theo thành phần điểm — không khẳng định cùng mẫu (không có
+        # nhãn same-product)", còn câu trả lời viết "không khẳng định cùng mẫu
+        # hoặc cùng SKU" — cùng nội dung, khác cách ghép câu. Và nhiều caveat
+        # mang CHỮ SỐ ("1580/1580 dòng True..."), mà một câu trả lời chứa số
+        # không có evidence sẽ bị chính verifier này chấm là số bịa (§3.1).
+        #
+        # Nên khớp theo MỆNH ĐỀ của caveat đã khai: vẫn là text đã khai, chỉ bỏ
+        # phần không thể xuất hiện hợp lệ.
+        if any(
+            clause in text
+            for _, caveat in graph.effective_caveats(metric)
+            for clause in _caveat_clauses(caveat)
+        ):
+            continue
+        gaps.append({
+            "kind": "lineage", "metric": metric,
+            "missing_ancestors": sorted(missing),
+        })
+    return gaps
+
+
 def verify_numeric_claims(
     text: str, evidence: list[Evidence], tolerance: float | None = None,
     *, claims: tuple[ResponseClaim, ...] = (), require_claims: bool = False,
@@ -314,9 +398,11 @@ def verify_numeric_claims(
     claim_binding_gaps = _claim_binding_gaps(
         text, evidence, claims, require_claims=require_claims,
     )
+    lineage_gaps = _lineage_gaps(text, evidence, claims)
     passed = (
         not unsupported and not unknown_citations and not tier_mixing
         and not provenance_gaps and not source_label_gaps and not claim_binding_gaps
+        and not lineage_gaps
     )
     return {
         "passed": passed,
@@ -328,5 +414,6 @@ def verify_numeric_claims(
         "provenance_gaps": provenance_gaps,
         "source_label_gaps": source_label_gaps,
         "claim_binding_gaps": claim_binding_gaps,
+        "lineage_gaps": lineage_gaps,
         "coverage": 1.0 if not claimed else (len(claimed) - len(unsupported)) / len(claimed),
     }

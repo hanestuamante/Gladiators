@@ -196,3 +196,78 @@ def test_pending_metric_is_not_silently_enabled():
     spec = METRICS["voucher_profile_score"]
     assert "pending_decision" in spec.tags
     assert spec.definition_constraints == ()
+
+
+# --- WP-A9 · lineage gap ở verifier ---------------------------------------
+
+def test_lineage_gap_fires_when_a_derived_number_has_no_ancestor_evidence():
+    """Số dẫn xuất trình bày như số đo trực tiếp phải bị chặn.
+
+    Gieo lỗi: claim trỏ `median_estimated_recent_revenue` mà không có evidence
+    cho `estimated_recent_revenue` — tổ tiên metric của nó — và câu trả lời
+    không mang caveat đã khai.
+
+    Chọn metric này vì `estimated_recent_revenue` dựng thẳng từ CỘT, không từ
+    metric nào, nên `ancestors()` của nó rỗng và nó không gieo lỗi được.
+    """
+    from gladiators.agent.verifier import _lineage_gaps
+    from gladiators.contracts import Evidence, ResponseClaim
+    from gladiators.external.contracts import SourceLocator
+
+    evidence = [Evidence(
+        evidence_id="ev:t:0001", source_tier="btc_dataset",
+        metric="median_estimated_recent_revenue", value=1234.0, unit="local_currency",
+        source_locator=SourceLocator(kind="internal", value="product_snapshot_metrics.csv#k"),
+        dataset_version="v",
+    )]
+    claims = (ResponseClaim(
+        claim_id="cl:t:0001", text="1234", claim_type="money", value=1234.0,
+        evidence_id="ev:t:0001", evidence_path="value",
+    ),)
+    gaps = _lineage_gaps("Doanh thu là 1234.", evidence, claims)
+    assert gaps and gaps[0]["kind"] == "lineage"
+    assert gaps[0]["metric"] == "median_estimated_recent_revenue"
+
+
+def test_declared_caveat_in_the_answer_satisfies_the_lineage_rule():
+    """Hoặc đủ evidence tổ tiên, hoặc nói rõ đây là số dẫn xuất. Không có đường thứ ba."""
+    from gladiators.agent.verifier import _lineage_gaps
+    from gladiators.contracts import Evidence, ResponseClaim
+    from gladiators.domain.metrics import METRICS
+    from gladiators.external.contracts import SourceLocator
+
+    caveat = METRICS["median_estimated_recent_revenue"].caveats[0]
+    evidence = [Evidence(
+        evidence_id="ev:t:0001", source_tier="btc_dataset",
+        metric="median_estimated_recent_revenue", value=1234.0, unit="local_currency",
+        source_locator=SourceLocator(kind="internal", value="product_snapshot_metrics.csv#k"),
+        dataset_version="v",
+    )]
+    claims = (ResponseClaim(
+        claim_id="cl:t:0001", text="1234", claim_type="money", value=1234.0,
+        evidence_id="ev:t:0001", evidence_path="value",
+    ),)
+    assert _lineage_gaps(f"Doanh thu là 1234. {caveat}", evidence, claims) == []
+
+
+def test_boolean_flag_ancestor_is_not_required_as_evidence():
+    """`has_structured_voucher` là VỊ TỪ, không phải đại lượng hiển thị.
+
+    Đòi một dòng Evidence cho nó cạnh `voucher_rate` là đòi bằng chứng cho một
+    thứ không ai đọc. Phân biệt lấy từ `unit == "bool"` đã khai.
+    """
+    from gladiators.agent.verifier import _lineage_gaps
+    from gladiators.contracts import Evidence, ResponseClaim
+    from gladiators.external.contracts import SourceLocator
+
+    evidence = [Evidence(
+        evidence_id="ev:t:0001", source_tier="btc_dataset",
+        metric="voucher_rate", value=0.9, unit="share_0_1",
+        source_locator=SourceLocator(kind="internal", value="product_snapshot_metrics.csv#k"),
+        dataset_version="v",
+    )]
+    claims = (ResponseClaim(
+        claim_id="cl:t:0001", text="0.9", claim_type="percent", value=0.9,
+        evidence_id="ev:t:0001", evidence_path="value",
+    ),)
+    assert _lineage_gaps("Tỷ lệ là 0.9.", evidence, claims) == []
