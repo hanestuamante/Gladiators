@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 import math
 
 from gladiators.contracts import Evidence
@@ -17,10 +18,25 @@ from .similarity import (
 OPEN_RESULT_ROW_LIMIT = 10
 
 
+class _CachedExecution:
+    """Kết quả dựng lại từ cache, đúng những trường phần sau đọc tới.
+
+    Không tái dùng object ``ExecutionResult`` thật: nó mang postcondition đã chạy
+    trên MỘT lượt thực thi, và mang chúng sang lượt khác là báo cáo một phép kiểm
+    chưa từng chạy cho lượt này.
+    """
+
+    frame: Any
+    rank_tie_at_cut: bool
+    postconditions: tuple
+    rank_limit: int | None
+
+
 class AnalyticsTools:
     """Deterministic analytics. LLMs never calculate values in this class."""
 
     def __init__(self, repository, resolver, evidence_id: Callable[[], str]):
+        self.last_plan_cache: dict[str, Any] = {}
         self.repo, self.resolver, self.evidence_id = repository, resolver, evidence_id
 
     def sales_decline(self, listing_key: str) -> list[Evidence]:
@@ -389,17 +405,52 @@ class AnalyticsTools:
 
     def execute_analytical_plan(self, plan) -> list[Evidence]:
         from gladiators.planner.compiler import compile_plan
-        from gladiators.planner.executor import QueryExecutor
+        from gladiators.planner.executor import ExecutionResult, QueryExecutor
         from gladiators.domain.catalog import CATALOG
 
+        from gladiators.planner.plan_cache import PLAN_RESULT_CACHE, CachedResult
+
         compiled = compile_plan(plan)
-        executor = QueryExecutor(self.repo)
-        try:
-            result = executor.execute(compiled)
-        finally:
-            executor.close()
-        parts = plan.plan_id.split(":")
         dataset_version = self.repo.dataset_version
+        # A6.2: tra cache SAU compile và TRƯỚC execute. Khoá là plan_hash — mã
+        # kế hoạch ĐÃ QUA VALIDATOR — cộng dataset_version, nên trúng cache không
+        # bao giờ đổi tính đúng đắn: cùng một plan trên cùng một dataset chỉ có
+        # đúng một kết quả.
+        cached = PLAN_RESULT_CACHE.get(compiled.plan_hash, dataset_version)
+        if cached is not None:
+            # Dựng lại chính ExecutionResult chứ không một bản thế thân: một
+            # object thiếu trường mà phần sau đọc tới sẽ hỏng ở một chỗ cách xa
+            # nguyên nhân, và nó chỉ hỏng trên đúng đường CÓ cache — tức đường ít
+            # được kiểm nhất.
+            #
+            # postconditions để RỖNG có chủ đích: chúng là kết quả của MỘT lượt
+            # thực thi, và mang chúng sang lượt khác là báo cáo một phép kiểm chưa
+            # từng chạy cho lượt này.
+            result = ExecutionResult(
+                frame=cached.frame, plan_hash=compiled.plan_hash, explain="cached",
+                row_count=cached.row_count, postconditions=(),
+                rank_tie_at_cut=cached.rank_tie_at_cut,
+            )
+        else:
+            executor = QueryExecutor(self.repo)
+            try:
+                result = executor.execute(compiled)
+            finally:
+                executor.close()
+            # A6-R2: chỉ frame, không Evidence. Evidence mang evidence_id gắn với
+            # trace_id và nó bất biến — tái dùng một Evidence cũ là gắn câu trả
+            # lời này vào trace của câu khác.
+            PLAN_RESULT_CACHE.put(compiled.plan_hash, dataset_version, CachedResult(
+                frame=result.frame, row_count=int(len(result.frame)),
+                rank_tie_at_cut=bool(result.rank_tie_at_cut),
+            ))
+        self.last_plan_cache = {
+            "hit": cached is not None,
+            "plan_hash": compiled.plan_hash,
+            "dataset_version": dataset_version,
+            **PLAN_RESULT_CACHE.stats(),
+        }
+        parts = plan.plan_id.split(":")
         output_node = next(node for node in plan.nodes if node.node_id == plan.output_node)
         execution_attrs = {
             "expected_field_count": len(plan.requested_output_shape),

@@ -46,6 +46,12 @@ from .parser import MultilingualIntentParser, UNSUPPORTED
 from .tool_dispatch import ToolContext, dispatch
 from .trace import TraceStore
 from .verifier import verify_numeric_claims
+from .budget import (
+    MAX_LLM_CALLS_CRITICAL,
+    P95_BUDGET_SECONDS,
+    StageTimer,
+    within_budget,
+)
 from .wording import check_wording
 from .wording_repair import quotable_spans, strict_answer
 from .alignment import (
@@ -903,7 +909,9 @@ class AgentRuntime:
             seq += 1
             return f"ev:{trace_id}:{seq:04d}"
 
-        request, llm_meta = self._parse(user_text)
+        timer = StageTimer()
+        with timer.stage("parse"):
+            request, llm_meta = self._parse(user_text)
         digest = request_digest(request)
         capabilities = {
             **self.repo.capability_profile(),
@@ -930,10 +938,12 @@ class AgentRuntime:
             str(item.get("kind")) in {"listing_key", "item_id"}
             for item in request.entities if isinstance(item, dict)
         ):
-            entity_check = self.resolver.classify(
-                request.entity_text, self.resolver.resolve(request.entity_text),
-            )
-        decision = self.gate.decide(request, self.registry, capabilities, entity_check) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
+            with timer.stage("entity"):
+                entity_check = self.resolver.classify(
+                    request.entity_text, self.resolver.resolve(request.entity_text),
+                )
+        with timer.stage("gate"):
+            decision = self.gate.decide(request, self.registry, capabilities, entity_check) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
         if (
             decision.action == "allow" and request.intent == "voucher_profile_rank"
             and not self.enable_voucher_profile
@@ -1009,7 +1019,8 @@ class AgentRuntime:
                 ), {"outcome": "blocked"}, f"Nguồn ngoài không khả dụng ({type(exc).__name__})"
 
         if decision.action == "allow" and request.intent == "external_context":
-            evidence, call, external_meta, external_reason = execute_external()
+            with timer.stage("route"):
+                evidence, call, external_meta, external_reason = execute_external()
             calls.append(call)
             planning_meta = {"mode": "external_context", **external_meta}
             if not evidence:
@@ -1025,6 +1036,7 @@ class AgentRuntime:
             spec = self.registry.get(request.intent)
             macro = self.macros.get(spec.macro_name) if spec and spec.macro_name else None
             logical_plan = None
+            timer.enter("plan")
             if request.intent in {"analytical_query", "open_analytical"}:
                 try:
                     analytical_kind = request.slots.get("analytical_kind", "")
@@ -1281,8 +1293,10 @@ class AgentRuntime:
                         ),
                     )
                     tool_plan = ()
+            timer.leave("plan")
             ctx = ToolContext(request=request, tools=tools, resolver=self.resolver, logical_plan=logical_plan)
-            dispatch(tool_plan, ctx)
+            with timer.stage("execute"):
+                dispatch(tool_plan, ctx)
             evidence, resolved_key = ctx.evidence, ctx.resolved_listing_key
             calls.extend(ctx.calls)
             partial = request.slots.get("partial_unsupported")
@@ -1423,9 +1437,11 @@ class AgentRuntime:
                     "external": {"outcome": "disabled", "rule_id": "A14-LIVE"},
                 }
 
-        answer, claims, generation_meta = self._generate(
-            decision, request, evidence, llm_meta, planning_meta,
-        )
+        with timer.stage("generate"):
+            answer, claims, generation_meta = self._generate(
+                decision, request, evidence, llm_meta, planning_meta,
+            )
+        timer.enter("verify")
         verification = verify_numeric_claims(
             answer, evidence, claims=claims,
             require_claims=decision.action == "allow" and bool(evidence),
@@ -1456,6 +1472,8 @@ class AgentRuntime:
             ]
         question_alignment = check_question_alignment(digest, answer, evidence)
         verification["question_alignment"] = question_alignment.as_dict()
+        timer.leave("verify")
+        timer.enter("gate_out")
         final_verification_failed = bool(
             self.enable_verifier
             and decision.action == "allow"
@@ -1585,6 +1603,25 @@ class AgentRuntime:
             planning_meta.setdefault("connectivity", connectivity)
         if value_probe.get("missing"):
             planning_meta.setdefault("value_probe", value_probe)
+        plan_cache = getattr(tools, "last_plan_cache", None)
+        if plan_cache:
+            planning_meta.setdefault("plan_cache", plan_cache)
+        timer.leave("gate_out")
+        # A6.1: đếm lần gọi LLM TUẦN TỰ trên đường tới hạn, không đếm tổng lần
+        # gọi. Hai nhánh chạy song song tính là MỘT bước — đây là chỉ số cần tối
+        # ưu, không phải số giây, vì số giây phụ thuộc provider còn số bước thì
+        # phụ thuộc kiến trúc.
+        planning_meta["timing"] = timer.as_dict()
+        planning_meta["llm_calls_critical"] = int(llm_meta.get("parse_attempts") or 0) + (
+            1 if planning_meta.get("mode") == "llm_semantic_plan" else 0
+        ) + (1 if generation_meta.get("provider") not in {None, "deterministic"} else 0)
+        planning_meta["budget"] = {
+            "p95_seconds": P95_BUDGET_SECONDS,
+            "max_llm_calls_critical": MAX_LLM_CALLS_CRITICAL,
+            "within": within_budget(
+                planning_meta["timing"], planning_meta["llm_calls_critical"],
+            ),
+        }
         if planning_seed_entity_types:
             planning_meta.setdefault("entity_type_constraint", planning_seed_entity_types)
         response = AgentResponse(trace_id=trace_id, request=request, gate=decision, answer=answer, evidence=evidence, claims=claims, tool_calls=calls, resolved_listing_key=resolved_key, verification=verification, llm=llm_meta, planning=planning_meta, context=response_context, degraded=final_verification_failed or not verification["passed"])
