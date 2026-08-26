@@ -82,31 +82,59 @@ def test_grouping_question_does_not_become_a_filter(question):
     assert "dim.shopee_verified" not in _filters(question)
 
 
-# --- điều kiện CHƯA bind được vẫn phải chặn synthesizer --------------------
+# --- điều kiện xuyên bảng: lọc SAU join, không bao giờ trả số chưa lọc -----
 
-@pytest.mark.parametrize("question", [
-    "Có bao nhiêu listing của shop official tại VN?",
-    "Có bao nhiêu listing của shop nghỉ bán tại VN?",
-    "Có bao nhiêu listing có voucher tại VN?",
+@pytest.mark.parametrize("question,relation", [
+    ("Có bao nhiêu listing của shop official tại VN?", "belongs_to"),
+    ("Có bao nhiêu listing của shop nghỉ bán tại VN?", "belongs_to"),
+    # "có voucher" KHÔNG cần cạnh nào: B1 chọn base phủ được nhiều ref nhất, và
+    # cờ voucher sống ngay trên product_snapshot_metrics.csv. Kế hoạch không
+    # join là kế hoạch đúng ở đây — đo được: 577, khớp oracle.
+    ("Có bao nhiêu listing có voucher tại VN?", None),
 ])
-def test_unbindable_qualifier_still_makes_the_synthesizer_decline(question):
-    """Ba điều kiện này nằm ở bảng khác, cần join mà grammar đặt sai chỗ.
+def test_cross_table_qualifier_filters_after_the_join(question, relation):
+    """WP-A1 mở khoá ba điều kiện mà WP-A4 phải chặn.
 
-    Bind chúng làm bộ lọc rơi âm thầm: câu official trả 668 thay vì 465. Guard
-    một chiều — chưa bind được thì vẫn từ chối.
+    A4 chặn chúng vì predicate bị đặt vào subquery quét `products` còn cột thật
+    nằm ở bảng khác join sau — bộ lọc rơi âm thầm và câu official trả 668 thay
+    vì 465. A1.4 tách predicate phía phải sang node `nf2` chạy SAU join, nên
+    điều kiện thật sự lọc.
     """
-    request = _request(question)
-    assert synthesize(request, "vn") is None
+    result = synthesize(_request(question), "vn")
+    assert result is not None, "điều kiện xuyên bảng phải lập được kế hoạch"
+    if relation is None:
+        assert result.relations == ()
+        return
+    assert relation in result.relations
+    ops = [node.op for node in result.plan.nodes]
+    assert ops.index("Join") < ops.index("Filter", ops.index("Join")), (
+        "predicate phía phải phải nằm SAU Join"
+    )
 
 
-def test_bindable_flag_matches_the_scan_table():
+def test_official_shop_count_is_never_the_unfiltered_total():
+    """Điều P0 probe thật sự bảo vệ: không thay 465 bằng 668.
+
+    Với critic tắt, plan có join bị chặn fail-closed; với critic bật, nó trả
+    đúng 465. Không đường nào trả về tổng chưa lọc.
+    """
+    from gladiators.runtime_factory import create_runtime
+
+    response = create_runtime("offline").run(
+        "Có bao nhiêu listing của shop official tại VN?",
+    )
+    assert 668 not in [item.value for item in response.evidence]
+
+
+def test_bindable_ref_is_reachable_by_exactly_one_edge():
+    """Sau A1, điều kiện bind được khi cột nằm trên bảng gốc HOẶC có cạnh mang về."""
     from gladiators.domain.qualifiers import _BASE_SCAN_ARTIFACT
+    from gladiators.domain.relations import ENTITY_BY_RIGHT_SOURCE
 
     for spec in QUALIFIERS:
-        on_base = all(
-            col.startswith(f"{_BASE_SCAN_ARTIFACT}.") for col in CATALOG[spec.ref].physical
-        )
-        assert spec.bindable == on_base, (
-            f"{spec.qualifier_id}: bindable={spec.bindable} nhưng cột "
-            f"{'nằm trên' if on_base else 'nằm ngoài'} {_BASE_SCAN_ARTIFACT}"
-        )
+        if not spec.bindable:
+            continue
+        sources = {col.rpartition(".")[0] for col in CATALOG[spec.ref].physical}
+        assert _BASE_SCAN_ARTIFACT in sources or any(
+            src in ENTITY_BY_RIGHT_SOURCE for src in sources
+        ), f"{spec.qualifier_id}: không có đường nào mang cột về"

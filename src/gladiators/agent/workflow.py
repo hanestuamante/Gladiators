@@ -981,6 +981,10 @@ class AgentRuntime:
                         )
                         if synthesized is not None:
                             analytical_kind = f"synthesized:{analytical_kind}"
+                            # A1: đường quan hệ mà plan đã đi. Một plan hai nan
+                            # hoa nhìn từ ngoài giống hệt một plan không join,
+                            # nên nó phải hiện trong trace.
+                            synthesis_relations = getattr(result, "relations", ())
                     complexity_level = (
                         classify_complexity(analytical_request)
                         if request.intent == "open_analytical"
@@ -992,7 +996,12 @@ class AgentRuntime:
                             enable_critic=self.enable_critic, enable_nversion=self.enable_nversion,
                         ),
                     )
+                    relation_edges = tuple(locals().get("synthesis_relations") or ())
                     planning_meta = {
+                        "relation_path": {
+                            "edges": list(relation_edges),
+                            "edge_count": len(relation_edges),
+                        },
                         "mode": planner_result.mode if planner_result
                         else "deterministic_synthesis" if str(logical_plan.plan_id).startswith("synth:")
                         else "deterministic_template",

@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .catalog import CATALOG
+from .relations import ENTITY_BY_RIGHT_SOURCE
 
 
 class QualifierRegistryError(ValueError):
@@ -43,17 +44,20 @@ QUALIFIERS: tuple[QualifierSpec, ...] = (
         "shop_official", "dim.shop_official",
         ("chinh hang", "official", "official shop", "shop chinh hang"),
         ("khong chinh hang",),
-    ),  # shop_info — cần join, chưa bind (WP-A1)
+        bindable=True,      # A1: nF2 lọc SAU join belongs_to
+    ),
     QualifierSpec(
         "shop_vacation", "dim.shop_vacation",
         ("nghi ban", "vacation"),
         ("khong nghi ban",),
-    ),  # shop_info — cần join, chưa bind (WP-A1)
+        bindable=True,      # A1: nF2 lọc SAU join belongs_to
+    ),
     QualifierSpec(
         "has_voucher", "derived.has_structured_voucher",
         ("co voucher", "co ma giam gia"),
         ("khong co voucher", "khong voucher"),
-    ),  # snapshot_metrics — cần join, chưa bind (WP-A1)
+        bindable=True,      # A1: nF2 lọc SAU join has_sales_metric
+    ),
     QualifierSpec(
         "shopee_verified", "dim.shopee_verified",
         ("da xac minh", "shopee verified"),
@@ -117,11 +121,19 @@ def _bindable_matches_physical(spec: QualifierSpec) -> bool:
 
 
 QUALIFIERS = _validate(QUALIFIERS)
+# A1.4 đã tách predicate phía phải sang node `nf2` chạy SAU join, nên cột nằm
+# ngoài bảng gốc không còn bị đặt sai subquery. Điều kiện để bind giờ là: ref
+# phải tới được từ tâm ProductListing bằng đúng một cạnh.
 for _spec in QUALIFIERS:
-    if _spec.bindable and not _bindable_matches_physical(_spec):
+    if not _spec.bindable:
+        continue
+    _sources = {c.rpartition(".")[0] for c in CATALOG[_spec.ref].physical}
+    if _BASE_SCAN_ARTIFACT in _sources:
+        continue
+    if not any(src in ENTITY_BY_RIGHT_SOURCE for src in _sources):
         raise QualifierRegistryError(
             f"{_spec.qualifier_id}: khai bindable nhưng cột nằm ngoài "
-            f"{_BASE_SCAN_ARTIFACT}; predicate sẽ bị đặt sai subquery và lọc hụt"
+            f"{_BASE_SCAN_ARTIFACT} và không có cạnh quan hệ nào mang nó về"
         )
 
 # Mọi marker mà registry này bind được. `synthesizer` sinh guard từ đây thay vì

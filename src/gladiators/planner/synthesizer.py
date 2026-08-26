@@ -16,7 +16,7 @@ Release grammar (§5)::
     × country mandatory
     × optional date
     × ≤2 allowed predicates
-    × 0..1 certified relation
+    × 0..N certified relation (A1.4, tối đa RELATION_EDGE_BUDGET)
 
 Anything outside the grammar returns ``None`` so the caller can fall through to
 the decomposer or ``A-CAPABILITY-MISS``.  The grammar is never widened to make a
@@ -31,6 +31,11 @@ from dataclasses import dataclass
 
 from gladiators.domain.catalog import CATALOG
 from gladiators.domain.qualifiers import QUALIFIERS
+from gladiators.domain.relations import (
+    ENTITY_BY_RIGHT_SOURCE,
+    RELATION_LEFT_SOURCES,
+    find_path,
+)
 from gladiators.domain.relations import RELATIONS
 
 from .query_ir import LogicalQueryPlan, OutputField, PlanNode, Predicate
@@ -131,7 +136,9 @@ class SynthesisResult:
     grammar_path: str
     aggregation: str | None
     dimensions: tuple[str, ...]
-    relation: str | None
+    # A1.4: một plan có thể đi nhiều nan hoa; giữ tên số ít sẽ buộc caller
+    # đoán xem cạnh nào là 'cái' quan hệ.
+    relations: tuple[str, ...]
 
 
 def _sources_of(ref: str) -> set[str]:
@@ -139,6 +146,78 @@ def _sources_of(ref: str) -> set[str]:
     if obj is None or not obj.physical:
         return set()
     return {column.split(".csv")[0] + ".csv" for column in obj.physical}
+
+# --- A1.4 · RelationPlanner -------------------------------------------------
+# Đồ thị quan hệ là HÌNH SAO: mọi cạnh toả ra từ tâm ProductListing. Bài toán vì
+# thế không phải tìm đường dài, mà là hợp nhất nhiều nan hoa và khử trùng lặp
+# đúng cách. Toàn bộ thuật toán deterministic, không cần LLM.
+RELATION_EDGE_BUDGET = 3
+
+
+@dataclass(frozen=True)
+class _RelationPlan:
+    source: str
+    edges: tuple[str, ...]                     # tên quan hệ, đã sắp theo B5
+    refs_by_edge: dict[str, tuple[str, ...]]   # ref mà mỗi cạnh mang về
+
+
+def _plan_relations(
+    needed: set[str], dimensions: tuple[str, ...], dates: tuple[str, ...],
+) -> _RelationPlan | None:
+    """B1–B5. ``None`` nghĩa là ngoài grammar — không nới để một câu vừa vặn."""
+    # B1 · base phủ được nhiều ref nhất; hoà thì giữ thứ tự khai báo.
+    def covered(candidate: str) -> int:
+        return sum(1 for ref in needed if candidate in (_sources_of(ref) or {candidate}))
+
+    source = max(_BASE_SOURCES, key=covered)
+    for scope_ref in ("dim.country", "dim.date"):
+        sources = _sources_of(scope_ref)
+        if sources and source not in sources:
+            return None
+
+    # B2 · gom ref còn thiếu theo artifact
+    remote: dict[str, list[str]] = {}
+    for ref in sorted(needed):
+        sources = _sources_of(ref)
+        if not sources or source in sources:
+            continue
+        artifact = sorted(sources)[0]
+        remote.setdefault(artifact, []).append(ref)
+    if not remote:
+        return _RelationPlan(source, (), {})
+
+    # B3 · mỗi artifact đúng một cạnh từ tâm
+    chosen: dict[str, tuple[str, ...]] = {}
+    for artifact, refs in remote.items():
+        entity = ENTITY_BY_RIGHT_SOURCE.get(artifact)
+        if entity is None:
+            return None
+        path = find_path("ProductListing", entity)
+        if path is None or len(path) != 1:
+            # Hình sao: mọi đường hợp lệ dài đúng 1. Dài hơn nghĩa là registry
+            # đã đổi hình, và việc đó cần review chứ không cần code đoán.
+            return None
+        spec = path[0]
+        if source not in RELATION_LEFT_SOURCES.get(spec.name, ()):
+            return None
+        chosen[spec.name] = tuple(refs)
+
+    # B4 · ngân sách và tính hợp lệ thời gian
+    if len(chosen) > RELATION_EDGE_BUDGET:
+        return None
+    for name in chosen:
+        spec = RELATIONS[name]
+        if spec.temporal_validity == "static_latest_only" and (
+            len(dates) > 1 or "dim.date" in dimensions
+        ):
+            return None
+
+    # B5 · thứ tự xác định, không phụ thuộc thứ tự dict
+    order = tuple(sorted(
+        chosen, key=lambda name: (RELATIONS[name].path_cost, RELATIONS[name].risk, name),
+    ))
+    return _RelationPlan(source, order, {name: chosen[name] for name in order})
+
 
 
 def _field(ref: str, name: str | None = None) -> OutputField:
@@ -231,30 +310,11 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     needed = {measure_ref, *dimensions, *(p.field_ref for p in extra)}
     if counted_unit:
         needed.discard(measure_ref)  # counted, not scanned
-    source = next(
-        (
-            candidate for candidate in _BASE_SOURCES
-            if all(not _sources_of(ref) or candidate in _sources_of(ref) for ref in needed)
-        ),
-        None,
-    )
-    relation: str | None = None
-    if source is None:
-        # One certified relation is allowed: listing → shop.
-        shop_side = {ref for ref in needed if _sources_of(ref) == {"shop_info_clean.csv"}}
-        rest = needed - shop_side
-        source = next(
-            (
-                candidate for candidate in _BASE_SOURCES
-                if all(not _sources_of(ref) or candidate in _sources_of(ref) for ref in rest)
-            ),
-            None,
-        )
-        if source is None or not shop_side:
-            return None
-        relation = _SHOP_RELATION
-        if relation not in RELATIONS:
-            return None
+    plan_edges = _plan_relations(needed, dimensions, (date,))
+    if plan_edges is None:
+        return None
+    source = plan_edges.source
+    relations = plan_edges.edges
 
     ranking = request.ranking
     if ranking and ranking.order_by != measure_ref:
@@ -274,20 +334,30 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
         + (["dim.product_name"] if (not dimensions and ranking) else [])
         + ([counted_unit] if counted_unit else [])
     ))
-    scan_refs = tuple(ref for ref in scan_refs if not relation or _sources_of(ref) != {"shop_info_clean.csv"})
+    remote_refs = {ref for refs in plan_edges.refs_by_edge.values() for ref in refs}
+    scan_refs = tuple(ref for ref in scan_refs if ref not in remote_refs)
 
     predicates = [
         Predicate(ref="dim.country", op="eq", parameter="country", value=country),
         Predicate(ref="dim.date", op="eq", parameter="date", value=date),
     ]
+    # A1.4 · nF2: không thể lọc theo `dim.shop_official` TRƯỚC khi join sang
+    # shop_info. Tách predicate làm hai nhóm là bắt buộc, không phải tối ưu —
+    # đặt nhầm nhóm làm bộ lọc rơi âm thầm và trả về toàn bộ thị trường.
+    remote_predicates: list[Predicate] = []
     for index, item in enumerate(extra):
         obj = CATALOG.get(item.field_ref)
         if obj is None or item.op not in obj.allowed_filters:
             return None  # a predicate the catalog forbids is out of grammar
-        predicates.append(Predicate(
+        predicate = Predicate(
             ref=item.field_ref, op=item.op,
             parameter=f"p{index}", value=item.value_binding,
-        ))
+        )
+        sources = _sources_of(item.field_ref)
+        if sources and plan_edges.source not in sources:
+            remote_predicates.append(predicate)
+        else:
+            predicates.append(predicate)
     if measure_ref == "measure.price":
         # §4.8: never rank or aggregate a price without dropping the sentinel.
         predicates.append(Predicate(
@@ -307,14 +377,42 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
         ),
     ]
     cursor = "n2"
-    if relation:
+    for index, name in enumerate(relations):
+        spec = RELATIONS[name]
+        node_id = "n3" if index == 0 else f"n3_{index + 1}"
         nodes.append(PlanNode(
-            node_id="n3", op="Join", inputs=(cursor,), relation=relation,
-            refs=tuple(ref for ref in (*dimensions,) if _sources_of(ref) == {"shop_info_clean.csv"}),
+            node_id=node_id, op="Join", inputs=(cursor,), relation=name,
+            refs=plan_edges.refs_by_edge[name],
             input_grain="listing_snapshot", output_grain="listing_snapshot",
             expected_schema=output, expected_cardinality="<=3341",
         ))
-        cursor = "n3"
+        cursor = node_id
+
+    # Dedupe khi bất kỳ cạnh nào nhân bản dòng trái. INV-DEDUPE-BEFORE-AGGREGATE
+    # đã khai sẵn và validator đã kiểm; việc còn thiếu chỉ là chèn node.
+    fanout = [RELATIONS[name] for name in relations if RELATIONS[name].fanout_effect != "none"]
+    if fanout:
+        policies = {spec.dedupe_strategy for spec in fanout}
+        if len(policies) > 1:
+            # Hai chiến lược khử trùng lặp khác nhau trong một plan: chọn một
+            # cái là quyết định thay người về grain nào được giữ.
+            return None
+        nodes.append(PlanNode(
+            node_id="nd", op="Dedupe", inputs=(cursor,),
+            dedupe_policy=fanout[0].dedupe_strategy,
+            input_grain="listing_snapshot", output_grain="listing_snapshot",
+            expected_schema=output, expected_cardinality="<=3341",
+        ))
+        cursor = "nd"
+
+    if remote_predicates:
+        nodes.append(PlanNode(
+            node_id="nf2", op="Filter", inputs=(cursor,),
+            predicates=tuple(remote_predicates),
+            input_grain="listing_snapshot", output_grain="listing_snapshot",
+            expected_schema=output, expected_cardinality="<=3341",
+        ))
+        cursor = "nf2"
 
     grain = "listing_snapshot"
     if dimensions or counted_unit:
@@ -348,12 +446,16 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     plan = LogicalQueryPlan(
         plan_id=(
             f"synth:{measure_ref}:{aggregation}:"
-            f"{'+'.join(dimensions) or 'nogroup'}:{direction}:{country}:{date}:1.0"
+            # A1.5: thêm đoạn quan hệ. Không consumer nào parse `synth:` theo vị
+            # trí (analytics/tools.py chỉ parse tiền tố `analytical:`), nên đây
+            # là thay đổi additive.
+            f"{'+'.join(dimensions) or 'nogroup'}:{direction}:{country}:{date}:"
+            f"{'+'.join(relations) or 'norel'}:1.1"
         ),
         time_scope=(date,), output_node=cursor, requested_output_shape=output,
         nodes=tuple(nodes),
     )
     return SynthesisResult(
         plan=plan, grammar_path=plan.plan_id, aggregation=aggregation,
-        dimensions=tuple(dimensions), relation=relation,
+        dimensions=tuple(dimensions), relations=relations,
     )

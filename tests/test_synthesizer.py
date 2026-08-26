@@ -59,8 +59,7 @@ def test_named_date_is_scanned_not_the_latest_snapshot():
     # Restrictions the deterministic parser never binds into a predicate. The
     # request object is a lossy summary of these, so synthesising from it would
     # answer a wider question than the one asked.
-    "Sản phẩm nào có giá thấp nhất của shop official tại VN?",
-    "Rating theo brand không tồn tại tại VN",
+        "Rating theo brand không tồn tại tại VN",
     "Có bao nhiêu listing chưa bán hết tại VN?",
 ])
 def test_unbound_qualifier_makes_the_synthesizer_decline(question):

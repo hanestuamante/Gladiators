@@ -9371,7 +9371,9 @@
     "output_grain": "listing_snapshot",
     "predicates": [],
     "rank_by": null,
-    "refs": [],
+    "refs": [
+     "measure.shop_rating"
+    ],
     "relation": "belongs_to",
     "risk_estimate": 0,
     "source": null,
@@ -9631,7 +9633,9 @@
     "output_grain": "listing_snapshot",
     "predicates": [],
     "rank_by": null,
-    "refs": [],
+    "refs": [
+     "measure.shop_cancellation_rate"
+    ],
     "relation": "belongs_to",
     "risk_estimate": 0,
     "source": null,

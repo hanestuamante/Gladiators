@@ -266,26 +266,20 @@
       "expected_state": "green",
       "red_reason": null,
       "baseline": {
-        "action": "clarify",
-        "rule_id": "A22-ALIGN-GROUPING",
+        "action": "abstain",
+        "rule_id": "A19-PLAN",
         "request_countries": [
           "vn"
         ],
         "planning": {
-          "mode": "deterministic_template",
-          "plan_id": "analytical:listing_count:vn:1.0",
-          "semantic_refs": [
-            "derived.product_count",
-            "dim.country",
-            "dim.date",
-            "entity.product_listing"
-          ]
+          "mode": "deterministic_synthesis",
+          "plan_id": "synth:derived.product_count:count:nogroup:none:vn:2026-07-03:belongs_to:1.1",
+          "semantic_refs": []
         },
         "evidence": [],
         "n_claims": 0,
         "answer_markers": [
-          "Cần làm rõ",
-          "Plan bỏ chiều đã hỏi"
+          "Không thể trả lời"
         ],
         "answer_absent": [
           "668"
@@ -337,7 +331,7 @@
         ],
         "planning": {
           "mode": "deterministic_synthesis",
-          "plan_id": "synth:derived.product_count:count:nogroup:none:vn:2026-07-01:1.0",
+          "plan_id": "synth:derived.product_count:count:nogroup:none:vn:2026-07-01:norel:1.1",
           "semantic_refs": [
             "derived.product_count",
             "dim.country",
@@ -413,7 +407,7 @@
         ],
         "planning": {
           "mode": "deterministic_synthesis",
-          "plan_id": "synth:measure.price:median:dim.product_name:asc:vn:2026-07-03:1.0",
+          "plan_id": "synth:measure.price:median:dim.product_name:asc:vn:2026-07-03:norel:1.1",
           "semantic_refs": [
             "dim.country",
             "dim.date",
@@ -500,7 +494,7 @@
         ],
         "planning": {
           "mode": "deterministic_synthesis",
-          "plan_id": "synth:measure.price:median:dim.product_name:desc:vn:2026-07-03:1.0",
+          "plan_id": "synth:measure.price:median:dim.product_name:desc:vn:2026-07-03:norel:1.1",
           "semantic_refs": [
             "dim.country",
             "dim.date",

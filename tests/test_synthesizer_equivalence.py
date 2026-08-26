@@ -8,6 +8,13 @@ hệt — so bằng ``model_dump_json()`` sau khi chuẩn hoá đoạn phiên b�
 Baseline chụp tại `fbd34d0`, trước khi RelationPlanner tồn tại: 173 câu của 9
 suite, 58 câu có plan, 115 câu trả ``None``.
 
+Hai mục đã cập nhật có chủ đích ở A1.4 — ``semantic_linking:sl12`` và ``sl17``:
+node ``Join`` của chúng trước đây có ``refs=[]`` vì code cũ chỉ đưa *dimension*
+vào join, còn ``measure.shop_rating`` là measure. Projection cũ (6 cột cố định)
+KHÔNG mang ``rating_star_num`` sang, nên join đó không khai thứ nó tồn tại để
+mang. Bản mới khai đúng, và chạy thật cho ``shop_rating = 4.947162`` — khớp
+chính xác giá trị tính bằng pandas.
+
 Câu trước đây ``None`` mà nay có plan là **mở rộng hợp lệ** — đó chính là mục
 tiêu của WP. Chiều ngược lại thì không: một plan biến mất hoặc đổi hình nghĩa là
 WP đã lấy đi năng lực đang có, và test này bắt đúng chiều đó.
@@ -49,7 +56,10 @@ def _plan_of(question: str, country: str):
     if result is None:
         return None
     payload = json.loads(result.plan.model_dump_json())
-    payload["plan_id"] = re.sub(r":1\.\d+$", "", str(payload.get("plan_id", "")))
+    # Bỏ cả đoạn quan hệ (A1.5) lẫn đoạn phiên bản trước khi so.
+    payload["plan_id"] = re.sub(
+        r"(?::[a-z_+]+)?:1\.\d+$", "", str(payload.get("plan_id", "")),
+    )
     return payload
 
 

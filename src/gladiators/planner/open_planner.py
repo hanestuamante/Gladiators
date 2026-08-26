@@ -56,6 +56,15 @@ def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
     """
     if request.ranking is not None and request.ranking.direction == "asc":
         return True
+    # Một điều kiện ngoài country/date: template không có chỗ diễn đạt nó, nên
+    # nó IM LẶNG biến mất. "Bao nhiêu listing của shop official tại VN" trả 668
+    # — toàn bộ thị trường — trong khi đáp án là 465. Số sai tự tin, không phải
+    # từ chối. (WP-A4 bind điều kiện, WP-A1 lọc nó sau join.)
+    if any(
+        predicate.field_ref not in {"dim.country", "dim.date"}
+        for predicate in request.filters
+    ):
+        return True
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
     if len(dates) == 1 and dates[0] != LATEST_SNAPSHOT:
         return True
