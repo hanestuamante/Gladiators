@@ -42,6 +42,22 @@ def health() -> dict:
     }
 
 
+@app.get("/capability-map", response_class=HTMLResponse, include_in_schema=False)
+def capability_map_page() -> str:
+    """WP-B8 — biết hệ làm được gì TRƯỚC khi bị từ chối."""
+    from gladiators.ui_capability import render
+
+    return render()
+
+
+@app.get("/capability-map.json")
+def capability_map_json() -> dict:
+    """Cùng một nguồn cho trang, slide và test."""
+    from gladiators.ui_capability import capability_map
+
+    return capability_map()
+
+
 @app.get("/capabilities")
 def capabilities() -> dict:
     return {
