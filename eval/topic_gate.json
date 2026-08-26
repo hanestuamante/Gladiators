@@ -1,24 +1,24 @@
 {
   "schema_version": "topic-gate-report.v1",
-  "topics_hash": "b103aedc5569ec28",
+  "topics_hash": "c1cf992e1d852a27",
   "invariants_hash": "dd15c9001a9f4ac5",
-  "alias_index_hash": "3c99f6b514c98c5b",
-  "corpus_size": 188,
+  "alias_index_hash": "522e3ee601b0811a",
+  "corpus_size": 191,
   "routing": {
     "modes": {
-      "topic_scoped": 136,
-      "multi_topic": 27,
-      "core_only": 16,
-      "unknown": 9
+      "topic_scoped": 137,
+      "multi_topic": 26,
+      "unknown": 10,
+      "core_only": 18
     },
     "rates": {
-      "topic_scoped": 0.723404255319149,
-      "multi_topic": 0.14361702127659576,
-      "core_only": 0.0851063829787234,
-      "unknown": 0.047872340425531915
+      "topic_scoped": 0.7172774869109948,
+      "multi_topic": 0.13612565445026178,
+      "unknown": 0.05235602094240838,
+      "core_only": 0.09424083769633508
     },
     "domain_usage": {
-      "T1": 31,
+      "T1": 28,
       "T2": 60,
       "T3": 36,
       "T4": 15,
@@ -29,21 +29,21 @@
     }
   },
   "context_tokens": {
-    "broad_slice": 3610,
-    "routed_p50": 1213,
-    "routed_p95": 1702,
-    "routed_max": 2077,
-    "routed_mean": 1161.6,
+    "broad_slice": 3734,
+    "routed_p50": 1336,
+    "routed_p95": 1778,
+    "routed_max": 2200,
+    "routed_mean": 1271.0,
     "note": "Token là mục tiêu phụ (§7.3) — báo cáo, không dùng để gate."
   },
   "checks": {
     "topic_scoped_rate": {
-      "value": 0.723404255319149,
+      "value": 0.7172774869109948,
       "threshold": 0.65,
       "pass": true
     },
     "unknown_rate": {
-      "value": 0.047872340425531915,
+      "value": 0.05235602094240838,
       "threshold": 0.12,
       "pass": true
     },
@@ -58,8 +58,8 @@
       "pass": true
     },
     "ownership_is_a_partition": {
-      "value": 83,
-      "threshold": 83,
+      "value": 86,
+      "threshold": 86,
       "pass": true
     }
   },
@@ -72,6 +72,7 @@
     "adversarial_topic_cases": "pending_oracle"
   },
   "unknown_examples": [
+    "Berapa laba tiap produk?",
     "Berapa stok tersisa?",
     "Còn bao nhiêu tồn kho?",
     "Có bao nhiêu đơn hàng order-level tại VN?",

@@ -4,6 +4,7 @@ import os
 
 from gladiators.contracts import GateDecision, GateIssue, IssueDetail, StructuredRequest
 from gladiators.domain.intent_registry import IntentRegistry
+from gladiators.agent.value_probe import missing_values, named_but_absent
 from gladiators.planner.feasibility import connectivity_blockers
 from gladiators.planner.semantic_parser import AnalyticalRequest, classify_a19
 from gladiators.external.router import classify_external_need
@@ -288,6 +289,25 @@ class ContractDrivenGate:
             #
             # Mặc định SHADOW (A2-R1): tính blocker, ghi verdict, không đổi
             # quyết định cho tới khi đo được 0 thay đổi kết cục.
+            # WP-A5.1 vòng P: bản song sinh của A-ENTITY-NOT-FOUND cho GIÁ TRỊ
+            # chiều. Hỏi về một thương hiệu không có trong dữ liệu phải bị chặn
+            # SỚM, thay vì lập cả kế hoạch rồi hỏng ở tầng khác với một lý do mô
+            # tả sai vấn đề.
+            named_absent = named_but_absent(
+                analytical_request.normalized_question, request.country,
+                frozenset(
+                    item.ref for item in analytical_request.requested_dimensions
+                    if item.ref
+                ),
+                raw_question=str(request.slots.get("raw_text") or ""),
+            )
+            for value_ref, literal in tuple(missing_values(analytical_request)) + named_absent:
+                add("A-VALUE-NOT-FOUND", 3, "abstain",
+                    f"Giá trị được nêu cho {value_ref.split('.')[-1]} không có "
+                    "trong dữ liệu của thị trường này.",
+                    "entity", "value_not_found", refs=(value_ref,),
+                    # Không thông tin nào người dùng thêm vào sẽ tạo ra giá trị đó.
+                    fixable=False)
             if request.intent == "open_analytical":
                 blockers = connectivity_blockers(analytical_request)
                 self.last_connectivity = {

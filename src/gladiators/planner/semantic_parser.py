@@ -239,6 +239,19 @@ class DeterministicSemanticParser:
         # Trước đây parse chỉ sinh predicate cho country và date, nên mọi câu có
         # điều kiện đều làm synthesize() trả None — kể cả điều kiện hệ thừa sức
         # lọc. Phủ định được xét trước trong `qualifier_match`.
+        # WP-A4.3: giá trị chiều có thật trong dữ liệu thì bind thành predicate.
+        # Chỉ bind cho chiều mà câu hỏi ĐÃ nêu tên — xem value_probe.bind_values.
+        # Import trễ: `agent/` phụ thuộc `planner/`, nên import ở đầu file tạo
+        # vòng qua analytics/tools.py.
+        from gladiators.agent.value_probe import bind_values
+
+        for value_ref, literal in bind_values(
+            normalized, country,
+            frozenset(item.ref for item in dimensions if item.ref),
+        ):
+            filters.append(AnalyticalPredicate(
+                field_ref=value_ref, op="eq", value_binding=literal,
+            ))
         qualifier_refs: set[str] = set()
         for spec, value, _surface in qualifier_match(normalized):
             filters.append(AnalyticalPredicate(
