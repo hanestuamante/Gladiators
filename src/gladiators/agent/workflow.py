@@ -31,6 +31,7 @@ from gladiators.planner.risk import EscalationConfig, score_plan
 from gladiators.planner.critic import PlanCritic
 from .embedding import BGEIndex
 from .entity_resolution import EntityResolver, expected_entity_types
+from .consistency import check_evidence_arithmetic
 from .suggestions import nearest_answerable
 from .gate import ContractDrivenGate
 from .parser import MultilingualIntentParser, UNSUPPORTED
@@ -1326,6 +1327,15 @@ class AgentRuntime:
         # are all in hand. bgk13 asked *why* listings fell over 01/07→03/07;
         # they rose, and it was answered with a count -- allowed, verified,
         # "Độ tin cậy: High", because every layer was asking a different question.
+        # WP-B6: không lớp nào hỏi "các con số này có nhất quán với nhau không".
+        # Lỗi 551/77/668 chính là một vi phạm cộng tính. Nguyên nhân gốc đã sửa,
+        # nhưng chưa lớp nào chặn khi lỗi CÙNG LOẠI tái xuất hiện ở chỗ khác.
+        consistency = check_evidence_arithmetic(evidence) if decision.action == "allow" else ()
+        if consistency:
+            verification["consistency"] = [
+                {"code": item.code, "detail": item.detail, "metrics": list(item.metrics)}
+                for item in consistency
+            ]
         question_alignment = check_question_alignment(digest, answer, evidence)
         verification["question_alignment"] = question_alignment.as_dict()
         final_verification_failed = bool(
@@ -1335,6 +1345,7 @@ class AgentRuntime:
                 not verification["passed"]
                 or not answer_alignment.aligned
                 or not question_alignment.aligned
+                or bool(consistency)
             )
         )
         if final_verification_failed:
@@ -1351,6 +1362,17 @@ class AgentRuntime:
                         "Hệ thống có thể trình bày mức thay đổi quan sát được giữa hai "
                         "snapshot và các chỉ số biến động cùng lúc, nhưng không kết luận "
                         "nguyên nhân."
+                    ),
+                )
+            elif consistency:
+                # B6-R4: vi phạm là fail-closed, không phải cảnh báo. Nêu đúng
+                # vấn đề: các con số không nhất quán với nhau, không phải "thiếu
+                # evidence" — người dùng diễn đạt lại cũng không gỡ được.
+                decision = GateDecision(
+                    action="abstain", rule_id="A26-CONSISTENCY",
+                    reason="; ".join(item.detail for item in consistency),
+                    answerable_alternative=(
+                        "Hãy thu hẹp phạm vi để hệ thống tính lại từng nhóm riêng."
                     ),
                 )
             else:

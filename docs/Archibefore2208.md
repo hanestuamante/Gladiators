@@ -773,6 +773,7 @@ gọi LLM**.
 | `A19-METRIC` | Metric chưa được duyệt định nghĩa |
 | `A19-CAT` / `A19-OP` | Không bind được catalog / operator |
 | `A-REFS-DISCONNECTED` | Các ref được hỏi không nối được bằng quan hệ nào đã chứng nhận (WP-A2, mặc định shadow) |
+| `A26-CONSISTENCY` | Các con số trong cùng câu trả lời không nhất quán với nhau (WP-B6) |
 | `A20-TIER` | Tính toán xuyên tier |
 | `A21-PROV` | Thiếu provenance |
 | `A22-ALIGN-*` | 11 mã, xem §3.3 |
