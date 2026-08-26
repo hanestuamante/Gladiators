@@ -264,3 +264,34 @@ class EntityResolver:
     def ambiguous(candidates: list[Candidate], threshold: float = .65, margin: float = .05) -> bool:
         """Legacy boolean kept for callers not yet reading the typed result."""
         return not candidates or candidates[0].final_score < threshold or (len(candidates) > 1 and candidates[0].final_score - candidates[1].final_score < margin)
+
+
+# --- WP-A10 · ràng buộc loại entity ----------------------------------------
+# `AnalyticalRequest.resolved_entities` đã có trường `entity_type` với đúng năm
+# giá trị, nhưng chưa ai dùng nó làm RÀNG BUỘC. Không có bước nào hỏi "câu này
+# đang cần một thực thể thuộc loại nào?".
+
+# A10-R2: chỉ suy loại từ ref ĐÃ BIND qua registry, không từ văn bản tự do.
+ENTITY_TYPE_BY_REF: dict[str, str] = {
+    "dim.platform_category_name": "category",
+    "entity.platform_category": "category",
+    "dim.shop_category_name": "shelf",
+    "entity.shop_category": "shelf",
+    "dim.shop_name": "shop",
+    "entity.shop": "shop",
+    "dim.brand": "brand",
+    "entity.brand": "brand",
+}
+
+
+def expected_entity_types(request) -> tuple[str, ...]:
+    """Loại thực thể mà các ref đã bind ngụ ý. Rỗng ⇒ giữ nguyên hành vi cũ."""
+    refs = {
+        item.ref
+        for item in (*request.requested_measures, *request.requested_dimensions)
+        if item.ref and not item.unresolved
+    }
+    refs |= {predicate.field_ref for predicate in request.filters}
+    return tuple(sorted({
+        ENTITY_TYPE_BY_REF[ref] for ref in refs if ref in ENTITY_TYPE_BY_REF
+    }))

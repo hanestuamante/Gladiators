@@ -30,7 +30,7 @@ from gladiators.planner.consensus import ConsensusError, NVersionResolver
 from gladiators.planner.risk import EscalationConfig, score_plan
 from gladiators.planner.critic import PlanCritic
 from .embedding import BGEIndex
-from .entity_resolution import EntityResolver
+from .entity_resolution import EntityResolver, expected_entity_types
 from .gate import ContractDrivenGate
 from .parser import MultilingualIntentParser, UNSUPPORTED
 from .tool_dispatch import ToolContext, dispatch
@@ -863,6 +863,17 @@ class AgentRuntime:
         # Deliberately narrow -- only a code-shaped entity, never a free-text
         # description, because a name that fails to resolve is usually a
         # clarify, not a statement that the product is absent.
+        # WP-A10: loại thực thể kỳ vọng, suy từ ref ĐÃ BIND (A10-R2). Dùng nó để
+        # không phân giải một câu hỏi về kệ shop thành một listing — đúng thứ
+        # INV-SHELF-NOT-PLATFORM-CATEGORY cấm, chỉ ở tầng phân giải.
+        entity_types: tuple[str, ...] = ()
+        if request.analytical:
+            try:
+                entity_types = expected_entity_types(
+                    AnalyticalRequest.model_validate(request.analytical),
+                )
+            except Exception:                       # request méo thì bỏ qua, không chặn
+                entity_types = ()
         entity_check = None
         if request.entity_text and any(
             str(item.get("kind")) in {"listing_key", "item_id"}
@@ -891,12 +902,21 @@ class AgentRuntime:
         # WP-A2: verdict kết nối ref được ghi KỂ CẢ khi cờ tắt — một thành phần
         # không ai đo là một thành phần không ai biết nó đúng hay sai.
         connectivity = dict(getattr(self.gate, "last_connectivity", {}) or {})
+        if entity_types:
+            planning_seed_entity_types = {
+                "expected": list(entity_types),
+                # Resolver chỉ giữ kho ứng viên LISTING, nên "lọc ứng viên" ở
+                # đây là lọc nhị phân: loại kỳ vọng không phải listing thì không
+                # có ứng viên hợp lệ nào để xếp hạng.
+                "resolver_pool": "listing",
+            }
+        else:
+            planning_seed_entity_types = None
         evidence: list[Evidence] = []
         calls: list[ToolCall] = []
         resolved_key = None
         planning_meta: dict[str, Any] = {"mode": "none"}
-        if connectivity:
-            planning_meta["connectivity"] = connectivity
+
         if decision.rule_id.startswith("A19") or decision.rule_id == "A-ANALYTICAL-AMBIGUITY":
             planning_meta = {"mode": "blocked", "a19_rule": decision.rule_id}
         tools = AnalyticsTools(self.repo, self.resolver, evidence_id)
@@ -1353,6 +1373,14 @@ class AgentRuntime:
         response_context = dict(planning_meta.get("contexts", {}))
         if context_meta:
             response_context["generate"] = context_meta
+        # Verdict shadow phải sống sót qua MỌI nhánh: planning_meta bị gán đè ở
+        # nhánh macro và nhánh analytical, nên gộp ở đây, ngay trước khi dựng
+        # response. Một thành phần chạy shadow mà verdict biến mất thì nó không
+        # còn được đo.
+        if connectivity:
+            planning_meta.setdefault("connectivity", connectivity)
+        if planning_seed_entity_types:
+            planning_meta.setdefault("entity_type_constraint", planning_seed_entity_types)
         response = AgentResponse(trace_id=trace_id, request=request, gate=decision, answer=answer, evidence=evidence, claims=claims, tool_calls=calls, resolved_listing_key=resolved_key, verification=verification, llm=llm_meta, planning=planning_meta, context=response_context, degraded=final_verification_failed or not verification["passed"])
         self.traces.write(trace_id, {"schema_version": "v1.1", "dataset_version": self.repo.dataset_version, "response": response.model_dump()})
         return response
