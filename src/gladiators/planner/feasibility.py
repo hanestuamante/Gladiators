@@ -161,3 +161,46 @@ def _default_grain_priority() -> dict[str, int]:
         "shop": 4,
         "pair": 5,
     }
+
+
+# --- WP-A2 · kết nối ref, không phụ thuộc topic router ----------------------
+
+_SCOPE_REFS = frozenset({"dim.country", "dim.date"})
+
+
+def connectivity_blockers(request) -> tuple[str, ...]:
+    """Ref nào không nối được về ``ProductListing`` bằng quan hệ đã chứng nhận.
+
+    Đọc ref thẳng từ ``AnalyticalRequest`` thay vì từ ``RoutingResult``: topic
+    gate đang đóng, và một phép kiểm CẤP PHÉP không được phụ thuộc vào một cổng
+    chưa mở.
+
+    Trả lý do bằng mã ngắn; caller diễn đạt thành câu chữ. Không có chữ số nào
+    lọt ra ngoài từ đây.
+    """
+    from gladiators.domain.catalog import CATALOG
+    from gladiators.domain.relations import ENTITY_BY_RIGHT_SOURCE, find_path
+    from gladiators.planner.synthesizer import _BASE_SOURCES
+
+    refs = {
+        item.ref
+        for item in (*request.requested_measures, *request.requested_dimensions)
+        if item.ref and not item.unresolved
+    }
+    refs |= {predicate.field_ref for predicate in request.filters}
+
+    blockers: list[str] = []
+    for ref in sorted(refs - _SCOPE_REFS):
+        obj = CATALOG.get(ref)
+        if obj is None or obj.kind == "context" or not obj.physical:
+            continue
+        artifacts = {column.rpartition(".")[0] for column in obj.physical}
+        if artifacts & set(_BASE_SOURCES):
+            continue                                  # nằm ngay trên spine
+        for artifact in sorted(artifacts):
+            entity = ENTITY_BY_RIGHT_SOURCE.get(artifact)
+            if entity is None:
+                blockers.append(f"unmapped_artifact:{artifact}")
+            elif find_path("ProductListing", entity) is None:
+                blockers.append(f"disconnected:{ref}")
+    return tuple(dict.fromkeys(blockers))

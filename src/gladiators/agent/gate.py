@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import os
+
 from gladiators.contracts import GateDecision, GateIssue, IssueDetail, StructuredRequest
 from gladiators.domain.intent_registry import IntentRegistry
+from gladiators.planner.feasibility import connectivity_blockers
 from gladiators.planner.semantic_parser import AnalyticalRequest, classify_a19
 from gladiators.external.router import classify_external_need
 from gladiators.domain.catalog import CATALOG
@@ -133,6 +136,7 @@ class ContractDrivenGate:
         capabilities: dict[str, object],
         entity_check: object | None = None,
     ) -> GateDecision:
+        self.last_connectivity: dict[str, object] = {}
         issues: list[GateIssue] = []
         # Issues that only matter if the request is refused for some other
         # reason; see the partial_unsupported block below.
@@ -272,10 +276,36 @@ class ContractDrivenGate:
                     "Thiếu AnalyticalRequest cho open analytical path.",
                     "capability", "missing_analytical")
                 return decide_from(GateDecision(action="allow", rule_id="A-ALLOW", reason=""))
-            admission = classify_a19(AnalyticalRequest.model_validate(request.analytical))
+            analytical_request = AnalyticalRequest.model_validate(request.analytical)
+            admission = classify_a19(analytical_request)
             if admission:
                 action, rule_id, reason = admission
                 add(rule_id, 3, action, reason, "grain", "a19_admission")
+            # WP-A2: ref không nối được với nhau bằng quan hệ đã chứng nhận thì
+            # gate phải nói ĐÚNG lý do đó, thay vì để câu đi tiếp rồi hỏng ở
+            # planner với A19-PLAN — một lời từ chối mô tả sai bản chất khiến
+            # người dùng diễn đạt lại và nhận đúng lời từ chối đó.
+            #
+            # Mặc định SHADOW (A2-R1): tính blocker, ghi verdict, không đổi
+            # quyết định cho tới khi đo được 0 thay đổi kết cục.
+            if request.intent == "open_analytical":
+                blockers = connectivity_blockers(analytical_request)
+                self.last_connectivity = {
+                    "blockers": list(blockers),
+                    "shadow": os.getenv("GLADIATORS_ENABLE_CONNECTIVITY_GATE") != "1",
+                }
+                if blockers and os.getenv("GLADIATORS_ENABLE_CONNECTIVITY_GATE") == "1":
+                    add("A-REFS-DISCONNECTED", 3, "abstain",
+                        "Những chỉ số được hỏi không nối được với nhau bằng quan hệ "
+                        "nào đã được chứng nhận, nên không có kế hoạch truy vấn hợp lệ.",
+                        "fanout", "refs_disconnected",
+                        refs=tuple(
+                            item.split(":", 1)[1] for item in blockers
+                            if item.startswith("disconnected:")
+                        ),
+                        # Không thông tin nào người dùng cung cấp thêm sẽ tạo ra
+                        # một quan hệ trong registry.
+                        fixable=False)
         # ---- phase 4: currency ---------------------------------------------
         phases.append(4)
         if request.intent == "analytical_query" and not request.country:

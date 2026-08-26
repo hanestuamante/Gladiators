@@ -883,10 +883,15 @@ class AgentRuntime:
                     "sau khi định nghĩa được phê duyệt — không đo hiệu quả nhân quả."
                 ),
             )
+        # WP-A2: verdict kết nối ref được ghi KỂ CẢ khi cờ tắt — một thành phần
+        # không ai đo là một thành phần không ai biết nó đúng hay sai.
+        connectivity = dict(getattr(self.gate, "last_connectivity", {}) or {})
         evidence: list[Evidence] = []
         calls: list[ToolCall] = []
         resolved_key = None
         planning_meta: dict[str, Any] = {"mode": "none"}
+        if connectivity:
+            planning_meta["connectivity"] = connectivity
         if decision.rule_id.startswith("A19") or decision.rule_id == "A-ANALYTICAL-AMBIGUITY":
             planning_meta = {"mode": "blocked", "a19_rule": decision.rule_id}
         tools = AnalyticsTools(self.repo, self.resolver, evidence_id)
