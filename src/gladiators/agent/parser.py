@@ -5,6 +5,7 @@ import unicodedata
 
 from gladiators.contracts import StructuredRequest
 from gladiators.domain.intent_registry import IntentRegistry
+from gladiators.domain.relation_prose import STRUCTURE_CUES
 from gladiators.planner.semantic_parser import (
     DeterministicSemanticParser,
     extract_date_range,
@@ -63,6 +64,25 @@ UNSUPPORTED = {
         "rekonstruksi harga akhir",
     ),
 }
+
+
+
+def _schema_entities(normalized: str) -> tuple[str, ...]:
+    """Tên entity (theo registry quan hệ) mà câu hỏi nhắc tới — WP-A7.2.
+
+    Bind qua ``AliasIndex`` với ``kinds={"entity"}`` để dùng đúng một nguồn từ
+    vựng, không dựng bảng từ khoá thứ hai.
+    """
+    from gladiators.domain.alias_index import default_alias_index
+    from gladiators.domain.relation_prose import ENTITY_BY_REF
+
+    found: list[str] = []
+    for match in default_alias_index().find_in(normalized, kinds=frozenset({"entity"})):
+        for ref in match.refs:
+            name = ENTITY_BY_REF.get(ref)
+            if name and name not in found:
+                found.append(name)
+    return tuple(found[:2])
 
 
 class MultilingualIntentParser:
@@ -234,7 +254,14 @@ class MultilingualIntentParser:
                     route_mode=route.mode, external_purpose=route.purpose,
                     requested_variables=route.requested_variables,
                 )
-        if any(x in n for x in (
+        # WP-A7: câu hỏi về CẤU TRÚC dữ liệu, không phải về số liệu. Đặt trước
+        # nhánh analytical vì "shop và listing liên quan thế nào" chứa cả tên
+        # entity lẫn từ khoá của các nhánh dưới, và nó không hỏi một con số nào.
+        # Không bind được entity nào ⇒ KHÔNG vào intent này (rơi về luồng cũ).
+        schema_entities = _schema_entities(n)
+        if any(cue in n for cue in STRUCTURE_CUES) and schema_entities:
+            intent = "schema_relation_explain"
+        elif any(x in n for x in (
             "tuong tu", "tuong duong", "giong", "similar", "equivalent",
             "mirip", "serupa",
         )):
@@ -284,6 +311,8 @@ class MultilingualIntentParser:
         )
         entity = primary_entity.value if primary_entity else quoted[0].strip() if quoted else None
         slots = {"raw_text": text}
+        if intent == "schema_relation_explain":
+            slots["relation_entities"] = list(schema_entities)
         qualifiers: list[str] = []
         if any(item.kind == "promotion_id" for item in entities):
             qualifiers.append("promotion_id_filter")

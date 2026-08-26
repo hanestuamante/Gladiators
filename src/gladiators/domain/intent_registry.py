@@ -39,5 +39,8 @@ def default_registry() -> IntentRegistry:
         ))
     r.register(IntentSpec("analytical_query", (), ("execute_analytical_plan",), ("analytical_planner",)))
     r.register(IntentSpec("open_analytical", (), ("execute_analytical_plan",), ("semantic_parser", "analytical_planner")))
+    # WP-A7: giải thích quan hệ đọc thẳng từ registry — không gọi LLM,
+    # không sinh Evidence (nó không tuyên bố con số nào về dữ liệu).
+    r.register(IntentSpec("schema_relation_explain", (), ("explain_relation",), ()))
     r.register(IntentSpec("external_context", ("external_purpose",), ("live_search_context",), ("live_search",)))
     return r

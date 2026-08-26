@@ -1,0 +1,74 @@
+[
+  {
+    "id": "sch01",
+    "question": "Shop và listing liên quan thế nào?",
+    "expected_intent": "schema_relation_explain",
+    "expected_action": "allow",
+    "answerable": true,
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "sch02",
+    "question": "Kệ shop và danh mục sàn liên kết ra sao?",
+    "expected_intent": "schema_relation_explain",
+    "expected_action": "allow",
+    "answerable": true,
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "sch03",
+    "question": "Brand liên quan gì trong dữ liệu?",
+    "expected_intent": "schema_relation_explain",
+    "expected_action": "allow",
+    "answerable": true,
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "sch04",
+    "question": "Listing và danh mục sàn nối với nhau thế nào?",
+    "expected_intent": "schema_relation_explain",
+    "expected_action": "allow",
+    "answerable": true,
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "sch05",
+    "question": "Quan hệ giữa listing và chỉ số bán là gì?",
+    "expected_intent": "schema_relation_explain",
+    "expected_action": "allow",
+    "answerable": true,
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "sch06",
+    "question": "Shop có quan hệ gì trong hệ thống?",
+    "expected_intent": "schema_relation_explain",
+    "expected_action": "allow",
+    "answerable": true,
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "sch07",
+    "question": "Listing và snapshot ngày liên kết thế nào?",
+    "expected_intent": "schema_relation_explain",
+    "expected_action": "allow",
+    "answerable": true,
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "sch08",
+    "question": "Voucher quan sát liên quan tới listing ra sao?",
+    "expected_intent": "schema_relation_explain",
+    "expected_action": "allow",
+    "answerable": true,
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  }
+]

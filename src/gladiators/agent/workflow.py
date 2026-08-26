@@ -526,6 +526,11 @@ class AgentRuntime:
         if request.intent == "sales_decline" and evidence:
             delta, days = by_metric["monthly_sold_delta"], by_metric["days_since_previous"]
             return f"Proxy lượt bán thay đổi {delta.value:g} {delta.unit} trong {days.value:g} ngày [{delta.evidence_id}] [{days.evidence_id}]. Đây là chênh lệch snapshot, không phải bằng chứng nhân quả."
+        # WP-A7: giải thích quan hệ. Không evidence, nên câu chữ tuyệt đối không
+        # được mang chữ số — `relation_prose` đã lọc sẵn (A7-R1).
+        explanation = request.slots.get("relation_explanation")
+        if request.intent == "schema_relation_explain" and explanation:
+            return str(explanation)
         if request.intent == "similar_product" and evidence:
             parts = [f"{e.attrs['product_name']} (điểm {e.value:g}) [{e.evidence_id}]" for e in evidence]
             return "Các listing tương tự gần nhất theo lexical/embedding: " + "; ".join(parts) + ". Điểm chỉ dùng để xếp hạng tương đồng; không khẳng định cùng mẫu hoặc cùng SKU."
@@ -1115,6 +1120,11 @@ class AgentRuntime:
                         outcome="blocked", a19_rule="A19-PLAN", reason=str(exc),
                     )
                     tool_plan = ()
+            elif request.intent == "schema_relation_explain":
+                # WP-A7: intent này đọc registry quan hệ, không chạy macro và cố
+                # ý KHÔNG sinh Evidence — nó không tuyên bố con số nào về dữ liệu.
+                tool_plan = spec.tool_plan if spec else ()
+                planning_meta = {"mode": "schema_explain"}
             elif macro is None:
                 decision = GateDecision(action="abstain", rule_id="A19-PLAN", reason="Intent chưa có certified macro hợp lệ.")
                 tool_plan = ()
@@ -1240,7 +1250,12 @@ class AgentRuntime:
                     action="abstain", rule_id="A-MACRO-EVIDENCE-CONTRACT",
                     reason="Evidence do macro tạo ra không khớp certified evidence contract.",
                 )
-            elif decision.action == "allow" and not evidence and self.enable_gate:
+            elif (
+                decision.action == "allow" and not evidence and self.enable_gate
+                # A7-R2: giải thích lược đồ không có evidence THEO THIẾT KẾ. Đòi
+                # evidence ở đây là đòi bằng chứng cho một câu không nói về số.
+                and request.intent != "schema_relation_explain"
+            ):
                 decision = GateDecision(action="abstain", rule_id="A-NO-EVIDENCE", reason="Dữ liệu hiện có không đủ điều kiện để trả lời câu hỏi này.")
 
         # Hybrid always preserves the completed internal path. External failure

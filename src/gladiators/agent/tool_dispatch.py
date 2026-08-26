@@ -180,3 +180,22 @@ def dispatch(tool_plan: Iterable[str], ctx: ToolContext) -> None:
         handler(ctx)
         if ctx.clarify is not None:
             break
+
+
+@tool("explain_relation")
+def _explain_relation(ctx: ToolContext) -> None:
+    """WP-A7 — giải thích quan hệ, đọc thẳng từ registry.
+
+    KHÔNG sinh ``Evidence`` (A7-R2): đây không phải một tuyên bố về dữ liệu, nên
+    không có con số nào cần chống lưng. Kết quả đi qua ``slots`` để ``_generate``
+    dựng câu chữ.
+    """
+    from gladiators.domain.relation_prose import explain
+
+    entities = ctx.request.slots.get("relation_entities") or []
+    if not entities:
+        return
+    left = entities[0]
+    right = entities[1] if len(entities) > 1 else None
+    ctx.request.slots["relation_explanation"] = explain(left, right)
+    _record(ctx, "explain_relation", {"entities": list(entities)}, [])
