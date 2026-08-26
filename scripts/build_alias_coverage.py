@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from gladiators.domain.alias_index import default_alias_index
+from gladiators.domain.alias_index import PREFERRED_REF_BY_SURFACE, default_alias_index
 
 
 def main() -> None:
@@ -36,6 +36,13 @@ def main() -> None:
         "missing_vietnamese": len(coverage["missing_vietnamese"]),
         "missing_en_or_id": len(coverage["missing_en_or_id"]),
         "collisions": len(coverage["collisions"]),
+        # WP-A4.1: một surface mơ hồ mà KHÔNG có ưu tiên thì binder bỏ qua nó —
+        # chọn bừa một ref là trả lời một câu hỏi khác trong im lặng. Hai con số
+        # dưới đây phải bằng nhau; lệch nghĩa là có surface bị bỏ rơi.
+        "preferred_surfaces": len(PREFERRED_REF_BY_SURFACE),
+        "collisions_without_preference": sorted(
+            set(coverage["collisions"]) - set(PREFERRED_REF_BY_SURFACE)
+        ),
     }, ensure_ascii=False, indent=2))
 
     gaps = coverage["missing_vietnamese"] + coverage["missing_en_or_id"]

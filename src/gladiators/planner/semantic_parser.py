@@ -8,7 +8,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from rapidfuzz import fuzz
 
-from gladiators.domain.alias_index import compound_shadowed
+from gladiators.domain.alias_index import (
+    PREFERRED_REF_BY_SURFACE,
+    compound_shadowed,
+    default_alias_index,
+)
 from gladiators.domain.catalog import CATALOG, CatalogObject
 
 # Wordings that make the noun beside them the thing being counted rather than a
@@ -146,80 +150,52 @@ class CatalogSlicer:
 class DeterministicSemanticParser:
     """Fallback P7 bảo thủ; không tạo physical column hoặc join."""
 
-    MEASURES = (
-        (("doanh thu", "revenue", "pendapatan"), "derived.estimated_recent_revenue"),
-        (("gia", "price", "harga"), "measure.price"),
-        (("luot ban", "monthly sold", "penjualan"), "measure.monthly_sold"),
-        (("bao nhieu listing", "how many listing", "berapa listing", "bao nhieu san pham", "berapa produk"), "derived.product_count"),
-        (("rating", "danh gia"), "measure.rating"),
-        (("follower", "nguoi theo doi", "pengikut"), "measure.shop_followers"),
-    )
-    DIMENSIONS = (
-        (("shop", "cua hang", "toko"), "entity.shop"),
-        (("ngay", "date", "tanggal"), "dim.date"),
-        (("quoc gia", "thi truong", "country", "negara"), "dim.country"),
-        (("brand", "thuong hieu", "merek"), "dim.brand"),
-        (("danh muc", "category", "kategori"), "dim.platform_category_name"),
-    )
+    def __init__(self) -> None:
+        self.alias_index = default_alias_index()
 
     @staticmethod
     def _contains_phrase(normalized: str, phrase: str) -> bool:
         return bool(re.search(rf"(?<![a-z0-9]){re.escape(phrase)}(?![a-z0-9])", normalized))
 
-    def _link(
-        self, normalized: str, seeds: tuple[tuple[tuple[str, ...], str], ...],
-        kinds: set[str],
-    ) -> list[SemanticBinding]:
-        candidates: list[tuple[int, int, str, str]] = []
-        for terms, ref in seeds:
-            for term in terms:
-                alias = normalize(term)
-                if alias and self._contains_phrase(normalized, alias):
-                    candidates.append((-len(alias.split()), 0, alias, ref))
-        for obj in CATALOG.values():
-            if obj.kind not in kinds:
-                continue
-            for term in obj.aliases:
-                alias = normalize(term)
-                if alias and self._contains_phrase(normalized, alias):
-                    candidates.append((-len(alias.split()), 1, alias, obj.ref))
-        candidates.sort(key=lambda item: (item[0], item[1], -len(item[2]), item[3]))
+    def _link(self, normalized: str, kinds: set[str]) -> list[SemanticBinding]:
+        """Lớp mỏng trên ``AliasIndex`` — WP-A4.1.
+
+        Trước đây hàm này giữ bộ khớp alias THỨ HAI, cộng hai bảng seed
+        hard-code làm bộ thứ ba. Ba bộ song song nghĩa là một bản vá ở bộ này
+        không áp cho bộ kia: bug ``"giá trị"`` → ``measure.price`` từng được vá
+        riêng ở đây trong khi vẫn sống nguyên trong ``AliasIndex``.
+
+        Luật khớp dài nhất và ``compound_shadowed`` đã nằm sẵn trong
+        ``AliasIndex.find_in``; chỗ này chỉ còn việc phân giải surface trỏ nhiều
+        ref bằng ``PREFERRED_REF_BY_SURFACE``.
+        """
         accepted: list[tuple[str, str]] = []
         seen_refs: set[str] = set()
-        for _, _, alias, ref in candidates:
-            if ref in seen_refs:
+        for match in self.alias_index.find_in(normalized, kinds=frozenset(kinds)):
+            ref = match.refs[0]
+            if match.ambiguous:
+                preferred = PREFERRED_REF_BY_SURFACE.get(match.surface)
+                # Surface mơ hồ mà không có ưu tiên: chọn một ref theo thứ tự
+                # index là trả lời một câu hỏi khác trong im lặng.
+                if preferred is None or preferred not in match.refs:
+                    continue
+                ref = preferred
+            if ref in seen_refs or CATALOG[ref].kind not in kinds:
                 continue
-            # Longest-match wins: ``shop rating`` suppresses the nested generic
-            # ``rating``; seed priority resolves same-surface entity/dim aliases.
-            if any(alias == chosen for chosen, _ in accepted):
-                continue
-            # §3.2.2: the same compound guard the alias index uses. It lived
-            # here as a local `gia tri` regex, so the identical bug stayed alive
-            # in the other binder -- one concept, one place.
-            if compound_shadowed(normalized, alias):
-                continue
-            residual = normalized
-            for chosen, _ in accepted:
-                if self._contains_phrase(chosen, alias):
-                    residual = re.sub(
-                        rf"(?<![a-z0-9]){re.escape(chosen)}(?![a-z0-9])", " ", residual,
-                    )
-            if not self._contains_phrase(residual, alias):
-                continue
-            accepted.append((alias, ref))
+            accepted.append((match.surface, ref))
             seen_refs.add(ref)
         return [SemanticBinding(surface_text=alias, ref=ref) for alias, ref in accepted]
 
     def parse(self, text: str, language: str, country: str | None) -> AnalyticalRequest:
         normalized = normalize(text)
-        measures = self._link(normalized, self.MEASURES, {"measure", "derived_metric"})
+        measures = self._link(normalized, {"measure", "derived_metric"})
         dimension_text = normalized
         for measure in measures:
             dimension_text = re.sub(
                 rf"(?<![a-z0-9]){re.escape(measure.surface_text)}(?![a-z0-9])",
                 " ", dimension_text,
             )
-        dimensions = self._link(dimension_text, self.DIMENSIONS, {"entity", "dimension"})
+        dimensions = self._link(dimension_text, {"entity", "dimension"})
         if any(
             item.ref and item.ref.startswith("measure.shop_")
             and item.ref != "measure.shop_category_total"

@@ -67,3 +67,47 @@ def test_find_in_prefers_the_longest_alias(index):
     matches = index.find_in(normalize_surface("tỷ lệ huỷ đơn của shop tại VN"))
     refs = {ref for match in matches for ref in match.refs}
     assert "measure.shop_cancellation_rate" in refs
+
+
+# --- WP-A4.1 · bảng ưu tiên là nguồn duy nhất phân giải surface mơ hồ -------
+
+def test_preferred_ref_covers_every_ambiguous_surface(index):
+    """Surface mơ hồ không có ưu tiên thì binder bỏ qua — mất binding trong im lặng."""
+    from gladiators.domain.alias_index import PREFERRED_REF_BY_SURFACE
+
+    uncovered = sorted(set(index.collisions()) - set(PREFERRED_REF_BY_SURFACE))
+    assert uncovered == [], f"surface mơ hồ chưa có ưu tiên: {uncovered}"
+
+
+def test_preferred_ref_points_only_at_real_refs(index):
+    from gladiators.domain.alias_index import PREFERRED_REF_BY_SURFACE
+
+    for surface, ref in PREFERRED_REF_BY_SURFACE.items():
+        assert ref in index.catalog, f"{surface!r} trỏ ref không tồn tại: {ref}"
+        assert ref in index.collisions().get(surface, (ref,)), (
+            f"{surface!r} ưu tiên {ref} nhưng ref đó không nằm trong tập va chạm"
+        )
+
+
+def test_parser_no_longer_carries_its_own_alias_seeds():
+    r"""A4.1 — ba bộ khớp alias gộp thành một.
+
+    `grep -n "MEASURES\|DIMENSIONS"` trên `semantic_parser.py` phải rỗng; đây là
+    tiêu chí nghiệm thu của WP, khoá lại bằng test để nó không lặng lẽ quay về.
+    """
+    from gladiators.planner.semantic_parser import DeterministicSemanticParser
+
+    assert not hasattr(DeterministicSemanticParser, "MEASURES")
+    assert not hasattr(DeterministicSemanticParser, "DIMENSIONS")
+
+
+def test_both_measures_bind_when_the_question_names_both(index):
+    """Suppression phải theo residual, không theo chuỗi tích luỹ.
+
+    "Rating count và rating" hỏi CẢ HAI. Bản tích luỹ chặn `rating` vì nó nằm
+    trong `rating count` đã nhận, làm mất một measure người dùng nêu tường minh.
+    """
+    matches = index.find_in(normalize_surface("Rating count và rating theo brand tại VN"))
+    refs = {ref for match in matches for ref in match.refs}
+    assert "measure.rating_count" in refs
+    assert "measure.rating" in refs

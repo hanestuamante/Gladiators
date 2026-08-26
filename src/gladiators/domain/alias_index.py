@@ -1,10 +1,15 @@
 """AliasIndex — ultimate solution §3.2.
 
-``CatalogObject.aliases`` is the single source of natural-language binding.  The
-deterministic parser used to carry its own hard-coded ``MEASURES``/``DIMENSIONS``
-seed lists, which meant a measure could be *exposed* in the catalogue yet
-unreachable from a question, and nobody could tell which of the two lists was
-authoritative.
+``CatalogObject.aliases`` is the single source of natural-language binding, and
+``PREFERRED_REF_BY_SURFACE`` below is the single place a colliding surface is
+resolved.
+
+This docstring used to claim the deterministic parser's hard-coded
+``MEASURES``/``DIMENSIONS`` seeds had already been removed.  That claim was
+false for months: the seeds were still there, still consulted first, and a fix
+applied to one binder never reached the other.  A docstring that asserts an
+architectural property nobody re-checks is worse than a missing feature, so the
+statement is only made here now that WP-A4 has actually deleted them.
 
 Two properties matter more than lookup speed:
 
@@ -133,14 +138,24 @@ class AliasIndex:
         return AliasMatch(tuple(refs), normalize_surface(surface), len(refs) > 1)
 
     def find_in(self, normalized_text: str, kinds: frozenset[str] | None = None) -> list[AliasMatch]:
-        """Longest-first alias occurrences inside an already-normalised text."""
+        """Longest-first alias occurrences inside an already-normalised text.
+
+        Suppression dùng **residual** -- văn bản đã xoá các span đã nhận -- chứ
+        không dùng một chuỗi tích luỹ các surface đã nhận. Hai cách chỉ giống
+        nhau khi surface ngắn xuất hiện đúng một lần.
+
+        "Rating count và rating theo brand" hỏi CẢ HAI. Bản tích luỹ chặn
+        ``rating`` vì nó nằm trong ``rating count`` đã nhận, nên câu hỏi mất một
+        measure người dùng nêu tường minh. Residual xoá đúng span đã nhận rồi
+        hỏi lại: ``rating`` vẫn còn ở chỗ khác thì vẫn bind.
+        """
         matches: list[AliasMatch] = []
-        consumed = ""
+        residual = normalized_text
         for surface in sorted(self._by_surface, key=len, reverse=True):
             if not surface or not _contains_word(normalized_text, surface):
                 continue
-            if _contains_word(consumed, surface):
-                continue  # already covered by a longer alias
+            if not _contains_word(residual, surface):
+                continue  # mọi lần xuất hiện đều đã nằm trong một alias dài hơn
             if compound_shadowed(normalized_text, surface):
                 continue  # only occurs inside a compound that means something else
             refs = self._by_surface[surface]
@@ -148,7 +163,9 @@ class AliasIndex:
                 refs = [ref for ref in refs if self.catalog[ref].kind in kinds]
                 if not refs:
                     continue
-            consumed += " " + surface
+            residual = re.sub(
+                rf"(?<![a-z0-9]){re.escape(surface)}(?![a-z0-9])", " ", residual,
+            )
             matches.append(AliasMatch(tuple(refs), surface, len(refs) > 1))
         return matches
 
@@ -184,6 +201,33 @@ class AliasIndex:
             "collisions": {k: list(v) for k, v in self.collisions().items()},
             "rows": rows,
         }
+
+
+# WP-A4.1 · Surface trỏ nhiều ref: thứ tự này là quyết định nghiệp vụ đã được
+# kiểm bằng eval, không phải mặc định của thuật toán. Giữ ở MỘT chỗ vì hai bảng
+# ưu tiên chắc chắn sẽ lệch nhau.
+#
+# Nạp NGUYÊN VĂN hành vi cũ (A4-R1): chín surface đầu đến từ seed
+# ``DIMENSIONS``; sáu surface còn lại trước đây được phân giải bằng thứ tự chữ
+# cái của tên ref ("dim." < "entity."), tức một tai nạn sắp xếp — nay ghi thành
+# quyết định tường minh, cùng kết quả.
+PREFERRED_REF_BY_SURFACE: dict[str, str] = {
+    "shop": "entity.shop",
+    "cua hang": "entity.shop",
+    "toko": "entity.shop",
+    "quoc gia": "dim.country",
+    "country": "dim.country",
+    "negara": "dim.country",
+    "brand": "dim.brand",
+    "thuong hieu": "dim.brand",
+    "merek": "dim.brand",
+    "danh muc san": "dim.platform_category_name",
+    "platform category": "dim.platform_category_name",
+    "ke shop": "dim.shop_category_name",
+    "shop shelf": "dim.shop_category_name",
+    "san pham": "dim.product_name",
+    "produk": "dim.product_name",
+}
 
 
 def _contains_word(text: str, phrase: str) -> bool:
