@@ -4,7 +4,11 @@ import os
 
 from gladiators.contracts import GateDecision, GateIssue, IssueDetail, StructuredRequest
 from gladiators.domain.intent_registry import IntentRegistry
-from gladiators.agent.value_probe import missing_values, named_but_absent
+from gladiators.agent.value_probe import (
+    index_is_available,
+    missing_values,
+    named_but_absent,
+)
 from gladiators.planner.feasibility import connectivity_blockers
 from gladiators.planner.semantic_parser import AnalyticalRequest, classify_a19
 from gladiators.external.router import classify_external_need
@@ -138,6 +142,7 @@ class ContractDrivenGate:
         entity_check: object | None = None,
     ) -> GateDecision:
         self.last_connectivity: dict[str, object] = {}
+        self.last_value_probe: dict[str, object] = {}
         issues: list[GateIssue] = []
         # Issues that only matter if the request is refused for some other
         # reason; see the partial_unsupported block below.
@@ -301,7 +306,15 @@ class ContractDrivenGate:
                 ),
                 raw_question=str(request.slots.get("raw_text") or ""),
             )
-            for value_ref, literal in tuple(missing_values(analytical_request)) + named_absent:
+            probed = tuple(missing_values(analytical_request)) + named_absent
+            # Ghi verdict KỂ CẢ khi rỗng: một vòng lặp không bao giờ bắn trông
+            # giống hệt một vòng lặp bắn mà vô ích, và chỉ telemetry phân biệt
+            # được hai thứ đó.
+            self.last_value_probe = {
+                "missing": [list(pair) for pair in probed],
+                "index_available": index_is_available(),
+            }
+            for value_ref, literal in probed:
                 add("A-VALUE-NOT-FOUND", 3, "abstain",
                     f"Giá trị được nêu cho {value_ref.split('.')[-1]} không có "
                     "trong dữ liệu của thị trường này.",

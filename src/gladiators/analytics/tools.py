@@ -437,6 +437,14 @@ class AnalyticsTools:
                 source_path="result.row_count", dataset_version=dataset_version,
                 attrs={"country": country, "observed_date": observed_date,
                        "plan_hash": compiled.plan_hash, "empty_result": True, "row_index": 0,
+                       # Chỉ TÊN chiều đã lọc, không kèm giá trị: câu trả lời
+                       # rỗng phải nêu được nó đã lọc theo gì, mà giá trị lọc có
+                       # thể chứa chữ số và verifier.scan_numbers sẽ chấm chúng
+                       # là số bịa (CLAUDE.md §3.1).
+                       "filtered_refs": tuple(sorted({
+                           predicate.ref for node in plan.nodes
+                           for predicate in node.predicates
+                       })),
                        **execution_attrs},
             )]
         row = result.frame.iloc[0]

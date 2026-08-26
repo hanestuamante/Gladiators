@@ -1,7 +1,7 @@
 """P8 semantic planner with deterministic validation and one bounded repair."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from pydantic import ValidationError
@@ -26,9 +26,15 @@ class OpenPlannerError(ValueError):
     ``.issues`` for the trace and the bounded repair loop.
     """
 
-    def __init__(self, message: str, issues: tuple[dict[str, Any], ...] = ()):
+    def __init__(
+        self, message: str, issues: tuple[dict[str, Any], ...] = (),
+        context_relax: dict[str, Any] | None = None,
+    ):
         super().__init__(message)
         self.issues = issues
+        # Vòng R đã thử hay chưa phải đi CÙNG lỗi: một câu bị từ chối sau khi đã
+        # nới slice là bằng chứng khác hẳn một câu bị từ chối vì slice quá hẹp.
+        self.context_relax = context_relax or {"attempted": False, "added_refs": []}
 
 
 @dataclass(frozen=True)
@@ -39,9 +45,26 @@ class OpenPlannerResult:
     feedback: tuple[dict[str, Any], ...] = ()
     catalog_refs: tuple[str, ...] = ()
     context: dict[str, Any] | None = None
+    context_relax: dict[str, Any] | None = None
 
 
 LATEST_SNAPSHOT = "2026-07-03"
+
+# Vòng R nới lát cắt lên gấp đôi, đúng một lần (A5-R1). Gấp đôi chứ không mở
+# toàn bộ 86 ref: nới hết là bỏ hẳn việc cắt ngữ cảnh, và mất luôn tín hiệu cho
+# biết lát cắt hẹp có phải nguyên nhân hay không.
+RELAX_CATALOG_LIMIT = 60
+
+
+def _missing_refs(feedback: list[dict[str, Any]]) -> set[str]:
+    """Ref bị validator báo thiếu và có NÊU TÊN — không nêu tên thì không nới."""
+    refs: set[str] = set()
+    for item in feedback:
+        if item.get("code") != "missing_semantic_object":
+            continue
+        message = str(item.get("message", ""))
+        refs.update(token.strip(" .,;:") for token in message.split() if "." in token)
+    return {ref for ref in refs if ref in CATALOG}
 
 
 def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
@@ -113,14 +136,22 @@ class OpenAnalyticalPlanner:
         self.use_synthesizer = use_synthesizer
         self.slicer = CatalogSlicer()
 
-    def _catalog_slice(self, question: str, request: AnalyticalRequest) -> tuple[str, ...]:
-        lexical = [item.ref for item in self.slicer.select(question, self.catalog_limit)]
+    def _catalog_slice(
+        self, question: str, request: AnalyticalRequest,
+        limit: int | None = None, extra_refs: tuple[str, ...] = (),
+    ) -> tuple[str, ...]:
+        limit = self.catalog_limit if limit is None else limit
+        lexical = [item.ref for item in self.slicer.select(question, limit)]
         required = [
             item.ref for item in request.requested_measures + request.requested_dimensions
             if item.ref
         ] + [predicate.field_ref for predicate in request.filters]
         ordered = list(dict.fromkeys(required + ["dim.country", "dim.date", "entity.product_listing"] + lexical))
-        return tuple(ordered[: self.catalog_limit])
+        # A5-R4: ref được nới vào slice đứng TRƯỚC phần cắt, nếu không việc nới
+        # sẽ bị chính giới hạn nó vừa nới cắt mất. Chúng vẫn phải qua đủ 12
+        # IssueCode của validator — nới slice không phải nới validator.
+        extra = [ref for ref in extra_refs if ref in CATALOG]
+        return tuple(dict.fromkeys(extra + ordered[: limit]))
 
     @staticmethod
     def _catalog_payload(refs: tuple[str, ...]) -> list[dict[str, Any]]:
@@ -182,7 +213,51 @@ class OpenAnalyticalPlanner:
         if self.llm_client is None or not hasattr(self.llm_client, self.planner_method):
             raise OpenPlannerError("Không có semantic planner provider cho câu hỏi ngoài certified template.")
 
+        # Vòng R (A5.2) — nới lát cắt ngữ cảnh RỒI THỬ LẠI ĐÚNG MỘT LẦN.
+        # Đây là bảo hiểm cho WP-A6: nó cho phép cắt ngữ cảnh mạnh tay mà không
+        # biến việc tối ưu token thành một nguồn từ chối oan mới. Một ref bị cắt
+        # khỏi slice và một ref không tồn tại trông giống hệt nhau từ phía
+        # planner — chỉ có việc nới ra rồi thử lại mới phân biệt được.
         refs = self._catalog_slice(question, request)
+        result, feedback = self._plan_with_slice(
+            question, request, country, refs, context_bundle,
+        )
+        if result is not None:
+            return result
+
+        relax = {"attempted": False, "added_refs": [], "widened_to": self.catalog_limit}
+        added = tuple(sorted(_missing_refs(feedback) - set(refs)))
+        if added:
+            relax = {
+                "attempted": True, "added_refs": list(added),
+                "widened_to": RELAX_CATALOG_LIMIT,
+            }
+            widened = self._catalog_slice(
+                question, request, limit=RELAX_CATALOG_LIMIT, extra_refs=added,
+            )
+            result, feedback = self._plan_with_slice(
+                question, request, country, widened, context_bundle,
+            )
+            if result is not None:
+                return replace(result, context_relax=relax)
+
+        # Codes only in the message: they are a closed, reviewed vocabulary. The
+        # free-text detail (which can embed a raw schema dump) stays on .issues
+        # for the trace, never in the sentence a user reads.
+        codes = sorted({str(item.get("code", "unknown")) for item in feedback})
+        raise OpenPlannerError(
+            "Không lập được plan hợp lệ sau một vòng sửa có ràng buộc"
+            + (f" ({', '.join(codes)})" if codes else "")
+            + ".",
+            issues=tuple(feedback),
+            context_relax=relax,
+        )
+
+    def _plan_with_slice(
+        self, question: str, request: AnalyticalRequest, country: str,
+        refs: tuple[str, ...], context_bundle: ContextBundle | None,
+    ) -> tuple[OpenPlannerResult | None, list[dict[str, Any]]]:
+        """Một lượt lập kế hoạch trên MỘT lát cắt, kèm đúng một vòng sửa."""
         base_payload = {
             "question": question,
             "analytical_request": request.model_dump(mode="json"),
@@ -230,15 +305,6 @@ class OpenAnalyticalPlanner:
                     plan=plan, mode="llm_semantic_plan", attempts=attempt + 1,
                     feedback=tuple(feedback), catalog_refs=refs,
                     context=context_bundle.trace_summary() if context_bundle else None,
-                )
+                ), issues
             feedback = issues
-        # Codes only in the message: they are a closed, reviewed vocabulary. The
-        # free-text detail (which can embed a raw schema dump) stays on .issues
-        # for the trace, never in the sentence a user reads.
-        codes = sorted({str(item.get("code", "unknown")) for item in feedback})
-        raise OpenPlannerError(
-            "Không lập được plan hợp lệ sau một vòng sửa có ràng buộc"
-            + (f" ({', '.join(codes)})" if codes else "")
-            + ".",
-            issues=tuple(feedback),
-        )
+        return None, feedback

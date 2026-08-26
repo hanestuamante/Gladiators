@@ -15,6 +15,11 @@ from gladiators.contracts import AgentResponse, Evidence, GateDecision, Response
 from gladiators.data.repository import ArtifactRepository
 from gladiators.domain.capability import match, specs_from_macros
 from gladiators.domain.intent_registry import default_registry
+from gladiators.domain.invariant_handlers import (
+    InvariantContext,
+    enforce_invariants,
+    hard_violations,
+)
 from gladiators.planner.macros import default_macro_registry
 from gladiators.planner.analytical import AnalyticalPlanError, build_analytical_plan, infer_deterministic_template
 from gladiators.planner.semantic_parser import AnalyticalRequest, classify_complexity
@@ -42,6 +47,7 @@ from .tool_dispatch import ToolContext, dispatch
 from .trace import TraceStore
 from .verifier import verify_numeric_claims
 from .wording import check_wording
+from .wording_repair import quotable_spans, strict_answer
 from .alignment import (
     check_answer_alignment,
     check_question_alignment,
@@ -60,6 +66,15 @@ _METRIC_LABELS = {
     "median_monthly_sold_proxy": "lượt bán proxy trung vị",
     "monthly_sold_proxy": "lượt bán proxy",
 }
+
+
+def _ref_label(ref: str) -> str:
+    """Alias tiếng Việt đầu tiên của một ref catalog, hoặc chính ref nếu không có."""
+    from gladiators.domain.catalog import CATALOG
+
+    entry = CATALOG.get(ref)
+    aliases = getattr(entry, "aliases", ()) if entry is not None else ()
+    return str(aliases[0]) if aliases else ref
 
 
 def _metric_label(metric: str) -> str:
@@ -160,6 +175,19 @@ def _confidence_inputs(
         has_invariants=bool(attrs.get("has_invariants", False)),
         adjudicated=bool(nversion.get("adjudicated", False)),
     )
+
+
+@dataclass(frozen=True)
+class _EmptyExecution:
+    """Kết quả thực thi rỗng, đúng những trường handler invariant được nhìn.
+
+    Tồn tại vì ``InvariantContext.execution`` là ``Any`` — không có kiểu này thì
+    call site phải truyền một dict và handler phải ``getattr`` trên dict, tức
+    luôn trả mặc định và luật im lặng không bao giờ bắn.
+    """
+
+    row_count: int
+    relaxed_filters: bool
 
 
 class AgentRuntime:
@@ -502,6 +530,24 @@ class AgentRuntime:
                 "PHẦN NỘI BỘ\n" + internal_answer + "\n\n"
                 "BỐI CẢNH NGOÀI\nTạm thiếu: " + reason + ". Phần nội bộ ở trên vẫn giữ nguyên."
             )
+        if len(evidence) == 1 and evidence[0].attrs.get("empty_result"):
+            # A5.1: nêu ĐIỀU KIỆN đã lọc rồi nói không có gì thoả. Không đoán
+            # nguyên nhân (INV-NO-CAUSAL-CLAIM) — "không có dòng nào" và "vì sao
+            # không có dòng nào" là hai câu hỏi khác nhau, và hệ chỉ trả lời được
+            # câu đầu.
+            item = evidence[0]
+            refs = item.attrs.get("filtered_refs") or ()
+            named = ", ".join(
+                _ref_label(str(ref)) for ref in refs if str(ref) != "dim.country"
+            )
+            scope = f" theo {named}" if named else ""
+            return (
+                f"Không có dòng dữ liệu nào thoả điều kiện đã lọc{scope}. "
+                f"Số dòng khớp: 0 [{item.evidence_id}]. "
+                "Đây là kết quả của phép lọc, không phải lỗi truy vấn; "
+                "dữ liệu không cho biết vì sao không có dòng nào."
+            )
+
         by_metric = {e.metric: e for e in evidence}
         if request.intent == "external_context" and evidence:
             lines = []
@@ -907,6 +953,7 @@ class AgentRuntime:
         # WP-A2: verdict kết nối ref được ghi KỂ CẢ khi cờ tắt — một thành phần
         # không ai đo là một thành phần không ai biết nó đúng hay sai.
         connectivity = dict(getattr(self.gate, "last_connectivity", {}) or {})
+        value_probe = dict(getattr(self.gate, "last_value_probe", {}) or {})
         if entity_types:
             planning_seed_entity_types = {
                 "expected": list(entity_types),
@@ -996,7 +1043,12 @@ class AgentRuntime:
                                 context_bundle=plan_bundle,
                             )
                         except OpenPlannerError as exc:
-                            raise AnalyticalPlanError(str(exc)) from exc
+                            # A5.2: vòng R đã thử hay chưa phải sống sót qua lần
+                            # raise này, nếu không con số "cứu được bao nhiêu câu
+                            # nhờ nới ngữ cảnh" không đo được.
+                            failed = AnalyticalPlanError(str(exc))
+                            failed.context_relax = exc.context_relax
+                            raise failed from exc
                         logical_plan = planner_result.plan
                     else:
                         # Certified-kind questions skipped the synthesizer entirely,
@@ -1093,6 +1145,8 @@ class AgentRuntime:
                         )
                         if planner_result.context:
                             planning_meta.setdefault("contexts", {})["plan"] = planner_result.context
+                        if planner_result.context_relax:
+                            planning_meta["context_relax"] = planner_result.context_relax
                     if not risk.allowed:
                         raise AnalyticalPlanError(risk.reason)
                     if risk.effective_mode == "nversion":
@@ -1157,6 +1211,9 @@ class AgentRuntime:
                     planning_meta.update(
                         outcome="blocked", a19_rule="A19-PLAN", reason=str(exc),
                     )
+                    relaxed = getattr(exc, "context_relax", None)
+                    if relaxed:
+                        planning_meta["context_relax"] = relaxed
                     tool_plan = ()
             elif request.intent == "schema_relation_explain":
                 # WP-A7: intent này đọc registry quan hệ, không chạy macro và cố
@@ -1259,6 +1316,51 @@ class AgentRuntime:
                     answerable_alternative="Hãy hỏi danh sách các nhóm đạt mức cao nhất, "
                                            "hoặc thêm tiêu chí phụ để phân định.",
                 )
+            elif (
+                decision.action == "allow" and logical_plan is not None
+                and len(evidence) == 1 and evidence[0].attrs.get("empty_result")
+            ):
+                # A5.1 bước 2: KHÔNG hàng nào khớp là một KẾT QUẢ, không phải
+                # lỗi. Trước đây evidence result_count=0 rơi vào
+                # check_evidence_alignment — vốn đối chiếu measure đã hỏi với
+                # measure có trong evidence — và thành clarify, tức hệ nói "tôi
+                # không hiểu câu hỏi" trong khi nó vừa trả lời chính xác: không
+                # có gì thoả điều kiện.
+                #
+                # Đây cũng là call site đầu tiên cho stage "execution": invariant
+                # INV-EMPTY-RESULT-IS-VALID đã khai và handler đã tồn tại, nhưng
+                # chưa ai gọi — một luật không có call site là một luật không
+                # tồn tại.
+                violations = enforce_invariants("execution", InvariantContext(
+                    stage="execution",
+                    request=request,
+                    plan=logical_plan,
+                    execution=_EmptyExecution(
+                        row_count=0,
+                        relaxed_filters=bool(
+                            evidence[0].attrs.get("relaxed_filters", False),
+                        ),
+                    ),
+                    evidence=tuple(evidence),
+                ))
+                planning_meta["empty_result"] = {
+                    "row_count": 0,
+                    "violations": [item.rule_id for item in violations],
+                }
+                if hard_violations(violations):
+                    # Chỉ một cách vi phạm được: kết quả rỗng đạt được bằng cách
+                    # NỚI filter. Đó không còn là câu trả lời cho câu đã hỏi.
+                    evidence = []
+                    decision = GateDecision(
+                        action="abstain", rule_id="A-EMPTY-RESULT-RELAXED",
+                        reason="Kết quả rỗng chỉ đạt được sau khi nới điều kiện lọc, "
+                               "nên nó không trả lời đúng câu đã hỏi.",
+                    )
+                else:
+                    decision = GateDecision(
+                        action="allow", rule_id="A-ALLOW",
+                        reason="Không dòng dữ liệu nào thoả điều kiện đã lọc.",
+                    )
             elif decision.action == "allow" and (
                 logical_plan is not None or macro is not None
             ) and evidence:
@@ -1364,6 +1466,52 @@ class AgentRuntime:
                 or bool(consistency)
             )
         )
+        if final_verification_failed and (
+            not verification["passed"]
+            and answer_alignment.aligned and question_alignment.aligned
+            and not consistency
+        ):
+            # Vòng W (A5.3). Bốn điều kiện trên nói cùng một chuyện: số ĐÚNG,
+            # evidence KHỚP, câu hỏi được trả lời ĐÚNG — chỉ câu chữ sai. Bỏ cả
+            # câu trả lời ở đây là để một false positive của verifier giết một
+            # câu trả lời đúng, đúng thứ đã đo được trên suite legacy.
+            repair: dict[str, Any] = {"attempted": True, "passed": False, "step": None}
+            spans = quotable_spans(
+                answer, evidence, list(verification.get("unsupported") or ()),
+            )
+            if spans:
+                retried = verify_numeric_claims(
+                    answer, evidence, claims=claims,
+                    require_claims=decision.action == "allow" and bool(evidence),
+                    ignore_texts=decision.quoted_texts + spans,
+                )
+                if retried["passed"]:
+                    decision = decision.model_copy(
+                        update={"quoted_texts": decision.quoted_texts + spans},
+                    )
+                    verification = retried
+                    repair.update(passed=True, step="quoted_span_exemption",
+                                  spans=list(spans))
+            if not repair["passed"]:
+                # Bước 2 chỉ chạy khi bước 1 chưa đủ, và chỉ được BỚT chữ.
+                strict = strict_answer(evidence, claims)
+                if strict:
+                    retried = verify_numeric_claims(
+                        strict, evidence, claims=claims,
+                        require_claims=decision.action == "allow" and bool(evidence),
+                        ignore_texts=decision.quoted_texts,
+                    )
+                    if retried["passed"]:
+                        answer, verification = strict, retried
+                        repair.update(passed=True, step="strict_template")
+            planning_meta["wording_repair"] = repair
+            if repair["passed"]:
+                # A5-R1: đúng một lần. Alignment đã pass từ trước và vòng W không
+                # sinh nội dung mới, nên hai verdict cũ vẫn đúng cho câu đã sửa.
+                verification["alignment"] = answer_alignment.as_dict()
+                verification["question_alignment"] = question_alignment.as_dict()
+                final_verification_failed = False
+
         if final_verification_failed:
             planning_meta["final_verification_failure"] = verification
             if not question_alignment.aligned:
@@ -1435,6 +1583,8 @@ class AgentRuntime:
         # còn được đo.
         if connectivity:
             planning_meta.setdefault("connectivity", connectivity)
+        if value_probe.get("missing"):
+            planning_meta.setdefault("value_probe", value_probe)
         if planning_seed_entity_types:
             planning_meta.setdefault("entity_type_constraint", planning_seed_entity_types)
         response = AgentResponse(trace_id=trace_id, request=request, gate=decision, answer=answer, evidence=evidence, claims=claims, tool_calls=calls, resolved_listing_key=resolved_key, verification=verification, llm=llm_meta, planning=planning_meta, context=response_context, degraded=final_verification_failed or not verification["passed"])

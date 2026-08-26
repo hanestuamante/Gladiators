@@ -331,6 +331,17 @@ def main():
                     "parse_fallback": bool(response.llm.get("parse_fallback")),
                     "generation_fallback": bool(response.llm.get("generation", {}).get("fallback")),
                     "evidence_count": len(response.evidence),
+                    # Ba vòng lặp rẻ của WP-A5. Không có ba khoá này thì "vòng
+                    # nào cứu được bao nhiêu câu" không đo được, và một vòng
+                    # không bao giờ bắn trông giống hệt một vòng bắn mà vô ích.
+                    "loop_value_probe": bool(response.planning.get("value_probe")),
+                    "loop_context_relax": bool(
+                        (response.planning.get("context_relax") or {}).get("attempted"),
+                    ),
+                    "loop_wording_repair": bool(
+                        (response.planning.get("wording_repair") or {}).get("passed"),
+                    ),
+                    "loop_empty_result": bool(response.planning.get("empty_result")),
                     **checks,
                 }
             except Exception as exc:
@@ -349,7 +360,9 @@ def main():
         checkpoint.parent.mkdir(parents=True, exist_ok=True)
         checkpoint.write_text(json.dumps({"provider": args.provider, "mode": args.mode, "completed_cases": len({r["id"] for r in rows}), "rows": rows}, ensure_ascii=False, indent=2), encoding="utf-8")
         if stop_reason: break
-    expected_abstain = {c["id"] for c in cases if c["expected_action"] == "abstain"}; actual_abstain = {r["id"] for r in rows if r["run"] == 1 and r.get("action") == "abstain"}
+    # .get, không [] — bộ đề kiểu scenario_acceptance cố ý không khai
+    # expected_action (xem run_case: scoring_mode="action_rule_only").
+    expected_abstain = {c["id"] for c in cases if c.get("expected_action") == "abstain"}; actual_abstain = {r["id"] for r in rows if r["run"] == 1 and r.get("action") == "abstain"}
     tp = len(expected_abstain & actual_abstain); precision = div(tp, len(actual_abstain)); recall = div(tp, len(expected_abstain))
     planned = [
         row for row in rows
@@ -362,6 +375,11 @@ def main():
     stability_cases = [ids for ids in plan_ids_by_case.values() if ids]
     complexity_rows = [row for row in rows if row.get("expected_complexity_level") and row.get("complexity_level")]
     a19_rows = [row for row in rows if str(row.get("gate_rule_id", "")).startswith("A19")]
+    first_run = [row for row in rows if row["run"] == 1]
+    cheap_loops = {
+        name: sum(1 for row in first_run if row.get(f"loop_{name}"))
+        for name in ("value_probe", "context_relax", "wording_repair", "empty_result")
+    }
     expected_a19_rows = [row for row in rows if any(case["id"] == row["id"] and case.get("expected_rule", "").startswith("A19") for case in cases)]
     # Row không chấm được không được lẫn vào mẫu số của accuracy: chia cho
     # chúng là biến "chưa đo" thành "đo được và trượt".
@@ -382,7 +400,7 @@ def main():
         "plan_stability_rate": div(sum(len(ids) == 1 for ids in stability_cases), len(stability_cases)) if stability_cases else None,
         "complexity_classification_accuracy": div(sum(r["complexity_level"] == r["expected_complexity_level"] for r in complexity_rows), len(complexity_rows)) if complexity_rows else None,
         "escalation_rate": div(sum(r.get("escalation_mode") in {"critic", "nversion"} for r in rows), len(rows)),
-        "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)),
+        "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)), "cheap_loops_fired": cheap_loops,
         # WP-B1: cặp abstention_* ở trên chỉ đếm `abstain` nên mù hoàn toàn
         # với `clarify`. Giữ chúng để so chuỗi thời gian (B1-R1), thêm sáu
         # chỉ số dưới đây để đo đúng thứ hệ đang làm.
