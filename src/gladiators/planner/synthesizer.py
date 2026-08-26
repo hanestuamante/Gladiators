@@ -459,3 +459,26 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
         plan=plan, grammar_path=plan.plan_id, aggregation=aggregation,
         dimensions=tuple(dimensions), relations=relations,
     )
+
+
+def has_unbound_condition_marker(request: AnalyticalRequest) -> bool:
+    """Chỉ marker ĐIỀU KIỆN chưa bind, KHÔNG tính nhánh mã sản phẩm.
+
+    ``_has_unbound_qualifier`` gộp cả hai: điều kiện chưa bind và câu nêu một mã
+    listing cụ thể. Nhánh mã đã có lối từ chối riêng của nó (A22, khoá bởi ca
+    TC39), nên phép kiểm ở tầng template phải hẹp hơn — nếu không nó cướp mất
+    một chẩn đoán đang đúng.
+    """
+    text = f" {request.normalized_question} "
+    bound = {predicate.field_ref for predicate in request.filters}
+    for surface in sorted(_QUALIFIER_MARKER_REF, key=len, reverse=True):
+        if _QUALIFIER_MARKER_REF[surface] in bound and surface in text:
+            text = text.replace(surface, " ")
+    for marker in _UNBOUND_QUALIFIER_MARKERS:
+        if f" {marker} " not in text and not text.rstrip().endswith(f" {marker}"):
+            continue
+        ref = _QUALIFIER_MARKER_REF.get(marker)
+        if ref is not None and ref in bound:
+            continue
+        return True
+    return False

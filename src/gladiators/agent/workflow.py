@@ -24,7 +24,10 @@ from gladiators.planner.open_planner import (
     _synthesis_beats_template,
 )
 from gladiators.planner.shadow import ShadowObserver
-from gladiators.planner.synthesizer import synthesize
+from gladiators.planner.synthesizer import (
+    has_unbound_condition_marker,
+    synthesize,
+)
 from gladiators.planner.validator import validate_plan
 from gladiators.planner.consensus import ConsensusError, NVersionResolver
 from gladiators.planner.risk import EscalationConfig, score_plan
@@ -1002,12 +1005,25 @@ class AgentRuntime:
                         # Same rule as the open path: synthesise only where the
                         # template is known to be wrong, not merely absent.
                         synthesized = None
+                        candidate_request = None
                         if request.analytical:
                             candidate = AnalyticalRequest.model_validate(request.analytical)
+                            candidate_request = candidate
                             if _synthesis_beats_template(candidate):
                                 result = synthesize(candidate, request.country)
                                 if result is not None and validate_plan(result.plan).valid:
                                     synthesized = result.plan
+                        if synthesized is None and has_unbound_condition_marker(candidate_request):
+                            # Câu mang một điều kiện mà bộ sinh kế hoạch TỪ CHỐI
+                            # vì chưa bind được. Template không có chỗ diễn đạt
+                            # điều kiện đó, nên để nó trả lời là bỏ điều kiện
+                            # trong im lặng: "bao nhiêu listing ĐÃ HẾT HÀNG tại
+                            # VN" từng trả 668 — toàn bộ thị trường — trong khi
+                            # đáp án là 0.
+                            raise AnalyticalPlanError(
+                                "Câu hỏi nêu một điều kiện mà hệ chưa lọc được; "
+                                "trả lời bằng mẫu có sẵn sẽ bỏ mất điều kiện đó."
+                            )
                         logical_plan = synthesized or build_analytical_plan(
                             analytical_kind, request.country,
                         )

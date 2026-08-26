@@ -105,3 +105,34 @@ def test_no_false_positive_on_real_suites(tmp_path, suite):
         response = runtime.run(case["question"])
         issues = check_evidence_arithmetic(response.evidence)
         assert issues == (), f"{suite}:{case['id']} -> {[i.code for i in issues]}"
+
+
+# --- WP-A5 · template không được trả lời khi điều kiện bị bỏ ------------
+
+@pytest.mark.parametrize("question,truth", [
+    ("Có bao nhiêu listing đã hết hàng tại Việt Nam ngày 03/07?", 0),
+])
+def test_template_must_not_answer_when_a_condition_was_dropped(tmp_path, question, truth):
+    """Bộ đề sinh từ dữ liệu bắt được một wrong_value thật.
+
+    `is_sold_out` là False trên TOÀN BỘ dữ liệu, nên đáp án đúng là 0. Hệ trả
+    668 — toàn bộ thị trường — vì bộ sinh kế hoạch TỪ CHỐI (guard bắt được điều
+    kiện chưa bind) rồi runtime rơi về template `analytical:listing_count`, mà
+    template không có chỗ diễn đạt điều kiện đó.
+
+    Fail-closed là đúng; trả 668 là một câu trả lời sai tự tin.
+    """
+    runtime = AgentRuntime(trace_dir=tmp_path)
+    response = runtime.run(question)
+    values = [item.value for item in response.evidence]
+    assert 668 not in values, "điều kiện bị bỏ, template trả về tổng chưa lọc"
+    assert response.gate.action != "allow" or values == [truth]
+
+
+def test_questions_without_conditions_still_answer(tmp_path):
+    """Chốt chặn phải hẹp: câu không có điều kiện vẫn phải trả lời được."""
+    response = AgentRuntime(trace_dir=tmp_path).run(
+        "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+    )
+    assert response.gate.action == "allow"
+    assert [item.value for item in response.evidence] == [668]
