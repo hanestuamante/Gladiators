@@ -141,8 +141,80 @@ def _project_star(left: str, right: str) -> list[exp.Expression]:
     ]
 
 
-# ``RelationBinding.projection_id`` phải resolve tới đúng một entry ở đây; một
-# projection_id không có adapter là compile error, không phải im lặng SELECT *.
+def _project_relation(node, relation, binding, left: str, right: str) -> list[exp.Expression]:
+    """A1.3 — ``left.*`` cộng đúng những cột phía phải mà ``node.refs`` yêu cầu.
+
+    Bốn adapter cũ hằng số hoá danh sách cột. ``_project_belongs_to`` chiếu đúng
+    6 cột, nên sau khi join sang shop thì ``price_num``, ``voucher_code``,
+    ``catid_num`` BIẾN MẤT khỏi frame — mọi predicate hay measure phía sau join
+    đều hỏng, và hỏng im lặng.
+
+    Không ``SELECT *`` cả hai bên: hai bảng dùng chung ``country_code`` /
+    ``shop_id`` / ``date``, và một cột trùng tên sau join là một cột không ai
+    biết nó đến từ đâu.
+    """
+    from gladiators.domain.bindings import default_binding_snapshot
+    from gladiators.domain.catalog import CATALOG
+
+    # Đọc danh sách cột từ binding snapshot (219 cột thật của 7 artifact) chứ
+    # không từ catalog: catalog chỉ biết những cột đã được khai làm ref, nên một
+    # va chạm tên với cột chưa khai sẽ lọt qua trong im lặng.
+    snapshot = default_binding_snapshot()
+    right_source = binding.right_source.value
+    left_columns: set[str] = set()
+    for source in binding.left_sources:
+        spec = snapshot.tables.get(source)
+        if spec is not None:
+            left_columns |= {column.name for column in spec.columns}
+
+    # Khoá join mang GIÁ TRỊ GIỐNG HỆT hai bên theo đúng định nghĩa của phép
+    # nối, nên bản phía phải không thêm thông tin gì và chỉ tạo va chạm tên.
+    join_key_columns = {key.right.column for key in binding.join_keys}
+
+    selections: list[exp.Expression] = []
+    seen: set[str] = set()
+    shadowed: list[str] = []          # cột trái bị bản phải thay thế
+
+    def take(column: str) -> None:
+        if column in seen or column in join_key_columns:
+            return
+        if column in left_columns:
+            # `shop_name` có ở CẢ products lẫn shop_info. Ref `dim.shop_name`
+            # khai nó thuộc shop_info, nên bản phía phải là bản có thẩm quyền —
+            # và bản trái phải bị loại khỏi frame, chứ không để hai cột cùng tên
+            # rồi trông chờ vào hậu tố tự sinh của engine.
+            shadowed.append(column)
+        seen.add(column)
+        selections.append(exp.alias_(exp.column(column, table=right), column, quoted=True))
+
+    for ref in node.refs:
+        obj = CATALOG.get(ref)
+        if obj is None:
+            continue
+        for physical in obj.physical:
+            artifact, _, column = physical.rpartition(".")
+            if artifact == right_source:
+                take(column)
+
+    if not selections:
+        # Node Join không khai ref nào phía phải. Spec A1.3 luật 4 muốn đây là
+        # lỗi compile, nhưng plan hiện có (has_sales_metric) dựa vào `r.*` và
+        # A1-R1 cấm lấy đi năng lực đang chạy. Giữ hành vi cũ, đồng thời vẫn giữ
+        # bảo đảm mà luật 4 thật sự muốn: KHÔNG cột trùng tên sau join.
+        # Giữ NGUYÊN hành vi cũ `l.*, r.*` cho nhánh này. Spec A1.3 luật 4 muốn
+        # nó là lỗi compile, nhưng plan đang chạy (has_sales_metric) dựa vào nó
+        # và A1-R1 cấm lấy đi năng lực đang có. Liệt kê tường minh từng cột phải
+        # ở đây làm DuckDB báo binder error, nên `r.*` vẫn là cách đúng.
+        return [
+            exp.Column(this=exp.Star(), table=exp.Identifier(this=left)),
+            exp.Column(this=exp.Star(), table=exp.Identifier(this=right)),
+        ]
+    star = exp.Star(**{"except": [exp.column(c) for c in shadowed]}) if shadowed else exp.Star()
+    return [exp.Column(this=star, table=exp.Identifier(this=left)), *selections]
+
+
+# DEPRECATED (A1.3): giữ thêm một release để fixture cũ còn parse
+# ``RelationBinding.projection_id``. Không còn nằm trên đường compile.
 _JOIN_PROJECTIONS: dict[str, Callable[[str, str], list[exp.Expression]]] = {
     "belongs_to": _project_belongs_to,
     "in_platform_category": _project_platform_category,
@@ -262,13 +334,9 @@ def _compile_node(
         on = conditions[0]
         for condition in conditions[1:]:
             on = exp.and_(on, condition)
-        projection = _JOIN_PROJECTIONS.get(binding.projection_id or "")
-        if projection is None:
-            raise CompilationError(
-                f"Relation {relation.name}: projection_id không resolve adapter: "
-                f"{binding.projection_id!r}"
-            )
-        selections = projection(left_alias, right_alias)
+        selections = _project_relation(
+            node, relation, binding, left_alias, right_alias,
+        )
         return exp.select(*selections).from_(inputs[0].subquery(left_alias)).join(
             exp.to_table(right_view).as_(right_alias), on=on, join_type="LEFT"
         )

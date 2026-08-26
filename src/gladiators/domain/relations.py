@@ -82,7 +82,12 @@ _RELATION_SPECS = [
         (7,), "N:1", "left_preserve:ProductListing", "listing_snapshot", "listing_snapshot",
         "none", None, "static_latest_only", "shop_info có 20 shop, chỉ một snapshot", 1, 1,
         RelationBinding(
-            "left_join", (ArtifactName.PRODUCTS,), ArtifactName.SHOP_INFO,
+            # A1.2(b): `country_code` và `shop_id` có trên CẢ HAI bảng trái, nên
+            # quan hệ này hợp lệ khi quét từ snapshot_metrics. Không mở rộng thì
+            # "listing có voucher của shop chính hãng" không lập được kế hoạch
+            # nào: cờ voucher chỉ ở snapshot_metrics, cờ official chỉ ở shop_info.
+            "left_join", (ArtifactName.PRODUCTS, ArtifactName.SNAPSHOT_METRICS),
+            ArtifactName.SHOP_INFO,
             _keys(ArtifactName.PRODUCTS, ArtifactName.SHOP_INFO,
                   ("country_code", "country_code"), ("shop_id", "shop_id")),
             projection_id="belongs_to",
@@ -180,8 +185,13 @@ _RELATION_SPECS = [
         "duplicates_left_rows", "metric_grain_required", "per_snapshot", "snapshot và transition metrics", 2, 2,
         RelationBinding(
             "left_join", (ArtifactName.PRODUCTS,), ArtifactName.SNAPSHOT_METRICS,
+            # A1.2(a): snapshot_metrics có 3 dòng cho một listing (một dòng mỗi
+            # snapshot). Join chỉ theo product_listing_key nhân bản mỗi dòng
+            # trái lên 3 lần, và Dedupe phía sau sắp theo `date DESC` trong khi
+            # cả 3 bản sao mang CÙNG date của phía trái — giữ lại 1 trong 3 là
+            # tuỳ tiện. Thêm khoá `date` làm join đúng grain.
             _keys(ArtifactName.PRODUCTS, ArtifactName.SNAPSHOT_METRICS,
-                  ("product_listing_key", "product_listing_key")),
+                  ("product_listing_key", "product_listing_key"), ("date", "date")),
             projection_id="has_sales_metric",
         ),
     ),
@@ -212,7 +222,29 @@ def _build_registry(specs: list[RelationSpec]) -> dict[str, RelationSpec]:
     return registry
 
 
+def _build_entity_by_right_source(
+    registry: dict[str, RelationSpec],
+) -> dict[str, str]:
+    """A1.1 — bảng artifact → entity, SINH từ binding, không khai lần hai.
+
+    Hai relation cùng ``right_source`` là lỗi build: nó nghĩa là một bảng có hai
+    danh tính, và pathfinding sẽ chọn bừa một cái.
+    """
+    mapping: dict[str, str] = {}
+    for spec in registry.values():
+        if spec.binding is None or spec.binding.mode != "left_join":
+            continue
+        source = spec.binding.right_source.value
+        if source in mapping and mapping[source] != spec.right:
+            raise ValueError(
+                f"{source} mang hai danh tính: {mapping[source]} và {spec.right}"
+            )
+        mapping[source] = spec.right
+    return mapping
+
+
 RELATIONS = _build_registry(_RELATION_SPECS)
+ENTITY_BY_RIGHT_SOURCE = _build_entity_by_right_source(RELATIONS)
 
 # Compatibility maps — SINH từ binding. Consumer cũ đọc tên artifact dạng chuỗi;
 # không có literal thứ hai nào để lệch khỏi binding.

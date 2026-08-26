@@ -165,7 +165,13 @@ def test_no_forbidden_shelf_to_platform_edge_exists():
     ("in_shop_category",
      ["l.country_code = r.country_code", "l.shop_id = r.shop_id",
       "l.category_id_num = r.shop_category_id_num", "l.date = r.date"]),
-    ("has_sales_metric", ["l.product_listing_key = r.product_listing_key"]),
+    # A1.2(a) — thay đổi hợp đồng CÓ CHỦ ĐÍCH, có bằng chứng đo bằng pandas:
+    # snapshot_metrics có 3 dòng cho một listing, nên join chỉ theo
+    # product_listing_key nhân 668 dòng VN ngày 03/07 lên 1900. Thêm khoá `date`
+    # đưa về đúng 668 (1:1). Dedupe phía sau KHÔNG cứu được: cả 3 bản sao mang
+    # cùng `date` của phía trái nên giữ lại 1 trong 3 là tuỳ tiện.
+    ("has_sales_metric",
+     ["l.product_listing_key = r.product_listing_key", "l.date = r.date"]),
 ])
 def test_compiled_join_uses_exactly_the_declared_keys(name, expected):
     from gladiators.planner import compiler
@@ -190,3 +196,23 @@ def test_every_join_relation_resolves_a_compiler_projection():
 def test_inline_relations_have_no_compiler_projection():
     for name in INLINE_RELATIONS:
         assert RELATIONS[name].binding.projection_id is None, name
+
+
+def test_sales_metric_join_is_one_to_one_at_pinned_date():
+    """A1.2(a) — join phải giữ nguyên số dòng khi đã ghim một snapshot.
+
+    Đo trên dữ liệu thật thay vì đọc khai báo: một quan hệ khai
+    ``fanout_effect`` gì cũng không cho biết nó có thật sự nhân bản hay không.
+    """
+    import pandas as pd
+
+    products = pd.read_csv("data/processed/products_clean.csv")
+    metrics = pd.read_csv("data/processed/product_snapshot_metrics.csv")
+    left = products[
+        (products.country_code == "vn") & (products.date.astype(str) == "2026-07-03")
+    ]
+    keys = [key.left.column for key in RELATIONS["has_sales_metric"].binding.join_keys]
+    joined = left.merge(metrics[keys + ["price_num"]], on=keys, how="left")
+    assert len(joined) == len(left), (
+        f"join nhân bản {len(left)} dòng thành {len(joined)}"
+    )
