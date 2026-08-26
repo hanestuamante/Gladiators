@@ -293,6 +293,17 @@ def main():
     ap.add_argument("--enable-critic", action="store_true", help="Bật escalation critic; offline dùng deterministic acceptance stub")
     ap.add_argument("--resume", action="store_true", help="Tiếp tục từ checkpoint.json trong output directory")
     args = ap.parse_args(); cases = json.loads(Path(args.suite).read_text(encoding="utf-8"))
+    # Một số bộ đề (p0_probes, dr2607) gói case trong {"cases": [...]} kèm
+    # schema_version. Trước đây harness đọc thẳng và chết bằng TypeError ở tận
+    # vòng lặp, cách xa nguyên nhân.
+    if isinstance(cases, dict):
+        cases = cases.get("cases", [])
+    # Case chưa có câu hỏi là một CHỖ TRỐNG chờ người quyết (p0-tc19/tc23/tc34),
+    # không phải một phép đo thất bại. Chấm nó thành crash làm crash_rate 0.333
+    # trên một bộ mà hệ thống không hề hỏng — và một chỉ số báo hỏng khi không
+    # hỏng sẽ bị bỏ qua đúng lúc nó báo thật.
+    placeholders = [case["id"] for case in cases if not case.get("question")]
+    cases = [case for case in cases if case.get("question")]
     # `deepseek` nằm trong --provider choices nhưng trước đây không có nhánh nào
     # dựng client, nên nó rơi vào `else None`: runner chạy 100% offline rồi ghi
     # report mang nhãn "provider": "deepseek". Một phép đo trông như đã đo mà
@@ -401,6 +412,7 @@ def main():
         "complexity_classification_accuracy": div(sum(r["complexity_level"] == r["expected_complexity_level"] for r in complexity_rows), len(complexity_rows)) if complexity_rows else None,
         "escalation_rate": div(sum(r.get("escalation_mode") in {"critic", "nversion"} for r in rows), len(rows)),
         "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)), "cheap_loops_fired": cheap_loops,
+        "placeholder_cases": placeholders,
         # WP-B1: cặp abstention_* ở trên chỉ đếm `abstain` nên mù hoàn toàn
         # với `clarify`. Giữ chúng để so chuỗi thời gian (B1-R1), thêm sáu
         # chỉ số dưới đây để đo đúng thứ hệ đang làm.

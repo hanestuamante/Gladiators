@@ -42,7 +42,7 @@ from .entity_resolution import EntityResolver, expected_entity_types
 from .consistency import check_evidence_arithmetic
 from .suggestions import nearest_answerable
 from .gate import ContractDrivenGate
-from .parser import MultilingualIntentParser, UNSUPPORTED
+from .parser import MultilingualIntentParser, UNSUPPORTED, question_clauses
 from .tool_dispatch import ToolContext, dispatch
 from .trace import TraceStore
 from .verifier import verify_numeric_claims
@@ -900,6 +900,110 @@ class AgentRuntime:
             "attempts": 2, "fallback": True, "errors": errors, **context_meta,
         }
 
+    # Số phần viết BẰNG CHỮ, không bằng chữ số: verifier.scan_numbers quét mọi
+    # số trong answer và đòi evidence hậu thuẫn, nên "2 phần" trong một câu dẫn
+    # là một claim bịa (CLAUDE.md §3.1).
+    _PART_WORDS = {2: "hai", 3: "ba", 4: "bốn", 5: "năm", 6: "sáu"}
+
+    def _partial_answer(
+        self, user_text: str, request: StructuredRequest,
+        decision: GateDecision, trace_id: str,
+    ) -> AgentResponse | None:
+        """A13: trả phần trả lời được, nói rõ phần còn lại — hoặc None.
+
+        Trả ``None`` nghĩa là "không có gì để cứu", và caller giữ nguyên lời từ
+        chối cũ. Đây là mặc định: nhánh này chỉ được phép THÊM câu trả lời ở chỗ
+        hôm nay không có câu trả lời nào.
+        """
+        # question_clauses chứ không substantive_clauses: một mệnh đề không tự
+        # mang câu hỏi là một TIỀN ĐỀ, và tách nó ra thành "phần chưa trả lời
+        # được" là bịa ra một câu hỏi người dùng chưa từng đặt.
+        clauses = question_clauses(str(request.slots.get("raw_text") or user_text))
+        if len(clauses) < 2:
+            return None
+
+        self._in_partial_trial = True
+        try:
+            verdicts = [(clause, self.run(clause)) for clause in clauses]
+        finally:
+            self._in_partial_trial = False
+
+        answered = [clause for clause, response in verdicts if response.gate.action == "allow"]
+        blocked = [
+            (clause, response.gate) for clause, response in verdicts
+            if response.gate.action != "allow"
+        ]
+        # Không phần nào allow, hoặc MỌI phần đều allow ⇒ hành vi cũ y nguyên.
+        # Trường hợp sau nghĩa là phép tách vừa tạo ra hai câu dễ hơn câu gốc, và
+        # trả lời chúng là trả lời hai câu người dùng không hỏi.
+        if not answered or not blocked:
+            return None
+
+        self._in_partial_trial = True
+        try:
+            core = self.run(" ".join(answered))
+        finally:
+            self._in_partial_trial = False
+        # Ghép các mệnh đề lại có thể đổi kết quả — đó là một câu khác. Không ép.
+        if core.gate.action != "allow" or not core.evidence:
+            return None
+
+        # A13-R2: MỌI evidence trong nhánh này mang sub_id. Thiếu là lỗi lập
+        # trình, không phải một trường hợp hợp lệ.
+        sub_ids = {clause: f"sr{index}" for index, (clause, _) in enumerate(verdicts, 1)}
+        answered_ids = [sub_ids[clause] for clause in answered]
+        evidence = [
+            item.model_copy(update={"attrs": {**item.attrs, "sub_id": answered_ids[0]}})
+            for item in core.evidence
+        ]
+
+        limits = "\n".join(
+            f'Phần chưa trả lời được: "{clause}". Lý do: {gate.reason}'
+            for clause, gate in blocked
+        )
+        parts_word = self._PART_WORDS.get(len(verdicts), "nhiều")
+        answer = (
+            f"Câu hỏi của bạn gồm {parts_word} phần.\n\n"
+            f"Phần trả lời được: {core.answer}\n\n"
+            f"{limits}\n\n"
+            # A13-R3: câu này BẮT BUỘC. Trả một phần mà không nói rõ là phần nào
+            # còn nguy hiểm hơn từ chối cả câu — người đọc sẽ gán con số cho toàn
+            # bộ câu hỏi của họ.
+            "Số ở trên chỉ nói về phần đã trả lời."
+        )
+        partial_decision = GateDecision(
+            action="allow", rule_id="A23-PARTIAL",
+            reason="Đã trả phần trả lời được; phần còn lại được nêu riêng kèm lý do.",
+            # Mệnh đề bị chặn được trích NGUYÊN VĂN từ câu người dùng gõ, nên chữ
+            # số trong đó là chữ của họ, không phải một claim của hệ thống.
+            quoted_texts=core.gate.quoted_texts + tuple(clause for clause, _ in blocked),
+        )
+        # A13-R5: không nới lớp kiểm nào. Câu ghép phải tự qua verifier lần nữa.
+        verification = verify_numeric_claims(
+            answer, evidence, claims=core.claims, require_claims=bool(evidence),
+            ignore_texts=partial_decision.quoted_texts,
+        ) if self.enable_verifier else {"passed": True, "coverage": None, "disabled": True}
+        if not verification["passed"]:
+            return None
+
+        planning = {
+            **core.planning,
+            "subrequests": [
+                {
+                    "sub_id": sub_ids[clause],
+                    "answered": response.gate.action == "allow",
+                    "rule_id": response.gate.rule_id,
+                }
+                for clause, response in verdicts
+            ],
+        }
+        return AgentResponse(
+            trace_id=trace_id, request=request, gate=partial_decision, answer=answer,
+            evidence=evidence, claims=core.claims, tool_calls=core.tool_calls,
+            resolved_listing_key=core.resolved_listing_key, verification=verification,
+            llm=core.llm, planning=planning, context=core.context, degraded=False,
+        )
+
     def run(self, user_text: str) -> AgentResponse:
         trace_id = uuid.uuid4().hex[:12]
         seq = 0
@@ -1582,6 +1686,23 @@ class AgentRuntime:
         # answerable_alternative trước đây là chuỗi viết tay cố định theo rule —
         # nó không biết câu hỏi vừa rồi hỏi về cái gì. A8-R3: chỉ thay phần gợi
         # ý, giữ nguyên rule_id và reason.
+        # WP-A13: một câu gồm nhiều mệnh đề, trong đó CÓ mệnh đề trả lời được,
+        # không nên bị từ chối cả câu. Chốt ở ĐÂY chứ không ở gate: đo thật cho
+        # thấy câu nhiều mệnh đề thường QUA được gate rồi mới chết ở A22, nên một
+        # cái chốt đặt ở gate sẽ không bao giờ bắn cho đúng lớp câu nó nhắm tới.
+        # Nhánh này chỉ chạy nơi hôm nay đằng nào cũng là một lời từ chối toàn
+        # phần, nên nó không lấy đi câu trả lời nào đang đúng.
+        if (
+            decision.action != "allow"
+            and not getattr(self, "_in_partial_trial", False)
+            # A13-R1: phần vượt NĂNG LỰC dataset giữ nguyên A22-ALIGN-SUBREQUEST.
+            # Mã đó bị khoá bởi p0_probes/dr2607 và không được đổi nghĩa.
+            and not request.slots.get("partial_unsupported")
+        ):
+            partial = self._partial_answer(user_text, request, decision, trace_id)
+            if partial is not None:
+                return partial
+
         if decision.action != "allow" and not getattr(self, "_in_suggestion_trial", False):
             self._in_suggestion_trial = True
             try:

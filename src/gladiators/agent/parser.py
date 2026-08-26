@@ -85,6 +85,65 @@ def _schema_entities(normalized: str) -> tuple[str, ...]:
     return tuple(found[:2])
 
 
+
+# A13-R4: bộ tách mệnh đề DETERMINISTIC dùng chung. Trước WP-A13 nó nằm kẹt bên
+# trong ``parse`` nên chỉ chạy được cho đúng một mục đích: tách phần vượt năng
+# lực dataset. Nhánh trả lời từng phần cần chính bộ tách này — tách bằng LLM ở
+# đây là để một lời gọi không xác định quyết định câu nào được trả lời.
+_CLAUSE_SPLIT = re.compile(r"[;,?.]+|\s+(?:và|va|dan|juga)\s+", re.IGNORECASE)
+
+# Dưới ba từ thì mệnh đề không đủ để mang một câu hỏi — nó là mảnh vụn của phép
+# tách, và gate chạy trên mảnh vụn sẽ từ chối vì lý do sai.
+MIN_CLAUSE_WORDS = 3
+
+
+def split_clauses(text: str) -> tuple[str, ...]:
+    return tuple(
+        normalized for part in _CLAUSE_SPLIT.split(text)
+        if (normalized := normalize_text(part))
+    )
+
+
+def substantive_clauses(text: str) -> tuple[str, ...]:
+    """Mệnh đề đủ dài để đứng riêng thành một câu hỏi, giữ NGUYÊN VĂN.
+
+    Trả bản đã chuẩn hoá ở đây là hỏng: chuẩn hoá bỏ dấu và bỏ viết hoa, mà viết
+    hoa chính là tín hiệu vòng P dùng để phân biệt một TÊN RIÊNG với một từ mô
+    tả. Cho ăn bản đã chuẩn hoá, "brand Khongtontai" thành "brand khongtontai"
+    và mệnh đề lẽ ra bị chặn lại được cho qua.
+    """
+    return tuple(
+        part.strip() for part in _CLAUSE_SPLIT.split(text)
+        if (normalized := normalize_text(part))
+        and len(normalized.split()) >= MIN_CLAUSE_WORDS
+    )
+
+
+# Dấu tự hỏi. Một mệnh đề KHÔNG mang dấu nào trong đây là một tiền đề, không phải
+# một câu hỏi riêng — và tách nó ra thành "một phần chưa trả lời được" là bịa ra
+# một câu hỏi người dùng chưa từng đặt.
+_INTERROGATIVE = (
+    "bao nhieu", "la gi", "the nao", "nhu the nao", "co bao", "may",
+    "berapa", "apa", "bagaimana",
+    "how many", "how much", "what", "which",
+)
+
+
+def question_clauses(text: str) -> tuple[str, ...]:
+    """Mệnh đề tự nó đã là một câu hỏi, giữ nguyên văn.
+
+    Điều kiện này hẹp hơn ``substantive_clauses`` và cố ý như vậy. Câu
+    "Với đà giảm doanh số như 3 ngày qua của sản phẩm X, dự đoán tuần sau giảm
+    thêm bao nhiêu?" tách ra hai mệnh đề đủ dài, nhưng mệnh đề đầu là **tiền đề**
+    của mệnh đề sau. Coi nó là một câu hỏi riêng làm một câu phải bị từ chối
+    (dự báo) biến thành một câu trả lời một phần — đúng thứ ``dr2607`` khoá lại.
+    """
+    return tuple(
+        clause for clause in substantive_clauses(text)
+        if any(marker in normalize_text(clause) for marker in _INTERROGATIVE)
+    )
+
+
 class MultilingualIntentParser:
     def parse(self, text: str, registry: IntentRegistry) -> StructuredRequest:
         text = strip_presentation_quotes(text)
@@ -182,14 +241,7 @@ class MultilingualIntentParser:
                 requested_variables=route.requested_variables,
             )
 
-        clauses = tuple(
-            normalized for part in re.split(
-                r"[;,?.]+|\s+(?:và|va|dan|juga)\s+",
-                text,
-                flags=re.IGNORECASE,
-            )
-            if (normalized := normalize_text(part))
-        )
+        clauses = split_clauses(text)
         clause_capabilities = tuple(
             (
                 clause,
