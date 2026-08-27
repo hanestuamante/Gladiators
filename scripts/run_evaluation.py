@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import statistics
 import math
 import re
 from collections import Counter
@@ -278,6 +279,36 @@ def run_multiturn_case(case, runtime):
     return final, checks
 
 
+
+PRICING_PATH = Path(__file__).resolve().parents[1] / "eval" / "pricing.json"
+
+
+def load_pricing() -> dict:
+    if not PRICING_PATH.exists():
+        return {}
+    try:
+        return json.loads(PRICING_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def estimate_cost(provider: str, telemetry: dict) -> float | str:
+    """USD ước tính, hoặc ``"n/a"`` khi chưa có đơn giá được xác nhận.
+
+    B10-R2: không đoán. Một con số chi phí bịa ra còn tệ hơn không có con số nào,
+    vì nó sẽ được trích dẫn.
+    """
+    entry = load_pricing().get(provider) or {}
+    prompt_rate, output_rate = entry.get("prompt_usd_per_1m"), entry.get("output_usd_per_1m")
+    if prompt_rate is None or output_rate is None or not entry.get("as_of"):
+        return "n/a"
+    return round(
+        telemetry.get("prompt_tokens", 0) * float(prompt_rate) / 1_000_000
+        + telemetry.get("output_tokens", 0) * float(output_rate) / 1_000_000,
+        6,
+    )
+
+
 def run_case(case, runtime):
     if case.get("turns"):
         return run_multiturn_case(case, runtime)
@@ -396,6 +427,11 @@ def main():
                         (response.planning.get("wording_repair") or {}).get("passed"),
                     ),
                     "loop_empty_result": bool(response.planning.get("empty_result")),
+                    # WP-B10 cần "? giây" cạnh "? USD"; timing đã có từ WP-A6 nên
+                    # đây chỉ là chuyển nó ra tới bảng chi phí.
+                    "seconds": round(
+                        float((response.planning.get("timing") or {}).get("total", 0.0)) / 1000, 4,
+                    ),
                     **checks,
                 }
             except Exception as exc:
@@ -464,6 +500,11 @@ def main():
         "complexity_classification_accuracy": div(sum(r["complexity_level"] == r["expected_complexity_level"] for r in complexity_rows), len(complexity_rows)) if complexity_rows else None,
         "escalation_rate": div(sum(r.get("escalation_mode") in {"critic", "nversion"} for r in rows), len(rows)),
         "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)), "cheap_loops_fired": cheap_loops,
+        "provider": args.provider,
+        "median_seconds": (
+            round(statistics.median([row["seconds"] for row in first_run if row.get("seconds")]), 4)
+            if any(row.get("seconds") for row in first_run) else None
+        ),
         "clarify_recovery_rate": clarify_recovery_rate,
         "clarify_recovery_cases": len(recovery_rows),
         "placeholder_cases": placeholders,
@@ -482,8 +523,13 @@ def main():
     }
     if runtime.llm_client and hasattr(runtime.llm_client, "telemetry"):
         telemetry = runtime.llm_client.telemetry(); metrics["llm_telemetry"] = telemetry
-        if args.provider == "gemini":
-            metrics["estimated_paid_list_cost_usd"] = round(telemetry["prompt_tokens"] * 1.5 / 1_000_000 + telemetry["output_tokens"] * 9.0 / 1_000_000, 6)
+        # B10-R1/B10-R2: đơn giá đọc từ eval/pricing.json, và provider không có
+        # đơn giá thì KHÔNG ước lượng. Trước đây hai con số 1.5/9.0 nằm thẳng
+        # trong dòng này và chỉ áp cho gemini — một đơn giá hard-code không có
+        # as_of sẽ âm thầm sai sau lần đổi giá đầu tiên.
+        metrics["estimated_paid_list_cost_usd"] = estimate_cost(
+            args.provider, telemetry,
+        )
     out = Path(args.output); out.mkdir(parents=True, exist_ok=True); stem = out / str(date.today())
     stem.with_suffix(".json").write_text(json.dumps({"metrics": metrics, "rows": rows}, ensure_ascii=False, indent=2, default=dict), encoding="utf-8")
     stem.with_suffix(".md").write_text("# Báo cáo eval V1 end-to-end\n\n" + "\n".join(f"- **{k}:** {v}" for k, v in metrics.items()) + "\n", encoding="utf-8")

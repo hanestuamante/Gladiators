@@ -46,6 +46,67 @@ def health() -> dict:
     }
 
 
+@app.get("/ledger", response_class=HTMLResponse, include_in_schema=False)
+def ledger_page() -> str:
+    """WP-B11.3 — vòng bảo trì CÓ NGƯỜI DUYỆT, không phải hệ tự học."""
+    from gladiators.ui_ledger import render
+
+    return render()
+
+
+class LedgerDecision(BaseModel):
+    surface: str = Field(min_length=1, max_length=200)
+    ref: str = Field(min_length=1, max_length=120)
+    approved_by: str = Field(default="", max_length=120)
+    decision: str = "reject"
+    occurrences: int = 0
+
+
+@app.post("/ledger/decision")
+def ledger_decision(body: LedgerDecision) -> dict:
+    """Ghi một quyết định. B11-R1: không có nhánh nào tự áp dụng."""
+    from gladiators.domain.alias_index import AliasOverlayError
+    from gladiators.ui_ledger import accept
+
+    if body.decision != "accept":
+        # Từ chối KHÔNG ghi gì: một danh sách "đã từ chối" sẽ được đọc như một
+        # danh sách "đã xử lý", và cụm đó phải quay lại bảng ở lần chạy sau.
+        return {"applied": False, "decision": body.decision}
+    try:
+        entry = accept(
+            body.surface, body.ref, body.approved_by, occurrences=body.occurrences,
+        )
+    except AliasOverlayError as exc:
+        raise HTTPException(
+            status_code=400, detail={"code": "OVERLAY_REJECTED", "reason": str(exc)},
+        ) from exc
+    return {"applied": True, "entry": entry}
+
+
+@app.get("/trace/{trace_id}.json")
+def trace_json(trace_id: str) -> dict:
+    """WP-B9 — cùng một nguồn cho trang, slide và test."""
+    from gladiators.ui_trace import TraceNotFound, load_trace, trace_summary
+
+    try:
+        return trace_summary(load_trace(trace_id))
+    except TraceNotFound:
+        # Id sai định dạng và file không tồn tại đều là 404: phân biệt hai thứ đó
+        # trong phản hồi là nói cho người gọi biết trace nào CÓ tồn tại.
+        raise HTTPException(status_code=404, detail={"code": "TRACE_NOT_FOUND"}) from None
+
+
+@app.get("/trace/{trace_id}", response_class=HTMLResponse, include_in_schema=False)
+def trace_page(trace_id: str) -> str:
+    """WP-B9 — "làm sao tôi biết số này không phải bịa?" trả lời bằng màn hình."""
+    from gladiators.ui_trace import TraceNotFound, load_trace, render
+
+    try:
+        return render(load_trace(trace_id))
+    except TraceNotFound:
+        raise HTTPException(status_code=404, detail={"code": "TRACE_NOT_FOUND"}) from None
+
+
 @app.get("/capability-map", response_class=HTMLResponse, include_in_schema=False)
 def capability_map_page() -> str:
     """WP-B8 — biết hệ làm được gì TRƯỚC khi bị từ chối."""

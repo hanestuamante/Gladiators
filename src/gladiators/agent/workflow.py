@@ -41,6 +41,7 @@ from gladiators.planner.critic import PlanCritic
 from .embedding import BGEIndex
 from .entity_resolution import EntityResolver, expected_entity_types
 from .consistency import check_evidence_arithmetic
+from .ledger import record_refusal
 from .conversation import (
     ConversationStore,
     apply_to_request,
@@ -1795,6 +1796,18 @@ class AgentRuntime:
         plan_cache = getattr(tools, "last_plan_cache", None)
         if plan_cache:
             planning_meta.setdefault("plan_cache", plan_cache)
+        # WP-B11.1: ghi mọi lần từ chối vào sổ QUAN SÁT. Ghi ở đây, sau khi
+        # decision cuối đã chốt — ghi sớm hơn sẽ ghi cả những quyết định về sau
+        # bị thay, và bảng xếp hạng sẽ đếm những lời từ chối chưa từng xảy ra.
+        if decision.action != "allow" and not getattr(self, "_in_partial_trial", False):
+            try:
+                record_refusal(
+                    request, decision, trace_id, redact=self.traces.redact,
+                )
+            except OSError:
+                # Không ghi được sổ KHÔNG được làm hỏng câu trả lời: sổ là công
+                # cụ bảo trì, không phải một phần của hợp đồng trả lời.
+                pass
         timer.leave("gate_out")
         # A6.1: đếm lần gọi LLM TUẦN TỰ trên đường tới hạn, không đếm tổng lần
         # gọi. Hai nhánh chạy song song tính là MỘT bước — đây là chỉ số cần tối

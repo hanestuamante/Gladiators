@@ -23,6 +23,9 @@ changed alias set cannot be served from a cache built against the old one.
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import hashlib
 import re
 import unicodedata
@@ -99,6 +102,56 @@ class AliasMatch:
     ambiguous: bool
 
 
+# WP-B11.3 — lớp overlay: một cách gọi MỚI trỏ tới một ref ĐÃ CÓ.
+#
+# Vì sao overlay an toàn: nó **không thể** tạo ra một metric mới, một định nghĩa
+# mới hay một quan hệ mới. Đó chính là ranh giới giữa "bảo trì từ vựng" và "sinh
+# định nghĩa nghiệp vụ" — và ranh giới đó là thứ khiến vòng bảo trì này không
+# phải là một hệ tự sửa.
+ALIAS_OVERLAY_PATH = Path(__file__).resolve().parent / "alias_overlay.json"
+
+
+class AliasOverlayError(ValueError):
+    """Overlay sai ⇒ fail Ở IMPORT, như mọi registry khác trong hệ."""
+
+
+def load_alias_overlay(
+    path: Path | None = None, catalog: dict[str, CatalogObject] | None = None,
+) -> tuple[dict[str, object], ...]:
+    """Mục overlay đã kiểm. Thiếu file ⇒ rỗng; file sai ⇒ lỗi.
+
+    B11-R1: ``approved_by`` rỗng là lỗi, không phải mặc định. Một mục không có
+    người ký là đúng thứ vòng duyệt này tồn tại để chặn — cho nó chạy im lặng sẽ
+    biến "có người duyệt" thành một lời hứa không ai kiểm.
+
+    B11-R2: ``ref`` phải tồn tại trong catalog. Overlay chỉ ánh xạ, không tạo.
+    """
+    target = path or ALIAS_OVERLAY_PATH
+    known = catalog if catalog is not None else CATALOG
+    if not target.exists():
+        return ()
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise AliasOverlayError(f"alias_overlay.json không đọc được: {exc}") from exc
+    if not isinstance(payload, list):
+        raise AliasOverlayError("alias_overlay.json phải là một danh sách")
+    for entry in payload:
+        if not isinstance(entry, dict):
+            raise AliasOverlayError("mỗi mục overlay phải là một object")
+        surface = str(entry.get("surface") or "").strip()
+        ref = str(entry.get("ref") or "")
+        if not surface:
+            raise AliasOverlayError("mục overlay thiếu surface")
+        if ref not in known:
+            raise AliasOverlayError(f"overlay trỏ ref không tồn tại: {ref}")
+        if not str(entry.get("approved_by") or "").strip():
+            raise AliasOverlayError(f"mục overlay thiếu approved_by: {surface}")
+        if not str(entry.get("approved_at") or "").strip():
+            raise AliasOverlayError(f"mục overlay thiếu approved_at: {surface}")
+    return tuple(payload)
+
+
 class AliasIndex:
     def __init__(self, catalog: dict[str, CatalogObject] | None = None):
         self.catalog = catalog or CATALOG
@@ -115,6 +168,14 @@ class AliasIndex:
                     normalize_surface(alias), obj.ref, alias,
                     "vi" if _VI_MARKERS.search(alias.lower()) else "en_id",
                 ))
+        # Overlay nạp SAU catalog: nó chỉ thêm cách gọi, không ghi đè cách gọi
+        # nào đã có, nên thứ tự này giữ cho catalog luôn là nguồn sự thật.
+        self.overlay = load_alias_overlay(catalog=self.catalog)
+        for entry in self.overlay:
+            entries.append(AliasEntry(
+                normalize_surface(str(entry["surface"])), str(entry["ref"]),
+                str(entry["surface"]), "overlay",
+            ))
         self.entries = tuple(entries)
         self._by_surface: dict[str, list[str]] = {}
         for entry in self.entries:
