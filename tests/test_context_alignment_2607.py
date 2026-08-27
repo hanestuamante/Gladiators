@@ -328,12 +328,31 @@ def test_independent_oracle_matches_checked_in_denotation_and_has_no_source_impo
 
 
 def test_metamorphic_relations_never_change_language_scope_date_or_currency():
+    """Quan hệ BẢO TOÀN vẫn phải bảo toàn ngôn ngữ/scope/ngày/đơn vị.
+
+    Phạm vi khẳng định thu hẹp về ``kind == "invariant"`` theo Spec2308 §B7.1,
+    vốn thêm hai loại quan hệ CỐ Ý không bảo toàn (``directional``, ``disjoint``)
+    — chúng đổi câu hỏi, nhưng đổi theo một chiều dự đoán được, và ``expectation``
+    là thứ khai chiều đó. Bất biến mà test này bảo vệ không hề nới: một quan hệ
+    tự nhận là bảo toàn mà đổi thị trường vẫn là lỗi, và ``validate_relations``
+    raise ngay tại import.
+    """
     module = runpy.run_path("eval/metamorphic/relations.py")
     module["validate_relations"]()
+    invariant = [
+        relation for relation in module["RELATIONS"]
+        if relation.kind == "invariant"
+    ]
+    assert len(invariant) == 4, "bốn quan hệ DR2607 gốc phải còn nguyên"
     assert all(
         not relation.changes_language
         and not relation.changes_country
         and not relation.changes_date
         and not relation.changes_currency
-        for relation in module["RELATIONS"]
+        for relation in invariant
+    )
+    # Quan hệ không bảo toàn phải khai chiều nó đổi; thiếu là lỗi ở import.
+    assert all(
+        relation.expectation
+        for relation in module["RELATIONS"] if relation.kind != "invariant"
     )

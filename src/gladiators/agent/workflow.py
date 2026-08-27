@@ -32,6 +32,7 @@ from gladiators.planner.shadow import ShadowObserver
 from gladiators.planner.synthesizer import (
     has_unbound_condition_marker,
     synthesize,
+    unexpressible_filters,
 )
 from gladiators.planner.validator import validate_plan
 from gladiators.planner.consensus import ConsensusError, NVersionResolver
@@ -210,6 +211,12 @@ class AgentRuntime:
         trace_dir: str = "artifacts/traces",
         enable_gate: bool = True,
         enable_verifier: bool = True,
+        # Công tắc ABLATION cho WP-B4. Mặc định True = hành vi hiện tại; chúng
+        # tồn tại để ĐO phần đóng góp của từng tính năng, không phải để tạo ra
+        # điểm vận hành mới (B4-R3). Không đo được phần đóng góp thì đường cong
+        # rủi ro–độ phủ chỉ là bốn bản sao của cùng một điểm.
+        enable_partial_answer: bool = True,
+        enable_cheap_loops: bool = True,
         llm_client: Any | None = None,
         critic_client: Any | None = None,
         use_llm_parser: bool = False,
@@ -233,6 +240,8 @@ class AgentRuntime:
         # §3.5: derived from the macro registry, never a second hand-written list.
         self.capabilities = specs_from_macros(self.macros)
         self.enable_gate, self.enable_verifier = enable_gate, enable_verifier
+        self.enable_partial_answer = enable_partial_answer
+        self.enable_cheap_loops = enable_cheap_loops
         self.llm_client = llm_client
         self.enable_critic = os.getenv("GLADIATORS_ENABLE_CRITIC") == "1" if enable_critic is None else enable_critic
         self.enable_nversion = os.getenv("GLADIATORS_ENABLE_NVERSION") == "1" if enable_nversion is None else enable_nversion
@@ -1214,6 +1223,21 @@ class AgentRuntime:
                                 result = synthesize(candidate, request.country)
                                 if result is not None and validate_plan(result.plan).valid:
                                     synthesized = result.plan
+                        dropped = (
+                            unexpressible_filters(candidate_request)
+                            if synthesized is None else ()
+                        )
+                        if dropped:
+                            # Điều kiện ĐÃ bind mà template không diễn đạt được.
+                            # Để template trả lời ở đây là trả lời một câu hỏi
+                            # RỘNG HƠN câu đã hỏi, và không lớp nào phía sau phát
+                            # hiện được: con số đó có evidence, khớp plan, và đúng
+                            # với câu hỏi mà nó thật sự đã trả lời.
+                            raise AnalyticalPlanError(
+                                "Câu hỏi nêu một điều kiện mà mẫu trả lời có sẵn "
+                                "không diễn đạt được; trả lời bằng mẫu đó sẽ bỏ "
+                                "mất điều kiện và cho một con số rộng hơn câu hỏi.",
+                            )
                         if synthesized is None and has_unbound_condition_marker(candidate_request):
                             # Câu mang một điều kiện mà bộ sinh kế hoạch TỪ CHỐI
                             # vì chưa bind được. Template không có chỗ diễn đạt
@@ -1621,7 +1645,7 @@ class AgentRuntime:
                 or bool(consistency)
             )
         )
-        if final_verification_failed and (
+        if final_verification_failed and self.enable_cheap_loops and (
             not verification["passed"]
             and answer_alignment.aligned and question_alignment.aligned
             and not consistency
@@ -1727,6 +1751,7 @@ class AgentRuntime:
         # phần, nên nó không lấy đi câu trả lời nào đang đúng.
         if (
             decision.action != "allow"
+            and self.enable_partial_answer
             and not getattr(self, "_in_partial_trial", False)
             # A13-R1: phần vượt NĂNG LỰC dataset giữ nguyên A22-ALIGN-SUBREQUEST.
             # Mã đó bị khoá bởi p0_probes/dr2607 và không được đổi nghĩa.

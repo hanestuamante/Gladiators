@@ -1,0 +1,177 @@
+{
+  "suite": "eval/independent/answerable_manual.json",
+  "provider": "offline",
+  "measured_on": "2026-08-27",
+  "cases": 44,
+  "checks": 308,
+  "totals": {
+    "pass": 122,
+    "fail": 8,
+    "skip": 174,
+    "suspect": 4
+  },
+  "metamorphic_consistency_rate": 0.9104,
+  "by_relation": {
+    "MR-1": {
+      "pass": 18,
+      "fail": 8,
+      "skip": 18,
+      "suspect": 0,
+      "rate": 0.6923
+    },
+    "MR-3": {
+      "pass": 0,
+      "fail": 0,
+      "skip": 44,
+      "suspect": 0,
+      "rate": null
+    },
+    "MR-4": {
+      "pass": 44,
+      "fail": 0,
+      "skip": 0,
+      "suspect": 0,
+      "rate": 1.0
+    },
+    "MR-5": {
+      "pass": 44,
+      "fail": 0,
+      "skip": 0,
+      "suspect": 0,
+      "rate": 1.0
+    },
+    "MR-6": {
+      "pass": 2,
+      "fail": 0,
+      "skip": 42,
+      "suspect": 0,
+      "rate": 1.0
+    },
+    "MR-7": {
+      "pass": 14,
+      "fail": 0,
+      "skip": 26,
+      "suspect": 4,
+      "rate": 0.7778
+    },
+    "MR-8": {
+      "pass": 0,
+      "fail": 0,
+      "skip": 44,
+      "suspect": 0,
+      "rate": null
+    }
+  },
+  "failures": [
+    {
+      "case": "ans005",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action allow → clarify",
+      "question": "Có bao nhiêu shop ở Việt Nam?",
+      "variant": "Số lượng shop ở Việt Nam là bao nhiêu?"
+    },
+    {
+      "case": "ans007",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action allow → clarify",
+      "question": "Có bao nhiêu shop ở Indonesia?",
+      "variant": "Số lượng shop ở Indonesia là bao nhiêu?"
+    },
+    {
+      "case": "ans009",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action allow → abstain",
+      "question": "Có bao nhiêu listing đã xác minh tại Việt Nam ngày 03/07?",
+      "variant": "Số lượng listing đã xác minh tại Việt Nam ngày 03/07 là bao nhiêu?"
+    },
+    {
+      "case": "ans010",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action allow → abstain",
+      "question": "Có bao nhiêu listing đã xác minh tại Indonesia ngày 03/07?",
+      "variant": "Số lượng listing đã xác minh tại Indonesia ngày 03/07 là bao nhiêu?"
+    },
+    {
+      "case": "ans027",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action allow → clarify",
+      "question": "Có bao nhiêu thương hiệu tại Việt Nam ngày 03/07?",
+      "variant": "Số lượng thương hiệu tại Việt Nam ngày 03/07 là bao nhiêu?"
+    },
+    {
+      "case": "ans029",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action allow → clarify",
+      "question": "Có bao nhiêu thương hiệu tại Indonesia ngày 03/07?",
+      "variant": "Số lượng thương hiệu tại Indonesia ngày 03/07 là bao nhiêu?"
+    },
+    {
+      "case": "ans031",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action abstain → clarify",
+      "question": "Có bao nhiêu shop chính hãng ở Việt Nam?",
+      "variant": "Số lượng shop chính hãng ở Việt Nam là bao nhiêu?"
+    },
+    {
+      "case": "ans033",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action abstain → clarify",
+      "question": "Có bao nhiêu shop chính hãng ở Indonesia?",
+      "variant": "Số lượng shop chính hãng ở Indonesia là bao nhiêu?"
+    }
+  ],
+  "suspects": [
+    {
+      "case": "ans005",
+      "relation": "MR-7",
+      "kind": "disjoint",
+      "verdict": "suspect",
+      "reason": "hai câu khác nhau cho cùng kết quả (10.0,)",
+      "question": "Có bao nhiêu shop ở Việt Nam?",
+      "variant": "Có bao nhiêu shop ở Indonesia?"
+    },
+    {
+      "case": "ans006",
+      "relation": "MR-7",
+      "kind": "disjoint",
+      "verdict": "suspect",
+      "reason": "hai câu khác nhau cho cùng kết quả (10.0,)",
+      "question": "Việt Nam có bao nhiêu cửa hàng?",
+      "variant": "Indonesia có bao nhiêu cửa hàng?"
+    },
+    {
+      "case": "ans007",
+      "relation": "MR-7",
+      "kind": "disjoint",
+      "verdict": "suspect",
+      "reason": "hai câu khác nhau cho cùng kết quả (10.0,)",
+      "question": "Có bao nhiêu shop ở Indonesia?",
+      "variant": "Có bao nhiêu shop ở Việt Nam?"
+    },
+    {
+      "case": "ans008",
+      "relation": "MR-7",
+      "kind": "disjoint",
+      "verdict": "suspect",
+      "reason": "hai câu khác nhau cho cùng kết quả (10.0,)",
+      "question": "Indonesia có bao nhiêu cửa hàng?",
+      "variant": "Việt Nam có bao nhiêu cửa hàng?"
+    }
+  ]
+}

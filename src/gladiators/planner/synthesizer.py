@@ -482,3 +482,29 @@ def has_unbound_condition_marker(request: AnalyticalRequest) -> bool:
             continue
         return True
     return False
+
+
+# Ref mà MỌI template đã chứng nhận đều diễn đạt được. Bất cứ predicate nào nằm
+# ngoài tập này mà rơi vào đường template sẽ bị BỎ ÂM THẦM.
+TEMPLATE_EXPRESSIBLE_REFS = frozenset({"dim.country", "dim.date"})
+
+
+def unexpressible_filters(request: AnalyticalRequest) -> tuple[str, ...]:
+    """Predicate ĐÃ BIND mà template không có chỗ diễn đạt.
+
+    Bổ đôi với ``has_unbound_condition_marker``: hàm kia bắt điều kiện chưa
+    bind được, hàm này bắt điều kiện ĐÃ bind mà đường template làm rơi mất.
+
+    Ca đã đo (tìm ra bằng kiểm biến hình, WP-B7): "Số lượng listing đã xác minh
+    tại Indonesia ngày 03/07 là bao nhiêu?" bind đúng
+    ``dim.shopee_verified = True``, nhưng câu không khớp surface measure nào nên
+    bộ sinh kế hoạch bỏ cuộc, template đếm-tất-cả tiếp quản, và hệ trả **474**
+    thay vì **3** — một con số sai, không kèm tín hiệu nào. Cùng câu hỏi diễn đạt
+    kiểu "Có bao nhiêu listing đã xác minh…?" trả đúng 3.
+    """
+    if request is None:
+        return ()
+    return tuple(sorted({
+        predicate.field_ref for predicate in request.filters
+        if predicate.field_ref not in TEMPLATE_EXPRESSIBLE_REFS
+    }))
