@@ -247,6 +247,7 @@ Thứ tự khi mâu thuẫn: **code đang chạy > test/eval thực chạy > tà
 | `docs/Backlogbefore2208.md` | Chưa hiện thực, chia theo thứ đang chặn nó |
 | `docs/design/Metadata_Model_And_Binding_Layer.md` | Thiết kế tầng binding metadata ↔ vật lý |
 | `docs/qa/DR TASK 1407.md` | Nguồn của `eval/dr2607.json` — **script parse file này, không được xoá** |
+| `docs/IMPLEMENTATION_HANDOFF_2026-08-27.md` | Bàn giao phiên 27/08: việc còn treo, lỗi im lặng đã tìm ra, lệnh chạy lại |
 
 Toàn bộ tài liệu plan/handoff/kiến trúc cũ đã gộp vào ba file `*before2208.md` và
 xoá khỏi `docs/` ở `24efc77`. Bản gốc nằm trong git history; **đừng khôi phục vào
