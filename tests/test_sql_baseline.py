@@ -99,8 +99,32 @@ def test_a_write_statement_is_refused_before_it_reaches_the_database():
     client = _Client("DELETE FROM products_clean")
     executor = _Executor(frame=pd.DataFrame({"n": [668]}))
     row = run_one(CASE, client, "schema", executor)
-    assert row["outcome"] == "crashed"
+    assert row["outcome"] == "blocked_by_readonly_guard"
     assert row["error"]
+
+
+def test_an_empty_reply_is_not_reported_as_a_guard_block():
+    """Cả hai ném CompilationError ("AST root phải là SELECT"), nên phân biệt bằng
+    exception là phân biệt sai — 4/6 ca "bị guard chặn" ở lần đo đầu thực ra là
+    response rỗng."""
+    executor = _Executor(frame=pd.DataFrame({"n": [668]}))
+    assert run_one(CASE, _Client(""), "schema", executor)["outcome"] == "empty_response"
+
+
+def test_a_guard_block_is_counted_apart_from_a_real_crash():
+    """Guard của HỆ NÀY chặn không phải là model hỏng.
+
+    ``assert_read_only_sql`` nghiêm hơn "chỉ đọc": nó từ chối cả CTE và mọi hàm
+    ngoài allow-list (LAG, REGR_SLOPE), mà cả hai đều read-only. Gộp chúng vào
+    "crashed" là ghi công cho hệ mình một thứ nó không thắng.
+    """
+    client = _Client("SELECT LAG(price_num) OVER () FROM products")
+    executor = _Executor(frame=pd.DataFrame({"n": [668]}))
+    assert run_one(CASE, client, "schema", executor)["outcome"] == (
+        "blocked_by_readonly_guard"
+    )
+    # Và guard block KHÔNG tiêu lượt thử lại: nó không phải lỗi cú pháp.
+    assert len(client.prompts) == 1
 
 
 def test_the_baseline_never_touches_the_agent_runtime():

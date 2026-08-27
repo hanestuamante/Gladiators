@@ -54,8 +54,14 @@ def corpus() -> tuple[str, ...]:
     # bộ đề sinh từ dữ liệu chỉ 34,1% (61,4% rơi về core_only). Con số đó được ghi ở
     # eval/reports/2026-08-27-independent-bank.md thay vì bị trộn vào một ngưỡng
     # không dành cho nó.
+    # `eval/reports/` là ĐẦU RA, không phải đầu vào. Một report chứa `rows[]` kèm
+    # `question` sẽ lặng lẽ bơm chính bộ đề vừa bị loại ở trên trở lại corpus:
+    # eval/reports/<ngày>-sql-baseline.json đã kéo topic_scoped từ 65,9% xuống
+    # 63,4% đúng bằng cách đó. Một phép đo được phép đọc corpus; nó không được
+    # phép trở thành corpus.
+    excluded = {"independent", "reports"}
     for path in glob.glob("eval/**/*.json", recursive=True):
-        if "independent" in path.replace("\\", "/").split("/"):
+        if excluded & set(path.replace("\\", "/").split("/")):
             continue
         try:
             with open(path, encoding="utf-8") as handle:

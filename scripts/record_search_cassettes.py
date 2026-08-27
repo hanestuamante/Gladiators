@@ -50,6 +50,16 @@ QUERIES = (
                 purpose="campaign_context", recency_days=90),
     SearchQuery(query="Vietnam e-commerce market event July 2026", market="vn",
                 purpose="market_event", recency_days=90),
+    # Ba query dưới đây thêm ngày 27/08/2026 để đạt mốc §A12.3 (≥6 cassette đã
+    # duyệt). Vẫn đúng phạm vi cũ: chỉ campaign_context và market_event, tức chỉ
+    # những thứ §12 cho phép nguồn ngoài soi sáng. Không query nào ở đây chạm tới
+    # một con số mà câu trả lời phụ thuộc vào.
+    SearchQuery(query="Indonesia e-commerce market event July 2026", market="id",
+                purpose="market_event", recency_days=90),
+    SearchQuery(query="Shopee 8.8 sale campaign Vietnam 2026", market="vn",
+                purpose="campaign_context", recency_days=90),
+    SearchQuery(query="Shopee Indonesia kampanye 8.8 2026", market="id",
+                purpose="campaign_context", recency_days=90),
 )
 
 

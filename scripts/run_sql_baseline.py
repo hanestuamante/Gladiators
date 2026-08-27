@@ -42,13 +42,31 @@ def raw_schema() -> str:
 
     Đây chính là điều đang được đo. Đưa catalog vào là đo lại hệ Gladiators dưới
     một cái tên khác; giữ nó thô là đo đúng thứ câu hỏi đối chứng nói tới.
-    """
-    from gladiators.domain.bindings import default_binding_snapshot
 
+    Kiểu đọc từ CHÍNH file dữ liệu. ``TableColumnSpec.physical_type`` là None
+    cho toàn bộ 219 cột, nên bản đầu tiên in "unknown" khắp nơi — tức baseline
+    phải đoán cả kiểu, trong khi §B5 luật 1 đòi cho nó "cùng mô tả cột".
+
+    KHÔNG kèm giá trị mẫu: đó là schema linking, đã vượt khỏi "lược đồ thô", và
+    thêm nó vào là bắt đầu dựng lại chính hệ Gladiators dưới một cái tên khác.
+    Hệ quả — baseline không biết country_code viết thường hay các snapshot nằm ở
+    năm nào — được ghi thẳng vào báo cáo thay vì giấu đi (B5-R3).
+    """
+    import pandas as pd
+
+    from gladiators.domain.bindings import default_binding_snapshot
+    from gladiators.domain.tables import ArtifactName
+
+    data_dir = ROOT / "data" / "processed"
     lines: list[str] = []
-    for spec in default_binding_snapshot().tables.values():
+    for name, spec in default_binding_snapshot().tables.items():
+        dtypes: dict[str, str] = {}
+        path = data_dir / str(ArtifactName(name).value)
+        if path.exists():
+            frame = pd.read_csv(path, nrows=200)
+            dtypes = {col: str(frame[col].dtype) for col in frame.columns}
         columns = ", ".join(
-            f"{column.name} {column.physical_type or 'unknown'}"
+            f"{column.name} {dtypes.get(column.name, 'unknown')}"
             for column in spec.columns
         )
         lines.append(f"{spec.view_name}({columns})")
@@ -65,6 +83,59 @@ Câu hỏi: {question}
 Chỉ trả về SQL, không giải thích.{error}"""
 
 
+
+SYSTEM_PROMPT = (
+    "You are an expert DuckDB SQL writer. Given a schema and a question, reply "
+    "with exactly one SELECT statement and nothing else."
+)
+
+# Model reasoner tiêu budget vào phần nghĩ TRƯỚC khi ra chữ. Ở 1000 token —
+# giá trị hard-code của đường production — deepseek-v4-flash trả CONTENT RỖNG cho
+# mọi prompt mang lược đồ đầy đủ; cắt lược đồ còn 800 ký tự thì nó trả SQL đúng
+# ngay. Đo ở mức đó là đo một baseline bị bóp nghẹt, và luật 1 của §B5 nói thẳng:
+# một đối chứng bị dìm là một đối chứng vô giá trị.
+MAX_OUTPUT_TOKENS = 4000
+
+
+def completion_fn(client):
+    """Hàm ``prompt -> text`` cho baseline, kèm client đã phân giải.
+
+    Script này cố ý KHÔNG dùng ``_chat`` của đường production. Hai lý do, cả hai
+    đều thuộc luật công bằng chứ không phải tiện lợi:
+
+    * system prompt của production là *"Bạn là lớp diễn giải analytics… không tự
+      thêm số"* — sai vai cho một bộ viết SQL, và nó thiên vị chống lại chính
+      baseline mà phép đo này phải đối xử tử tế;
+    * ``max_tokens`` ở đó cố định 1000, đủ để một model reasoner tiêu hết vào
+      phần nghĩ rồi trả rỗng.
+
+    Cái KHÔNG được nới là phòng vệ: SQL vẫn qua ``assert_read_only_sql`` và vẫn
+    chạy trong executor đã khoá cấu hình (B5-R2).
+
+    ``FallbackLLMClient`` bọc hai provider; đối chứng phải chạy trên MỘT model đã
+    ghi tên (B5-R4), nên nó bị mở ra lấy ``primary``.
+    """
+    client = getattr(client, "primary", client)
+    if hasattr(client, "complete"):
+        return client.complete, client
+    sdk, model = getattr(client, "client", None), getattr(client, "model", None)
+    if sdk is None or not model:
+        return None, client
+
+    def complete(prompt: str) -> str:
+        response = sdk.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0, max_tokens=MAX_OUTPUT_TOKENS, seed=0,
+        )
+        return response.choices[0].message.content or ""
+
+    return complete, client
+
+
 def _sql_from(text: str) -> str:
     body = text.strip()
     if "```" in body:
@@ -79,6 +150,12 @@ def _expected_values(case: dict) -> list[float]:
         float(value) for value in (case.get("expected_value") or {}).values()
         if isinstance(value, (int, float)) and not isinstance(value, bool)
     ]
+
+
+OUTCOMES = (
+    "correct", "wrong_value_silent", "refused",
+    "blocked_by_readonly_guard", "empty_response", "crashed",
+)
 
 
 def classify(frame, case: dict) -> str:
@@ -108,6 +185,9 @@ def classify(frame, case: dict) -> str:
 def run_one(case: dict, client, schema: str, executor) -> dict:
     from gladiators.planner.compiler import assert_read_only_sql
 
+    complete, _ = completion_fn(client)
+    if complete is None:
+        raise TypeError("client không có đường sinh văn bản nào")
     started = perf_counter()
     error, sql, frame, outcome = "", "", None, "crashed"
     for attempt in range(SYNTAX_RETRIES + 1):
@@ -116,7 +196,7 @@ def run_one(case: dict, client, schema: str, executor) -> dict:
             error=f"\n\nLần trước lỗi: {error}" if error else "",
         )
         try:
-            sql = _sql_from(client.complete(prompt))
+            sql = _sql_from(complete(prompt))
             # B5-R2: vẫn phải qua assert_read_only_sql, và vẫn chạy trong một
             # executor đã khoá cấu hình. Phòng vệ chiều sâu không được nới ra chỉ
             # vì đây là một script đo.
@@ -130,7 +210,25 @@ def run_one(case: dict, client, schema: str, executor) -> dict:
             break
         except Exception as exc:                      # noqa: BLE001 — phân loại, không nuốt
             error = f"{type(exc).__name__}: {exc}"[:300]
-            outcome = "crashed"
+            # Guard của HỆ NÀY chặn không phải là model hỏng. assert_read_only_sql
+            # nghiêm hơn "chỉ đọc": nó từ chối cả CTE (`WITH … SELECT`) và mọi
+            # hàm ngoài allow-list, mà cả hai đều read-only. Gộp chúng vào
+            # "crashed" là ghi công cho hệ mình một thứ nó không thắng — đúng thứ
+            # luật 1 của §B5 gọi là dìm đối chứng.
+            # SQL RỖNG là model không trả gì, không phải guard chặn. Cả hai đều
+            # ném CompilationError ("AST root phải là SELECT") nên phân biệt bằng
+            # exception là phân biệt sai: 4/6 ca "bị guard chặn" ở lần đo đầu
+            # thực ra là response rỗng.
+            if not sql.strip():
+                outcome = "empty_response"
+            elif type(exc).__name__ == "CompilationError":
+                outcome = "blocked_by_readonly_guard"
+            else:
+                outcome = "crashed"
+            if outcome == "blocked_by_readonly_guard":
+                # Không tiêu lượt thử lại: đây không phải lỗi cú pháp, và hỏi lại
+                # cùng một câu sẽ cho cùng một câu SQL.
+                break
             if attempt == SYNTAX_RETRIES:
                 break
     return {
@@ -160,14 +258,15 @@ def main() -> None:
 
     runtime = create_runtime(args.provider)
     client = runtime.llm_client
-    if client is None or not hasattr(client, "complete"):
+    complete, resolved = (completion_fn(client) if client is not None else (None, None))
+    if complete is None:
         # Không có provider thì KHÔNG in một bảng rỗng trông như một phép đo.
         print(json.dumps({
             "suite": args.suite, "provider": args.provider,
             "measured": False,
             "reason": (
-                "Provider không có phương thức complete(); đối chứng này cần một "
-                "LLM thật. Chạy với --provider deepseek và khoá API."
+                "Provider không có đường sinh văn bản; đối chứng này cần một LLM "
+                "thật. Chạy với --provider deepseek và khoá API trong .env."
             ),
         }, ensure_ascii=False, indent=2))
         return
@@ -182,13 +281,14 @@ def main() -> None:
         executor.close()
 
     counts = {
-        name: sum(1 for row in rows if row["outcome"] == name)
-        for name in ("correct", "wrong_value_silent", "refused", "crashed")
+        name: sum(1 for row in rows if row["outcome"] == name) for name in OUTCOMES
     }
     total = len(rows) or 1
     report = {
         "suite": args.suite, "provider": args.provider,
-        "model": getattr(client, "model", "unknown"),
+        # B5-R4: ghi ĐÚNG model đã chạy, không ghi tên lớp bọc ngoài.
+        "model": getattr(resolved, "model", "unknown"),
+        "client": type(resolved).__name__,
         "measured_on": date.today().isoformat(),
         "syntax_retries_allowed": SYNTAX_RETRIES,
         "cases": len(rows), "measured": True,
@@ -201,6 +301,13 @@ def main() -> None:
             "nhiều câu hơn là kết quả DỰ KIẾN — điểm so sánh là ô "
             "wrong_value_silent, tức số câu trả lời SAI mà không có tín hiệu nào "
             "báo là sai."
+        ),
+        "caveat_blocked": (
+            "blocked_by_readonly_guard là SQL HỢP LỆ bị guard của hệ này chặn "
+            "(hàm ngoài allow-list, vd LAG/REGR_SLOPE) — không phải model hỏng. "
+            "Không biết chúng có ra đúng số hay không: chúng chưa từng chạy. "
+            "empty_response là model không trả chữ nào; nó KHÁC guard chặn, và "
+            "gộp hai thứ lại sẽ ghi công cho hệ mình một thứ nó không thắng."
         ),
         "rows": rows,
     }

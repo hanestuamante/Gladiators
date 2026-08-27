@@ -1,0 +1,385 @@
+{
+  "suite": "eval/independent/answerable_manual.json",
+  "provider": "deepseek",
+  "model": "deepseek-v4-flash",
+  "client": "DeepSeekLLMClient",
+  "measured_on": "2026-08-27",
+  "syntax_retries_allowed": 1,
+  "cases": 44,
+  "measured": true,
+  "counts": {
+    "correct": 7,
+    "wrong_value_silent": 29,
+    "refused": 2,
+    "blocked_by_readonly_guard": 2,
+    "empty_response": 4,
+    "crashed": 0
+  },
+  "rates": {
+    "correct": 0.1591,
+    "wrong_value_silent": 0.6591,
+    "refused": 0.0455,
+    "blocked_by_readonly_guard": 0.0455,
+    "empty_response": 0.0909,
+    "crashed": 0.0
+  },
+  "median_seconds": 14.729,
+  "note": "B5-R3: không giấu kết quả bất lợi. Baseline nhanh hơn và trả lời nhiều câu hơn là kết quả DỰ KIẾN — điểm so sánh là ô wrong_value_silent, tức số câu trả lời SAI mà không có tín hiệu nào báo là sai.",
+  "rows": [
+    {
+      "id": "ans001",
+      "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+      "sql": "SELECT COUNT(*) FROM products WHERE country_code = 'VN' AND date LIKE '%-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 13.441
+    },
+    {
+      "id": "ans002",
+      "question": "Ngày 03/07 ở Việt Nam có bao nhiêu sản phẩm?",
+      "sql": "SELECT COUNT(*) AS product_count\nFROM products\nWHERE country_code = 'vn'\n  AND date LIKE '%-07-03'",
+      "outcome": "correct",
+      "error": null,
+      "seconds": 18.143
+    },
+    {
+      "id": "ans003",
+      "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
+      "sql": "SELECT COUNT(*) FROM products WHERE country_code = 'ID' AND date LIKE '%-07-03%'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 11.168
+    },
+    {
+      "id": "ans004",
+      "question": "Ngày 03/07 ở Indonesia có bao nhiêu sản phẩm?",
+      "sql": "SELECT COUNT(*) AS num_products\nFROM products\nWHERE country_code = 'ID'\n  AND (date LIKE '%-07-03' OR date LIKE '03/07/%' OR date = '03/07')",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: EXTRACT",
+      "seconds": 35.665
+    },
+    {
+      "id": "ans005",
+      "question": "Có bao nhiêu shop ở Việt Nam?",
+      "sql": "SELECT COUNT(DISTINCT shop_id) FROM shop_info WHERE country_code = 'VN'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 3.032
+    },
+    {
+      "id": "ans006",
+      "question": "Việt Nam có bao nhiêu cửa hàng?",
+      "sql": "SELECT COUNT(DISTINCT shop_id) AS shop_count FROM shop_info WHERE country_code = 'VN'",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: UPPER",
+      "seconds": 5.312
+    },
+    {
+      "id": "ans007",
+      "question": "Có bao nhiêu shop ở Indonesia?",
+      "sql": "SELECT COUNT(DISTINCT shop_id) AS shop_count\nFROM shop_info\nWHERE country_code = 'ID' OR path_country_code = 'ID'",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: LOWER",
+      "seconds": 6.566
+    },
+    {
+      "id": "ans008",
+      "question": "Indonesia có bao nhiêu cửa hàng?",
+      "sql": "SELECT COUNT(DISTINCT shop_id) FROM shop_info WHERE country_code = 'ID'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 3.619
+    },
+    {
+      "id": "ans009",
+      "question": "Có bao nhiêu listing đã xác minh tại Việt Nam ngày 03/07?",
+      "sql": "SELECT COUNT(*) FROM products WHERE country_code = 'VN' AND shopee_verified = TRUE AND date = '2024-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 8.678
+    },
+    {
+      "id": "ans010",
+      "question": "Có bao nhiêu listing đã xác minh tại Indonesia ngày 03/07?",
+      "sql": "SELECT COUNT(*) AS verified_listings\nFROM products\nWHERE country_code = 'ID' AND date = '03/07' AND shopee_verified = TRUE",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 3.379
+    },
+    {
+      "id": "ans011",
+      "question": "Có bao nhiêu listing là quảng cáo tại Việt Nam ngày 03/07?",
+      "sql": "SELECT COUNT(DISTINCT product_listing_key) AS listing_count\nFROM products\nWHERE country_code = 'VN'\n  AND is_ad = true\n  AND date = '03/07'",
+      "outcome": "correct",
+      "error": "CompilationError: Function ngoài allow-list: TIME_TO_STR",
+      "seconds": 23.352
+    },
+    {
+      "id": "ans012",
+      "question": "Có bao nhiêu listing là quảng cáo tại Indonesia ngày 03/07?",
+      "sql": "SELECT COUNT(*) AS ad_listings FROM products WHERE country_code = 'ID' AND is_ad = true AND date = '2024-07-03'",
+      "outcome": "correct",
+      "error": null,
+      "seconds": 6.335
+    },
+    {
+      "id": "ans013",
+      "question": "Có bao nhiêu listing đã hết hàng tại Việt Nam ngày 03/07?",
+      "sql": "SELECT COUNT(DISTINCT product_listing_key) AS sold_out_listings\nFROM products\nWHERE country_code = 'VN' AND is_sold_out = TRUE AND date = '2023-07-03'",
+      "outcome": "correct",
+      "error": null,
+      "seconds": 4.845
+    },
+    {
+      "id": "ans014",
+      "question": "Có bao nhiêu listing đã hết hàng tại Indonesia ngày 03/07?",
+      "sql": "SELECT COUNT(DISTINCT product_listing_key) AS sold_out_listings\nFROM products\nWHERE country_code = 'ID'\n  AND is_sold_out_bool = TRUE\n  AND date LIKE '____-07-03'",
+      "outcome": "correct",
+      "error": null,
+      "seconds": 23.838
+    },
+    {
+      "id": "ans015",
+      "question": "Có bao nhiêu listing có voucher tại Việt Nam ngày 03/07?",
+      "sql": "SELECT COUNT(*) FROM products WHERE country_code = 'VN' AND date = '03/07' AND vouchers_count > 0",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 4.701
+    },
+    {
+      "id": "ans016",
+      "question": "Ngày 03/07 tại Việt Nam, bao nhiêu sản phẩm kèm voucher?",
+      "sql": "SELECT COUNT(*) AS voucher_product_count\nFROM products\nWHERE country_code = 'VN'\n  AND date LIKE '%-07-03'\n  AND vouchers_count > 0",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 12.886
+    },
+    {
+      "id": "ans017",
+      "question": "Có bao nhiêu listing có voucher tại Indonesia ngày 03/07?",
+      "sql": "SELECT COUNT(DISTINCT product_listing_key) AS listing_count\nFROM products\nWHERE country_code = 'ID'\n  AND date = '2019-07-03'\n  AND vouchers_count > 0",
+      "outcome": "correct",
+      "error": null,
+      "seconds": 25.628
+    },
+    {
+      "id": "ans018",
+      "question": "Ngày 03/07 tại Indonesia, bao nhiêu sản phẩm kèm voucher?",
+      "sql": "SELECT COUNT(*) AS product_count\nFROM products\nWHERE country_code = 'ID'\n  AND date = '2023-07-03'\n  AND vouchers_count > 0",
+      "outcome": "correct",
+      "error": "CompilationError: Function ngoài allow-list: EXTRACT",
+      "seconds": 35.314
+    },
+    {
+      "id": "ans019",
+      "question": "Số listing tại Việt Nam thay đổi thế nào từ 01/07 đến 03/07?",
+      "sql": "",
+      "outcome": "empty_response",
+      "error": "CompilationError: AST root phải là SELECT hoặc UNION",
+      "seconds": 45.604
+    },
+    {
+      "id": "ans020",
+      "question": "Số listing tại Indonesia thay đổi thế nào từ 01/07 đến 03/07?",
+      "sql": "SELECT\n  date,\n  COUNT(DISTINCT item_id) AS listing_count,\n  COUNT(DISTINCT item_id) - LAG(COUNT(DISTINCT item_id)) OVER (ORDER BY date) AS change_from_previous_day\nFROM products\nWHERE country_code = 'ID'\n  AND date BETWEEN '2024-07-01' AND '2024-07-03'\nGROUP BY date\nORDER BY date",
+      "outcome": "blocked_by_readonly_guard",
+      "error": "CompilationError: Function ngoài allow-list: LAG",
+      "seconds": 46.029
+    },
+    {
+      "id": "ans021",
+      "question": "Ngày 01/07 tại Việt Nam có bao nhiêu listing?",
+      "sql": "SELECT COUNT(*) AS number_of_listings\nFROM products\nWHERE date = '2020-07-01' AND country_code = 'VN'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 9.412
+    },
+    {
+      "id": "ans022",
+      "question": "Ngày 01/07 tại Indonesia có bao nhiêu listing?",
+      "sql": "SELECT COUNT(DISTINCT product_listing_key) AS listing_count\nFROM products\nWHERE country_code = 'ID' AND date = '2023-07-01'",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: SUBSTRING",
+      "seconds": 38.417
+    },
+    {
+      "id": "ans023",
+      "question": "Ngày 02/07 tại Việt Nam có bao nhiêu listing?",
+      "sql": "SELECT COUNT(*) AS listing_count\nFROM products\nWHERE country_code = 'VN'\n  AND date = '2020-07-02'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 8.118
+    },
+    {
+      "id": "ans024",
+      "question": "Ngày 02/07 tại Indonesia có bao nhiêu listing?",
+      "sql": "SELECT COUNT(DISTINCT item_id) AS listing_count\nFROM products\nWHERE date = '2024-07-02'\n  AND country_code = 'ID'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 5.14
+    },
+    {
+      "id": "ans025",
+      "question": "Ngày 03/07 tại Việt Nam có bao nhiêu listing?",
+      "sql": "SELECT COUNT(DISTINCT product_listing_key) FROM products WHERE country_code = 'VN' AND date = '2023-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: AST root phải là SELECT hoặc UNION",
+      "seconds": 38.331
+    },
+    {
+      "id": "ans026",
+      "question": "Ngày 03/07 tại Indonesia có bao nhiêu listing?",
+      "sql": "SELECT COUNT(DISTINCT product_listing_key) FROM products WHERE country_code = 'ID' AND date = '2023-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 4.076
+    },
+    {
+      "id": "ans027",
+      "question": "Có bao nhiêu thương hiệu tại Việt Nam ngày 03/07?",
+      "sql": "SELECT COUNT(DISTINCT brand) FROM products WHERE country_code = 'VN' AND (date LIKE '%-07-03' OR date LIKE '03/07/%')",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 7.022
+    },
+    {
+      "id": "ans028",
+      "question": "Việt Nam ngày 03/07 có bao nhiêu brand khác nhau?",
+      "sql": "SELECT COUNT(DISTINCT brand) FROM products WHERE country_code = 'VN' AND date = '03/07'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 3.171
+    },
+    {
+      "id": "ans029",
+      "question": "Có bao nhiêu thương hiệu tại Indonesia ngày 03/07?",
+      "sql": "SELECT COUNT(DISTINCT brand) FROM products WHERE country_code = 'ID' AND date LIKE '%-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 23.248
+    },
+    {
+      "id": "ans030",
+      "question": "Indonesia ngày 03/07 có bao nhiêu brand khác nhau?",
+      "sql": "SELECT COUNT(DISTINCT brand) AS brand_count\nFROM products\nWHERE country_code = 'ID'\n  AND date LIKE '%-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 14.84
+    },
+    {
+      "id": "ans031",
+      "question": "Có bao nhiêu shop chính hãng ở Việt Nam?",
+      "sql": "SELECT COUNT(DISTINCT shop_id) FROM shop_info WHERE is_official_shop = TRUE AND country_code = 'VN'",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: UPPER",
+      "seconds": 7.871
+    },
+    {
+      "id": "ans032",
+      "question": "Có bao nhiêu listing của shop chính hãng tại Việt Nam ngày 03/07?",
+      "sql": "SELECT COUNT(DISTINCT p.product_listing_key) AS listing_count\nFROM products p\nJOIN shop_info s ON p.shop_id = s.shop_id AND p.date = s.date\nWHERE p.country_code = 'VN'\n  AND p.date = '2024-07-03'\n  AND s.is_official_shop = true",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: EXISTS",
+      "seconds": 22.436
+    },
+    {
+      "id": "ans033",
+      "question": "Có bao nhiêu shop chính hãng ở Indonesia?",
+      "sql": "SELECT COUNT(DISTINCT shop_id) FROM shop_info WHERE is_official_shop = true AND country_code = 'ID'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 3.494
+    },
+    {
+      "id": "ans034",
+      "question": "Có bao nhiêu listing của shop chính hãng tại Indonesia ngày 03/07?",
+      "sql": "SELECT COUNT(*) AS listing_count\nFROM products p\nJOIN shop_info s ON p.shop_id = s.shop_id AND p.date = s.date\nWHERE s.is_official_shop = TRUE\n  AND s.country_code = 'ID'\n  AND (p.date = '03/07' OR p.date LIKE '03/07%' OR p.date LIKE '%-07-03')",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: AST root phải là SELECT hoặc UNION",
+      "seconds": 44.26
+    },
+    {
+      "id": "ans035",
+      "question": "Giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?",
+      "sql": "SELECT median(price_num) AS median_price FROM products WHERE country_code = 'VN' AND date LIKE '%-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: SUBSTRING",
+      "seconds": 27.859
+    },
+    {
+      "id": "ans036",
+      "question": "Điểm đánh giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?",
+      "sql": "SELECT median(rating) AS median_rating\nFROM products\nWHERE country_code = 'VN'\n  AND date = '2024-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": null,
+      "seconds": 14.618
+    },
+    {
+      "id": "ans037",
+      "question": "Giá trung vị tại Indonesia ngày 03/07 là bao nhiêu?",
+      "sql": "SELECT median(price_num) AS median_price\nFROM products\nWHERE country_code = 'ID'\n  AND date = '2024-07-03'",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: UPPER",
+      "seconds": 14.53
+    },
+    {
+      "id": "ans038",
+      "question": "Điểm đánh giá trung vị tại Indonesia ngày 03/07 là bao nhiêu?",
+      "sql": "SELECT median(rating) AS median_rating\nFROM products\nWHERE country_code = 'ID'\n  AND (date LIKE '%-07-03' OR date LIKE '%03/07/%')",
+      "outcome": "wrong_value_silent",
+      "error": "CompilationError: Function ngoài allow-list: LOWER",
+      "seconds": 28.203
+    },
+    {
+      "id": "ans039",
+      "question": "Lợi nhuận ròng của từng shop tại Việt Nam là bao nhiêu?",
+      "sql": "",
+      "outcome": "empty_response",
+      "error": "CompilationError: AST root phải là SELECT hoặc UNION",
+      "seconds": 60.983
+    },
+    {
+      "id": "ans040",
+      "question": "Chi phí quảng cáo trên mỗi đơn tại Indonesia là bao nhiêu?",
+      "sql": "",
+      "outcome": "empty_response",
+      "error": "CompilationError: AST root phải là SELECT hoặc UNION",
+      "seconds": 65.776
+    },
+    {
+      "id": "ans041",
+      "question": "Tỷ lệ chuyển đổi của listing tại Việt Nam ngày 03/07?",
+      "sql": "",
+      "outcome": "empty_response",
+      "error": "CompilationError: AST root phải là SELECT hoặc UNION",
+      "seconds": 49.68
+    },
+    {
+      "id": "ans042",
+      "question": "Tồn kho còn lại của từng sản phẩm tại Việt Nam?",
+      "sql": "SELECT item_id, product_name, shop_id, price, price_original, is_sold_out_bool AS remaining_stock FROM products WHERE country_code = 'VN' AND is_sold_out_bool = FALSE",
+      "outcome": "refused",
+      "error": "CompilationError: Function ngoài allow-list: CASE",
+      "seconds": 22.08
+    },
+    {
+      "id": "ans043",
+      "question": "Dự báo doanh số tuần sau tại Indonesia?",
+      "sql": "SELECT SUM(daily_forecast) AS next_week_sales_forecast\nFROM (\n    SELECT \n        slope * (last_day + offset_days) + intercept AS daily_forecast\n    FROM (\n        SELECT \n            regr_slope(daily_sales, day_num) AS slope,\n            regr_intercept(daily_sales, day_num) AS intercept\n        FROM (\n            SELECT \n                date,\n                daily_sales,\n                DATEDIFF('day', (SELECT MIN(date) FROM daily_revenue), date) AS day_num\n            FROM (\n                SELECT \n                    date,\n                    SUM(estimated_recent_revenue) AS daily_sales\n                FROM product_snapshot_metrics\n                WHERE country_code = 'ID'\n                GROUP BY date\n            ) daily_revenue\n        ) time_series\n    ) regression\n    CROSS JOIN (\n        SELECT \n            DATEDIFF('day', (SELECT MIN(date) FROM daily_revenue), (SELECT MAX(date) FROM daily_revenue)) AS last_day\n        FROM (\n            SELECT \n                date,\n                SUM(estimated_recent_revenue) AS daily_sales\n            FROM product_snapshot_metrics\n            WHERE country_code = 'ID'\n            GROUP BY date\n        ) daily_revenue\n    ) max_day\n    CROSS JOIN (VALUES (1),(2),(3),(4),(5),(6),(7)) AS offsets(offset_days)\n) forecast",
+      "outcome": "blocked_by_readonly_guard",
+      "error": "CompilationError: Function ngoài allow-list: REGR_SLOPE",
+      "seconds": 42.007
+    },
+    {
+      "id": "ans044",
+      "question": "Giá của đối thủ ngoài sàn cho sản phẩm này là bao nhiêu?",
+      "sql": "SELECT price\nFROM products\nWHERE product_name = (SELECT product_name FROM products WHERE item_id = 123)\n  AND platform <> 'shopee'\n  AND item_id <> 123",
+      "outcome": "refused",
+      "error": null,
+      "seconds": 28.804
+    }
+  ],
+  "caveat_blocked": "blocked_by_readonly_guard là SQL HỢP LỆ bị guard của hệ này chặn (hàm ngoài allow-list, vd LAG/REGR_SLOPE) — không phải model hỏng; chúng chưa từng chạy nên không biết có đúng số hay không. empty_response là model không trả chữ nào.",
+  "reclassified_on": "2026-08-27",
+  "reclassified_note": "Phân loại lại TỪ CHÍNH report đã ghi, không gọi lại API: SQL và error đều đã lưu, nên phép phân loại lại là xác định và không tốn thêm đồng nào."
+}
