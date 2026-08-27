@@ -132,24 +132,57 @@ cho câu hỏi về mức giảm giá. A22 sinh ra để lấp đúng khe đó.
 .venv/Scripts/python.exe scripts/run_evaluation.py --suite eval/questions.json --runs 3 --provider offline
 .venv/Scripts/python.exe scripts/run_phase6_evaluation.py --suite eval/questions_external.json
 .venv/Scripts/python.exe scripts/build_topic_gate.py
+
+# Spec2308 — dựng lại artifact rồi đo (artifacts/ gitignored, phải dựng trước)
+PYTHONPATH=src .venv/Scripts/python.exe scripts/build_value_index.py
+PYTHONPATH=src .venv/Scripts/python.exe scripts/build_question_bank.py
+PYTHONPATH=src .venv/Scripts/python.exe scripts/build_multiturn_suite.py
+
+PYTHONPATH=src .venv/Scripts/python.exe scripts/run_latency_report.py --suite eval/questions.json --provider offline
+PYTHONPATH=src .venv/Scripts/python.exe scripts/run_risk_coverage.py  --suite eval/independent/answerable_manual.json --provider offline
+PYTHONPATH=src .venv/Scripts/python.exe scripts/run_metamorphic.py    --suite eval/independent/answerable_manual.json --provider offline
+.venv/Scripts/python.exe scripts/run_evaluation.py --suite eval/questions_multiturn.json --runs 3 --provider offline
+PYTHONPATH=src .venv/Scripts/python.exe scripts/build_ledger_report.py
 ```
 
-Trạng thái đo ngày 08/08 tại `1df8e5b` — **có regression chưa sửa**:
+**`artifacts/value_index.json` phải dựng trước khi đo.** Thiếu nó, vòng dò giá trị
+(WP-A5.1) **im lặng bỏ qua** — đúng theo thiết kế, vì thiếu chỉ mục là thiếu thông
+tin để kết luận chứ không phải bằng chứng rằng giá trị không tồn tại. Hệ quả: eval
+vẫn chạy, vẫn xanh, và một lớp kiểm biến mất mà không ai thấy.
+
+Trạng thái đo ngày **27/08/2026** tại `d4073c2`, `--provider offline`:
 
 | Suite | Hiện tại | Mốc cũ |
 | --- | --- | --- |
-| `pytest -q` | **804 passed, 1 skipped** | — |
+| `pytest -q` | **1200 passed, 1 skipped** | 804 passed |
+| legacy `questions` 60×3 | **1.0** | 1.0 |
+| V2 11×3 | **1.0** | 1.0 |
+| A19 6×3 | **1.0** | 1.0 |
 | boundaries 9×3 | **1.0** | 1.0 |
+| ambiguity 4×3 | **1.0** | 1.0 |
 | Phase 6 external | **12/12** `offline-no-network` | 12/12 |
-| legacy `questions` 60×3 | **0.65** (21 case fail) | 1.0 |
-| V2 11×3 | **0.879** (2 fail) | 1.0 |
-| A19 6×3 | **0.833** (1 fail) | 1.0 |
+| `dr2607` 40×1 | **1.0** | — |
+| `p0_probes` 6×3 | **0.833** (1 fixture tự mâu thuẫn) | — |
 
-Cả 21 case fail chung **một** nguyên nhân, và nó là biến thể của bẫy §3.1: message
-`A-AMBIGUOUS` echo tên listing ứng viên, tên chứa chữ số (`"... Cream 30 Gr"`) →
-`verifier.scan_numbers` đọc thành claim `30.0` không có evidence → `passed=False`.
-Đây là **false positive của verifier**, không phải câu trả lời sai — nhưng chưa sửa.
-Regression đã có sẵn ở `origin/MVP_Dai_V2` (645d558), không phải do commit local.
+Regression "0.65 / 0.879 / 0.833" ghi ở bản trước **không còn tái lập**, kể cả khi
+checkout lại commit được nêu. Nguyên nhân chưa xác định; đừng dựa vào nó.
+
+**Bảy suite trên đạt 1.0 chứng minh luật viết tay nhất quán với chính nó** — đó là
+điểm **hồi quy**, không phải điểm **năng lực**. Con số năng lực nằm ở bộ đề sinh từ
+dữ liệu (`eval/independent/`), và nó thấp hơn hẳn:
+
+| Chỉ số | Giá trị | Nghĩa |
+| --- | ---: | --- |
+| `coverage` | **0.526** | Trả lời được 52,6% câu mà **dữ liệu** trả lời được |
+| `over_refusal_rate` | **0.474** | Từ chối oan 47,4% |
+| `risk` | **0.0** | Trong số đã trả lời, không câu nào sai |
+| `over_answer_rate` | **0.0** | Không bao giờ trả lời thứ dữ liệu không có |
+| `metamorphic_consistency_rate` | **0.910** | 308 phép kiểm quan hệ, không cần gán nhãn |
+| `clarify_recovery_rate` | **0.75** | Lượt 2 lật được `clarify` thành `allow` (WP-A3) |
+| AURC | **0.0454** | Bỏ gate+verifier: +4,5 điểm phủ, đổi lấy 9,1% rủi ro |
+
+**An toàn nhưng quá thận trọng** — đó là câu tóm tắt đúng, và nó là điểm cần cải
+thiện tiếp, không phải điểm cần giấu.
 
 **Bất kỳ câu legacy nào chuyển sang `A22-*` là false positive của alignment — sửa
 checker, không sửa expected.**
@@ -171,9 +204,15 @@ checker, không sửa expected.**
   câu trả lời. `eval/topic_gate.json` có `gate_open=false`; 5/5 automatic check
   PASS, 6 metric còn lại `pending_oracle` **chờ reviewer**, cố ý không tự chấm.
 - Live search (Tavily) mặc định **OFF**; E6 `PENDING`, chưa sign-off.
+- **Spec2308 đã thi công xong 25 work package** (làn A và làn B). Ba chỗ **chưa
+  đo được vì cần mạng/khoá provider**, không phải vì chưa làm: bảng P-A/P-B của
+  WP-A11, đối chứng "LLM viết SQL" của WP-B5, và cassette Tavily của WP-A12.3
+  (`artifacts/search_cassettes/REVIEW.md` ghi rõ còn thiếu gì).
 - Đang chờ người quyết (không code thay được): 2 luật chất lượng dữ liệu của DR1,
   PAM golden review, claim-boundary review P13, fixture gap TC34, policy sentinel
-  price TC19.
+  price TC19; 4 nghi vấn `suspect` của kiểm biến hình; và
+  `p0-grouping-dropped-official-shop` — fixture đó khai `expected_action="clarify"`
+  nhưng `baseline` trong chính nó ghi `abstain/A19-PLAN`, và hệ khớp baseline.
 
 ---
 

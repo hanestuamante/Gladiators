@@ -781,7 +781,14 @@ gọi LLM**.
 | `A-NO-EVIDENCE` | Không đủ dữ liệu |
 | `A-VERIFICATION-FINAL` | Không qua verify cuối, fail-closed |
 | `A-ANALYTICAL-AMBIGUITY` | Câu analytical mơ hồ |
+| `A-VALUE-NOT-FOUND` | Câu nêu một **giá trị chiều** không có trong dữ liệu của thị trường đó — bản song sinh của `A-ENTITY-NOT-FOUND` cho brand/danh mục/shop (WP-A5.1, không khắc phục được) |
+| `A-EMPTY-RESULT-RELAXED` | Kết quả rỗng chỉ đạt được sau khi **nới điều kiện lọc**, nên nó không trả lời câu đã hỏi (WP-A5.1) |
+| `A23-PARTIAL` | Câu nhiều mệnh đề: đã trả phần trả lời được, phần còn lại nêu riêng kèm lý do (WP-A13). **Khác `A22-ALIGN-SUBREQUEST`**, vốn dành riêng cho phần vượt năng lực dataset và bị khoá bởi `p0_probes`/`dr2607` |
 | `ABLATION-NO-GATE` | Gate bị tắt để ablation (chỉ dùng khi đo) |
+
+**Kết quả rỗng KHÔNG có mã lỗi.** `result_count = 0` đi ra bằng `A-ALLOW`: không
+dòng nào thoả điều kiện là một **kết quả**, không phải một lỗi. Đây cũng là call
+site duy nhất của stage `execution` trong bộ invariant.
 
 ---
 
