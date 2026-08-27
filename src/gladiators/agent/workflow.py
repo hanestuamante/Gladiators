@@ -48,6 +48,7 @@ from .conversation import (
 )
 from .suggestions import nearest_answerable
 from .gate import ContractDrivenGate
+from .intent_arbiter import arbitrate, current_policy
 from .parser import MultilingualIntentParser, UNSUPPORTED, question_clauses
 from .tool_dispatch import ToolContext, dispatch
 from .trace import TraceStore
@@ -457,6 +458,16 @@ class AgentRuntime:
                         updates["analytical"] = deterministic.analytical
                         adjustments.append("analytical_from_deterministic_parser")
                     if updates: parsed = parsed.model_copy(update=updates)
+                # WP-A11: chính sách trọng tài chạy SAU năm nhánh precedence
+                # (A11-R2). Mặc định P-A trả lại y nguyên thứ nhận vào, nên dòng
+                # này không đổi hành vi cho tới khi ai đó đặt biến môi trường.
+                parsed, arbiter_meta = arbitrate(
+                    deterministic, parsed, adjustments,
+                    policy=current_policy(),
+                    is_registered=lambda name: self.registry.get(name) is not None,
+                    capability_serves=self._capability_serves,
+                )
+                meta["intent_policy"] = arbiter_meta
                 if adjustments: meta["parse_adjustments"] = adjustments
                 # F2: what the two parsers each said and which one the merge
                 # kept. Without this the 438x cost of the LLM branch has no

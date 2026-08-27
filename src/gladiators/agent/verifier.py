@@ -107,6 +107,88 @@ def _tier_mixing(text: str, evidence: list[Evidence]) -> list[dict[str, Any]]:
     return violations
 
 
+
+# WP-A12.2 — ba khối tách bạch. Chính sự tách bạch là điểm ăn tiền: người đọc
+# phải biết ngay con số nào truy vết được và con số nào chỉ là bối cảnh.
+BLOCK_HEADINGS: tuple[tuple[str, str], ...] = (
+    ("internal", "SỐ LIỆU NỘI BỘ"),
+    ("context", "NGỮ CẢNH THỊ TRƯỜNG"),
+    ("action", "ĐỀ XUẤT HÀNH ĐỘNG"),
+)
+
+# Đề xuất chỉ dựa vào khối 2 phải nói THẲNG điều đó. Không có câu này, một gợi ý
+# rút ra từ một bài báo trông giống hệt một gợi ý rút ra từ dữ liệu đã kiểm.
+UNVERIFIED_DISCLAIMER = "chưa kiểm chứng bằng dữ liệu nội bộ"
+
+
+def split_blocks(text: str) -> dict[str, str]:
+    """Cắt câu trả lời theo tiêu đề khối. Không có tiêu đề ⇒ dict rỗng.
+
+    Rỗng chứ không phải "tất cả là khối 1": một câu trả lời không khai khối nào
+    thì luật ba khối không áp cho nó, và đoán hộ nó thuộc khối nào là dựng ra một
+    ranh giới mà tác giả chưa từng vẽ.
+    """
+    positions: list[tuple[int, str]] = []
+    upper = text.upper()
+    for name, heading in BLOCK_HEADINGS:
+        found = upper.find(heading)
+        if found >= 0:
+            # Lùi về ĐẦU DÒNG. Cắt ngay tại chữ tiêu đề để lại tiền tố
+            # "KHỐI 2 · " nằm trong khối trước, và chữ số 2 ở đó bị đọc thành một
+            # con số của khối trước — tức luật tự tạo ra vi phạm nó đi bắt.
+            positions.append((text.rfind("\n", 0, found) + 1, name))
+    if len(positions) < 2:
+        return {}
+    positions.sort()
+    blocks: dict[str, str] = {}
+    for index, (start, name) in enumerate(positions):
+        end = positions[index + 1][0] if index + 1 < len(positions) else len(text)
+        blocks[name] = text[start:end]
+    return blocks
+
+
+def _block_rules(text: str, evidence: list[Evidence]) -> list[dict[str, Any]]:
+    """Ba luật của §A12.2, kiểm bằng máy.
+
+    Luật 1 là ``A20-TIER`` nhìn ở mức KHỐI thay vì mức câu: ``_tier_mixing`` cắt
+    theo dấu câu và newline, nên nó bắt được một câu trộn hai tier, nhưng không
+    bắt được một con số của khối 2 bị chép sang khối 1.
+    """
+    blocks = split_blocks(text)
+    if not blocks:
+        return []
+    violations: list[dict[str, Any]] = []
+
+    external_ids = {
+        item.evidence_id for item in evidence if item.source_tier != "btc_dataset"
+    }
+    internal = blocks.get("internal", "")
+    if external_ids and any(eid in internal for eid in external_ids):
+        violations.append({"rule": "external_citation_in_internal_block"})
+
+    context_numbers = set(scan_numbers(blocks.get("context", "")))
+    internal_numbers = set(scan_numbers(internal))
+    shared = context_numbers & internal_numbers
+    # Số của khối 2 xuất hiện lại trong khối 1 nghĩa là một con số ngoài đã được
+    # trình bày như một con số nội bộ — dù nó đến đó bằng đường nào.
+    if shared:
+        violations.append({
+            "rule": "context_number_reused_in_internal_block",
+            "numbers": sorted(shared),
+        })
+
+    action = blocks.get("action", "")
+    # "Chỉ dựa vào khối 2" đo bằng việc khối 1 KHÔNG mang con số hay citation nào.
+    # Đo bằng ``internal.strip()`` là sai: chuỗi đó luôn còn dòng tiêu đề, nên
+    # luật sẽ không bao giờ bắn.
+    internal_body = "\n".join(internal.splitlines()[1:])
+    internal_backed = bool(scan_numbers(internal_body) or CITATION.findall(internal_body))
+    if action and "context" in blocks and not internal_backed:
+        if UNVERIFIED_DISCLAIMER not in action.lower():
+            violations.append({"rule": "action_block_missing_disclaimer"})
+    return violations
+
+
 def _provenance_gaps(evidence: list[Evidence]) -> list[dict[str, str]]:
     """A21-PROV: every non-internal record must carry matching provenance."""
     gaps: list[dict[str, str]] = []
@@ -393,6 +475,8 @@ def verify_numeric_claims(
         unsupported = [n for n, d in claimed_tokens if not any(_display_match(n, d, a) for a in allowed)]
 
     tier_mixing = _tier_mixing(text, evidence)
+    # A12.2 luật 1: ranh giới KHỐI, bổ sung cho ranh giới câu ở trên.
+    tier_mixing.extend(_block_rules(text, evidence))
     provenance_gaps = _provenance_gaps(evidence)
     source_label_gaps = _source_label_gaps(text, evidence)
     claim_binding_gaps = _claim_binding_gaps(
