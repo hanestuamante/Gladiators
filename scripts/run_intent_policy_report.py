@@ -154,7 +154,13 @@ def main() -> None:
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     def cell(value: object) -> str:
-        return "n/a" if value is None else f"{value}"
+        """Làm tròn trước khi in. Không làm tròn thì 21.198267 và 20.780314999…
+        dính liền thành "21.19826720.78…" và bảng đọc thành một con số rác."""
+        if value is None:
+            return "n/a"
+        if isinstance(value, float):
+            return f"{value:.4g}"
+        return str(value)
 
     print(f"{'':<26}{'P-A':>12}{'P-B':>12}")
     for label, key in (

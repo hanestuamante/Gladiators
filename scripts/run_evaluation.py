@@ -292,12 +292,20 @@ def load_pricing() -> dict:
         return {}
 
 
+def _flatten_telemetry(telemetry: dict | None) -> dict:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from run_cost_report import flatten_telemetry
+
+    return flatten_telemetry(telemetry)
+
+
 def estimate_cost(provider: str, telemetry: dict) -> float | str:
     """USD ước tính, hoặc ``"n/a"`` khi chưa có đơn giá được xác nhận.
 
     B10-R2: không đoán. Một con số chi phí bịa ra còn tệ hơn không có con số nào,
     vì nó sẽ được trích dẫn.
     """
+    telemetry = _flatten_telemetry(telemetry)
     entry = load_pricing().get(provider) or {}
     prompt_rate, output_rate = entry.get("prompt_usd_per_1m"), entry.get("output_usd_per_1m")
     if prompt_rate is None or output_rate is None or not entry.get("as_of"):

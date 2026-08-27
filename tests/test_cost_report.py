@@ -70,3 +70,47 @@ def test_the_report_reader_never_reruns_the_eval():
     )
     assert "AgentRuntime" not in code
     assert "create_runtime" not in code
+
+
+def test_nested_fallback_telemetry_is_flattened_not_read_as_zero():
+    """``FallbackLLMClient.telemetry()`` trả {provider, primary:{}, fallback:{}}.
+
+    Không gộp thì ``cost_of`` thấy 0 token và báo **0 USD** — một con số 0 im
+    lặng, tệ hơn hẳn ``n/a`` vì nó trông như một phép đo thành công.
+    """
+    from run_cost_report import flatten_telemetry
+
+    nested = {
+        "provider": "deepseek+groq",
+        "primary": {"api_calls": 10, "prompt_tokens": 1000, "output_tokens": 500,
+                    "cache_hits": 2},
+        "fallback": {"api_calls": 1, "prompt_tokens": 100, "output_tokens": 50,
+                     "cache_hits": 0},
+    }
+    flat = flatten_telemetry(nested)
+    assert flat["api_calls"] == 11
+    assert flat["prompt_tokens"] == 1100
+    assert flat["output_tokens"] == 550
+    assert cost_of(flat, pricing_for("gemini")) > 0
+
+
+def test_a_flat_telemetry_dict_passes_through_unchanged():
+    from run_cost_report import flatten_telemetry
+
+    assert flatten_telemetry({"api_calls": 3})["api_calls"] == 3
+    assert flatten_telemetry(None) == {}
+
+
+def test_summarise_reads_a_nested_client_without_reporting_zero_cost():
+    report = {
+        "metrics": {
+            "provider": "gemini",
+            "llm_telemetry": {
+                "provider": "gemini",
+                "primary": {"prompt_tokens": 2_000_000, "output_tokens": 0},
+                "fallback": {},
+            },
+        },
+        "rows": [{"run": 1, "action": "allow"}],
+    }
+    assert summarise(report)["total_cost_usd"] == 3.0

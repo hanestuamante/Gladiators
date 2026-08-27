@@ -116,3 +116,55 @@ def test_the_arbiter_never_touches_the_gate():
 
     names = set(inspect.signature(arbitrate).parameters)
     assert not {"gate", "decision", "action"} & names
+
+
+# --- nối dây: kiểm qua _parse THẬT, không gọi arbitrate cô lập -----------------
+#
+# Tám test ở trên đều xanh trong khi P-B là code chết: chúng gọi ``arbitrate``
+# trực tiếp với một ``parsed`` chưa bị precedence đụng vào. Ở runtime thì ngược
+# lại — năm nhánh precedence chạy TRƯỚC và đã ghi ``deterministic.intent`` vào
+# ``parsed``, nên hàm đọc nhãn LLM từ đó luôn thấy hai nhãn bằng nhau. Đây đúng
+# là bẫy "kiểm bằng cấu trúc thay vì bằng hành vi".
+
+class _StubParser:
+    """LLM giả: luôn gán một nhãn CỐ ĐỊNH, khác nhãn deterministic."""
+
+    provider, model, prompt_version = "test", "stub", "p1-stub"
+
+    def __init__(self, label: str):
+        self.label = label
+
+    def parse_intent(self, user_text: str, names):
+        from gladiators.contracts import StructuredRequest
+
+        return StructuredRequest(
+            intent=self.label, language="vi", country="vn",
+            slots={"raw_text": user_text},
+        )
+
+
+def _run(monkeypatch, policy: str, label: str):
+    from gladiators.agent.workflow import AgentRuntime
+
+    monkeypatch.setenv("GLADIATORS_ENABLE_LLM_PARSER", "1")
+    monkeypatch.setenv("GLADIATORS_INTENT_POLICY", policy)
+    runtime = AgentRuntime(llm_client=_StubParser(label), use_llm_parser=True)
+    return runtime.run("Có bao nhiêu shop ở Việt Nam?")
+
+
+def test_the_arbiter_sees_the_llm_label_before_precedence_overwrote_it(monkeypatch):
+    """Nếu nó đọc nhãn từ ``parsed``, lý do sẽ luôn là ``no_change``."""
+    response = _run(monkeypatch, "P-B", "dataset_coverage")
+    verdict = response.llm.get("intent_policy") or {}
+    assert response.llm.get("deterministic_intent") == "open_analytical"
+    assert response.llm.get("llm_intent") == "dataset_coverage"
+    assert verdict.get("reason") != "no_change", (
+        "P-B đọc nhãn LLM SAU khi precedence ghi đè ⇒ nó không bao giờ bắn"
+    )
+
+
+def test_policy_a_keeps_the_deterministic_intent(monkeypatch):
+    """A11-R3: P-A là hành vi hiện tại, và nó phải đúng khi đi qua đường thật."""
+    response = _run(monkeypatch, "P-A", "dataset_coverage")
+    assert response.request.intent == "open_analytical"
+    assert (response.llm.get("intent_policy") or {}).get("policy") == "P-A"

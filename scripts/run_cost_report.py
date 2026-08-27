@@ -42,6 +42,44 @@ def pricing_for(provider: str) -> dict | None:
     return entry
 
 
+
+# Khoá cộng dồn được. "provider" là chuỗi, "error_counts"/"fallback_calls" là dict
+# — cộng chúng lại là vô nghĩa, nên chúng KHÔNG nằm ở đây.
+_SUMMABLE = (
+    "api_calls", "cache_hits", "failures", "prompt_tokens", "output_tokens",
+    "total_tokens", "empty_retries",
+)
+
+
+def flatten_telemetry(telemetry: dict | None) -> dict:
+    """Gộp telemetry lồng của ``FallbackLLMClient`` thành khoá phẳng.
+
+    Client bọc trả ``{provider, primary: {...}, fallback: {...}}``, còn mọi script
+    đo đọc ``prompt_tokens`` phẳng. Không gộp thì ``cost_of`` thấy 0 token và báo
+    **0 USD** — một con số 0 im lặng, tệ hơn hẳn ``n/a`` vì nó trông như một phép
+    đo thành công.
+    """
+    telemetry = telemetry or {}
+    if any(key in telemetry for key in _SUMMABLE):
+        return dict(telemetry)
+    totals = {key: 0 for key in _SUMMABLE}
+    found = False
+    for child in ("primary", "fallback"):
+        inner = telemetry.get(child)
+        if not isinstance(inner, dict):
+            continue
+        found = True
+        for key in _SUMMABLE:
+            value = inner.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                totals[key] += value
+    if not found:
+        return dict(telemetry)
+    totals["provider"] = telemetry.get("provider")
+    totals["flattened_from"] = ["primary", "fallback"]
+    return totals
+
+
 def cost_of(telemetry: dict, price: dict | None) -> float | str:
     if price is None:
         return NOT_AVAILABLE
@@ -61,7 +99,7 @@ def _split(value: float | str, count: int) -> float | str:
 def summarise(report: dict, gated: dict | None = None) -> dict:
     metrics = report.get("metrics") or report
     rows = report.get("rows") or []
-    telemetry = metrics.get("llm_telemetry") or {}
+    telemetry = flatten_telemetry(metrics.get("llm_telemetry"))
     provider = metrics.get("provider") or report.get("provider") or "unknown"
     price = pricing_for(provider)
 
@@ -101,7 +139,7 @@ def summarise(report: dict, gated: dict | None = None) -> dict:
     if gated is not None:
         gated_metrics = gated.get("metrics") or gated
         gated_cost = cost_of(
-            gated_metrics.get("llm_telemetry") or {},
+            flatten_telemetry(gated_metrics.get("llm_telemetry")),
             pricing_for(gated_metrics.get("provider") or provider),
         )
         if total != NOT_AVAILABLE and gated_cost != NOT_AVAILABLE:

@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import sys
 from pathlib import Path
 
 from gladiators.agent.budget import (
@@ -79,9 +80,12 @@ def main() -> None:
 
     p50 = percentile(totals, 0.50)
     p95 = percentile(totals, 0.95)
-    llm_telemetry = (
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from run_cost_report import flatten_telemetry
+
+    llm_telemetry = flatten_telemetry(
         runtime.llm_client.telemetry()
-        if runtime.llm_client and hasattr(runtime.llm_client, "telemetry") else {}
+        if runtime.llm_client and hasattr(runtime.llm_client, "telemetry") else {},
     )
     report = {
         "suite": args.suite, "provider": args.provider,
@@ -95,7 +99,14 @@ def main() -> None:
         "plan_cache_hit_rate": (
             round(cache_hits / cache_lookups, 4) if cache_lookups else None
         ),
-        "llm_cache_hit_rate": llm_telemetry.get("cache_hit_rate"),
+        "llm_cache_hit_rate": (
+            round(llm_telemetry["cache_hits"] / lookups, 4)
+            if (lookups := (llm_telemetry.get("cache_hits") or 0)
+                + (llm_telemetry.get("api_calls") or 0)) else None
+        ),
+        "llm_api_calls": llm_telemetry.get("api_calls"),
+        "llm_prompt_tokens": llm_telemetry.get("prompt_tokens"),
+        "llm_output_tokens": llm_telemetry.get("output_tokens"),
         "budget": {
             "p50_seconds": P50_BUDGET_SECONDS, "p95_seconds": P95_BUDGET_SECONDS,
             "max_llm_calls_critical": MAX_LLM_CALLS_CRITICAL,

@@ -473,6 +473,9 @@ class AgentRuntime:
                 # này không đổi hành vi cho tới khi ai đó đặt biến môi trường.
                 parsed, arbiter_meta = arbitrate(
                     deterministic, parsed, adjustments,
+                    # meta["llm_intent"] giữ nhãn LLM GỐC, ghi lại trước khi bất
+                    # kỳ nhánh precedence nào ghi đè parsed.
+                    llm_intent=meta.get("llm_intent"),
                     policy=current_policy(),
                     is_registered=lambda name: self.registry.get(name) is not None,
                     capability_serves=self._capability_serves,

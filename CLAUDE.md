@@ -195,6 +195,14 @@ checker, không sửa expected.**
    thì có.
 2. **Harness báo lạ thì nghi harness trước.** Đã có harness nuốt exception khiến
    188 phép đo chạy với input rỗng.
+3. **Hai bảng số giống nhau không có nghĩa là "không khác biệt".** Nó cũng có thể
+   nghĩa là nhánh đang đo **chưa từng chạy**. WP-A11 đo P-A vs P-B ra hai bảng
+   trùng khít; sự thật là `arbitrate` đọc nhãn LLM từ `parsed` **sau** khi năm
+   nhánh precedence đã ghi đè nó, nên P-B trả `no_change` cho mọi câu và là code
+   chết từ lúc viết. Tám test của nó đều xanh vì chúng gọi hàm **cô lập**. Thứ
+   phát hiện ra là một khoá telemetry đếm số lần nhánh đó thật sự bắn — **mọi
+   nhánh có điều kiện phải mang một khoá như vậy**, nếu không "đã đo" và "đã chạy"
+   không phân biệt được.
 
 ---
 
@@ -204,10 +212,21 @@ checker, không sửa expected.**
   câu trả lời. `eval/topic_gate.json` có `gate_open=false`; 5/5 automatic check
   PASS, 6 metric còn lại `pending_oracle` **chờ reviewer**, cố ý không tự chấm.
 - Live search (Tavily) mặc định **OFF**; E6 `PENDING`, chưa sign-off.
-- **Spec2308 đã thi công xong 25 work package** (làn A và làn B). Ba chỗ **chưa
-  đo được vì cần mạng/khoá provider**, không phải vì chưa làm: bảng P-A/P-B của
-  WP-A11, đối chứng "LLM viết SQL" của WP-B5, và cassette Tavily của WP-A12.3
-  (`artifacts/search_cassettes/REVIEW.md` ghi rõ còn thiếu gì).
+- **Spec2308 đã thi công xong 25 work package** (làn A và làn B), và ba chỗ từng
+  ghi là "chưa đo được vì cần mạng" **đã đo xong** — nhận định đó sai: máy phát
+  triển có mạng và `.env` có sẵn khoá. Kết quả ở `eval/reports/`:
+  - **WP-B5** (`2026-08-27-sql-baseline.md`): baseline "LLM viết SQL" trả **sai
+    số mà không báo 65,9%**, hệ này **0%**. Baseline trả lời nhiều hơn nhưng chậm
+    hơn 161 lần và đúng ít hơn ba lần.
+  - **WP-A11** (`2026-08-27-intent-policy.md`): P-B bắn 10/44 ca nhưng **không đổi
+    một outcome nào** ⇒ giữ `P-A` (A11-R3 đòi thắng, không phải hoà). Lần đo đầu
+    tiên đo một thứ **không chạy** — xem cạm bẫy ở §5.1 dưới.
+  - **WP-A12.3**: đủ 6 cassette, replay ổn định **kể cả khi socket bị chặn**. Còn
+    lại đúng một việc là **người đọc và ký** (A12-R6); cột người duyệt trong
+    `artifacts/search_cassettes/REVIEW.md` cố ý để trống.
+- **Đường có LLM parser vượt ngân sách độ trễ 2–3 lần ở p95** (30–50 s so với mốc
+  15 s). Con số 0,21 s trong `2026-08-27-latency.md` là của đường **offline** —
+  tức cấu hình đang phát hành, vì `GLADIATORS_ENABLE_LLM_PARSER` mặc định tắt.
 - Đang chờ người quyết (không code thay được): 2 luật chất lượng dữ liệu của DR1,
   PAM golden review, claim-boundary review P13, fixture gap TC34, policy sentinel
   price TC19; 4 nghi vấn `suspect` của kiểm biến hình; và

@@ -59,8 +59,16 @@ def arbitrate(
     policy: Policy,
     is_registered: Callable[[str], bool],
     capability_serves: Callable[[str, Any], bool],
+    llm_intent: str | None = None,
 ) -> tuple[Any, dict[str, Any]]:
     """Chọn request cuối sau khi năm nhánh precedence đã chạy.
+
+    ``llm_intent`` phải là nhãn LLM **TRƯỚC** khi precedence ghi đè. Đọc nó từ
+    ``parsed.intent`` là sai và sai một cách IM LẶNG: tới lúc hàm này chạy,
+    các nhánh precedence đã ghi ``deterministic.intent`` vào ``parsed``, nên
+    ``parsed.intent == deterministic.intent`` và P-B trả ``no_change`` cho MỌI
+    câu. Đo trên 44 câu B3 cho ra hai bảng số giống hệt nhau — trông như "P-B
+    vô hại", thật ra là "P-B chưa từng chạy".
 
     ``P-A`` trả lại y nguyên thứ nhận vào — đó chính là định nghĩa "hành vi hiện
     tại", và nó phải đúng theo cấu trúc chứ không theo lời hứa.
@@ -76,7 +84,7 @@ def arbitrate(
     if policy != "P-B":
         return parsed, {"policy": "P-A"}
 
-    llm_intent = getattr(parsed, "intent", None)
+    llm_intent = llm_intent or getattr(parsed, "intent", None)
     deterministic_is_open = (
         deterministic.intent == "open_analytical"
         or not is_registered(deterministic.intent)
