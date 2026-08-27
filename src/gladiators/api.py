@@ -13,6 +13,10 @@ from gladiators.ui_flow import FLOW_UI
 
 class AskRequest(BaseModel):
     text: str = Field(min_length=1, max_length=4000)
+    # WP-A3. Không truyền session_id ⇒ hành vi cũ TỪNG BIT (A3-R3): bộ nhớ hội
+    # thoại là thứ caller phải chọn dùng, không phải thứ bật sẵn cho mọi lời gọi.
+    session_id: str | None = Field(default=None, max_length=128)
+    reset: bool = False
 
 
 app = FastAPI(title="Gladiators V2", version="2.0.0-alpha")
@@ -79,9 +83,23 @@ def capabilities() -> dict:
     }
 
 
+@app.post("/session/{session_id}/reset")
+def reset_session(session_id: str) -> dict[str, bool]:
+    """Huỷ ngữ cảnh đang mang theo — A3 luật 2: bộ nhớ phải huỷ được.
+
+    Trả ``cleared`` kể cả khi không có phiên nào để xoá: người dùng bấm "bỏ ngữ
+    cảnh" cần biết kết quả là "không còn ngữ cảnh", không cần biết trước đó có
+    hay không.
+    """
+    runtime.conversations.reset(session_id)
+    return {"cleared": True}
+
+
 @app.post("/ask", response_model=AgentResponse)
 def ask(request: AskRequest) -> AgentResponse:
+    if request.reset and request.session_id:
+        runtime.conversations.reset(request.session_id)
     try:
-        return runtime.run(request.text)
+        return runtime.run(request.text, session_id=request.session_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail={"code": "AGENT_RUNTIME_ERROR", "type": type(exc).__name__}) from exc

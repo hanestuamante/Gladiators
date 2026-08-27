@@ -40,6 +40,12 @@ from gladiators.planner.critic import PlanCritic
 from .embedding import BGEIndex
 from .entity_resolution import EntityResolver, expected_entity_types
 from .consistency import check_evidence_arithmetic
+from .conversation import (
+    ConversationStore,
+    apply_to_request,
+    topics_of,
+    update_from_response,
+)
 from .suggestions import nearest_answerable
 from .gate import ContractDrivenGate
 from .parser import MultilingualIntentParser, UNSUPPORTED, question_clauses
@@ -219,6 +225,10 @@ class AgentRuntime:
         self.repo = ArtifactRepository(data_dir)
         self.registry = default_registry()
         self.macros = default_macro_registry()
+        # WP-A3: bộ nhớ hội thoại sống trong tiến trình, KHÔNG ghi đĩa. Nó rỗng
+        # cho tới khi caller truyền session_id, nên chữ ký một tham số giữ
+        # nguyên hành vi cũ (A3-R3).
+        self.conversations = ConversationStore()
         # §3.5: derived from the macro registry, never a second hand-written list.
         self.capabilities = specs_from_macros(self.macros)
         self.enable_gate, self.enable_verifier = enable_gate, enable_verifier
@@ -1004,7 +1014,13 @@ class AgentRuntime:
             llm=core.llm, planning=planning, context=core.context, degraded=False,
         )
 
-    def run(self, user_text: str) -> AgentResponse:
+    def run(self, user_text: str, session_id: str | None = None) -> AgentResponse:
+        """A3-R3: không truyền ``session_id`` ⇒ hành vi cũ TỪNG BIT.
+
+        Đây là điều kiện để bảy suite cũ không đổi, và nó phải đúng theo cấu
+        trúc chứ không theo lời hứa: ``self.conversations.get(None)`` trả None,
+        và mọi nhánh dưới đây đều rẽ khỏi khi state là None.
+        """
         trace_id = uuid.uuid4().hex[:12]
         seq = 0
 
@@ -1016,6 +1032,12 @@ class AgentRuntime:
         timer = StageTimer()
         with timer.stage("parse"):
             request, llm_meta = self._parse(user_text)
+        # WP-A3, điểm nối 1: điền ô còn trống từ lượt trước. Đặt SAU parse và
+        # TRƯỚC digest vì digest là thứ mọi lớp kiểm đối chiếu — kế thừa sau
+        # digest sẽ tạo một câu hỏi mà không lớp nào biết là đã bị sửa.
+        conversation_state = self.conversations.get(session_id)
+        turn_topics = topics_of(request)
+        request, inherited = apply_to_request(request, conversation_state, turn_topics)
         digest = request_digest(request)
         capabilities = {
             **self.repo.capability_profile(),
@@ -1724,6 +1746,16 @@ class AgentRuntime:
             planning_meta.setdefault("connectivity", connectivity)
         if value_probe.get("missing"):
             planning_meta.setdefault("value_probe", value_probe)
+        if session_id:
+            # WP-A3, điểm nối 2: chỉ ghi lại ô ĐÃ XÁC LẬP CHẮC CHẮN của lượt này.
+            # Bộ nhớ chỉ điền ô, tuyệt đối không cấp phép — decision ở trên đã
+            # được chốt xong trước khi dòng này chạy.
+            self.conversations.put(update_from_response(
+                conversation_state, session_id, request, capabilities,
+                getattr(entity_check, "state", None), turn_topics,
+            ))
+        if conversation_state is not None:
+            planning_meta["conversation"] = inherited.as_dict(conversation_state)
         plan_cache = getattr(tools, "last_plan_cache", None)
         if plan_cache:
             planning_meta.setdefault("plan_cache", plan_cache)

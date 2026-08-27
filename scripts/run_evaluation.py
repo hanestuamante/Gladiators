@@ -240,7 +240,47 @@ def citation_metrics(response) -> tuple[float, float]:
     return div(len(ids & cited), len(ids)), div(len(ids & cited), len(cited)) if cited else 0.0
 
 
+def run_multiturn_case(case, runtime):
+    """Case nhiều lượt — WP-A3. Mọi lượt dùng CÙNG session_id.
+
+    Trả về lượt CUỐI cùng, vì đó là lượt mang câu trả lời đang được đo; các lượt
+    trước chỉ xác lập ngữ cảnh. Verdict từng lượt vẫn được ghi lại để phân biệt
+    "lượt 2 đúng" với "lượt 1 đã đúng sẵn nên lượt 2 chẳng chứng minh gì".
+    """
+    runtime.conversations.reset(case["session_id"])
+    responses = [
+        runtime.run(turn["question"], session_id=case["session_id"])
+        for turn in case["turns"]
+    ]
+    final_turn, final = case["turns"][-1], responses[-1]
+    recovered = (
+        final_turn.get("expected_action_without_memory") == "clarify"
+        and final.gate.action == "allow"
+        and bool(final.evidence)
+    )
+    if recovered and final_turn.get("expected_value"):
+        # Một bộ nhớ điền BỪA cũng làm lượt cuối thành allow. Chỉ oracle mới phân
+        # biệt được điền đúng với điền bừa, nên giá trị sai KHÔNG tính là cứu.
+        values = {float(item.value) for item in final.evidence
+                  if isinstance(item.value, (int, float)) and not isinstance(item.value, bool)}
+        recovered = any(
+            any(abs(value - float(expected)) < 0.5 for value in values)
+            for expected in final_turn["expected_value"].values()
+            if expected is not None
+        )
+    checks = {
+        "scoreable": True,
+        "passed": final.gate.action == final_turn.get("expected_action"),
+        "turn_actions": [item.gate.action for item in responses],
+        "clarify_without_memory": final_turn.get("expected_action_without_memory"),
+        "clarify_recovered": recovered,
+    }
+    return final, checks
+
+
 def run_case(case, runtime):
+    if case.get("turns"):
+        return run_multiturn_case(case, runtime)
     response = runtime.run(case["question"])
     # DR-40 dùng schema khác (`legacy_expected_intent`, `expected_action` nullable
     # ở 19/40 case chưa có oracle người duyệt). Trước đây `case["expected_intent"]`
@@ -302,8 +342,11 @@ def main():
     # không phải một phép đo thất bại. Chấm nó thành crash làm crash_rate 0.333
     # trên một bộ mà hệ thống không hề hỏng — và một chỉ số báo hỏng khi không
     # hỏng sẽ bị bỏ qua đúng lúc nó báo thật.
-    placeholders = [case["id"] for case in cases if not case.get("question")]
-    cases = [case for case in cases if case.get("question")]
+    placeholders = [
+        case["id"] for case in cases
+        if not case.get("question") and not case.get("turns")
+    ]
+    cases = [case for case in cases if case.get("question") or case.get("turns")]
     # `deepseek` nằm trong --provider choices nhưng trước đây không có nhánh nào
     # dựng client, nên nó rơi vào `else None`: runner chạy 100% offline rồi ghi
     # report mang nhãn "provider": "deepseek". Một phép đo trông như đã đo mà
@@ -387,6 +430,15 @@ def main():
     complexity_rows = [row for row in rows if row.get("expected_complexity_level") and row.get("complexity_level")]
     a19_rows = [row for row in rows if str(row.get("gate_rule_id", "")).startswith("A19")]
     first_run = [row for row in rows if row["run"] == 1]
+    # WP-A3: trong số case mà lượt cuối RA clarify khi hỏi một mình, tỷ lệ case
+    # mà bộ nhớ lật được nó thành allow kèm evidence ĐÚNG ORACLE.
+    recovery_rows = [
+        row for row in first_run if row.get("clarify_without_memory") == "clarify"
+    ]
+    clarify_recovery_rate = div(
+        sum(1 for row in recovery_rows if row.get("clarify_recovered")),
+        len(recovery_rows),
+    )
     cheap_loops = {
         name: sum(1 for row in first_run if row.get(f"loop_{name}"))
         for name in ("value_probe", "context_relax", "wording_repair", "empty_result")
@@ -412,6 +464,9 @@ def main():
         "complexity_classification_accuracy": div(sum(r["complexity_level"] == r["expected_complexity_level"] for r in complexity_rows), len(complexity_rows)) if complexity_rows else None,
         "escalation_rate": div(sum(r.get("escalation_mode") in {"critic", "nversion"} for r in rows), len(rows)),
         "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)), "cheap_loops_fired": cheap_loops,
+        "clarify_recovery_rate": clarify_recovery_rate,
+        "clarify_recovery_cases": len(recovery_rows),
+        "placeholder_cases": placeholders,
         "placeholder_cases": placeholders,
         # WP-B1: cặp abstention_* ở trên chỉ đếm `abstain` nên mù hoàn toàn
         # với `clarify`. Giữ chúng để so chuỗi thời gian (B1-R1), thêm sáu
