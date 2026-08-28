@@ -16,3 +16,14 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
       - run: PYTHONPATH=src python scripts/run_evaluation.py --runs 3 --provider offline
+
+      # Bước làm sạch dữ liệu chạy TRONG CI, không phải chỉ chạy được trong CI.
+      # Nó dựng lại data/processed từ data/raw rồi so schema + giá trị với bản
+      # đang commit. Trước đây bước này nằm trong một notebook phải bấm Run All,
+      # nên "notebook vẫn chạy đúng" là một niềm tin chứ không phải một phép đo —
+      # và không ai ngoài người viết kiểm lại được.
+      #
+      # Thoát khác 0 khi lệch, nên một thay đổi làm pipeline sinh ra dữ liệu khác
+      # sẽ đỏ ở PR chứ không lộ ra lúc ai đó chạy tay vài tuần sau.
+      - name: Pipeline dựng lại được dữ liệu đang commit
+        run: PYTHONPATH=src python scripts/build_dataset.py --verify-against data/processed
