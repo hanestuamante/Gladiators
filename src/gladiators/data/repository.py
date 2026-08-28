@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from functools import cached_property
 from pathlib import Path
 
@@ -9,14 +10,40 @@ import pandas as pd
 from .contracts import validate_artifacts
 
 
+# Tên file khai báo phiên bản. Có nó thì `dataset_version` là thứ ĐƯỢC KHAI, không
+# phải thứ suy ra bằng cách băm lại CSV mỗi lần — xem docstring của thuộc tính đó.
+MANIFEST_NAME = "DATASET_VERSION.json"
+
+
 class ArtifactRepository:
+    """Một **ảnh chụp** dữ liệu, bất biến trong suốt đời của object này.
+
+    Trước đây ``read()`` không cache còn ``products``/``dataset_version`` thì cache,
+    nên một tiến trình có HAI vòng đời cho cùng một dữ liệu. Đo được: sửa CSV giữa
+    hai lần hỏi thì con số đổi 668 → 568 nhưng ``dataset_version`` vẫn đứng ở bản
+    mà đáp án là 668 — evidence khai một xuất xứ SAI, đúng thứ cả kiến trúc này
+    tồn tại để chặn.
+
+    Giờ mọi thứ đọc qua một cache duy nhất. Muốn dữ liệu mới thì dựng một
+    repository mới rồi **đổi con trỏ** — một thao tác tường minh và nguyên tử, chứ
+    không phải một hiệu ứng phụ của việc file trên đĩa đổi giữa chừng.
+    """
+
     def __init__(self, root: str | Path = "data/processed", validate: bool = True):
         self.root = Path(root)
         if validate:
             validate_artifacts(self.root)
+        self._frames: dict[str, pd.DataFrame] = {}
 
     def read(self, name: str) -> pd.DataFrame:
-        return pd.read_csv(self.root / name)
+        """Đọc một artifact, cache theo ĐỜI CỦA REPOSITORY.
+
+        Trả bản copy: ``Evidence`` bất biến, và một consumer sửa frame tại chỗ sẽ
+        làm mọi consumer sau đó thấy một dataset khác dataset đã đóng dấu.
+        """
+        if name not in self._frames:
+            self._frames[name] = pd.read_csv(self.root / name, low_memory=False)
+        return self._frames[name].copy()
 
     @cached_property
     def products(self) -> pd.DataFrame:
@@ -32,6 +59,21 @@ class ArtifactRepository:
 
     @cached_property
     def dataset_version(self) -> str:
+        """Phiên bản dữ liệu — **đọc từ manifest nếu có**, băm lại nếu không.
+
+        Băm lại là chế độ tương thích ngược cho thư mục chưa có manifest. Nó đúng
+        nhưng yếu ở một điểm: nó là thứ *suy ra được*, nên không có gì buộc nó
+        khớp với bộ byte mà câu trả lời thật sự đọc. Manifest là thứ *được khai*,
+        sinh ra cùng lúc với dữ liệu, nên nó không thể lệch.
+        """
+        manifest = self.root / MANIFEST_NAME
+        if manifest.exists():
+            try:
+                declared = json.loads(manifest.read_text(encoding="utf-8")).get("version_id")
+            except (OSError, json.JSONDecodeError):
+                declared = None
+            if declared:
+                return str(declared)
         h = hashlib.sha256()
         for name in sorted(["products_clean.csv", "product_snapshot_metrics.csv", "product_transition_metrics.csv"]):
             # Git may check text artifacts out as CRLF on Windows and LF on
