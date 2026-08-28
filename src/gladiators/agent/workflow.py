@@ -231,6 +231,7 @@ class AgentRuntime:
         enable_voucher_profile: bool | None = None,
         llm_parser_scope: str = "always",
     ):
+        self._data_dir = data_dir
         self.repo = ArtifactRepository(data_dir)
         self.registry = default_registry()
         self.macros = default_macro_registry()
@@ -1037,6 +1038,28 @@ class AgentRuntime:
             resolved_listing_key=core.resolved_listing_key, verification=verification,
             llm=core.llm, planning=planning, context=core.context, degraded=False,
         )
+
+    def reload(self) -> str:
+        """Nạp lại dữ liệu bằng cách **đổi con trỏ**, không dựng lại tiến trình.
+
+        Trước đây muốn dữ liệu mới thì phải tắt server: ``ArtifactRepository`` là
+        một ảnh chụp bất biến (đúng theo thiết kế — xem docstring của nó), và
+        không có đường nào thay ảnh chụp đó.
+
+        Ở đây thay CẢ CỤM một lần: repository mới, tools mới, cache kế hoạch xoá.
+        Xoá cache là bắt buộc chứ không phải dọn dẹp — khoá của nó là
+        ``(plan_hash, dataset_version)``, nên một mục cũ vẫn khớp khoá nếu hai bản
+        tình cờ cùng version, và nửa dữ liệu cũ sẽ sống sót qua lần nạp lại.
+
+        Trả về ``dataset_version`` mới. Lỗi thì KHÔNG đụng gì tới trạng thái đang
+        chạy: dựng repository mới xong xuôi rồi mới gán.
+        """
+        from gladiators.planner.plan_cache import PLAN_RESULT_CACHE
+
+        fresh = ArtifactRepository(self._data_dir)
+        self.repo = fresh
+        PLAN_RESULT_CACHE.clear()
+        return fresh.dataset_version
 
     def run(self, user_text: str, session_id: str | None = None) -> AgentResponse:
         """A3-R3: không truyền ``session_id`` ⇒ hành vi cũ TỪNG BIT.

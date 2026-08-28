@@ -13,6 +13,7 @@ from .contracts import validate_artifacts
 # Tên file khai báo phiên bản. Có nó thì `dataset_version` là thứ ĐƯỢC KHAI, không
 # phải thứ suy ra bằng cách băm lại CSV mỗi lần — xem docstring của thuộc tính đó.
 MANIFEST_NAME = "DATASET_VERSION.json"
+POINTER_NAME = "CURRENT"
 
 
 class ArtifactRepository:
@@ -30,7 +31,16 @@ class ArtifactRepository:
     """
 
     def __init__(self, root: str | Path = "data/processed", validate: bool = True):
-        self.root = Path(root)
+        # Trỏ vào một thư mục CÓ CON TRỎ (data/) thì đi theo con trỏ; trỏ thẳng
+        # vào thư mục dữ liệu thì dùng luôn. Giữ cả hai để data/processed cũ chạy
+        # y nguyên — một thay đổi hạ tầng bắt mọi người sửa lệnh ngay hôm đó là
+        # một thay đổi không ai áp dụng.
+        from .versions import resolve
+
+        root = Path(root)
+        resolved = resolve(root) if (root / POINTER_NAME).exists() else None
+        self.data_root = root
+        self.root = resolved or root
         if validate:
             validate_artifacts(self.root)
         self._frames: dict[str, pd.DataFrame] = {}

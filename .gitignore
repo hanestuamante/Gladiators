@@ -17,6 +17,12 @@ __pycache__/
 # pack stays out of git and is attached to the release instead.
 artifacts/
 graphify-out/
+# Bản dữ liệu đã publish và đợt raw đã nhận: là ĐẦU RA dựng lại được, không phải
+# nguồn. data/processed/ vẫn commit và vẫn là mặc định, nên clone sạch chạy ngay.
+#   dựng lại: scripts/build_dataset.py --publish · scripts/ingest_raw.py
+data/versions/
+data/raw_snapshots/
+data/CURRENT
 data/external_cache/
 models/cache/
 data/image-cache/
