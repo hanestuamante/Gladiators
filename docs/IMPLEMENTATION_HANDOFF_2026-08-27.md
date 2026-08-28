@@ -240,3 +240,70 @@ PYTHONPATH=src .venv/Scripts/python.exe scripts/run_intent_policy_report.py --su
 | `eval/reports/2026-08-27-*.md` | **Mọi con số của phiên này**, kèm giới hạn |
 | `artifacts/search_cassettes/REVIEW.md` | Việc còn lại của A12.3 |
 | `CLAUDE.md` §5.1 | Bốn cạm bẫy đo lường, ba trong số đó cắn trong phiên này |
+
+---
+
+## 7. Bổ sung 28/08 — pipeline và đợt dữ liệu mới
+
+### 7.1. Gốc rễ của "pipeline bị tù"
+
+Hai điểm được nêu (notebook phải Run All bằng tay; server đọc CSV một lần lúc
+khởi động) là **hai triệu chứng của một thiếu vắng**: không ai đặt tên cho bản dữ
+liệu. Không có danh tính thì không có gì để CI gọi, để trỏ server vào, hay để
+rollback về — nên sửa riêng lẻ từng cái không gỡ được.
+
+Lỗi đo được chứng minh điều đó: sửa CSV giữa hai lần hỏi thì số đổi **668 → 568**
+trong khi `dataset_version` vẫn đứng ở bản mà đáp án là 668. Evidence khai **xuất
+xứ sai**. Nguyên nhân: một tiến trình có **hai vòng đời** cho cùng một dữ liệu
+(`read()` không cache, `cached_property` thì cache). Hệ quả nặng nhất là **A6-R1
+đúng trên thiết kế mà không thi hành được**.
+
+Đã sửa (`311e3c1`, `0d52edd`):
+
+| | |
+| --- | --- |
+| `data/versions/<id>/` + con trỏ `data/CURRENT` | file trỏ, **không symlink** — symlink trên Windows đòi admin |
+| Notebook **505 → 30 dòng** | 482 dòng logic trích nguyên văn sang `gladiators.data.pipeline`; notebook gọi lại chính nó |
+| `build_dataset.py --verify-against` | **`reproducible: true`** |
+| `AgentRuntime.reload()` | 668 → đổi con trỏ → 568 → rollback → 668, **trong một tiến trình** |
+| `ingest_raw.py` | kho raw bất biến có mốc; `data/raw/` **không đụng** |
+
+Một quyết định đáng nhớ: **so byte là ngưỡng sai cho cột số thực.** Dựng lại lệch
+1/2184 dòng ở mức 1,6e-9 — trôi phiên bản numpy, không phải đổi logic. Ngưỡng
+đúng là schema khớp tuyệt đối + số khớp trong `rtol=1e-6`, **kèm báo cáo
+`max_rel_deviation`** để biên đó tự kiểm được.
+
+### 7.2. Đợt dữ liệu 27/08 — KHÔNG dùng thay thế được
+
+`raw_extra_data/` (commit `6a5af5e`) không đụng `data/processed/`, nên **mọi con
+số đã đo vẫn còn giá trị**. Nó là mở rộng: giữ đủ 1157 listing, thêm 119, dải
+01–21/07.
+
+**Nhưng nó không dựng nổi một dataset đầy đủ** (`audit_raw_drop.py`): thiếu hẳn
+`category_platform`, thiếu `catid`/`key`/`platform`/`username`, và **`products`
+chỉ đủ 26/44 cột**.
+
+Hai bẫy phải biết trước khi ai đó dùng:
+
+1. **`products_timeseries` không phải chuỗi thời gian** — 1276/1276 listing xuất
+   hiện đúng **một** ngày, 1154 dồn vào 21/07. Ai đọc tên file rồi hỏi "giá trung
+   vị ngày 15/07" sẽ nhận một con số tính trên **13 listing**.
+2. **`product_promotions` mới là bảng giá theo ngày**, nhưng nó **lệch chọn mẫu**
+   (chỉ listing *có* bản ghi khuyến mãi, 83–92%/ngày). `build_price_panel.py`
+   dựng panel **cân bằng 776×20** và in cảnh báo lệch **trong chính metadata**.
+
+Đồng nghiệp nói đúng: **20 ngày không đủ mùa vụ tuần.** Nhưng dải này bao trọn
+7.7, nên nó đủ cho một **nghiên cứu sự kiện**: mức giảm trung vị 34,9% → 32,8% →
+26,5%. Ba khoảng rộng khác nhau (5/5/13 ngày) nên đó là **ba lát cắt, không phải
+một đường**.
+
+### 7.3. Còn treo
+
+- **Quyết định dùng đợt 27/08 thế nào** — người quyết, không code thay được.
+  `artifacts/raw_drop_audit.json` có bảng ở mức cột.
+- **Bốn ứng viên đổi tên sai nếu áp mù**, nguy nhất là
+  `shop_category_id → shopee_category_id` (0,941) — đúng phép nhầm mà
+  `INV-SHELF-NOT-PLATFORM-CATEGORY` cấm. Cờ `name_vs_id` **không** bắt được ca
+  này vì cả hai đều là mã; giới hạn đó ghi rõ trong test.
+- **Gộp bố cục raw mới vào `data/raw`** để pipeline đọc được: chưa làm, và không
+  nên làm trước khi có quyết định ở trên.
