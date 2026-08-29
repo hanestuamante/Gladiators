@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Literal, TypedDict, get_args
 
 from gladiators.domain.catalog import CATALOG
 from gladiators.domain.qualifiers import QUALIFIERS
@@ -153,6 +154,89 @@ def _sources_of(ref: str) -> set[str]:
 # đúng cách. Toàn bộ thuật toán deterministic, không cần LLM.
 RELATION_EDGE_BUDGET = 3
 
+# --- W12.1 · Lý do từ chối có kiểu -------------------------------------------
+# 20 lối ``return None`` trong synthesize/_plan_relations/_choose_aggregation,
+# mỗi lối một mã. Trước W12, một ca nhận A19-PLAN có ít nhất 21 nguyên nhân khả
+# dĩ và trace thu hẹp được ĐÚNG 0 — mọi bảng chẩn đoán đều là kết quả của một
+# phiên đọc code bằng tay, tức ảnh chụp chứ không phải cơ chế.
+DeclineCode = Literal[
+    "scope_ref_off_base", "no_entity_for_artifact", "relation_path_not_single_edge",
+    "relation_left_source_mismatch", "relation_budget_exceeded", "temporal_validity",
+    "no_certified_aggregation", "country_missing", "unbound_qualifier",
+    "measure_count_not_one", "measure_not_in_catalog", "measure_not_answerable",
+    "too_many_dimensions", "too_many_predicates", "aggregation_not_certified",
+    "date_count_unsupported", "relation_plan_failed", "ranking_ref_mismatch",
+    "filter_op_forbidden", "dedupe_policy_conflict",
+]
+
+DECLINE_CODES: frozenset[str] = frozenset(get_args(DeclineCode))
+
+# Rule id theo mã, chọn theo priority ỔN ĐỊNH chứ không theo thứ tự tình cờ của
+# nhánh: khi một lượt decline mang nhiều mã (vd. no_certified_aggregation rồi
+# aggregation_not_certified), mã đứng trước trong tuple này quyết định rule.
+DECLINE_RULE_PRIORITY: tuple[str, ...] = (
+    "aggregation_not_certified",
+    "no_certified_aggregation",
+    "measure_not_answerable",
+    "measure_not_in_catalog",
+    "measure_count_not_one",
+    "unbound_qualifier",
+    "filter_op_forbidden",
+    "ranking_ref_mismatch",
+    "date_count_unsupported",
+    "temporal_validity",
+    "dedupe_policy_conflict",
+    "relation_budget_exceeded",
+    "relation_left_source_mismatch",
+    "relation_path_not_single_edge",
+    "no_entity_for_artifact",
+    "scope_ref_off_base",
+    "relation_plan_failed",
+    "too_many_dimensions",
+    "too_many_predicates",
+    "country_missing",
+)
+
+# Chỉ aggregation_not_certified có rule chuyên biệt (§17.1); phần còn lại là
+# A19-PLAN cho tới khi có work package đặt tên riêng cho chúng.
+DECLINE_RULE_BY_CODE: dict[str, str] = {
+    code: ("A19-AGGREGATION" if code == "aggregation_not_certified" else "A19-PLAN")
+    for code in DECLINE_CODES
+}
+
+
+class PlanningAttempt(TypedDict):
+    """Một nhánh lập kế hoạch: đã thử chưa, và từ chối/không thử vì sao.
+
+    ``tried=False`` bắt buộc kèm lý do trong ``declined`` — nhánh không chạy
+    trông giống hệt nhánh chạy rồi thua, và đó chính là ca ans035: lời từ chối
+    "không có provider" chỉ sai đường cho một synthesizer chưa bao giờ được thử.
+    """
+
+    branch: str
+    tried: bool
+    declined: list[str]
+
+
+def _decline(collector: list[str] | None, code: str) -> None:
+    """Ghi mã vào collector của CALLER. ``None`` ⇒ hành vi y hệt trước W12.
+
+    Không tạo list con ở hàm trong rồi làm mất lý do: ``_plan_relations`` và
+    ``_choose_aggregation`` nhận cùng một collector với ``synthesize``.
+    """
+    if collector is not None:
+        collector.append(code)
+
+
+def rule_for_declines(codes) -> str:
+    """Rule id cho một tập mã, theo priority đã test — không theo thứ tự nhánh."""
+    for code in DECLINE_RULE_PRIORITY:
+        if code in codes:
+            return DECLINE_RULE_BY_CODE[code]
+    return "A19-PLAN"
+
+
+
 
 @dataclass(frozen=True)
 class _RelationPlan:
@@ -163,6 +247,7 @@ class _RelationPlan:
 
 def _plan_relations(
     needed: set[str], dimensions: tuple[str, ...], dates: tuple[str, ...],
+    decline: list[str] | None = None,
 ) -> _RelationPlan | None:
     """B1–B5. ``None`` nghĩa là ngoài grammar — không nới để một câu vừa vặn."""
     # B1 · base phủ được nhiều ref nhất; hoà thì giữ thứ tự khai báo.
@@ -173,6 +258,7 @@ def _plan_relations(
     for scope_ref in ("dim.country", "dim.date"):
         sources = _sources_of(scope_ref)
         if sources and source not in sources:
+            _decline(decline, "scope_ref_off_base")
             return None
 
     # B2 · gom ref còn thiếu theo artifact
@@ -191,25 +277,30 @@ def _plan_relations(
     for artifact, refs in remote.items():
         entity = ENTITY_BY_RIGHT_SOURCE.get(artifact)
         if entity is None:
+            _decline(decline, "no_entity_for_artifact")
             return None
         path = find_path("ProductListing", entity)
         if path is None or len(path) != 1:
             # Hình sao: mọi đường hợp lệ dài đúng 1. Dài hơn nghĩa là registry
             # đã đổi hình, và việc đó cần review chứ không cần code đoán.
+            _decline(decline, "relation_path_not_single_edge")
             return None
         spec = path[0]
         if source not in RELATION_LEFT_SOURCES.get(spec.name, ()):
+            _decline(decline, "relation_left_source_mismatch")
             return None
         chosen[spec.name] = tuple(refs)
 
     # B4 · ngân sách và tính hợp lệ thời gian
     if len(chosen) > RELATION_EDGE_BUDGET:
+        _decline(decline, "relation_budget_exceeded")
         return None
     for name in chosen:
         spec = RELATIONS[name]
         if spec.temporal_validity == "static_latest_only" and (
             len(dates) > 1 or "dim.date" in dimensions
         ):
+            _decline(decline, "temporal_validity")
             return None
 
     # B5 · thứ tự xác định, không phụ thuộc thứ tự dict
@@ -246,7 +337,9 @@ def _bound_refs(items) -> list[str]:
     return [item.ref for item in items if item.ref and not item.unresolved]
 
 
-def _choose_aggregation(measure_ref: str, request: AnalyticalRequest) -> str | None:
+def _choose_aggregation(
+    measure_ref: str, request: AnalyticalRequest, decline: list[str] | None = None,
+) -> str | None:
     """Pick an aggregation the catalog actually certifies for this measure.
 
     §5: ``sum(monthly_sold)`` is rejected because the catalog does not list it.
@@ -256,6 +349,7 @@ def _choose_aggregation(measure_ref: str, request: AnalyticalRequest) -> str | N
     """
     allowed = CATALOG[measure_ref].valid_aggregations
     if not allowed:
+        _decline(decline, "no_certified_aggregation")
         return None
     if "mean_requested" in request.assumptions or "mean" in request.analytical_operators:
         return "mean" if "mean" in allowed else None
@@ -264,20 +358,35 @@ def _choose_aggregation(measure_ref: str, request: AnalyticalRequest) -> str | N
     return "median" if "median" in allowed else allowed[0]
 
 
-def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | None:
-    """Build a plan for the release grammar, or ``None`` when out of grammar."""
+def synthesize(
+    request: AnalyticalRequest, country: str, *,
+    decline: list[str] | None = None,
+) -> SynthesisResult | None:
+    """Build a plan for the release grammar, or ``None`` when out of grammar.
+
+    ``decline`` là tham số RA tuỳ chọn (W12.1): mỗi lối ``return None`` ghi tên
+    nó vào đây trước khi trả về. Không đổi kiểu trả về, vì 58 plan đang bị khoá
+    bởi ``test_synthesizer_equivalence`` và mọi caller sẽ phải sửa. Caller không
+    truyền ``decline`` nhận hành vi Y HỆT hôm nay — đó là điều kiện để W12 vào
+    được trước W4–W11 mà không đụng vào chúng.
+    """
     if not country:
+        _decline(decline, "country_missing")
         return None  # country is mandatory; cross-market needs the decomposer
     if _has_unbound_qualifier(request):
+        _decline(decline, "unbound_qualifier")
         return None
 
     measures = _bound_refs(request.requested_measures)
     if len(measures) != 1:
+        _decline(decline, "measure_count_not_one")
         return None
     measure_ref = measures[0]
     if measure_ref not in CATALOG:
+        _decline(decline, "measure_not_in_catalog")
         return None
     if CATALOG[measure_ref].answerability in {"absent", "context_only"}:
+        _decline(decline, "measure_not_answerable")
         return None
 
     # A unit of analysis carries no column to GROUP BY. Keeping it here produced a
@@ -288,20 +397,24 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     ]
     dimensions = list(dict.fromkeys(dimensions))
     if len(dimensions) > MAX_DIMENSIONS:
+        _decline(decline, "too_many_dimensions")
         return None
 
     extra = [p for p in request.filters if p.field_ref not in SCOPE_REFS]
     if len(extra) > MAX_EXTRA_PREDICATES:
+        _decline(decline, "too_many_predicates")
         return None
 
-    aggregation = _choose_aggregation(measure_ref, request)
+    aggregation = _choose_aggregation(measure_ref, request, decline=decline)
     if aggregation is None:
+        _decline(decline, "aggregation_not_certified")
         return None
 
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
     if len(dates) != 1:
         # Multi-snapshot aggregation is a decomposition question (§8.6
         # union_scope), not something to average over silently.
+        _decline(decline, "date_count_unsupported")
         return None
     date = dates[0]
 
@@ -310,14 +423,16 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     needed = {measure_ref, *dimensions, *(p.field_ref for p in extra)}
     if counted_unit:
         needed.discard(measure_ref)  # counted, not scanned
-    plan_edges = _plan_relations(needed, dimensions, (date,))
+    plan_edges = _plan_relations(needed, dimensions, (date,), decline=decline)
     if plan_edges is None:
+        _decline(decline, "relation_plan_failed")
         return None
     source = plan_edges.source
     relations = plan_edges.edges
 
     ranking = request.ranking
     if ranking and ranking.order_by != measure_ref:
+        _decline(decline, "ranking_ref_mismatch")
         return None
 
     # --- output contract ----------------------------------------------------
@@ -348,6 +463,7 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
     for index, item in enumerate(extra):
         obj = CATALOG.get(item.field_ref)
         if obj is None or item.op not in obj.allowed_filters:
+            _decline(decline, "filter_op_forbidden")
             return None  # a predicate the catalog forbids is out of grammar
         predicate = Predicate(
             ref=item.field_ref, op=item.op,
@@ -396,6 +512,7 @@ def synthesize(request: AnalyticalRequest, country: str) -> SynthesisResult | No
         if len(policies) > 1:
             # Hai chiến lược khử trùng lặp khác nhau trong một plan: chọn một
             # cái là quyết định thay người về grain nào được giữ.
+            _decline(decline, "dedupe_policy_conflict")
             return None
         nodes.append(PlanNode(
             node_id="nd", op="Dedupe", inputs=(cursor,),

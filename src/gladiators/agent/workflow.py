@@ -31,6 +31,7 @@ from gladiators.planner.open_planner import (
 from gladiators.planner.shadow import ShadowObserver
 from gladiators.planner.synthesizer import (
     has_unbound_condition_marker,
+    rule_for_declines,
     synthesize,
     unexpressible_filters,
 )
@@ -1211,6 +1212,7 @@ class AgentRuntime:
             logical_plan = None
             timer.enter("plan")
             if request.intent in {"analytical_query", "open_analytical"}:
+                branch_attempts: list[dict] = []
                 try:
                     analytical_kind = request.slots.get("analytical_kind", "")
                     planner_result = None
@@ -1228,10 +1230,15 @@ class AgentRuntime:
                                 context_bundle=plan_bundle,
                             )
                         except OpenPlannerError as exc:
-                            # A5.2: vòng R đã thử hay chưa phải sống sót qua lần
-                            # raise này, nếu không con số "cứu được bao nhiêu câu
-                            # nhờ nới ngữ cảnh" không đo được.
-                            failed = AnalyticalPlanError(str(exc))
+                            # A5.2 + W12.2: mọi lý do typed phải sống sót qua lần
+                            # raise này — chết ở boundary thì decline collector
+                            # gom được bao nhiêu cũng vô nghĩa.
+                            failed = AnalyticalPlanError(
+                                str(exc),
+                                rule_id=exc.rule_id,
+                                decline_codes=exc.decline_codes,
+                                attempts=exc.attempts,
+                            )
                             failed.context_relax = exc.context_relax
                             raise failed from exc
                         logical_plan = planner_result.plan
@@ -1243,13 +1250,49 @@ class AgentRuntime:
                         # template is known to be wrong, not merely absent.
                         synthesized = None
                         candidate_request = None
+                        decline_codes: list[str] = []
                         if request.analytical:
                             candidate = AnalyticalRequest.model_validate(request.analytical)
                             candidate_request = candidate
-                            if _synthesis_beats_template(candidate):
-                                result = synthesize(candidate, request.country)
+                            beats = _synthesis_beats_template(candidate)
+                            if beats:
+                                result = synthesize(
+                                    candidate, request.country, decline=decline_codes,
+                                )
                                 if result is not None and validate_plan(result.plan).valid:
                                     synthesized = result.plan
+                                branch_attempts.append({
+                                    "branch": "synthesizer", "tried": True,
+                                    "declined": list(decline_codes),
+                                })
+                            else:
+                                # W12.2 luật 3: _synthesis_beats_template ghi cả
+                                # True lẫn False — nhánh không đếm được số lần
+                                # bắn thì "đã đo" và "đã chạy" không phân biệt
+                                # được (CLAUDE.md §5.1.3).
+                                branch_attempts.append({
+                                    "branch": "synthesizer", "tried": False,
+                                    "declined": ["beats_template"],
+                                })
+                            explicit_aggregate = (
+                                "mean_requested" in candidate.assumptions
+                                or "mean" in candidate.analytical_operators
+                            )
+                            if (
+                                synthesized is None and explicit_aggregate
+                                and "aggregation_not_certified" in decline_codes
+                            ):
+                                # W12.2: aggregate TƯỜNG MINH bị từ chối phải chặn
+                                # fallback template — template sẽ bỏ aggregate
+                                # trong im lặng, và trả median cho một câu hỏi
+                                # mean là đúng lớp sai lớp này tồn tại để chặn.
+                                raise AnalyticalPlanError(
+                                    "Câu hỏi nêu một phép tổng hợp mà catalog "
+                                    "chưa chứng nhận cho chỉ số này.",
+                                    rule_id=rule_for_declines(decline_codes),
+                                    decline_codes=tuple(decline_codes),
+                                    attempts=tuple(branch_attempts),
+                                )
                         dropped = (
                             unexpressible_filters(candidate_request)
                             if synthesized is None else ()
@@ -1276,6 +1319,10 @@ class AgentRuntime:
                                 "Câu hỏi nêu một điều kiện mà hệ chưa lọc được; "
                                 "trả lời bằng mẫu có sẵn sẽ bỏ mất điều kiện đó."
                             )
+                        if synthesized is None:
+                            branch_attempts.append({
+                                "branch": "template", "tried": True, "declined": [],
+                            })
                         logical_plan = synthesized or build_analytical_plan(
                             analytical_kind, request.country,
                         )
@@ -1308,6 +1355,7 @@ class AgentRuntime:
                         "plan_id": logical_plan.plan_id,
                         "ir_version": logical_plan.ir_version, "complexity_level": complexity_level,
                         "risk_score": risk.score, "requested_escalation": risk.requested_mode,
+                        **({"attempts": branch_attempts} if branch_attempts else {}),
                         "escalation_mode": risk.effective_mode,
                         "risk_factors": [factor.__dict__ for factor in risk.factors],
                         # §4.3: an alias the model used and we resolved is a fact
@@ -1338,6 +1386,8 @@ class AgentRuntime:
                         plan_refs=tuple(plan_refs(logical_plan)),
                     )
                     if planner_result:
+                        if planner_result.branch_attempts:
+                            planning_meta["attempts"] = list(planner_result.branch_attempts)
                         planning_meta.update(
                             planner_attempts=planner_result.attempts,
                             validator_feedback=list(planner_result.feedback),
@@ -1405,12 +1455,22 @@ class AgentRuntime:
                             raise AnalyticalPlanError(f"Plan Critic từ chối plan: {details}")
                     tool_plan = spec.tool_plan
                 except AnalyticalPlanError as exc:
-                    decision = GateDecision(action="abstain", rule_id="A19-PLAN", reason=str(exc))
+                    # W12.2: rule id đi theo exception, không hard-code — một
+                    # aggregation_not_certified phải ra A19-AGGREGATION chứ không
+                    # tan vào A19-PLAN cùng 20 nguyên nhân khác.
+                    rule = getattr(exc, "rule_id", None) or "A19-PLAN"
+                    decision = GateDecision(action="abstain", rule_id=rule, reason=str(exc))
                     if planning_meta.get("mode") == "none":
                         planning_meta["mode"] = "blocked"
                     planning_meta.update(
-                        outcome="blocked", a19_rule="A19-PLAN", reason=str(exc),
+                        outcome="blocked", a19_rule=rule, reason=str(exc),
                     )
+                    exc_attempts = list(getattr(exc, "attempts", ()) or branch_attempts)
+                    if exc_attempts:
+                        planning_meta["attempts"] = exc_attempts
+                    exc_codes = list(getattr(exc, "decline_codes", ()) or ())
+                    if exc_codes:
+                        planning_meta["decline_codes"] = exc_codes
                     relaxed = getattr(exc, "context_relax", None)
                     if relaxed:
                         planning_meta["context_relax"] = relaxed
@@ -1822,6 +1882,18 @@ class AgentRuntime:
         plan_cache = getattr(tools, "last_plan_cache", None)
         if plan_cache:
             planning_meta.setdefault("plan_cache", plan_cache)
+        if decision.rule_id.startswith("A22"):
+            # W12.2: planning.alignment và gate.rule_id KHÔNG ĐƯỢC PHÉP mâu
+            # thuẫn. Đo được ở ans019: gate nói A22-ALIGN-DATE trong khi
+            # planning.alignment ghi {"aligned": true} — verdict chặn nằm ở khoá
+            # evidence_alignment và người đọc trace không có cách nào biết phải
+            # nhìn khoá nào. Một chốt duy nhất ở đây thay vì sửa từng site: mọi
+            # đường ra A22 đều đi qua điểm này, nên nó không thể drift.
+            planning_meta["alignment_verdict"] = {
+                "aligned": False,
+                "rule_id": decision.rule_id,
+                "reason": decision.reason,
+            }
         # WP-B11.1: ghi mọi lần từ chối vào sổ QUAN SÁT. Ghi ở đây, sau khi
         # decision cuối đã chốt — ghi sớm hơn sẽ ghi cả những quyết định về sau
         # bị thay, và bảng xếp hạng sẽ đếm những lời từ chối chưa từng xảy ra.

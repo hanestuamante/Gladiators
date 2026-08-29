@@ -10,7 +10,22 @@ from .semantic_parser import AnalyticalRequest
 
 
 class AnalyticalPlanError(ValueError):
-    pass
+    """Planning failure; W12.2 gắn thêm lý do TYPED để nó sống sót qua boundary.
+
+    Ba thuộc tính đều additive với mặc định giữ hành vi cũ: caller cũ raise bằng
+    một message trần vẫn cho ra ``A19-PLAN`` như hôm nay.
+    """
+
+    def __init__(
+        self, message: str = "", *,
+        rule_id: str = "A19-PLAN",
+        decline_codes: tuple[str, ...] = (),
+        attempts: tuple = (),
+    ):
+        super().__init__(message)
+        self.rule_id = rule_id
+        self.decline_codes = decline_codes
+        self.attempts = attempts
 
 
 def infer_deterministic_template(request: AnalyticalRequest) -> str | None:

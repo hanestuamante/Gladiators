@@ -11,7 +11,7 @@ from gladiators.domain.relations import RELATIONS
 from gladiators.agent.context import ContextBundle
 
 from .analytical import build_analytical_plan, infer_deterministic_template
-from .synthesizer import synthesize
+from .synthesizer import rule_for_declines, synthesize
 from .query_ir import CARDINALITY_GRAMMAR, LogicalQueryPlan
 from .semantic_parser import AnalyticalRequest, CatalogSlicer
 from .validator import PlanIssue, validate_plan
@@ -29,12 +29,20 @@ class OpenPlannerError(ValueError):
     def __init__(
         self, message: str, issues: tuple[dict[str, Any], ...] = (),
         context_relax: dict[str, Any] | None = None,
+        rule_id: str = "A19-PLAN",
+        decline_codes: tuple[str, ...] = (),
+        attempts: tuple = (),
     ):
         super().__init__(message)
         self.issues = issues
         # Vòng R đã thử hay chưa phải đi CÙNG lỗi: một câu bị từ chối sau khi đã
         # nới slice là bằng chứng khác hẳn một câu bị từ chối vì slice quá hẹp.
         self.context_relax = context_relax or {"attempted": False, "added_refs": []}
+        # W12.2: lý do typed phải SỐNG SÓT qua exception boundary — nếu không,
+        # mọi thứ decline collector gom được chết ngay ở lần raise đầu tiên.
+        self.rule_id = rule_id
+        self.decline_codes = decline_codes
+        self.attempts = attempts
 
 
 @dataclass(frozen=True)
@@ -46,6 +54,11 @@ class OpenPlannerResult:
     catalog_refs: tuple[str, ...] = ()
     context: dict[str, Any] | None = None
     context_relax: dict[str, Any] | None = None
+    # W12.2: ghi MỌI nhánh, kể cả nhánh thắng — không có mẫu số thì không biết
+    # nhánh nào đang gánh việc. Tên ``branch_attempts`` vì ``attempts`` đã là số
+    # lần LLM thử (int, bị khoá bởi telemetry planner_attempts) — trùng tên trong
+    # một dataclass là ghi đè annotation trong im lặng.
+    branch_attempts: tuple = ()
 
 
 LATEST_SNAPSHOT = "2026-07-03"
@@ -199,19 +212,49 @@ class OpenAnalyticalPlanner:
         # empty-result case -- with all 19 brands, because the parser never bound
         # the non-existent brand and the synthesizer silently widened the
         # question. Widening the trigger needs the entity-binding guard first.
-        if self.use_synthesizer and _synthesis_beats_template(request):
-            synthesized = synthesize(request, country)
+        # W12.2: ghi CẢ CHUỖI nhánh — tried=False phải kèm lý do vì sao không
+        # thử. ans035 hôm nay nhận "không có provider" cho một synthesizer chưa
+        # bao giờ được gọi: lời từ chối chỉ sai đường, và người đọc trace đi mua
+        # một provider trong khi thứ chặn là _synthesis_beats_template.
+        decline: list[str] = []
+        branch_attempts: list[dict] = []
+        beats = _synthesis_beats_template(request)
+        if self.use_synthesizer and beats:
+            synthesized = synthesize(request, country, decline=decline)
+            branch_attempts.append({
+                "branch": "synthesizer", "tried": True, "declined": list(decline),
+            })
             if synthesized is not None and validate_plan(synthesized.plan).valid:
                 return OpenPlannerResult(
                     plan=synthesized.plan, mode="deterministic_synthesis", attempts=0,
+                    branch_attempts=tuple(branch_attempts),
                 )
+        else:
+            branch_attempts.append({
+                "branch": "synthesizer", "tried": False,
+                "declined": ["beats_template" if self.use_synthesizer else "synthesizer_disabled"],
+            })
         template = infer_deterministic_template(request)
         if template:
+            branch_attempts.append({"branch": "template", "tried": True, "declined": []})
             return OpenPlannerResult(
                 plan=build_analytical_plan(template, country), mode="deterministic_template", attempts=0,
+                branch_attempts=tuple(branch_attempts),
             )
+        branch_attempts.append({
+            "branch": "template", "tried": True, "declined": ["no_template_for_shape"],
+        })
         if self.llm_client is None or not hasattr(self.llm_client, self.planner_method):
-            raise OpenPlannerError("Không có semantic planner provider cho câu hỏi ngoài certified template.")
+            branch_attempts.append({
+                "branch": "llm_ir", "tried": False, "declined": ["no_provider"],
+            })
+            raise OpenPlannerError(
+                "Không có semantic planner provider cho câu hỏi ngoài certified template.",
+                rule_id=rule_for_declines(decline),
+                decline_codes=tuple(decline),
+                attempts=tuple(branch_attempts),
+            )
+        branch_attempts.append({"branch": "llm_ir", "tried": True, "declined": []})
 
         # Vòng R (A5.2) — nới lát cắt ngữ cảnh RỒI THỬ LẠI ĐÚNG MỘT LẦN.
         # Đây là bảo hiểm cho WP-A6: nó cho phép cắt ngữ cảnh mạnh tay mà không
@@ -223,7 +266,7 @@ class OpenAnalyticalPlanner:
             question, request, country, refs, context_bundle,
         )
         if result is not None:
-            return result
+            return replace(result, branch_attempts=tuple(branch_attempts))
 
         relax = {"attempted": False, "added_refs": [], "widened_to": self.catalog_limit}
         added = tuple(sorted(_missing_refs(feedback) - set(refs)))
@@ -239,7 +282,10 @@ class OpenAnalyticalPlanner:
                 question, request, country, widened, context_bundle,
             )
             if result is not None:
-                return replace(result, context_relax=relax)
+                return replace(
+                    result, context_relax=relax,
+                    branch_attempts=tuple(branch_attempts),
+                )
 
         # Codes only in the message: they are a closed, reviewed vocabulary. The
         # free-text detail (which can embed a raw schema dump) stays on .issues
@@ -251,6 +297,9 @@ class OpenAnalyticalPlanner:
             + ".",
             issues=tuple(feedback),
             context_relax=relax,
+            rule_id=rule_for_declines(decline),
+            decline_codes=tuple(decline),
+            attempts=tuple(branch_attempts),
         )
 
     def _plan_with_slice(
