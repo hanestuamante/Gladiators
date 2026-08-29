@@ -1,0 +1,49 @@
+{
+  "key": "0d6bc87c27b16fda2e9e",
+  "query": {
+    "market": "vn",
+    "purpose": "market_event",
+    "query": "Vietnam e-commerce market event July 2026",
+    "recency_days": 90
+  },
+  "recorded_at": "2026-08-01T22:59:55Z",
+  "response": {
+    "cache_path": "unpersisted",
+    "content_hash": "14765a96ded9b27a46f1a00ac91b146be3eb351679c0f03742466aacd771d8b1",
+    "items": [
+      {
+        "published_at": null,
+        "rank": 1,
+        "score": 0.921929,
+        "snippet": "Domestic retailers poised for stronger earnings as demand increases  (July 17, 2026 | 10:59)\n Private and foreign-invested enterprises remain Vietnam's largest job creators  (July 16, 2026 | 10:38)\n European business confidence in Vietnam surged in second quarter  (July 15, 2026 | 12:21)\n Vietnam's auto market hits turning point as electric vehicles reshape sector  (July 14, 2026 | 16:23)\n China imports $1.4 billion of Vietnamese seafood in first half of 2026  (July 14, 2026 | 10:00) [...] Draft law targets global manufacturers for key industries  (July 21, 2026 | 11:43)\n Supply-side model required for sustainable growth  (July 21, 2026 | 10:29)\n Rice stocks struggle to gain traction despite strong export growth  (July 20, 2026 | 17:16)\n Airlines take defensive stance as fuel and FX risks loom  (July 20, 2026 | 08:27)\n MoF highlights institutional reforms, fiscal management and investment mobilisation in first half of 2026  (July 18, 2026 | 08:00) [...] Advertisement\n Subscribe now\n Log in\n\nJuly 28, 2026 11:52\n\n Vietnam Investment Review - VIR \n\nE-Paper E-Magazine",
+        "title": "Data and technology redefine Vietnam’s e-commerce race",
+        "url": "https://vir.com.vn/data-and-technology-redefine-vietnams-e-commerce-race-154416.html"
+      },
+      {
+        "published_at": null,
+        "rank": 2,
+        "score": 0.9008183,
+        "snippet": "Hanoi (VNA) – The first Vietnam Grand Sale in 2026 will take place from July 1-31 nationwide, aiming to stimulate domestic consumption and support economic growth.   \n   \n The annual event is expected to attract broad participation from businesses across sectors through a combination of traditional trade promotion activities and e-commerce initiatives, according to a decision by the Ministry of Industry and Trade (MoIT). [...] Vietnam+ (VietnamPlus)\")\n\n Tiếng Việt\n English\n Français\n Español\n 中文\n Русский\n\n# Vietnam Grand Sale 2026 to run nationwide in July\n\nThe annual event is expected to attract broad participation from businesses across sectors through a combination of traditional trade promotion activities and e-commerce initiatives.\n\nA consumer carefully selects promotional products (Illustrative photo: VNA) \n\nA consumer carefully selects promotional products (Illustrative photo: VNA) [...] The E-commerce and Digital Economy Agency has been tasked with stepping up communication on online promotions and coordinating with relevant agencies to protect the rights and interests of parties involved in online shopping activities. It will also guide e-commerce platforms in developing effective promotional campaigns to attract consumers.",
+        "title": "Vietnam Grand Sale 2026 to run nationwide in July",
+        "url": "https://en.vietnamplus.vn/vietnam-grand-sale-2026-to-run-nationwide-in-july-post343372.vnp"
+      },
+      {
+        "published_at": null,
+        "rank": 3,
+        "score": 0.86331123,
+        "snippet": "Asia Briefing China Briefing India Briefing Vietnam Briefing ASEAN Briefing Middle East Briefing\n\nEnglish French German Italian Spanish Chinese\n\nContact Us\n\nContact Us\n\n# Vietnam’s E-commerce Market in 2026: Trends, Platforms, and Business Outlook\n\nJuly 29, 2026 Posted by Vietnam Briefing Written by Vu Nguyen Hanh\n\nAvailable language\n\n   In this article [...] The Vietnam E-Business Index 2026 shows that e-commerce development remains heavily concentrated in the country’s largest economic centres, despite continued digitalisation nationwide. The index measures provincial performance across three dimensions: human resources and IT infrastructure, business-to-consumer (B2C) transactions, and business-to-business (B2B) e-commerce.\n\nFind Business Support [...] Social media continues to outperform other digital channels in driving online sales. According to the Vietnam E-Business Index 2026, 45 percent of businesses rated social networks as highly effective for selling products online, compared to 35 percent for enterprise websites and 28 percent for both e-commerce marketplaces and mobile applications.",
+        "title": "Vietnam E-Commerce Sector Outlook: Key Growth Trends",
+        "url": "https://www.vietnam-briefing.com/news/vietnam-e-commerce-sector-2026.html"
+      }
+    ],
+    "provider": "tavily",
+    "query": {
+      "market": "vn",
+      "purpose": "market_event",
+      "query": "Vietnam e-commerce market event July 2026",
+      "recency_days": 90
+    },
+    "retrieved_at": "2026-08-01T22:59:55.881190Z"
+  },
+  "schema_version": "search-cassette.v1"
+}

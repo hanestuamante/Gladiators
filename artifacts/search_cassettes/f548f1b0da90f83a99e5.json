@@ -1,0 +1,41 @@
+{
+  "key": "f548f1b0da90f83a99e5",
+  "query": {
+    "market": "vn",
+    "purpose": "campaign_context",
+    "query": "Shopee 7.7 sale campaign Vietnam 2026",
+    "recency_days": 90
+  },
+  "recorded_at": "2026-08-01T22:59:51Z",
+  "response": {
+    "cache_path": "unpersisted",
+    "content_hash": "3f1ccc798ab1e6ab2cab5bbd4a2919c5c1baaacb793ddd4743100cbac80338b7",
+    "items": [
+      {
+        "published_at": null,
+        "rank": 1,
+        "score": 0.16281913,
+        "snippet": "# BOSS Coffee unveils ‘BOSS MODE: ON’ campaign to support Vietnam’s everyday workforce. Our **What’s NEXT in Marketing 2026 Conference Series** returns to the Philippines, Singapore, Hong Kong, Indonesia, Malaysia—and for the first time in Thailand! **Vietnam –** BOSS Coffee and Dentsu Creative Vietnam have launched ‘BOSS MODE: ON’, a campaign for the brand’s new energy drink that celebrates the blue-collar workers who keep everyday life moving. According to BOSS Coffee, the campaign reflects the combination of physical stamina, mental focus, and confidence needed by many workers managing demanding schedules and everyday responsibilities. Related Tags   Marketing Campaign Social Dentsu Vietnam BOSS Coffee Suntory PepsiCo. Suntory BOSS Coffee fuels ambition in new campaign with It’s Friday. Out of these cookies, the cookies that are categorized as necessary are stored on your browser as they are essential for the working of basic functionalities of the website.",
+        "title": "BOSS Coffee unveils ‘BOSS MODE: ON’ campaign to support Vietnam’s everyday workforce - marketech apac",
+        "url": "https://marketech-apac.com/boss-coffee-unveils-boss-mode-on-campaign-to-support-vietnams-everyday-workforce/"
+      },
+      {
+        "published_at": null,
+        "rank": 2,
+        "score": 0.09562799,
+        "snippet": "Test Your News I.Q. 2026 Elections Election Results Election calendar White House Congress Supreme Court The latest AP-NORC polls Ground Game. This photo released by Humane World for Animals Viet Nam shows cats in cages that were seized by the police in Ho Chi Minh City, Vietnam, on June 15, 2026. This photo released by Humane World for Animals Viet Nam shows cats that were seized by the police in Ho Chi Minh City, Vietnam, on June 15, 2026. HANOI, Vietnam (AP) — Police in Vietnam seized more than 400 cats in a major bust of a cat meat crime ring in Ho Chi Minh City, according to animal welfare groups and local media reports. This operation is “a sobering reminder of the enormous scale of Viet Nam’s cat meat trade,” Karanvir Kukreja, who leads a campaign against dog and cat meat consumption for the international nonprofit Humane World for Animals, said in a statement.",
+        "title": "Police rescue hundreds of cats from being eaten in Vietnam with bust of major animal theft ring - AP News",
+        "url": "https://apnews.com/article/vietnam-cats-animal-theft-rescue-police-arrests-ca0ce50281dbb5a624abf5cc95355e0f"
+      }
+    ],
+    "provider": "tavily",
+    "query": {
+      "market": "vn",
+      "purpose": "campaign_context",
+      "query": "Shopee 7.7 sale campaign Vietnam 2026",
+      "recency_days": 90
+    },
+    "retrieved_at": "2026-08-01T22:59:51.905491Z"
+  },
+  "schema_version": "search-cassette.v1"
+}
