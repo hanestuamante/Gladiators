@@ -200,3 +200,84 @@ def test_store_lists_its_keys(store):
     RecordingSearchProvider(StubProvider(), store).search(query("aaa"))
     RecordingSearchProvider(StubProvider(), store).search(query("bbb"))
     assert len(store.keys()) == 2
+
+
+# --- W2 (SolutionSpec2808 §3) · verify phải đỏ khi thiếu ---------------------
+
+def _verify_with_dir(tmp_dir):
+    """Chạy verify() của script với CASSETTE_DIR trỏ vào thư mục tạm."""
+    import importlib
+
+    module = importlib.import_module("scripts.record_search_cassettes")
+    original = module.CASSETTE_DIR
+    module.CASSETTE_DIR = tmp_dir
+    try:
+        return module.verify()
+    finally:
+        module.CASSETTE_DIR = original
+
+
+def test_an_empty_store_fails_verify(tmp_path):
+    """Nhánh "kho rỗng ⇒ SKIP ⇒ 0" đã bị xoá: CI xanh trên kho rỗng là chính
+    khoảng trống W2 tồn tại để đóng."""
+    assert _verify_with_dir(tmp_path) != 0
+
+
+def test_a_missing_cassette_fails_and_names_the_key(tmp_path, capsys):
+    import json
+    import shutil
+    from pathlib import Path
+
+    source = Path("artifacts/search_cassettes")
+    if not (source / "MANIFEST.json").exists():
+        import pytest
+
+        pytest.skip("MANIFEST.json chưa dựng trong checkout này")
+    for path in source.glob("*.json"):
+        shutil.copy(path, tmp_path / path.name)
+    manifest = json.loads((tmp_path / "MANIFEST.json").read_text(encoding="utf-8"))
+    victim = manifest["cassettes"][0]["key"]
+    (tmp_path / f"{victim}.json").unlink()
+    assert _verify_with_dir(tmp_path) != 0
+    out = capsys.readouterr().out
+    assert "CASSETTE_MISSING" in out and victim in out
+
+
+def test_a_one_byte_edit_fails_the_hash(tmp_path, capsys):
+    import json
+    import shutil
+    from pathlib import Path
+
+    source = Path("artifacts/search_cassettes")
+    if not (source / "MANIFEST.json").exists():
+        import pytest
+
+        pytest.skip("MANIFEST.json chưa dựng trong checkout này")
+    for path in source.glob("*.json"):
+        shutil.copy(path, tmp_path / path.name)
+    manifest = json.loads((tmp_path / "MANIFEST.json").read_text(encoding="utf-8"))
+    victim = tmp_path / f"{manifest['cassettes'][0]['key']}.json"
+    data = victim.read_bytes()
+    victim.write_bytes(data.replace(b'"rank": 1', b'"rank": 9', 1))
+    assert _verify_with_dir(tmp_path) != 0
+    assert "CASSETTE_HASH" in capsys.readouterr().out
+
+
+def test_a_stray_manifest_key_fails_the_query_set(tmp_path, capsys):
+    import json
+    import shutil
+    from pathlib import Path
+
+    source = Path("artifacts/search_cassettes")
+    if not (source / "MANIFEST.json").exists():
+        import pytest
+
+        pytest.skip("MANIFEST.json chưa dựng trong checkout này")
+    for path in source.glob("*.json"):
+        shutil.copy(path, tmp_path / path.name)
+    manifest_path = tmp_path / "MANIFEST.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["cassettes"].append({**manifest["cassettes"][0], "key": "f" * 20})
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    assert _verify_with_dir(tmp_path) != 0
+    assert "QUERY_SET_MISMATCH" in capsys.readouterr().out

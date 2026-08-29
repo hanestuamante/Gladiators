@@ -4,6 +4,7 @@ import re
 import unicodedata
 
 from gladiators.contracts import StructuredRequest
+from gladiators.domain.column_semantics import classify_column_observation
 from gladiators.domain.intent_registry import IntentRegistry
 from gladiators.domain.relation_prose import STRUCTURE_CUES
 from gladiators.planner.semantic_parser import (
@@ -56,7 +57,9 @@ UNSUPPORTED = {
     "conversion": ("chuyen doi", "conversion", "konversi"),
     "image_similarity": ("giong hinh", "giong nhau ve hinh", "image similarity", "kemiripan gambar"),
     "reference": ("ty gia", "exchange rate", "kurs vnd"),
-    "external": ("gia doi thu", "competitor price", "market price", "harga pesaing"),
+    # W8.4: external nhận theo CẤU TRÚC ở router (_is_external_competitor_price)
+    # — vòng UNSUPPORTED không giữ danh sách phrase thứ hai cho cùng khái niệm.
+    "external": (),
     "orders": ("don hang", "order-level", "order level", "pesanan"),
     "category_type": ("category type", "category_type", "ma loai danh muc"),
     "price_reconstruction": (
@@ -299,6 +302,32 @@ class MultilingualIntentParser:
                 "external_purpose": route.purpose,
                 "requested_variables": route.requested_variables,
             })
+        # W8.2: đường gọi DUY NHẤT của registry ngữ nghĩa quan sát, TRƯỚC vòng
+        # UNSUPPORTED. unknown ⇒ None ⇒ đường từ chối hiện hành giữ nguyên;
+        # not_collected ⇒ A-DATA-ABSENT với lý do nêu ĐÚNG (cột không được thu
+        # thập, không phải "dataset không có khái niệm này"); observed để
+        # catalog/qualifier phát hành ref và parser bind theo đường chuẩn.
+        observation = classify_column_observation(n)
+        if observation is not None and observation.semantics == "not_collected":
+            return StructuredRequest(
+                intent="unsupported:column_not_collected", language=language,
+                slots={"raw_text": text,
+                       "column_observation": {
+                           "column": observation.column,
+                           "semantics": observation.semantics,
+                           "caveat_key": observation.caveat_key,
+                       }},
+                route_mode=route.mode, external_purpose=route.purpose,
+                requested_variables=route.requested_variables,
+            )
+        from gladiators.external.router import _is_external_competitor_price
+
+        if _is_external_competitor_price(n):
+            return StructuredRequest(
+                intent="unsupported:external", language=language, slots={"raw_text": text},
+                route_mode=route.mode, external_purpose=route.purpose,
+                requested_variables=route.requested_variables,
+            )
         for capability, words in UNSUPPORTED.items():
             if any(w in n for w in words):
                 return StructuredRequest(

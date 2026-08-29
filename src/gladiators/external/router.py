@@ -32,10 +32,49 @@ _COMPARE = (
 _CONVERT = ("quy doi", "convert", "conversion", "sang usd", "to usd")
 _VN = (" vietnam ", " viet nam ", " vn ", " vnd ")
 _ID = (" indonesia ", " id ", " idr ")
-_COMPETITOR = (
-    "gia doi thu", "competitor price", "market price", "harga pesaing",
-    "gia ben ngoai", "external price",
+# W8.4: nhận theo CẤU TRÚC, không theo cụm liền nhau. "Giá CỦA đối thủ NGOÀI
+# SÀN" chen từ vào giữa và rơi qua danh sách phrase cũ, rồi nhận nhãn currency —
+# một lời từ chối mô tả sai vấn đề.
+_PRICE_CONCEPT = ("gia", "price", "harga")
+_COMPETITOR_CONCEPT = ("doi thu", "pesaing", "competitor")
+# Chỉ dấu hiệu VỊ TRÍ ngoài sàn mới đủ nói "external" một mình cạnh giá —
+# "đối thủ" trần còn nghĩa trong-sàn ("đối thủ có cùng mức giá ±20%" của tc19
+# là một câu SIMILARITY, và gán nó nhãn external là một lời từ chối sai vấn đề).
+_EXTERNAL_LOCATION = (
+    "ngoai san", "ben ngoai", "outside platform", "external marketplace",
+    "market price", "external price", "ngoai nen tang", "off platform",
+    "luar platform",
 )
+_CLAUSE_SPLIT = (";", ",", " va ", " and ", " nhung ", " but ", " roi ")
+
+
+def _is_external_competitor_price(normalized: str) -> bool:
+    """External khi cùng MỘT mệnh đề có khái niệm giá và (a) một dấu hiệu vị
+    trí ngoài sàn, hoặc (b) dạng sở hữu "giá (của) đối thủ" — giá đứng LIỀN
+    trước đối thủ trong vòng ba token. Tách mệnh đề theo dấu câu/liên từ mạnh.
+    """
+    clauses = [f" {normalized} "]
+    for separator in _CLAUSE_SPLIT:
+        clauses = [part for clause in clauses for part in clause.split(separator)]
+    for clause in clauses:
+        padded = f" {clause.strip()} "
+        if not any(term in padded for term in _PRICE_CONCEPT):
+            continue
+        if any(term in padded for term in _EXTERNAL_LOCATION):
+            return True
+        tokens = padded.split()
+        for index, token in enumerate(tokens):
+            if token not in _PRICE_CONCEPT:
+                continue
+            # "giá (của) đối thủ" — sở hữu, giá đứng TRƯỚC; và dạng tiếng Anh
+            # "competitor price" — đối thủ đứng NGAY trước giá.
+            forward = " ".join(tokens[index + 1: index + 4])
+            backward = " ".join(tokens[max(0, index - 2): index])
+            if any(f" {term}" in f" {forward}" for term in _COMPETITOR_CONCEPT):
+                return True
+            if any(backward.endswith(term) for term in _COMPETITOR_CONCEPT):
+                return True
+    return False
 _CAMPAIGN = (
     "lich 7.7", "7.7", "lich chien dich", "lich khuyen mai", "campaign calendar",
     "campaign date", "campaign window", "ngay chien dich", "chien dich mua sam",
@@ -90,7 +129,7 @@ def classify_external_need(text: str) -> ExternalRoute:
                 "contract cross-tier derived value T-8c chưa được phê duyệt."
             ),
         )
-    if _contains(normalized, _COMPETITOR):
+    if _is_external_competitor_price(normalized):
         return ExternalRoute(
             mode="abstain", rule_id="A14-EXT",
             reason=(

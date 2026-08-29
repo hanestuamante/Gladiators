@@ -249,6 +249,20 @@ class ContractDrivenGate:
                 "Parser không bảo toàn live-context route; hệ thống chặn fail-closed thay vì chạy tool nội bộ sai.",
                 "route", "route_not_preserved",
                 "Hãy thử lại bằng câu hỏi chỉ nêu lịch chiến dịch hoặc sự kiện thị trường.")
+        if request.intent == "unsupported:column_not_collected":
+            # W8.2: registry ngữ nghĩa quan sát nói cột này KHÔNG ĐƯỢC THU THẬP
+            # — khác hẳn "dataset không có khái niệm này". Lý do phải nêu đúng
+            # phân biệt đó, không chữ số (CLAUDE.md §3.1).
+            add("A-DATA-ABSENT", 1, "abstain",
+                "Cột dữ liệu tương ứng không được thu thập trong dataset này, "
+                "nên không quan sát được thứ câu hỏi cần — đây là quyết định đã "
+                "được chủ dữ liệu xác nhận, không phải một khái niệm dataset "
+                "thiếu.",
+                "capability", "column_not_collected",
+                "Hãy hỏi một chỉ số mà dataset có thu thập, ví dụ giá, đánh giá "
+                "hoặc lượt bán.",
+                fixable=False)
+            return decide_from(GateDecision(action="allow", rule_id="A-ALLOW", reason=""))
         if request.intent.startswith("unsupported:"):
             missing = request.intent.split(":", 1)[1]
             message = CAPABILITY_MESSAGES[missing]
