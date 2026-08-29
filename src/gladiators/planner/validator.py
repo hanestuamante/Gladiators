@@ -104,6 +104,31 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
         issues.append(PlanIssue(code="budget_exceeded", message="Độ sâu DAG vượt max_depth."))
     if plan.subplan_count > plan.budget.max_subplans:
         issues.append(PlanIssue(code="budget_exceeded", message="Số subplan vượt max_subplans."))
+    # W11.2 §12.3.1: một node share với ShareDefinition phải khai schema đúng
+    # ba ref tử/mẫu/tỷ lệ — plan KHÔNG được tự thay tử số hay mẫu số. Validator
+    # mở closure từ registry, không tin schema plan tự khai.
+    from gladiators.domain.metrics import METRICS
+
+    for node in plan.nodes:
+        if node.op != "Aggregate" or node.aggregation != "share":
+            continue
+        for ref in node.refs:
+            spec = METRICS.get(ref.split(".", 1)[1]) if ref.startswith("derived.") else None
+            if spec is None or spec.share is None:
+                continue
+            schema_refs = [field.semantic_ref for field in node.expected_schema]
+            required = [
+                f"derived.{spec.share.numerator_metric}",
+                f"derived.{spec.share.denominator_metric}",
+                ref,
+            ]
+            if schema_refs[-3:] != required:
+                issues.append(PlanIssue(
+                    code="schema_invalid", node_id=node.node_id,
+                    message="Share phải khai đúng ba ref tử/mẫu/tỷ lệ theo "
+                            "ShareDefinition: " + ", ".join(required),
+                ))
+
     if plan.output_node not in nodes:
         issues.append(PlanIssue(code="schema_invalid", message="output_node không tồn tại."))
     elif nodes[plan.output_node].expected_schema != plan.requested_output_shape:

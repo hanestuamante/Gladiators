@@ -94,5 +94,40 @@
     "expected_evidence": {
       "category_count": 4
     }
+  },
+  {
+    "id": "cnt04",
+    "question": "Tỷ lệ listing có giảm giá tại VN ngày 03/07 là bao nhiêu phần trăm?",
+    "expected_intent": "analytical_query",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate"
+      ],
+      "semantic_refs": [
+        "dim.country",
+        "dim.date",
+        "derived.has_promo",
+        "derived.discounted_listing_count",
+        "derived.discounted_listing_rate"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "country_snapshot"
+      ],
+      "scenarios": [
+        "declared_denominator_share"
+      ]
+    },
+    "expected_evidence": {
+      "discounted_listing_count": 643,
+      "product_count": 668,
+      "discounted_listing_rate": 96.25748502994011
+    }
   }
 ]

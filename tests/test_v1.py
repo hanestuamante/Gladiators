@@ -47,6 +47,8 @@ def test_metric_registry_covers_v2_metric_contract():
         # "count distinct instances" for listings only left "có bao nhiêu shop"
         # with no measure to bind, and it refused a question the data answers.
         "product_count", "shop_count", "brand_count", "category_count",
+        # W11.2: đếm-theo-cờ-giảm-giá và tỷ lệ khai mẫu số của nó.
+        "discounted_listing_count", "discounted_listing_rate",
         "median_monthly_sold", "median_estimated_recent_revenue",
         "descriptive_gap_vs_baseline", "text_sim", "category_overlap_depth",
         "brand_match", "price_distance", "same_shelf_bonus", "similarity_score",

@@ -21,8 +21,9 @@ from gladiators.domain.metrics import (
 )
 
 
-def test_registry_has_33_metrics_and_no_cycle():
-    assert len(METRICS) == 33
+def test_registry_has_35_metrics_and_no_cycle():
+    # 35 từ W11.2: discounted_listing_count và discounted_listing_rate.
+    assert len(METRICS) == 35
     assert METRIC_GRAPH.cycles == ()
 
 
@@ -44,8 +45,12 @@ def test_every_metric_to_metric_edge_is_declared():
         "descriptive_gap_median_sold": ("has_structured_voucher",),
         "voucher_profile_score": ("voucher_rate", "median_discount_ratio",
                                   "descriptive_gap_median_sold"),
+        # W11.2: tỷ lệ khai mẫu số là ba cạnh lineage TƯỜNG MINH — đúng thứ
+        # bảng này tồn tại để bắt buộc.
+        "discounted_listing_count": ("has_promo",),
+        "discounted_listing_rate": ("discounted_listing_count", "product_count"),
     }
-    assert METRIC_GRAPH.edge_count() == 13
+    assert METRIC_GRAPH.edge_count() == 16
 
 
 def test_every_metric_has_lineage_to_a_column_or_a_tool():

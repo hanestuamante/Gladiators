@@ -298,6 +298,15 @@ _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "has_voucher_label": ("có nhãn voucher", "has voucher label"),
     "has_promo": ("có khuyến mãi", "đang khuyến mãi", "khuyến mãi", "promotion",
                   "promo", "has promotion", "ada promo"),
+    # W11.2: alias khớp CẢ CỤM, không khớp "tỷ lệ" trần — "tỷ lệ" một mình không
+    # nói mẫu số là gì, và một tỷ lệ không có mẫu số khai báo là đúng thứ
+    # INV-PROXY-NOT-VERIFIED-SALES và _lineage_gaps tồn tại để chặn.
+    "discounted_listing_count": ("số listing có giảm giá", "số listing giảm giá",
+                                 "jumlah listing diskon"),
+    "discounted_listing_rate": ("tỷ lệ listing có giảm giá", "tỷ lệ listing giảm giá",
+                                "phần trăm listing giảm giá",
+                                "phần trăm listing có giảm giá",
+                                "persentase listing diskon"),
     "discount_bucket": ("nhóm mức giảm giá", "khoảng giảm giá", "discount bucket"),
     "median_monthly_sold": ("lượt bán trung vị", "median monthly sold"),
     "median_estimated_recent_revenue": ("doanh thu ước tính trung vị", "median estimated revenue"),
@@ -337,6 +346,9 @@ _DERIVED_PHYSICAL = {
     "rating_count_delta": ("product_transition_metrics.csv.new_rating_count",),
     "liked_delta": ("product_transition_metrics.csv.like_delta",),
     "has_structured_voucher": ("product_snapshot_metrics.csv.has_structured_voucher", "product_transition_metrics.csv.has_structured_voucher", "product_transition_metrics.csv.previous_has_structured_voucher"),
+    # W11.2: cờ giảm giá dùng quan sát đã materialize, không suy lại từ
+    # discount tại query time.
+    "has_promo": ("product_snapshot_metrics.csv.has_displayed_discount",),
 }
 
 # Which analysis unit each count metric counts. The compiler reads the physical
@@ -344,6 +356,7 @@ _DERIVED_PHYSICAL = {
 # is a catalog edit, not another branch in ``_column_for``.
 _COUNTS_UNIT = {
     "product_count": "entity.product_listing",
+    "discounted_listing_count": "entity.product_listing",
     "shop_count": "entity.shop",
     "brand_count": "entity.brand",
     "category_count": "entity.platform_category",

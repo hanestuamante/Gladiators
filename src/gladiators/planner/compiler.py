@@ -58,6 +58,9 @@ _BANNED_FUNCTIONS = {"READ_CSV", "READ_PARQUET", "HTTPFS", "GLOB", "INSTALL", "L
 _ALLOWED_FUNCTIONS = {
     "COUNT", "SUM", "AVG", "MEDIAN", "MIN", "MAX", "ROW_NUMBER", "CAST", "CONCAT",
     "AND", "OR", "LIKE",
+    # W11.2: CASE cho hai chỗ của hợp đồng share — đếm-theo-điều-kiện ở tầng
+    # aggregate và chia-cho-0-thành-NULL ở tầng project. Vẫn read-only thuần.
+    "CASE", "IF",
 }
 
 
@@ -101,6 +104,98 @@ def _predicate_expression(
     if predicate.op == "contains":
         return exp.Like(this=column, expression=exp.Concat(expressions=[exp.Literal.string("%"), right, exp.Literal.string("%")]))
     return operators[predicate.op](this=column, expression=right)
+
+
+
+def _share_definition_of(node: PlanNode):
+    """ShareDefinition của ref mà node Aggregate share đang tính, nếu metric khai.
+
+    Không branch theo TÊN metric: compiler đọc hợp đồng tổng quát, nên metric
+    share thứ hai là một dòng registry chứ không phải một nhánh code mới.
+    Share KHÔNG có ShareDefinition giữ nguyên đường AVG(bool) cũ.
+    """
+    from gladiators.domain.metrics import METRICS
+
+    for ref in node.refs:
+        if ref.startswith("derived."):
+            spec = METRICS.get(ref.split(".", 1)[1])
+            if spec is not None and spec.share is not None:
+                return spec.share
+    return None
+
+
+def _compile_share(
+    node: PlanNode, base_query: exp.Query, source: str | None,
+    params: list[object], share,
+) -> exp.Query:
+    """AST hai tầng cho một tỷ lệ đã khai mẫu số (W11.2 §12.3.1).
+
+    Tầng aggregate: ``COUNT(DISTINCT CASE WHEN <điều kiện> THEN key END)`` và
+    ``COUNT(DISTINCT key)``; tầng project giữ hai count và tính
+    ``CASE WHEN mẫu = 0 THEN NULL ELSE scale * tử / mẫu END`` — chia cho 0
+    thành NULL, không bao giờ thành ``0%``.
+
+    Với ``null_policy="false"``: CASE WHEN chỉ đếm dòng thoả điều kiện, nên
+    null không vào tử số nhưng VẪN vào mẫu số — đúng nghĩa "cờ null là không có
+    cờ". Điều kiện đi qua cùng parameter binding với Filter.
+    """
+    rate_ref = node.refs[0]
+    names = {field.semantic_ref: field.name for field in node.expected_schema}
+    numerator_alias = names.get(f"derived.{share.numerator_metric}", share.numerator_metric)
+    denominator_alias = names.get(f"derived.{share.denominator_metric}", share.denominator_metric)
+    rate_alias = names.get(rate_ref, rate_ref.split(".")[-1])
+
+    key_column = exp.column(counting_column("entity.product_listing"))
+    # CHỆCH KHỎI SPEC CÓ CHỦ ĐÍCH: spec §12.3.1 nói condition đi qua cùng
+    # parameter binding với Filter. Đo thật thì không được: placeholder ``?``
+    # bind THEO THỨ TỰ VĂN BẢN, và một ``?`` trong SELECT list của tầng
+    # aggregate đứng TRƯỚC mọi ``?`` trong WHERE của subquery bên trong — nên
+    # ('vn','2026-07-03',True) bị đọc thành has_displayed_discount='vn' và cả
+    # ba tham số lệch một vị trí. Giá trị điều kiện đến từ REGISTRY đã kiểm lúc
+    # import (không phải input người dùng) nên một literal có kiểu là an toàn
+    # và ĐÚNG — parameter hoá tồn tại để cách ly input không tin được.
+    comparison_ast = {
+        "eq": exp.EQ, "ne": exp.NEQ, "lt": exp.LT, "lte": exp.LTE,
+        "gt": exp.GT, "gte": exp.GTE,
+    }
+    condition = comparison_ast[share.condition_op](
+        this=exp.column(_column_for(share.condition_ref, source)),
+        expression=exp.convert(share.condition_value),
+    )
+    numerator = exp.Count(this=exp.Distinct(expressions=[
+        exp.Case(ifs=[exp.If(this=condition, true=key_column)]),
+    ]))
+    denominator = exp.Count(this=exp.Distinct(expressions=[key_column]))
+
+    groups = [_column_for(ref, source) for ref in node.group_by]
+    aggregate_tier = exp.select(
+        *[exp.column(column) for column in groups],
+        exp.alias_(numerator, numerator_alias, quoted=True),
+        exp.alias_(denominator, denominator_alias, quoted=True),
+    ).from_(base_query.subquery(f"q_{node.node_id}"))
+    if groups:
+        aggregate_tier = aggregate_tier.group_by(*[exp.column(c) for c in groups])
+
+    rate = exp.Case(
+        ifs=[exp.If(
+            this=exp.EQ(this=exp.column(denominator_alias), expression=exp.Literal.number(0)),
+            true=exp.Null(),
+        )],
+        default=exp.Div(
+            this=exp.Mul(
+                this=exp.Literal.number(share.scale),
+                expression=exp.Cast(this=exp.column(numerator_alias),
+                                    to=exp.DataType.build("DOUBLE")),
+            ),
+            expression=exp.column(denominator_alias),
+        ),
+    )
+    return exp.select(
+        *[exp.column(column) for column in groups],
+        exp.column(numerator_alias),
+        exp.column(denominator_alias),
+        exp.alias_(rate, rate_alias, quoted=True),
+    ).from_(aggregate_tier.subquery(f"q_{node.node_id}_share"))
 
 
 def _source_hint(node: PlanNode, nodes: dict[str, PlanNode]) -> str | None:
@@ -357,6 +452,9 @@ def _compile_node(
         )
         return exp.select("*").from_(base).qualify(exp.EQ(this=row_number, expression=exp.Literal.number(1)))
     if node.op == "Aggregate":
+        share = _share_definition_of(node) if node.aggregation == "share" else None
+        if share is not None:
+            return _compile_share(node, inputs[0], source, params, share)
         base = inputs[0].subquery(f"q_{node.node_id}")
         groups = [_column_for(ref, source) for ref in node.group_by]
         selections: list[exp.Expression] = [exp.column(column) for column in groups]

@@ -127,6 +127,44 @@ def _additivity_issues(evidence) -> list[ConsistencyIssue]:
     return issues
 
 
+def _share_issues(evidence) -> list[ConsistencyIssue]:
+    """W11.2 §12.3.2 — một tỷ lệ phải KHỚP tử số và mẫu số của chính nó.
+
+    Kiểm trên giá trị CHƯA làm tròn: renderer làm tròn sau verifier, không
+    trước. Và ``0 <= tử <= mẫu`` — một tỷ lệ trên một trăm phần trăm là một
+    phân hoạch hỏng.
+    """
+    by_id = {item.evidence_id: item for item in evidence}
+    issues: list[ConsistencyIssue] = []
+    for item in evidence:
+        if item.attrs.get("derivation_op") != "share" or len(item.parent_evidence_ids) != 2:
+            continue
+        numerator = by_id.get(item.parent_evidence_ids[0])
+        denominator = by_id.get(item.parent_evidence_ids[1])
+        if numerator is None or denominator is None:
+            issues.append(ConsistencyIssue(
+                "share_parent_missing", "Evidence tỷ lệ trỏ tới tử/mẫu không tồn tại.",
+                (item.metric,),
+            ))
+            continue
+        num, den = float(numerator.value), float(denominator.value)
+        if not (0 <= num <= den):
+            issues.append(ConsistencyIssue(
+                "share_partition_broken",
+                f"Tử số nằm ngoài [0, mẫu số]: {num} / {den}.",
+                (numerator.metric, denominator.metric),
+            ))
+            continue
+        scale = float(item.attrs.get("scale") or 1)
+        if den and abs(float(item.value) - scale * num / den) > 1e-9:
+            issues.append(ConsistencyIssue(
+                "share_arithmetic_mismatch",
+                f"Tỷ lệ {item.value} không bằng {scale}*{num}/{den}.",
+                (item.metric,),
+            ))
+    return issues
+
+
 def check_evidence_arithmetic(evidence) -> tuple[ConsistencyIssue, ...]:
     """Toàn bộ bất biến số học. Rỗng = nhất quán."""
     if os.getenv("GLADIATORS_DISABLE_EVIDENCE_CONSISTENCY") == "1":
@@ -137,4 +175,5 @@ def check_evidence_arithmetic(evidence) -> tuple[ConsistencyIssue, ...]:
         _value_range_issues(internal)
         + _order_issues(internal)
         + _additivity_issues(internal)
+        + _share_issues(internal)
     )

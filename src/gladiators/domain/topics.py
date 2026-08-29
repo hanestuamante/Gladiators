@@ -138,6 +138,8 @@ _CARDS: tuple[TopicCard, ...] = (
             "measure.vouchers_count", "derived.has_structured_voucher",
             "derived.has_voucher_label", "derived.has_promo", "derived.voucher_rate",
             "derived.voucher_state_transition", "derived.voucher_profile_score",
+            # W11.2: đếm-theo-cờ-giảm-giá và tỷ lệ của nó thuộc cùng topic với cờ.
+            "derived.discounted_listing_count", "derived.discounted_listing_rate",
         ),
         relation_paths=(
             _path("listing_voucher", "observed_structured_voucher"),

@@ -158,6 +158,10 @@ def test_inner_functions_share_the_callers_collector(parser):
 # --- baseline 58 plan không đổi ----------------------------------------------
 
 DELIBERATE_BASELINE_CHANGES = {
+    "questions_counting:cnt04": (
+        "W11.2 (SolutionSpec2808 §12.3): câu MỚI thêm vào suite counting — "
+        "tỷ lệ có mẫu số khai (bgk11). Mở rộng, không dịch entry cũ."
+    ),
     "dr2607:tc29": (
         "W5.1 (SolutionSpec2808 §6.2): câu hỏi nêu 'trung bình', "
         "measure.discount_percent chỉ chứng nhận median/min/max — hệ từng thay "

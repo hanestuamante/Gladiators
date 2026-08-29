@@ -136,6 +136,18 @@ def check_plan_alignment(
     plan = refs_or_plan if isinstance(refs_or_plan, LogicalQueryPlan) else None
     refs = set(plan_refs(plan) if plan else refs_or_plan)
     requested = set(digest.requested_measures)
+    # W11.2: một tỷ lệ đã khai mẫu số BẮT BUỘC mang tử số và mẫu số trong
+    # output (hợp đồng ba ref, §12.3.1) — hai ref đó là support của measure
+    # được hỏi, không phải một phép thay thế.
+    share_supports: set[str] = set()
+    for ref in requested:
+        if ref.startswith("derived."):
+            from gladiators.domain.metrics import METRICS
+
+            spec = METRICS.get(ref.split(".", 1)[1])
+            if spec is not None and spec.share is not None:
+                share_supports.add(f"derived.{spec.share.numerator_metric}")
+                share_supports.add(f"derived.{spec.share.denominator_metric}")
     missing = tuple(sorted(requested - refs))
     issues: list[AlignmentIssue] = []
     if missing:
@@ -171,7 +183,7 @@ def check_plan_alignment(
             field.semantic_ref for field in plan.requested_output_shape if field.semantic_ref
         }
         unexpected = tuple(sorted(
-            ref for ref in output_refs - requested - set(supporting_refs)
+            ref for ref in output_refs - requested - set(supporting_refs) - share_supports
             if ref in CATALOG and CATALOG[ref].kind in {"measure", "derived_metric"}
         ))
         if requested and unexpected:

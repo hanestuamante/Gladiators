@@ -9598,5 +9598,196 @@
   "semantic_linking:sl33": null,
   "semantic_linking:sl34": null,
   "semantic_linking:sl35": null,
-  "semantic_linking:sl36": null
+  "semantic_linking:sl36": null,
+  "questions_counting:cnt04": {
+    "plan_id": "synth:derived.discounted_listing_rate:share:nogroup:none:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "derived.has_promo",
+          "entity.product_listing"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "product_snapshot_metrics.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "discounted_listing_count",
+            "type": "number",
+            "semantic_ref": "derived.discounted_listing_count"
+          },
+          {
+            "name": "product_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          },
+          {
+            "name": "discounted_listing_rate",
+            "type": "number",
+            "semantic_ref": "derived.discounted_listing_rate"
+          }
+        ],
+        "expected_cardinality": "<=3341",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "discounted_listing_count",
+            "type": "number",
+            "semantic_ref": "derived.discounted_listing_count"
+          },
+          {
+            "name": "product_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          },
+          {
+            "name": "discounted_listing_rate",
+            "type": "number",
+            "semantic_ref": "derived.discounted_listing_rate"
+          }
+        ],
+        "expected_cardinality": "<=3341",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n4",
+        "op": "Aggregate",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "derived.discounted_listing_rate"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": "share",
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "country_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "discounted_listing_count",
+            "type": "number",
+            "semantic_ref": "derived.discounted_listing_count"
+          },
+          {
+            "name": "product_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          },
+          {
+            "name": "discounted_listing_rate",
+            "type": "number",
+            "semantic_ref": "derived.discounted_listing_rate"
+          }
+        ],
+        "expected_cardinality": "1",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n4",
+    "requested_output_shape": [
+      {
+        "name": "discounted_listing_count",
+        "type": "number",
+        "semantic_ref": "derived.discounted_listing_count"
+      },
+      {
+        "name": "product_count",
+        "type": "number",
+        "semantic_ref": "derived.product_count"
+      },
+      {
+        "name": "discounted_listing_rate",
+        "type": "number",
+        "semantic_ref": "derived.discounted_listing_rate"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  }
 }

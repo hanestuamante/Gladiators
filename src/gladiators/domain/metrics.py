@@ -17,7 +17,8 @@ from typing import Literal, Mapping
 Grain = Literal["snapshot", "transition", "group", "pair"]
 Dedupe = Literal["none", "one_snapshot_per_listing"]
 Aggregation = Literal["count", "sum", "mean", "median", "min", "max", "share"]
-ConstraintOp = Literal["eq", "ne", "lt", "lte", "gt", "gte", "in"]
+# W11.1: cùng chuẩn op với planner — nguồn thật nằm ngay trong domain.
+from .predicate_ops import ExecutablePredicateOp as ConstraintOp  # noqa: E402
 NullPolicy = Literal["exclude", "false", "propagate"]
 
 
@@ -74,6 +75,25 @@ class MetricConstraint:
 
 
 @dataclass(frozen=True)
+class ShareDefinition:
+    """Một tỷ lệ cần MẪU SỐ được khai — W11.2 (SolutionSpec2808 §12.3).
+
+    Mẫu số là một quyết định nghiệp vụ: "tỷ lệ listing có giảm giá" có mẫu số là
+    TOÀN BỘ listing của scope, không phải listing có dữ liệu giảm giá. Suy "tỷ
+    lệ" thành một phép chia ở runtime là để một cách diễn đạt chọn hộ quyết định
+    đó trong im lặng.
+    """
+
+    condition_ref: str
+    condition_op: ConstraintOp
+    condition_value: object
+    numerator_metric: str
+    denominator_metric: str
+    scale: Literal[1, 100]
+    null_policy: Literal["false", "exclude"]
+
+
+@dataclass(frozen=True)
 class MetricSpec:
     name: str
     grain: Grain
@@ -94,6 +114,7 @@ class MetricSpec:
     definition_constraints: tuple[MetricConstraint, ...] = ()
     owner: str = "data-owner"
     tags: tuple[str, ...] = ()
+    share: ShareDefinition | None = None
 
 
 _METRIC_SPECS = [
@@ -215,12 +236,40 @@ _METRIC_SPECS = [
         caveats=("label UI hỗn hợp (Pilih Lokal, Add-on Deal) ≠ structured voucher; KHÔNG dùng lập nhóm chính",),
     ),
     MetricSpec(
+        # W11.2: dùng quan sát ĐÃ MATERIALIZE thay vì suy lại từ discount tại
+        # query time — hai công thức của cùng một cờ là hai chỗ để chúng lệch.
         name="has_promo", grain="snapshot", unit="bool",
-        dedupe="none", traps=(19,), depends_on=("discount_percent_num",),
-        source_columns=("discount_percent_num",), owner="data-owner",
+        dedupe="one_snapshot_per_listing", traps=(19,),
+        depends_on=("has_displayed_discount",),
+        source_columns=("has_displayed_discount",), owner="data-owner",
         tags=("snapshot", "discount"),
-        formula="discount_percent_num > 0",
+        formula="has_displayed_discount; null theo null_policy của consumer",
         caveats=("G9: mọi dòng có voucher đều has_promo=True ⇒ chỉ 3 nhóm thực tế; CẤM dựng 4 nhóm",),
+    ),
+    MetricSpec(
+        name="discounted_listing_count", grain="group", unit="listings",
+        dedupe="one_snapshot_per_listing", traps=(),
+        source_columns=("product_listing_key",), source_metrics=("has_promo",),
+        valid_aggregations=("count",), owner="data-engineering",
+        tags=("group", "count", "discount"),
+        formula="count distinct listing where has_promo=True",
+        caveats=("Đếm cờ giảm giá hiển thị tại đúng một snapshot.",),
+    ),
+    MetricSpec(
+        name="discounted_listing_rate", grain="group", unit="percent",
+        dedupe="one_snapshot_per_listing", traps=(),
+        source_metrics=("discounted_listing_count", "product_count"),
+        valid_aggregations=("share",), owner="data-owner",
+        tags=("group", "share", "discount"),
+        formula="100 * discounted_listing_count / product_count",
+        share=ShareDefinition(
+            condition_ref="derived.has_promo", condition_op="eq",
+            condition_value=True,
+            numerator_metric="discounted_listing_count",
+            denominator_metric="product_count",
+            scale=100, null_policy="false",
+        ),
+        caveats=("Mẫu số là toàn bộ listing trong scope; cờ giảm giá null được tính là không có cờ.",),
     ),
     MetricSpec(
         name="discount_bucket", grain="snapshot", unit="bucket",
@@ -562,7 +611,38 @@ def _build_registry(specs: list[MetricSpec]) -> dict[str, MetricSpec]:
         if not spec.owner:
             raise ValueError(f"MetricSpec thiếu owner: {spec.name}")
         registry[spec.name] = spec
+    for spec in registry.values():
+        _check_share_definition(spec, registry)
     return registry
+
+
+def _check_share_definition(spec: MetricSpec, registry: dict[str, MetricSpec]) -> None:
+    """Bất biến của một tỷ lệ đã khai — nổ lúc import, không lúc chạy.
+
+    CHỆCH KHỎI SPEC CÓ CHỦ ĐÍCH: spec §12.3 đòi iff hai chiều (`share is not
+    None` ⟺ `"share" in valid_aggregations`). Chiều "share trong
+    valid_aggregations ⇒ phải có ShareDefinition" tự phản trên registry thật:
+    ``has_structured_voucher`` và ``discount_bucket`` đã chứng nhận ``share``
+    theo nghĩa AVG-trên-bool/bucket từ trước W11 và đang chạy đúng; ép chúng
+    khai ShareDefinition là đổi hợp đồng của metric không có lỗi đo được nào.
+    Giữ chiều còn lại — mọi ShareDefinition mới đều bị kiểm đủ.
+    """
+    share = spec.share
+    if share is None:
+        return
+    if "share" not in spec.valid_aggregations:
+        raise ValueError(f"{spec.name}: có ShareDefinition thì phải chứng nhận 'share'")
+    numerator = registry.get(share.numerator_metric)
+    denominator = registry.get(share.denominator_metric)
+    if numerator is None or denominator is None:
+        raise ValueError(f"{spec.name}: tử/mẫu không tồn tại trong registry")
+    if "count" not in denominator.valid_aggregations and share.denominator_metric != "product_count":
+        raise ValueError(f"{spec.name}: mẫu số phải là một count metric")
+    if numerator.grain != spec.grain or numerator.dedupe != spec.dedupe:
+        raise ValueError(f"{spec.name}: tử số khác grain/dedupe với tỷ lệ")
+    expected_scale = 100 if spec.unit == "percent" else 1
+    if share.scale != expected_scale:
+        raise ValueError(f"{spec.name}: scale {share.scale} không khớp unit {spec.unit}")
 
 
 METRICS: dict[str, MetricSpec] = _build_registry(_METRIC_SPECS)

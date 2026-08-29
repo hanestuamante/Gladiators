@@ -1,13 +1,14 @@
 """P7 AnalyticalRequest contract, catalog slicing và deterministic fallback."""
 from __future__ import annotations
 
+from .predicate_ops import ExecutablePredicateOp, canonicalize_predicate_op
 from .query_ir import Aggregation
 
 import re
 import unicodedata
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from rapidfuzz import fuzz
 
 from gladiators.domain.alias_index import (
@@ -67,8 +68,16 @@ class EntityBinding(BaseModel):
 class AnalyticalPredicate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     field_ref: str
-    op: Literal["eq", "ne", "in", "lt", "le", "gt", "ge", "between", "isnull"]
+    # W11.1: dùng CHUẨN chung với IR và catalog. ``le/ge`` từ payload cũ được
+    # canonicalize ở biên; ``between``/``isnull`` không còn là op của model —
+    # between phải tách gte+lte trước khi dựng, isnull đi lối A19-OP.
+    op: ExecutablePredicateOp
     value_binding: Any
+
+    @field_validator("op", mode="before")
+    @classmethod
+    def _canonicalize(cls, value: str) -> str:
+        return canonicalize_predicate_op(str(value))
 
 
 class AnalyticalTimeScope(BaseModel):
@@ -165,6 +174,81 @@ def _detect_requested_aggregation(
             + ", ".join(hits) + "; không chọn hộ một trong số đó."
         )
     return hits[0], None
+
+
+# W11.1 — một measure đứng cạnh một từ so sánh là ĐIỀU KIỆN, không phải thứ được
+# đo. "bao nhiêu listing giảm giá TRÊN 50%" đo số listing; "giảm giá trên 50%"
+# là bộ lọc. Để nó ở cả hai chỗ làm request khai hai measure cho một câu hỏi một
+# measure, và synthesizer từ chối vì đúng lý do sai (measure_count_not_one).
+# Cụm dài xếp trước: "hon" là đuôi của "lon hon"/"cao hon".
+_COMPARISON: tuple[tuple[str, str], ...] = (
+    ("lon hon", "gt"), ("cao hon", "gt"), ("nho hon", "lt"), ("thap hon", "lt"),
+    ("it nhat", "gte"), ("toi da", "lte"), ("di atas", "gt"), ("di bawah", "lt"),
+    ("tren", "gt"), ("duoi", "lt"), ("tu", "gte"), ("hon", "gt"),
+)
+_PERCENT_MARKERS = ("%", "phan tram", "phần trăm", "persen")
+
+
+def _comparison_predicates(
+    measures: list, normalized: str, raw_question: str,
+) -> tuple[list, list]:
+    """``(measures còn lại, predicate mới)`` — cả BỐN điều kiện đều bắt buộc.
+
+    1. ≥2 measure đã bind, đúng MỘT có ``counts_unit`` — câu một measure không
+       có gì để lọc;
+    2. measure không-đếm đứng liền trước một cụm so sánh và một số — "giảm giá"
+       trần không được biến thành bộ lọc ``> None``;
+    3. toán tử suy ra nằm trong ``allowed_filters`` — catalog cấm thì không lách;
+    4. đơn vị của số khớp ``unit`` của measure (đọc từ câu GỐC vì normalizer bỏ
+       ``%``) — "trên 50" với measure đơn vị tiền tệ là một câu hỏi KHÁC.
+
+    Không đạt bất kỳ điều kiện nào ⇒ giữ nguyên hành vi hôm nay. Guard MỘT
+    CHIỀU, như ``_has_unbound_qualifier``.
+    """
+    bound = [item for item in measures if item.ref]
+    counting = [item for item in bound if CATALOG[item.ref].counts_unit]
+    conditions = [item for item in bound if not CATALOG[item.ref].counts_unit]
+    if len(bound) < 2 or len(counting) != 1 or not conditions:
+        return measures, []
+
+    kept, predicates = list(measures), []
+    comparison_alternatives = "|".join(
+        re.escape(term) for term, _op in _COMPARISON
+    )
+    for item in conditions:
+        obj = CATALOG[item.ref]
+        pattern = re.compile(
+            re.escape(normalize(item.surface_text))
+            + r"\s+(" + comparison_alternatives + r")\s+(\d+(?:[.,]\d+)?)\b",
+        )
+        found = pattern.search(normalized)
+        if not found:
+            continue
+        op = next(op for term, op in _COMPARISON if term == found.group(1))
+        if op not in obj.allowed_filters:
+            continue
+        literal = found.group(2).replace(",", ".")
+        # Điều kiện 4 — đơn vị của SỐ phải khớp đơn vị của MEASURE, đọc từ câu
+        # GỐC vì normalizer đã bỏ "%". Cố ý HẸP: chỉ measure đơn vị percent với
+        # một số mang dấu %/phần trăm được áp; "trên 50" trần cạnh một measure
+        # tiền tệ là một câu hỏi KHÁC (50 gì? VND? nghìn? phần trăm?) và guard
+        # một chiều thì bỏ qua đúng hơn đoán.
+        if obj.unit != "percent":
+            continue
+        raw_folded = raw_question.lower()
+        anchor_pos = raw_folded.find(literal.split(".")[0])
+        if anchor_pos < 0 or not any(
+            marker in raw_folded[anchor_pos: anchor_pos + len(literal) + 16]
+            for marker in _PERCENT_MARKERS
+        ):
+            continue
+        number = float(literal)
+        predicates.append(AnalyticalPredicate(
+            field_ref=item.ref, op=op,
+            value_binding=int(number) if number.is_integer() else number,
+        ))
+        kept = [entry for entry in kept if entry is not item]
+    return kept, predicates
 
 
 _EXPLICIT_TOP_N = re.compile(r"\btop\s*(\d{1,2})\b")
@@ -354,6 +438,13 @@ class DeterministicSemanticParser:
             measures = [item for item in measures if item.ref not in qualifier_refs]
             dimensions = [item for item in dimensions if item.ref not in qualifier_refs]
 
+        # W11.1: chạy SAU _link (measure đã bind) và TRƯỚC khi chốt
+        # requested_measures/ranking.
+        measures, comparison_filters = _comparison_predicates(
+            measures, normalized, text,
+        )
+        filters.extend(comparison_filters)
+
         descending = any(term in normalized for term in ("cao nhat", "nhieu nhat", "lon nhat", "highest", "tertinggi", "top"))
         ascending = any(term in normalized for term in ("thap nhat", "it nhat", "lowest", "terendah"))
         rank_ref = next((item.ref for item in measures if item.ref), None)
@@ -414,6 +505,17 @@ class DeterministicSemanticParser:
         )
         if aggregation_ambiguity:
             ambiguities.append(aggregation_ambiguity)
+        if requested_aggregation is None:
+            # W11.2: alias tỷ lệ được bind ⇒ aggregation đến từ ĐỊNH NGHĨA
+            # metric, không phải từ từ "tỷ lệ" trần trong câu.
+            from gladiators.domain.metrics import METRICS
+
+            for item in measures:
+                if item.ref and item.ref.startswith("derived."):
+                    spec = METRICS.get(item.ref.split(".", 1)[1])
+                    if spec is not None and spec.share is not None:
+                        requested_aggregation = "share"
+                        break
         if requested_aggregation in _EXTREMUM_AGGREGATIONS and ranking is not None:
             # W5.2: "giá cao nhất LÀ BAO NHIÊU" hỏi một CON SỐ, còn ranking suy
             # ra từ chính cụm "cao nhất" biến nó thành một câu hỏi về các DÒNG.

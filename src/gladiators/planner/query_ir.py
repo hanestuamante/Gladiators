@@ -12,7 +12,8 @@ Op = Literal[
     "Scan", "ResolveValue", "Filter", "Join", "Dedupe", "Aggregate",
     "DeriveMetric", "TemporalCompare", "Rank", "Similarity", "Project", "Union",
 ]
-PredicateOp = Literal["eq", "ne", "lt", "lte", "gt", "gte", "in", "contains"]
+# W11.1: PredicateOp là alias của chuẩn chung — hai danh sách là hai chỗ lệch.
+from .predicate_ops import ExecutablePredicateOp as PredicateOp  # noqa: E402
 Aggregation = Literal["count", "sum", "mean", "median", "min", "max", "share"]
 # §4.3: one grammar, shared by the model, the planner prompt and the validator
 # feedback, so a plan is never rejected against a rule the prompt never stated.

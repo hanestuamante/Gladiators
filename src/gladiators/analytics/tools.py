@@ -80,6 +80,44 @@ def _physical_column_of(ref: str) -> str | None:
     return None
 
 
+
+def _link_share_lineage(evidence: list[Evidence], plan) -> list[Evidence]:
+    """Evidence tỷ lệ phải TRỎ về tử số và mẫu số của nó (W11.2 §12.3.2).
+
+    ``discounted_listing_rate`` là derived, nên ``verifier._lineage_gaps`` đòi
+    evidence tổ tiên. Dùng ``model_copy(update=...)`` — Evidence đã frozen
+    (bất biến #4), và đó là điều kiện để không ai sửa được bản gốc.
+    """
+    from gladiators.domain.metrics import METRICS
+
+    share = None
+    for node in plan.nodes:
+        if node.op != "Aggregate" or node.aggregation != "share":
+            continue
+        for ref in node.refs:
+            spec = METRICS.get(ref.split(".", 1)[1]) if ref.startswith("derived.") else None
+            if spec is not None and spec.share is not None:
+                share = spec.share
+                break
+    if share is None:
+        return evidence
+
+    by_metric = {item.metric: item for item in evidence}
+    numerator = by_metric.get(share.numerator_metric)
+    denominator = by_metric.get(share.denominator_metric)
+    rate_metric = next(
+        (name for name, spec in METRICS.items() if spec.share is share), None,
+    )
+    rate = by_metric.get(rate_metric or "")
+    if numerator is None or denominator is None or rate is None:
+        return evidence
+    linked = rate.model_copy(update={
+        "parent_evidence_ids": (numerator.evidence_id, denominator.evidence_id),
+        "attrs": {**rate.attrs, "derivation_op": "share", "scale": share.scale},
+    })
+    return [linked if item is rate else item for item in evidence]
+
+
 def _value_class_report(plan, compiled, result) -> dict:
     """Giá trị BIÊN của kết quả có rơi vào một luật CHƯA DUYỆT không (W14.3).
 
@@ -714,7 +752,7 @@ class AnalyticsTools:
                         dataset_version=dataset_version,
                         attrs=attrs,
                     ))
-            return evidence
+            return _link_share_lineage(evidence, plan)
         if kind == "highest_revenue_day":
             return [
                 Evidence(

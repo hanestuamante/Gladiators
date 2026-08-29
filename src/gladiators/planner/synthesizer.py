@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from typing import Literal, TypedDict, get_args
 
 from gladiators.domain.catalog import CATALOG
-from gladiators.domain.metrics import approved_exclusion_predicates
+from gladiators.domain.metrics import approved_exclusion_predicates, METRICS
 from gladiators.domain.qualifiers import QUALIFIERS
 from gladiators.domain.relations import (
     ENTITY_BY_RIGHT_SOURCE,
@@ -352,6 +352,15 @@ def _wants_scalar_aggregate(request: AnalyticalRequest) -> bool:
     return request.requested_aggregation is not None and request.ranking is None
 
 
+
+def _share_definition(measure_ref: str):
+    """ShareDefinition của một ref derived, nếu metric khai — W11.2."""
+    if not measure_ref.startswith("derived."):
+        return None
+    spec = METRICS.get(measure_ref.split(".", 1)[1])
+    return spec.share if spec is not None else None
+
+
 def _choose_aggregation(
     measure_ref: str, request: AnalyticalRequest, decline: list[str] | None = None,
 ) -> str | None:
@@ -444,9 +453,15 @@ def synthesize(
 
     # --- source and relation ------------------------------------------------
     counted_unit = CATALOG[measure_ref].counts_unit
+    share = _share_definition(measure_ref)
     needed = {measure_ref, *dimensions, *(p.field_ref for p in extra)}
     if counted_unit:
         needed.discard(measure_ref)  # counted, not scanned
+    if share is not None:
+        # W11.2 §12.3.1: rate ref không có physical — closure thay nó bằng
+        # condition_ref và counting key của mẫu số.
+        needed.discard(measure_ref)
+        needed.add(share.condition_ref)
     plan_edges = _plan_relations(needed, dimensions, (date,), decline=decline)
     if plan_edges is None:
         _decline(decline, "relation_plan_failed")
@@ -464,14 +479,24 @@ def synthesize(
     if not dimensions and ranking:
         # A listing-level ranking has to name the thing it ranked.
         fields.append(_field("dim.product_name", "product_name"))
-    measure_name = "listing_count" if measure_ref == "derived.product_count" else measure_ref.split(".")[-1]
-    fields.append(_field(measure_ref, measure_name))
+    if share is not None:
+        # Thứ tự cố định của hợp đồng share: tử số, mẫu số, tỷ lệ.
+        fields.append(_field(f"derived.{share.numerator_metric}", share.numerator_metric))
+        fields.append(_field(f"derived.{share.denominator_metric}", share.denominator_metric))
+        fields.append(_field(measure_ref, measure_ref.split(".")[-1]))
+    else:
+        measure_name = "listing_count" if measure_ref == "derived.product_count" else measure_ref.split(".")[-1]
+        fields.append(_field(measure_ref, measure_name))
     output = tuple(fields)
 
     scan_refs = tuple(dict.fromkeys(
-        [ref for ref in (*dimensions, measure_ref) if not counted_unit or ref != measure_ref]
+        [ref for ref in (*dimensions, measure_ref)
+         if (not counted_unit or ref != measure_ref) and (share is None or ref != measure_ref)]
         + (["dim.product_name"] if (not dimensions and ranking) else [])
         + ([counted_unit] if counted_unit else [])
+        # Share: quét cờ điều kiện và đơn vị đếm, nhưng KHÔNG project chúng ra
+        # output cuối — output là hợp đồng ba ref tử/mẫu/tỷ lệ.
+        + ([share.condition_ref, "entity.product_listing"] if share is not None else [])
     ))
     remote_refs = {ref for refs in plan_edges.refs_by_edge.values() for ref in refs}
     scan_refs = tuple(ref for ref in scan_refs if ref not in remote_refs)

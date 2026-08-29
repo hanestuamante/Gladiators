@@ -47,7 +47,9 @@ def test_registry_covers_seven_artifacts_and_219_columns(snapshot):
     counts = snapshot.counts()
     assert counts["tables"] == 7
     assert counts["columns"] == 219
-    assert counts["catalog_bindings"] == 82
+    # 83 từ W11.2: derived.has_promo nay bind cột đã materialize
+    # has_displayed_discount thay vì suy lại từ discount tại query time.
+    assert counts["catalog_bindings"] == 83
     assert set(snapshot.tables) == set(ArtifactName)
 
 

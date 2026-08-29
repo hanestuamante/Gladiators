@@ -2,9 +2,9 @@
 
 # Topic registry
 
-- topics hash: `c1cf992e1d852a27`
+- topics hash: `716afa9b261d72ee`
 - invariants hash: `b57c1e3ee6326156`
-- refs được sở hữu: 86
+- refs được sở hữu: 88
 
 | id | tên | kind | refs | relations | invariants |
 | --- | --- | --- | ---: | ---: | ---: |
@@ -16,7 +16,7 @@
 | [CORE](CORE.md) | CORE | core | 20 | 1 | 3 |
 | [T1](T1.md) | PRICING_DISCOUNT | domain | 8 | 2 | 2 |
 | [T2](T2.md) | SALES_PROXY | domain | 11 | 2 | 2 |
-| [T3](T3.md) | PROMOTION_VOUCHER | domain | 11 | 2 | 1 |
+| [T3](T3.md) | PROMOTION_VOUCHER | domain | 13 | 2 | 1 |
 | [T4](T4.md) | REVIEW_ENGAGEMENT | domain | 6 | 1 | 1 |
 | [T5](T5.md) | SHOP_PROFILE | domain | 11 | 1 | 1 |
 | [T6](T6.md) | CATALOG_STRUCTURE | domain | 6 | 2 | 2 |
