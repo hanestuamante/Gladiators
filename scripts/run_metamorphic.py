@@ -71,9 +71,19 @@ def _verdict(kind: str, expectation: str | None, base, variant) -> tuple[str, st
         # so max của hai tập đó là so hai đại lượng khác nhau, và phép kiểm sẽ
         # báo lỗi ở chỗ hệ thống không hề sai.
         base_metrics, variant_metrics = _by_metric(base), _by_metric(variant)
-        shared = set(base_metrics) & set(variant_metrics)
+        # W9.2: tính đơn điệu CHỈ đúng cho phép ĐẾM. Thu hẹp bộ lọc làm một
+        # count không thể tăng, nhưng một trung vị/giá trị thì đi hướng nào
+        # cũng hợp lệ (giá trung vị của shop chính hãng CAO HƠN toàn thị
+        # trường là một sự thật, không phải một vi phạm). Nhận diện bằng UNIT
+        # của evidence, không đoán theo tên metric.
+        count_units = {"listings", "shops", "items", "rows", "labels", "ratings"}
+        count_metrics = {
+            item.metric for item in list(base.evidence) + list(variant.evidence)
+            if (item.unit or "") in count_units
+        }
+        shared = set(base_metrics) & set(variant_metrics) & count_metrics
         if not shared:
-            return "skip", "hai câu trả về metric khác nhau, không so được"
+            return "skip", "không có metric ĐẾM chung để so tính đơn điệu"
         grew = {
             metric for metric in shared
             if variant_metrics[metric] > base_metrics[metric]
@@ -86,6 +96,32 @@ def _verdict(kind: str, expectation: str | None, base, variant) -> tuple[str, st
                     for metric in sorted(grew)
                 )
             )
+        return "pass", ""
+    if expectation == "scope_actually_changed":
+        # W9.3: kiểm CƠ CHẾ, không kiểm kết quả — ba điều kiện, đúng cả ⇒ pass
+        # KỂ CẢ khi giá trị bằng nhau (10 shop ở mỗi thị trường là sự thật).
+        # Sai bất kỳ ⇒ fail: scope thật sự bị bỏ qua, đúng lớp lỗi
+        # p0-scope-dropped-vn-id khoá lại.
+        def scope_of(response) -> tuple[set, set]:
+            countries = {
+                str(item.attrs.get("country")) for item in response.evidence
+                if item.attrs.get("country")
+            }
+            plan_hashes = {
+                str(item.attrs.get("plan_hash")) for item in response.evidence
+                if item.attrs.get("plan_hash")
+            }
+            plan_id = (response.planning or {}).get("plan_id")
+            if plan_id:
+                plan_hashes.add(str(plan_id))
+            return countries, plan_hashes
+
+        base_scope, base_hashes = scope_of(base)
+        variant_scope, variant_hashes = scope_of(variant)
+        if base_scope and base_scope == variant_scope:
+            return "fail", f"evidence country không đổi: {sorted(base_scope)}"
+        if base_hashes and base_hashes == variant_hashes:
+            return "fail", "plan không đổi giữa hai phạm vi"
         return "pass", ""
     if expectation == "values_differ":
         if base_numbers == variant_numbers:
@@ -170,17 +206,38 @@ def main() -> None:
         for key in totals:
             totals[key] += counts[key]
 
+    # W9.2: quan hệ có applicable < min_applicable là "not_measured" và bị
+    # LOẠI KHỎI mẫu số của tỷ lệ tổng — một tỷ lệ tính trên các quan hệ chưa
+    # từng chạy là một tỷ lệ che đúng thứ cần xem.
+    min_by_relation = {r.relation_id: r.min_applicable for r in RELATIONS}
+    relation_rows = {}
+    measured_totals = {"pass": 0, "fail": 0, "skip": 0, "suspect": 0}
+    for name, counts in sorted(by_relation.items()):
+        applicable = counts["pass"] + counts["fail"] + counts["suspect"]
+        floor = min_by_relation.get(name, 1)
+        measured = applicable >= floor
+        relation_rows[name] = {
+            **counts, "rate": rate(counts) if measured else None,
+            "applicable": applicable, "min_applicable": floor,
+            "status": "measured" if measured else "not_measured",
+        }
+        if measured:
+            for key in measured_totals:
+                measured_totals[key] += counts[key]
+
     report = {
+        "schema_version": "metamorphic-report.v2",
         "suite": args.suite, "provider": args.provider,
         "measured_on": date.today().isoformat(),
         "cases": len(cases), "checks": len(rows),
         "totals": totals,
-        # Mẫu số là số phép kiểm ÁP DỤNG ĐƯỢC, không phải tổng số phép kiểm.
-        "metamorphic_consistency_rate": rate(totals),
-        "by_relation": {
-            name: {**counts, "rate": rate(counts)}
-            for name, counts in sorted(by_relation.items())
-        },
+        # Mẫu số là số phép kiểm ÁP DỤNG ĐƯỢC của các quan hệ ĐÃ ĐO ĐƯỢC.
+        "metamorphic_consistency_rate": rate(measured_totals),
+        "not_measured_relations": sorted(
+            name for name, row in relation_rows.items()
+            if row["status"] == "not_measured"
+        ),
+        "by_relation": relation_rows,
         "failures": [row for row in rows if row["verdict"] == "fail"],
         "suspects": [row for row in rows if row["verdict"] == "suspect"],
     }

@@ -188,3 +188,57 @@ def test_empty_denominator_reports_none_not_zero():
     # còn hai chỉ số này đo được vì có case không-answerable và có refusal
     assert out["refusal_precision"] == 1.0
     assert out["refusal_recall"] == 1.0
+
+
+# --- W9.1 · bốn con số, bốn cái tên ----------------------------------------
+
+def test_the_two_scripts_agree_on_every_shared_name():
+    """Hai script từng giữ hai bản công thức dưới CÙNG tên "coverage" với HAI
+    mẫu số (§1.3) — từ giờ cả hai gọi một hàm, và test này khoá điều đó bằng
+    giá trị tính tay, không phải bằng "hai bản giống nhau"."""
+    from gladiators.evalkit.metrics import compute_selective_metrics
+
+    metrics = compute_selective_metrics(
+        answerable={"a1", "a2", "a3", "a4"},
+        unanswerable={"u1", "u2"},
+        answered={"a1", "a2", "u1"},
+        refused={"a3", "a4", "u2"},
+        correct={"a1", "a2"},
+    )
+    assert metrics["answer_rate_all"] == 3 / 6
+    assert metrics["answerable_coverage"] == 2 / 4
+    assert metrics["risk"] == 1 / 3          # u1 trả lời mà không đúng
+    assert metrics["over_refusal_rate"] == 2 / 4
+    assert metrics["over_answer_rate"] == 1 / 2
+    assert metrics["refusal_precision"] == 1 / 3
+    assert metrics["refusal_recall"] == 1 / 2
+
+
+def test_selective_metrics_carries_both_coverage_names():
+    """run_evaluation giữ khoá cũ "coverage" một chu kỳ, giá trị LÀ
+    answerable_coverage; hai tên mới phải có mặt cạnh risk/over_answer."""
+    cases = [
+        {"id": "a1", "expected_action": "allow"},
+        {"id": "u1", "expected_action": "abstain"},
+    ]
+    rows = [
+        {"id": "a1", "run": 1, "action": "allow", "evidence_count": 1, "passed": True},
+        {"id": "u1", "run": 1, "action": "abstain", "evidence_count": 0, "passed": None},
+    ]
+    out = selective_metrics(cases, rows)
+    assert out["answer_rate_all"] == 0.5
+    assert out["answerable_coverage"] == 1.0
+    assert out["coverage"] == out["answerable_coverage"]
+    assert "risk" in out and "over_answer_rate" in out
+
+
+def test_an_empty_denominator_is_none_not_zero():
+    from gladiators.evalkit.metrics import compute_selective_metrics
+
+    metrics = compute_selective_metrics(
+        answerable=set(), unanswerable={"u1"},
+        answered=set(), refused={"u1"}, correct=set(),
+    )
+    assert metrics["answerable_coverage"] is None
+    assert metrics["over_refusal_rate"] is None
+    assert metrics["risk"] is None

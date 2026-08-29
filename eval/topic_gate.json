@@ -1,49 +1,50 @@
 {
   "schema_version": "topic-gate-report.v1",
-  "topics_hash": "c1cf992e1d852a27",
-  "invariants_hash": "dd15c9001a9f4ac5",
-  "alias_index_hash": "522e3ee601b0811a",
-  "corpus_size": 191,
+  "topics_hash": "716afa9b261d72ee",
+  "corpus_sha256": "3a5d3282aec97120bcdc879a26e5608cefb9f7d7dd53e5b02d70613ddaf0ab34",
+  "invariants_hash": "b57c1e3ee6326156",
+  "alias_index_hash": "55bb467b0e34eae1",
+  "corpus_size": 201,
   "routing": {
     "modes": {
       "topic_scoped": 137,
-      "multi_topic": 26,
+      "multi_topic": 28,
       "unknown": 10,
-      "core_only": 18
+      "core_only": 26
     },
     "rates": {
-      "topic_scoped": 0.7172774869109948,
-      "multi_topic": 0.13612565445026178,
-      "unknown": 0.05235602094240838,
-      "core_only": 0.09424083769633508
+      "topic_scoped": 0.681592039800995,
+      "multi_topic": 0.13930348258706468,
+      "unknown": 0.04975124378109453,
+      "core_only": 0.12935323383084577
     },
     "domain_usage": {
-      "T1": 28,
+      "T1": 27,
       "T2": 60,
-      "T3": 36,
+      "T3": 37,
       "T4": 15,
-      "T5": 8,
-      "T6": 8,
-      "T7": 4,
+      "T5": 10,
+      "T6": 10,
+      "T7": 5,
       "T8": 34
     }
   },
   "context_tokens": {
-    "broad_slice": 3734,
-    "routed_p50": 1336,
-    "routed_p95": 1778,
-    "routed_max": 2200,
-    "routed_mean": 1271.0,
+    "broad_slice": 3860,
+    "routed_p50": 1356,
+    "routed_p95": 1887,
+    "routed_max": 2534,
+    "routed_mean": 1296.7,
     "note": "Token là mục tiêu phụ (§7.3) — báo cáo, không dùng để gate."
   },
   "checks": {
     "topic_scoped_rate": {
-      "value": 0.7172774869109948,
+      "value": 0.681592039800995,
       "threshold": 0.65,
       "pass": true
     },
     "unknown_rate": {
-      "value": 0.05235602094240838,
+      "value": 0.04975124378109453,
       "threshold": 0.12,
       "pass": true
     },
@@ -58,8 +59,8 @@
       "pass": true
     },
     "ownership_is_a_partition": {
-      "value": 86,
-      "threshold": 86,
+      "value": 88,
+      "threshold": 88,
       "pass": true
     }
   },

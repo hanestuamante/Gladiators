@@ -21,6 +21,7 @@ from datetime import date
 from pathlib import Path
 
 from gladiators.agent.workflow import AgentRuntime
+from gladiators.evalkit.metrics import compute_selective_metrics
 from gladiators.runtime_factory import create_runtime
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -72,40 +73,47 @@ def _correct(response, case: dict) -> bool:
 
 
 def measure(cases: list[dict], runtime: AgentRuntime) -> dict[str, object]:
-    answered = wrong = refused_answerable = answered_unanswerable = 0
+    wrong = 0
     labelled = 0
+    answerable_ids: set[str] = set()
+    unanswerable_ids: set[str] = set()
+    answered_ids: set[str] = set()
+    refused_ids: set[str] = set()
+    correct_ids: set[str] = set()
     for case in cases:
         label = _answerable(case)
         if label is None:
             continue
         labelled += 1
+        (answerable_ids if label else unanswerable_ids).add(case["id"])
         response = runtime.run(case["question"])
-        allowed = response.gate.action == "allow"
-        if allowed:
-            answered += 1
-            if not _correct(response, case):
+        if response.gate.action == "allow":
+            answered_ids.add(case["id"])
+            if _correct(response, case):
+                correct_ids.add(case["id"])
+            else:
                 wrong += 1
-            if not label:
-                answered_unanswerable += 1
-        elif label:
-            refused_answerable += 1
+        else:
+            refused_ids.add(case["id"])
 
-    answerable_total = sum(1 for case in cases if _answerable(case))
-    unanswerable_total = sum(1 for case in cases if _answerable(case) is False)
+    # W9.1: MỘT hàm chung với run_evaluation. Khoá "coverage" cũ của script
+    # này là answered/labelled — nay mang tên thật answer_rate_all; risk trên
+    # mẫu số rỗng trả None, không phải 0.0.
+    metrics = compute_selective_metrics(
+        answerable=answerable_ids, unanswerable=unanswerable_ids,
+        answered=answered_ids, refused=refused_ids, correct=correct_ids,
+    )
+    rounded = {
+        key: (round(value, 4) if isinstance(value, float) else value)
+        for key, value in metrics.items()
+    }
     return {
         "labelled_cases": labelled,
-        "coverage": round(answered / labelled, 4) if labelled else None,
-        # Rủi ro tính TRÊN SỐ ĐÃ TRẢ LỜI, không trên toàn bộ: một hệ từ chối
-        # nhiều hơn không tự động ít rủi ro hơn, nó chỉ trả lời ít hơn.
-        "risk": round(wrong / answered, 4) if answered else 0.0,
-        "over_refusal_rate": (
-            round(refused_answerable / answerable_total, 4) if answerable_total else None
-        ),
-        "over_answer_rate": (
-            round(answered_unanswerable / unanswerable_total, 4)
-            if unanswerable_total else None
-        ),
-        "answered": answered, "wrong": wrong,
+        **rounded,
+        # Một chu kỳ tương thích: khoá cũ "coverage" của script NÀY nghĩa là
+        # answered/labelled.
+        "coverage": rounded["answer_rate_all"],
+        "answered": len(answered_ids), "wrong": wrong,
     }
 
 
@@ -199,6 +207,7 @@ def main() -> None:
     report = {
         "suite": args.suite, "provider": args.provider,
         "measured_on": date.today().isoformat(),
+        "schema_version": "risk-coverage-report.v2",
         "points": rows, "aurc": area,
         "release_point": "L0",
         "note": (

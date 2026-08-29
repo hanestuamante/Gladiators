@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import hashlib
 import json
 import statistics
 import sys
@@ -70,14 +71,36 @@ def corpus() -> list[str]:
     # bộ đề sinh từ dữ liệu chỉ 34,1% (61,4% rơi về core_only). Con số đó được ghi ở
     # eval/reports/2026-08-27-independent-bank.md thay vì bị trộn vào một ngưỡng
     # không dành cho nó.
-    for path in glob.glob(str(REPO / "eval" / "**" / "*.json"), recursive=True):
-        if "independent" in path.replace("\\", "/").split("/"):
-            continue
-        try:
-            walk(json.loads(Path(path).read_text(encoding="utf-8")))
-        except (OSError, json.JSONDecodeError):
-            continue
-    return sorted(set(found))
+    # W9.5: đọc DANH SÁCH FILE CỐ ĐỊNH từ manifest, không glob. Glob cũ loại
+    # eval/independent/ nhưng KHÔNG loại eval/reports/ — nơi chứa report do
+    # chính hệ sinh ra: một phép đo được phép ĐỌC corpus, nó không được phép
+    # TRỞ THÀNH corpus.
+    manifest_path = REPO / "eval" / "topic_gate_corpus.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema_version") != "topic-gate-corpus.v1":
+        raise SystemExit("FAIL: topic_gate_corpus.json sai schema_version")
+    for source in manifest["sources"]:
+        walk(json.loads((REPO / source).read_text(encoding="utf-8")))
+    questions = sorted(set(found))
+    digest = hashlib.sha256(
+        json.dumps(questions, ensure_ascii=False).encode("utf-8"),
+    ).hexdigest()
+    recorded = manifest.get("corpus_sha256") or ""
+    if recorded and recorded != digest:
+        # Corpus lệch manifest ⇒ đỏ: một oracle ký trên corpus trôi là một con
+        # số vô nghĩa.
+        raise SystemExit(
+            f"FAIL: corpus_sha256 lệch manifest ({recorded[:12]}… != {digest[:12]}…). "
+            "Cập nhật manifest CÓ CHỦ ĐÍCH rồi chạy lại."
+        )
+    if not recorded:
+        manifest["corpus_sha256"] = digest
+        manifest["question_count"] = len(questions)
+        manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    return questions
 
 
 def main() -> int:
@@ -150,6 +173,7 @@ def main() -> int:
     report = {
         "schema_version": SCHEMA_VERSION,
         "topics_hash": topics.REGISTRY_HASH,
+        "corpus_sha256": json.loads((REPO / "eval" / "topic_gate_corpus.json").read_text(encoding="utf-8"))["corpus_sha256"],
         "invariants_hash": INVARIANT_HASH,
         "alias_index_hash": default_alias_index().index_hash,
         "corpus_size": len(questions),

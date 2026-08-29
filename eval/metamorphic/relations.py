@@ -33,6 +33,11 @@ class MetamorphicRelation:
     changes_country: bool = False
     changes_date: bool = False
     changes_currency: bool = False
+    # W9.2: số ca tối thiểu để tỷ lệ của quan hệ này CÓ NGHĨA. Dưới ngưỡng ⇒
+    # status "not_measured" và bị loại khỏi mẫu số của
+    # metamorphic_consistency_rate — một tỷ lệ tính trên các quan hệ chưa từng
+    # chạy là một tỷ lệ che đúng thứ cần xem (174/308 = 56,5% từng bị bỏ qua).
+    min_applicable: int = 1
 
 
 def quote_entity(question: str, entity: str) -> str:
@@ -99,9 +104,12 @@ def add_narrowing_filter(question: str) -> str:
     mới: một cụm hệ thống không bind được sẽ bị bỏ âm thầm, và phép kiểm sẽ so
     hai câu hỏi giống hệt nhau rồi kết luận "đạt".
     """
+    # W9.2: đổi từ "có voucher" sang "của shop chính hãng" — sau W8.3 cụm
+    # voucher thành mơ hồ (hai khái niệm, hai ref) và biến thể sẽ clarify ⇒
+    # skip vĩnh viễn. "chính hãng" là qualifier ĐÃ BIND (dim.shop_official).
     if "?" in question:
-        return question.replace("?", " có voucher?", 1)
-    return question + " có voucher"
+        return question.replace("?", " của shop chính hãng?", 1)
+    return question + " của shop chính hãng"
 
 
 def swap_to_other_market(question: str) -> str:
@@ -138,7 +146,8 @@ def flip_extremum(question: str) -> str:
 
 RELATIONS = (
     MetamorphicRelation("MR-1", approved_same_language_paraphrase, "Approved synonyms preserve operands."),
-    MetamorphicRelation("MR-3", quote_entity, "Quotes only mark the same entity span."),
+    MetamorphicRelation("MR-3", quote_entity, "Quotes only mark the same entity span.",
+                        min_applicable=10),
     MetamorphicRelation("MR-4", remove_vietnamese_diacritics, "Diacritic folding preserves lexical meaning."),
     MetamorphicRelation("MR-5", add_layout_noise, "Layout noise changes no semantic operand."),
     MetamorphicRelation(
@@ -150,13 +159,18 @@ RELATIONS = (
         "MR-7", swap_to_other_market,
         "Hai thị trường có tập listing rời nhau; kết quả bằng nhau nghĩa là phạm "
         "vi đã bị bỏ qua.",
-        kind="disjoint", expectation="values_differ", changes_country=True,
+        # W9.3: "hai phạm vi khác nhau phải cho SỐ khác nhau" là một đòi hỏi
+        # sai về nguyên tắc — dữ liệu có đúng 10 shop ở MỖI thị trường, nên
+        # bằng nhau là ĐÚNG. Kiểm CƠ CHẾ (scope thật sự đổi), không kiểm kết
+        # quả; "suspect" biến mất khỏi từ vựng của MR-7.
+        kind="disjoint", expectation="scope_actually_changed", changes_country=True,
     ),
     MetamorphicRelation(
-        "MR-8", flip_extremum,
+        "MR-8", flip_extremum,  # min_applicable dưới
         "Hai đầu của một thang không thể cùng trỏ vào một dòng, trừ khi tập chỉ "
         "có đúng một dòng.",
         kind="disjoint", expectation="values_differ",
+        min_applicable=10,
     ),
 )
 

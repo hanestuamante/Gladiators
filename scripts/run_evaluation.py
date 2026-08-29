@@ -15,6 +15,8 @@ from pathlib import Path as _Path
 
 sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "src"))
 
+from gladiators.evalkit.metrics import compute_selective_metrics  # noqa: E402
+
 from gladiators.agent.llm import (
     DeepSeekLLMClient,
     FakeLLMClient,
@@ -118,35 +120,19 @@ def selective_metrics(cases: list[dict], rows: list[dict]) -> dict[str, float]:
         elif not scored:
             unscored_answered.add(cid)   # không biết đúng/sai, không được tính là sai
 
-    def rate(numerator: int, denominator: int) -> float | None:
-        """``None`` khi mẫu số rỗng — KHÔNG phải 0.0.
-
-        `CLAUDE.md` §3.1: điền 0 làm "không đo được" trông giống hệt "đo được và
-        bằng 0". Một suite không có case answerable (`questions_a19`,
-        `questions_ambiguity`) mà báo `coverage = 0.0` sẽ đọc thành "hệ không
-        phủ được gì", trong khi sự thật là không có gì để phủ.
-        """
-        return numerator / denominator if denominator else None
-
-    # Mọi chỉ số chỉ tính trên case CÓ NHÃN. Để case chưa gán nhãn nằm trong mẫu
-    # số của `refusal_precision` làm con số đó tụt mà không có nghĩa gì: 19 case
-    # DR-40 bị từ chối nhưng chưa ai nói chúng đáng lẽ trả lời được hay không.
-    answered &= labelled.keys()
-    refused &= labelled.keys()
-    correct &= labelled.keys()
-    unscored_answered &= labelled.keys()
-
+    # W9.1: MỘT hàm chung cho cả hai script — hai bản là lý do hai công thức
+    # trôi khỏi nhau, và cùng cái tên "coverage" từng mang hai mẫu số (§1.3).
+    metrics = compute_selective_metrics(
+        answerable=answerable, unanswerable=unanswerable,
+        answered=answered, refused=refused, correct=correct,
+        unscored_answered=unscored_answered,
+    )
     return {
         "selective_unlabelled_cases": unlabelled,
-        "coverage": rate(len(answered & answerable), len(answerable)),
-        # Chỉ chấm rủi ro trên câu đã trả lời VÀ chấm được đúng/sai. Gộp câu
-        # chưa chấm được vào tử số là biến "chưa biết" thành "sai".
-        "risk": rate(len(answered - correct - unscored_answered),
-                     len(answered - unscored_answered)),
-        "over_refusal_rate": rate(len(refused & answerable), len(answerable)),
-        "over_answer_rate": rate(len(answered & unanswerable), len(unanswerable)),
-        "refusal_precision": rate(len(refused & unanswerable), len(refused)),
-        "refusal_recall": rate(len(refused & unanswerable), len(unanswerable)),
+        **metrics,
+        # Một chu kỳ tương thích cho consumer đọc khoá cũ; giá trị LÀ
+        # answerable_coverage (nghĩa cũ của script này).
+        "coverage": metrics["answerable_coverage"],
     }
 
 
