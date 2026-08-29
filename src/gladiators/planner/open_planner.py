@@ -107,6 +107,11 @@ def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
     # CHIỀU của guard: không nêu phép tổng hợp thì không có gì đổi.
     if _wants_scalar_aggregate(request):
         return True
+    # W6.2: mọi template ghim MỘT snapshot; câu hỏi hai mốc đi qua chúng sẽ được
+    # trả lời bằng chặng cuối, và alignment chặn bằng date_range_narrowed — một
+    # lời từ chối đúng cho một plan sai, không phải một câu không trả lời được.
+    if request.time_scope and len(set(request.time_scope.dates)) == 2:
+        return True
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
     if len(dates) == 1 and dates[0] != LATEST_SNAPSHOT:
         return True

@@ -540,13 +540,15 @@
   "source": "docs/qa/DR TASK 1407.md",
   "question": "Tính mức giảm doanh số (sales delta) của sản phẩm Collagen Thủy Phân NESTLÉ VITAL PROTEINS 284G (mã 24710759163) từ ngày 01/07 đến ngày 03/07.",
   "legacy_expected_intent": null,
-  "expected_action": null,
-  "allowed_rule_ids": [],
+  "expected_action": "allow",
+  "allowed_rule_ids": [
+   "A-ALLOW"
+  ],
   "forbidden_rule_ids": [],
   "forbidden_analytical_kind": null,
   "expected_semantic_refs": [],
   "oracle_ref": "eval/independent/p0_probe_expected.json#p0_tc34_window",
-  "status": "executable_red_date_window_narrowing",
+  "status": "fixed_by_w6_window_delta",
   "complexity_level": "L2",
   "answerability_class": "C1"
  },

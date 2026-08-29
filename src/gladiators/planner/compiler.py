@@ -198,6 +198,47 @@ def _compile_share(
     ).from_(aggregate_tier.subquery(f"q_{node.node_id}_share"))
 
 
+
+def _compile_two_endpoint_compare(
+    node: PlanNode, input_node: PlanNode, base_query: exp.Query, source: str | None,
+) -> exp.Query:
+    """``MAX(CASE WHEN date=d0 ...)`` / ``d1`` / hiệu — W6.1 (SolutionSpec2808 §7.2).
+
+    KHÔNG dùng ``_column_for(measure_ref)`` trên input: sau ``Aggregate``, cột
+    vật lý đã materialize dưới alias — đọc alias từ ``expected_schema`` của
+    input. ``d0 = min``, ``d1 = max`` — không phải cặp gần nhất có sẵn; đó là
+    toàn bộ điểm của khối, vì alignment đã chặn đúng việc trả chặng cuối.
+
+    Hai mốc là literal có kiểu, không phải placeholder — cùng lý do đã đo ở
+    ``_compile_share``: ``?`` bind theo thứ tự văn bản và một ``?`` trong SELECT
+    list đứng trước mọi ``?`` trong WHERE của subquery bên trong. Giá trị đến
+    từ ``time_scope`` đã qua validator, không phải input tự do.
+    """
+    d0, d1 = min(node.time_scope), max(node.time_scope)
+    measure_ref = node.refs[0]
+    value_alias = next(
+        field.name for field in input_node.expected_schema
+        if field.semantic_ref == measure_ref
+    )
+    date_alias = next(
+        field.name for field in input_node.expected_schema
+        if field.semantic_ref == "dim.date"
+    )
+    names = [field.name for field in node.expected_schema]
+
+    def at(date_value: str) -> exp.Expression:
+        return exp.Max(this=exp.Case(ifs=[exp.If(
+            this=exp.EQ(this=exp.column(date_alias), expression=exp.convert(date_value)),
+            true=exp.column(value_alias),
+        )]))
+
+    return exp.select(
+        exp.alias_(at(d0), names[0], quoted=True),
+        exp.alias_(at(d1), names[1], quoted=True),
+        exp.alias_(exp.Sub(this=at(d1), expression=at(d0)), names[2], quoted=True),
+    ).from_(base_query.subquery(f"q_{node.node_id}"))
+
+
 def _source_hint(node: PlanNode, nodes: dict[str, PlanNode]) -> str | None:
     current = node
     visited: set[str] = set()
@@ -393,14 +434,25 @@ def _project_output_contract(
     cấu trúc*. Khi biên đã đúng tên, câu chiếu là ``"x" AS "x"`` — vô hại.
     """
     output = nodes[plan.output_node]
+    # W6.1/W11.2: node output tự vật chất hoá đúng các ALIAS nó khai (share,
+    # TemporalCompare hai đầu mút) thì chiếu THEO TÊN — ba trường _start/_end/
+    # _delta cùng semantic_ref, và tra theo ref sẽ trả cùng một cột cho cả ba.
+    materializes_by_name = (
+        output.op == "TemporalCompare"
+        and output.time_scope is not None and len(output.time_scope) == 2
+    ) or (
+        output.op == "Aggregate" and output.aggregation == "share"
+        and _share_definition_of(output) is not None
+    )
     fields = []
     for field in plan.requested_output_shape:
         if not field.semantic_ref:
             raise CompilationError("requested_output_shape thiếu semantic_ref")
-        fields.append(exp.alias_(
-            exp.column(_exposed_name(field.semantic_ref, output, nodes)),
-            field.name, quoted=True,
-        ))
+        exposed = (
+            field.name if materializes_by_name
+            else _exposed_name(field.semantic_ref, output, nodes)
+        )
+        fields.append(exp.alias_(exp.column(exposed), field.name, quoted=True))
     if rank_state.get("column"):
         # Khoá xếp hạng phải sống sót qua phép chiếu, nếu không tie detector của
         # executor bị mù và một kết quả HOÀ ở mép cắt đi ra như một câu trả lời
@@ -438,8 +490,22 @@ def _compile_node(
         for predicate in node.predicates:
             query = query.where(_predicate_expression(predicate, source, params, counters))
         return query
-    if node.op in {"DeriveMetric", "TemporalCompare"}:
+    if node.op == "TemporalCompare":
+        # W6.1 — dạng HAI ĐẦU MÚT: input là Aggregate group theo dim.date, và
+        # plan khai đúng hai mốc. Dạng cũ (pass-through trên cột delta đã
+        # materialize — macro sales_decline) giữ nguyên bên dưới.
+        input_node = nodes.get(node.inputs[0]) if node.inputs else None
+        if (
+            node.time_scope is not None and len(node.time_scope) == 2
+            and input_node is not None and input_node.op == "Aggregate"
+            and tuple(input_node.group_by) == ("dim.date",)
+        ):
+            return _compile_two_endpoint_compare(node, input_node, inputs[0], source)
         # Vòng đầu chỉ cho derived columns đã được preprocessing/metric registry materialize.
+        for ref in node.refs:
+            _column_for(ref, source)
+        return _from_input(inputs[0], f"q_{node.node_id}")
+    if node.op == "DeriveMetric":
         for ref in node.refs:
             _column_for(ref, source)
         return _from_input(inputs[0], f"q_{node.node_id}")

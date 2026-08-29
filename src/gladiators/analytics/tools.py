@@ -81,6 +81,52 @@ def _physical_column_of(ref: str) -> str | None:
 
 
 
+
+def _link_temporal_lineage(evidence: list[Evidence], plan) -> list[Evidence]:
+    """Ba evidence start/end/delta của một TemporalCompare hai đầu mút (W6.3).
+
+    Nhận diện bằng OUTPUT NODE ``op == "TemporalCompare"``, không bằng chuỗi
+    "temporal" trong plan_id. ``previous_date``/``date`` trên evidence delta là
+    ĐÚNG cặp khoá mà ``alignment._scope_issues`` đọc để so span với câu hỏi —
+    khối mới đi qua chính phép kiểm đang chặn nó hôm nay, không phải một cửa
+    riêng.
+    """
+    output = next(
+        (node for node in plan.nodes if node.node_id == plan.output_node), None,
+    )
+    if (
+        output is None or output.op != "TemporalCompare"
+        or output.time_scope is None or len(output.time_scope) != 2
+    ):
+        return evidence
+    d0, d1 = min(output.time_scope), max(output.time_scope)
+    by_metric = {item.metric: item for item in evidence}
+    start = next((v for k, v in by_metric.items() if k.endswith("_start")), None)
+    end = next((v for k, v in by_metric.items() if k.endswith("_end")), None)
+    delta = next((v for k, v in by_metric.items() if k.endswith("_delta")), None)
+    if start is None or end is None or delta is None:
+        return evidence
+    linked = {
+        start.evidence_id: start.model_copy(update={
+            "attrs": {**start.attrs, "observed_date": d0},
+        }),
+        end.evidence_id: end.model_copy(update={
+            "attrs": {**end.attrs, "observed_date": d1},
+        }),
+        delta.evidence_id: delta.model_copy(update={
+            # Delta KHÔNG phải một quan sát tại một ngày: giữ observed_date của
+            # đường generic sẽ ghi đè giá trị end trong map ngày→giá trị của
+            # _observed_direction, và một chuỗi TĂNG 581→668 đọc thành GIẢM
+            # 581→87 — đúng chiều mà câu hỏi tiền đề sai đang khẳng định.
+            "attrs": {**{k: v for k, v in delta.attrs.items() if k != "observed_date"},
+                      "previous_date": d0, "date": d1,
+                      "derivation_op": "end_minus_start"},
+            "parent_evidence_ids": (start.evidence_id, end.evidence_id),
+        }),
+    }
+    return [linked.get(item.evidence_id, item) for item in evidence]
+
+
 def _link_share_lineage(evidence: list[Evidence], plan) -> list[Evidence]:
     """Evidence tỷ lệ phải TRỎ về tử số và mẫu số của nó (W11.2 §12.3.2).
 
@@ -201,15 +247,49 @@ class AnalyticsTools:
         self.last_plan_cache: dict[str, Any] = {}
         self.repo, self.resolver, self.evidence_id = repository, resolver, evidence_id
 
-    def sales_decline(self, listing_key: str) -> list[Evidence]:
+    def sales_decline(
+        self, listing_key: str, window: tuple[str, str] | None = None,
+    ) -> list[Evidence]:
+        """Biến động lượt bán của một listing — theo CỬA SỔ được hỏi (W6.4).
+
+        ``window=None`` giữ nguyên hành vi cũ (chặng cuối). Có ``window`` thì
+        cộng dồn các chặng liên tiếp PHỦ KÍN cửa sổ; không phủ kín ⇒ trả ``[]``
+        để tầng gọi ra A-NO-EVIDENCE — trả chặng cuối là đúng lỗi tc34: câu hỏi
+        01/07→03/07 với các chặng +113 và −102 có tổng +11, còn chặng cuối là
+        −102 với dấu NGƯỢC.
+        """
         rows = self.repo.transitions.query("product_listing_key == @listing_key and transition_metric_eligible == True").sort_values("date")
         if rows.empty:
             return []
-        row = rows.iloc[-1]
-        common = dict(source_tier="btc_dataset", source_locator=SourceLocator(kind="internal", value="product_transition_metrics"), dataset_version=self.repo.dataset_version, attrs={"listing_key": listing_key, "previous_date": str(row.previous_date), "date": str(row.date)})
+        if window is None:
+            legs = rows.iloc[[-1]]
+        else:
+            legs = rows[
+                (rows.previous_date.astype(str) >= window[0])
+                & (rows.date.astype(str) <= window[1])
+            ]
+            covers = (
+                not legs.empty
+                and str(legs.iloc[0].previous_date) == window[0]
+                and str(legs.iloc[-1].date) == window[1]
+                and list(legs.previous_date.astype(str))[1:] == list(legs.date.astype(str))[:-1]
+            )
+            if not covers:
+                return []
+        first, last = legs.iloc[0], legs.iloc[-1]
+        common = dict(
+            source_tier="btc_dataset",
+            source_locator=SourceLocator(kind="internal", value="product_transition_metrics"),
+            dataset_version=self.repo.dataset_version,
+            attrs={
+                "listing_key": listing_key,
+                "previous_date": str(first.previous_date), "date": str(last.date),
+                "legs": int(len(legs)),
+            },
+        )
         return [
-            Evidence(evidence_id=self.evidence_id(), metric="monthly_sold_delta", value=float(row.monthly_sold_delta), unit="items", source_path="monthly_sold_delta", **common),
-            Evidence(evidence_id=self.evidence_id(), metric="days_since_previous", value=int(row.days_since_previous), unit="days", source_path="days_since_previous", **common),
+            Evidence(evidence_id=self.evidence_id(), metric="monthly_sold_delta", value=float(legs.monthly_sold_delta.sum()), unit="items", source_path="monthly_sold_delta", **common),
+            Evidence(evidence_id=self.evidence_id(), metric="days_since_previous", value=int(legs.days_since_previous.sum()), unit="days", source_path="days_since_previous", **common),
         ]
 
     def similar_products(self, listing_key: str, top_k: int = 5) -> list[Evidence]:
@@ -752,7 +832,7 @@ class AnalyticsTools:
                         dataset_version=dataset_version,
                         attrs=attrs,
                     ))
-            return _link_share_lineage(evidence, plan)
+            return _link_temporal_lineage(_link_share_lineage(evidence, plan), plan)
         if kind == "highest_revenue_day":
             return [
                 Evidence(

@@ -74,7 +74,10 @@ def test_every_a22_refusal_carries_a_failing_alignment_verdict(runtime):
     ghi ``aligned: true`` — verdict chặn nằm ở khoá khác và người đọc không có
     cách nào biết phải nhìn đâu.
     """
-    response = runtime.run("Số listing tại Việt Nam thay đổi thế nào từ 01/07 đến 03/07?")
+    # Câu neo cũ ("thay đổi thế nào từ 01/07 đến 03/07") nay TRẢ LỜI ĐƯỢC nhờ
+    # W6 — đổi sang một câu vẫn mang từ chối A22: tiền đề "giảm mạnh" bị dữ
+    # liệu phủ nhận (581 → 668).
+    response = runtime.run("Vì sao số listing tại Việt Nam giảm mạnh từ 01/07 đến 03/07?")
     assert response.gate.rule_id.startswith("A22")
 
     verdicts = [

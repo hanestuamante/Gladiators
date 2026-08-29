@@ -165,6 +165,50 @@ def _share_issues(evidence) -> list[ConsistencyIssue]:
     return issues
 
 
+def _temporal_delta_issues(evidence) -> list[ConsistencyIssue]:
+    """W6.3 — ``X_end - X_start == X_delta``, cùng country và cùng cặp mốc.
+
+    Lineage ĐỘNG: cùng operator áp cho price/rating/count, không thể đăng ký vô
+    hạn tên ``<name>_delta`` vào MetricGraph — nên nó được kiểm ở đây, trên
+    evidence instance, thay vì khai giả thành một cạnh tĩnh.
+    """
+    by_id = {item.evidence_id: item for item in evidence}
+    issues: list[ConsistencyIssue] = []
+    for item in evidence:
+        if item.attrs.get("derivation_op") != "end_minus_start":
+            continue
+        if len(item.parent_evidence_ids) != 2:
+            issues.append(ConsistencyIssue(
+                "temporal_parent_missing",
+                "Evidence delta phải trỏ đúng hai parent start/end.",
+                (item.metric,),
+            ))
+            continue
+        start = by_id.get(item.parent_evidence_ids[0])
+        end = by_id.get(item.parent_evidence_ids[1])
+        if start is None or end is None:
+            issues.append(ConsistencyIssue(
+                "temporal_parent_missing",
+                "Parent start/end không tồn tại trong cùng response.",
+                (item.metric,),
+            ))
+            continue
+        if start.unit != end.unit or start.attrs.get("country") != end.attrs.get("country"):
+            issues.append(ConsistencyIssue(
+                "temporal_scope_mismatch",
+                "Start/end khác unit hoặc country.",
+                (start.metric, end.metric),
+            ))
+            continue
+        if abs(float(item.value) - (float(end.value) - float(start.value))) > 1e-9:
+            issues.append(ConsistencyIssue(
+                "temporal_delta_mismatch",
+                f"Delta {item.value} không bằng {end.value} - {start.value}.",
+                (item.metric,),
+            ))
+    return issues
+
+
 def check_evidence_arithmetic(evidence) -> tuple[ConsistencyIssue, ...]:
     """Toàn bộ bất biến số học. Rỗng = nhất quán."""
     if os.getenv("GLADIATORS_DISABLE_EVIDENCE_CONSISTENCY") == "1":
@@ -176,4 +220,5 @@ def check_evidence_arithmetic(evidence) -> tuple[ConsistencyIssue, ...]:
         + _order_issues(internal)
         + _additivity_issues(internal)
         + _share_issues(internal)
+        + _temporal_delta_issues(internal)
     )

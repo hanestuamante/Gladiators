@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, model_serializer
 
 from gladiators.domain.tables import ArtifactName
 
@@ -62,6 +62,18 @@ class PlanNode(BaseModel):
     op: Op
     inputs: tuple[str, ...] = ()
     refs: tuple[str, ...] = ()
+    # W6.1: hai đầu mút của một node TemporalCompare dạng so-hai-mốc. Additive,
+    # mặc định None ⇒ plan cũ (kể cả macro sales_decline dạng pass-through)
+    # không đổi một byte — serializer dưới bỏ khoá khi None để 58 plan bị khoá
+    # giữ nguyên từng byte dump (bất biến #7).
+    time_scope: tuple[str, ...] | None = None
+
+    @model_serializer(mode="wrap")
+    def _drop_unset_time_scope(self, handler):
+        payload = handler(self)
+        if isinstance(payload, dict) and payload.get("time_scope") is None:
+            payload.pop("time_scope", None)
+        return payload
     predicates: tuple[Predicate, ...] = ()
     relation: str | None = None
     # §E1: ``ArtifactName`` là StrEnum nên plan JSON cũ (chuỗi tên file) vẫn

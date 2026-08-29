@@ -115,8 +115,23 @@ def _get_sales_transitions(ctx: ToolContext) -> None:
             reason="Listing chỉ có một snapshot; cần ít nhất hai snapshot hợp lệ để tính biến động.",
         )
         return
-    evidence = ctx.tools.sales_decline(ctx.resolved_listing_key)
-    _record(ctx, "get_sales_transitions", {"listing_key": ctx.resolved_listing_key}, evidence)
+    dates = sorted(str(item) for item in (ctx.request.date_range or []))
+    window = (dates[0], dates[-1]) if len(dates) >= 2 else None
+    evidence = ctx.tools.sales_decline(ctx.resolved_listing_key, window=window)
+    if window is not None and not evidence:
+        _record(ctx, "get_sales_transitions", {
+            "listing_key": ctx.resolved_listing_key, "window": list(window),
+        }, [])
+        ctx.clarify = GateDecision(
+            action="abstain", rule_id="A-NO-EVIDENCE",
+            reason="Các chặng transition không phủ kín cửa sổ được hỏi, nên "
+                   "không tính được biến động cho đúng cửa sổ đó.",
+        )
+        return
+    _record(ctx, "get_sales_transitions", {
+        "listing_key": ctx.resolved_listing_key,
+        **({"window": list(window)} if window else {}),
+    }, evidence)
 
 
 @tool("find_similar")

@@ -455,6 +455,11 @@ def _observed_direction(evidence: list[Evidence]) -> int | None:
         observed = item.attrs.get("observed_date")
         if observed is None or not isinstance(item.value, (int, float)) or isinstance(item.value, bool):
             continue
+        if item.attrs.get("derivation_op"):
+            # Một giá trị DẪN XUẤT (delta, share) không phải quan sát tại một
+            # ngày — cho nó vào map ngày→giá trị là để một hiệu số đóng vai một
+            # mức đo.
+            continue
         by_date[str(observed)] = float(item.value)
     if len(by_date) < 2:
         return None

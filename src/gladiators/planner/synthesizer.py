@@ -391,6 +391,97 @@ def _choose_aggregation(
     return "median" if "median" in allowed else allowed[0]
 
 
+
+def _synthesize_two_endpoint(
+    request: AnalyticalRequest, country: str, measure_ref: str,
+    dimensions: list[str], extra, dates: list[str], decline,
+) -> SynthesisResult | None:
+    """Plan hai đầu mút (W6.2). Bốn điều kiện ĐỀU bắt buộc; hụt cái nào ⇒ None.
+
+    So hai mốc VÀ gom nhóm là hai chiều tự do — vượt grammar; join + temporal
+    cùng lúc cũng vậy. Không plan cũ nào có hai mốc (hôm nay trả None), nên đây
+    là MỞ RỘNG thuần: không entry baseline nào đổi.
+    """
+    if request.ranking is not None or dimensions:
+        _decline(decline, "date_count_unsupported")
+        return None
+    aggregation = _choose_aggregation(measure_ref, request, decline=decline)
+    if aggregation is None:
+        _decline(decline, "aggregation_not_certified")
+        return None
+    counted_unit = CATALOG[measure_ref].counts_unit
+    needed = {measure_ref, *(p.field_ref for p in extra)}
+    if counted_unit:
+        needed.discard(measure_ref)
+    plan_edges = _plan_relations(needed, [], tuple(dates), decline=decline)
+    if plan_edges is None or plan_edges.edges:
+        # remote predicate / join + temporal vượt grammar.
+        _decline(decline, "relation_plan_failed")
+        return None
+    source = plan_edges.source
+    d0, d1 = dates
+    base = measure_ref.rsplit(".", 1)[-1]
+
+    intermediate = (
+        OutputField(name="date", type="date", semantic_ref="dim.date"),
+        OutputField(name=f"{base}_at_date", type="number", semantic_ref=measure_ref),
+    )
+    output = (
+        OutputField(name=f"{base}_start", type="number", semantic_ref=measure_ref),
+        OutputField(name=f"{base}_end", type="number", semantic_ref=measure_ref),
+        OutputField(name=f"{base}_delta", type="number", semantic_ref=measure_ref),
+    )
+
+    predicates = [
+        Predicate(ref="dim.country", op="eq", parameter="country", value=country),
+        Predicate(ref="dim.date", op="in", parameter="dates", value=list(dates)),
+    ]
+    for index, item in enumerate(extra):
+        obj = CATALOG.get(item.field_ref)
+        if obj is None or item.op not in obj.allowed_filters:
+            _decline(decline, "filter_op_forbidden")
+            return None
+        predicates.append(Predicate(
+            ref=item.field_ref, op=item.op, parameter=f"p{index}",
+            value=item.value_binding,
+        ))
+    for ref, op, value in approved_exclusion_predicates(measure_ref):
+        predicates.append(Predicate(
+            ref=ref, op=op, parameter="price_sentinel", value=value,
+        ))
+
+    scan_refs = tuple(dict.fromkeys(
+        ([counted_unit] if counted_unit else [measure_ref]) + ["dim.date"]
+    ))
+    nodes = (
+        PlanNode(node_id="n1", op="Scan", source=source, refs=scan_refs,
+                 input_grain="listing_snapshot", output_grain="listing_snapshot",
+                 expected_schema=intermediate, expected_cardinality="<=3341"),
+        PlanNode(node_id="n2", op="Filter", inputs=("n1",),
+                 predicates=tuple(predicates),
+                 input_grain="listing_snapshot", output_grain="listing_snapshot",
+                 expected_schema=intermediate, expected_cardinality="<=3341"),
+        PlanNode(node_id="n4", op="Aggregate", inputs=("n2",),
+                 refs=(measure_ref,), group_by=("dim.date",),
+                 aggregation=aggregation, input_grain="listing_snapshot",
+                 output_grain="date", expected_schema=intermediate,
+                 expected_cardinality="2"),
+        PlanNode(node_id="n6", op="TemporalCompare", inputs=("n4",),
+                 refs=(measure_ref,), time_scope=(d0, d1),
+                 input_grain="date", output_grain="country_window",
+                 expected_schema=output, expected_cardinality="1"),
+    )
+    plan = LogicalQueryPlan(
+        plan_id=f"synth:{measure_ref}:{aggregation}:temporal:none:{country}:{d0}..{d1}:norel:1.1",
+        time_scope=(d0, d1), output_node="n6", requested_output_shape=output,
+        nodes=nodes,
+    )
+    return SynthesisResult(
+        plan=plan, grammar_path="two_endpoint_compare", aggregation=aggregation,
+        dimensions=(), relations=(),
+    )
+
+
 def synthesize(
     request: AnalyticalRequest, country: str, *,
     decline: list[str] | None = None,
@@ -444,6 +535,12 @@ def synthesize(
         return None
 
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
+    if len(dates) == 2:
+        # W6.2 — so hai mốc là một hình plan riêng, đủ điều kiện mới nhận.
+        return _synthesize_two_endpoint(
+            request, country, measure_ref, dimensions, extra,
+            sorted(dates), decline,
+        )
     if len(dates) != 1:
         # Multi-snapshot aggregation is a decomposition question (§8.6
         # union_scope), not something to average over silently.

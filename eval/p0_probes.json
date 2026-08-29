@@ -117,30 +117,48 @@
       "expected_state": "green",
       "red_reason": "AnalyticsTools.sales_decline dùng rows.iloc[-1] nên chỉ lấy chặng transition cuối; câu hỏi 01/07→03/07 bị thu về 02/07→03/07 và đảo dấu (+11 thành −102)",
       "baseline": {
-        "action": "clarify",
-        "rule_id": "A22-ALIGN-DATE",
+        "action": "allow",
+        "rule_id": "A-ALLOW",
         "request_countries": [],
         "planning": {
           "mode": "certified_macro",
           "macro": "sales_decline",
           "macro_version": "1.0"
         },
-        "evidence": [],
-        "n_claims": 0,
-        "answer_markers": [
-          "Cần làm rõ",
-          "thay vì 2026-07-01→2026-07-03 đã hỏi"
+        "evidence": [
+          {
+            "metric": "monthly_sold_delta",
+            "value": 11.0,
+            "unit": "items",
+            "attrs": {
+              "previous_date": "2026-07-01",
+              "date": "2026-07-03",
+              "legs": 2
+            }
+          },
+          {
+            "metric": "days_since_previous",
+            "value": 2,
+            "unit": "days",
+            "attrs": {
+              "previous_date": "2026-07-01",
+              "date": "2026-07-03",
+              "legs": 2
+            }
+          }
         ],
-        "answer_absent": [
+        "n_claims": 2,
+        "answer_markers": [
           "không phải bằng chứng nhân quả"
-        ]
+        ],
+        "answer_absent": []
       },
       "contract": {
         "statement": "action != allow OR the monthly_sold_delta evidence window spans 2026-07-01 → 2026-07-03"
       },
-      "observed_note": "FIXED in P1 by the date_range_narrowed issue (A22-ALIGN-DATE). AnalyticsTools.sales_decline still returns the trailing leg — the tool is unchanged — but the digest now carries the asked window (parser.extract_date_range) and the evidence gate blocks an answer whose span does not match. Computing the true window delta (+11) needs TemporalCompare over a chosen date pair and belongs to the synthesizer/decomposer, not to a certified macro. Verified: TC34 is the only question in the whole eval corpus that names a date window, so the run_evaluation.py:50 codependency is not triggered by this change.",
-      "fixed_in": "P1 §4.4 temporal window coverage",
-      "fixed_at": "2026-07-31",
+      "observed_note": "FIXED twice: P1 chặn câu trả lời sai bằng A22-ALIGN-DATE (từ chối an toàn); W6.4 (SolutionSpec2808 §7.5) làm macro cộng dồn các chặng phủ kín cửa sổ 01/07→03/07 — hai chặng +113 và −102 cho tổng +11, khớp oracle p0_tc34_window.window_delta, với legs=2 trong attrs. Không phủ kín cửa sổ thì trả rỗng và A-NO-EVIDENCE, không bao giờ trả chặng cuối.",
+      "fixed_in": "W6.4 §7.5 — sales_decline tôn trọng cửa sổ được hỏi",
+      "fixed_at": "2026-08-29",
       "expected_action": "clarify",
       "allowed_rule_ids": [
         "A22-ALIGN-DATE"

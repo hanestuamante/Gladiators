@@ -5,12 +5,12 @@
   "cases": 44,
   "checks": 308,
   "totals": {
-    "pass": 140,
+    "pass": 142,
     "fail": 0,
-    "skip": 164,
+    "skip": 162,
     "suspect": 4
   },
-  "metamorphic_consistency_rate": 0.9722,
+  "metamorphic_consistency_rate": 0.9726,
   "by_relation": {
     "MR-1": {
       "pass": 26,
@@ -48,11 +48,11 @@
       "rate": 1.0
     },
     "MR-7": {
-      "pass": 24,
+      "pass": 26,
       "fail": 0,
-      "skip": 16,
+      "skip": 14,
       "suspect": 4,
-      "rate": 0.8571
+      "rate": 0.8667
     },
     "MR-8": {
       "pass": 0,

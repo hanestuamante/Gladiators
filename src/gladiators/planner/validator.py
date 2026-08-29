@@ -228,6 +228,24 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
                 issues.append(PlanIssue(code="temporal_mismatch", node_id=node.node_id,
                                         message="Aggregate cross-sectional phải chọn đúng một snapshot."))
 
+        if (
+            node.op == "TemporalCompare" and node.time_scope is not None
+            and len(node.time_scope) == 2
+        ):
+            # W6.1: dạng hai đầu mút phải khai ĐÚNG ba trường start/end/delta
+            # và trả đúng một dòng.
+            names = [field.name for field in node.expected_schema]
+            shape_ok = (
+                len(names) == 3
+                and names[0].endswith("_start") and names[1].endswith("_end")
+                and names[2].endswith("_delta")
+            )
+            if not shape_ok or node.expected_cardinality != "1":
+                issues.append(PlanIssue(
+                    code="schema_invalid", node_id=node.node_id,
+                    message="TemporalCompare hai đầu mút phải khai đúng ba trường "
+                            "_start/_end/_delta và cardinality 1.",
+                ))
         if node.op == "TemporalCompare" and len(plan.time_scope) < 2:
             issues.append(PlanIssue(code="temporal_mismatch", node_id=node.node_id,
                                     message="TemporalCompare cần ít nhất 2 snapshot hợp lệ."))

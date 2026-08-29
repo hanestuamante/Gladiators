@@ -794,6 +794,49 @@ class AgentRuntime:
                     )
                 scope_evidence = metric
             else:
+                # W6.3: renderer riêng cho khối so hai mốc — KHÔNG in thô
+                # product_count_start/_delta, và không mô tả kết quả là
+                # "snapshot d1": plan đúng mà câu chữ sai scope là vi phạm mục
+                # tiêu INV-NO-INTERNAL-VOCABULARY.
+                delta_item = next(
+                    (item for item in evidence
+                     if item.attrs.get("derivation_op") == "end_minus_start"),
+                    None,
+                )
+                if delta_item is not None and len(delta_item.parent_evidence_ids) == 2:
+                    by_id = {item.evidence_id: item for item in evidence}
+                    start_item = by_id.get(delta_item.parent_evidence_ids[0])
+                    end_item = by_id.get(delta_item.parent_evidence_ids[1])
+                    if start_item is not None and end_item is not None:
+                        d0 = start_item.attrs.get("observed_date")
+                        d1 = end_item.attrs.get("observed_date")
+                        unit = delta_item.unit or ""
+                        change = float(delta_item.value)
+                        # Số 0 vẫn phải HIỂN THỊ: claim của evidence delta là
+                        # giá trị 0, và verifier đòi giá trị được claim có mặt
+                        # trong câu — "không thay đổi" trần không qua được.
+                        change_text = (
+                            f"tăng {change:g} {unit}".strip() if change > 0
+                            else f"giảm {abs(change):g} {unit}".strip() if change < 0
+                            else f"0 {unit} — không thay đổi".strip()
+                        )
+                        return (
+                            "Kết quả\n"
+                            f"Tại đầu kỳ ({d0}): {start_item.value:g} {unit} "
+                            f"[{start_item.evidence_id}]. "
+                            f"Tại cuối kỳ ({d1}): {end_item.value:g} {unit} "
+                            f"[{end_item.evidence_id}]. "
+                            f"Thay đổi: {change_text} [{delta_item.evidence_id}].\n\n"
+                            "Phạm vi\nThị trường "
+                            f"{str(delta_item.attrs.get('country', 'unknown')).upper()}, "
+                            f"cửa sổ {d0} → {d1}.\n\n"
+                            "Cách tính\nSo sánh giá trị quan sát được tại hai snapshot "
+                            "đầu và cuối của cửa sổ được hỏi; không suy diễn cho các "
+                            "ngày ở giữa.\n\n"
+                            "Giới hạn\nChỉ mô tả mức thay đổi quan sát được, "
+                            "không kết luận nguyên nhân.\n\n"
+                            f"Độ tin cậy\n{confidence_text}"
+                        )
                 result_count = by_metric.get("result_count")
                 result_meta = result_count or next(
                     (item for item in evidence if "result_count" in item.attrs), None,
