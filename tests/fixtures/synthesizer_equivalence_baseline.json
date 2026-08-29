@@ -839,156 +839,7 @@
   "dr2607:tc26": null,
   "dr2607:tc27": null,
   "dr2607:tc28": null,
-  "dr2607:tc29": {
-    "budget": {
-      "max_depth": 6,
-      "max_nodes": 12,
-      "max_subplans": 4
-    },
-    "ir_version": "1.0",
-    "nodes": [
-      {
-        "aggregation": null,
-        "cost_estimate": 1,
-        "dedupe_policy": null,
-        "descending": true,
-        "evidence_emission": {
-          "caveat_refs": [],
-          "enabled": false,
-          "metric_ref": null
-        },
-        "expected_cardinality": "<=3341",
-        "expected_schema": [
-          {
-            "name": "discount_percent",
-            "semantic_ref": "measure.discount_percent",
-            "type": "number"
-          }
-        ],
-        "group_by": [],
-        "input_grain": "listing_snapshot",
-        "inputs": [],
-        "invariants": [],
-        "limit": null,
-        "node_id": "n1",
-        "op": "Scan",
-        "original_cardinality": null,
-        "output_grain": "listing_snapshot",
-        "predicates": [],
-        "rank_by": null,
-        "refs": [
-          "measure.discount_percent"
-        ],
-        "relation": null,
-        "risk_estimate": 0,
-        "source": "products_clean.csv",
-        "units": []
-      },
-      {
-        "aggregation": null,
-        "cost_estimate": 1,
-        "dedupe_policy": null,
-        "descending": true,
-        "evidence_emission": {
-          "caveat_refs": [],
-          "enabled": false,
-          "metric_ref": null
-        },
-        "expected_cardinality": "<=3341",
-        "expected_schema": [
-          {
-            "name": "discount_percent",
-            "semantic_ref": "measure.discount_percent",
-            "type": "number"
-          }
-        ],
-        "group_by": [],
-        "input_grain": "listing_snapshot",
-        "inputs": [
-          "n1"
-        ],
-        "invariants": [],
-        "limit": null,
-        "node_id": "n2",
-        "op": "Filter",
-        "original_cardinality": null,
-        "output_grain": "listing_snapshot",
-        "predicates": [
-          {
-            "op": "eq",
-            "parameter": "country",
-            "ref": "dim.country",
-            "value": "vn"
-          },
-          {
-            "op": "eq",
-            "parameter": "date",
-            "ref": "dim.date",
-            "value": "2026-07-03"
-          }
-        ],
-        "rank_by": null,
-        "refs": [],
-        "relation": null,
-        "risk_estimate": 0,
-        "source": null,
-        "units": []
-      },
-      {
-        "aggregation": null,
-        "cost_estimate": 1,
-        "dedupe_policy": null,
-        "descending": true,
-        "evidence_emission": {
-          "caveat_refs": [],
-          "enabled": false,
-          "metric_ref": null
-        },
-        "expected_cardinality": "<=3341",
-        "expected_schema": [
-          {
-            "name": "discount_percent",
-            "semantic_ref": "measure.discount_percent",
-            "type": "number"
-          }
-        ],
-        "group_by": [],
-        "input_grain": "listing_snapshot",
-        "inputs": [
-          "n2"
-        ],
-        "invariants": [],
-        "limit": null,
-        "node_id": "n5",
-        "op": "Project",
-        "original_cardinality": null,
-        "output_grain": "listing_snapshot",
-        "predicates": [],
-        "rank_by": null,
-        "refs": [
-          "measure.discount_percent"
-        ],
-        "relation": null,
-        "risk_estimate": 0,
-        "source": null,
-        "units": []
-      }
-    ],
-    "output_node": "n5",
-    "plan_id": "synth:measure.discount_percent:median:nogroup:none:vn:2026-07-03",
-    "requested_output_shape": [
-      {
-        "name": "discount_percent",
-        "semantic_ref": "measure.discount_percent",
-        "type": "number"
-      }
-    ],
-    "source_tier": "btc_dataset",
-    "subplan_count": 1,
-    "time_scope": [
-      "2026-07-03"
-    ]
-  },
+  "dr2607:tc29": null,
   "dr2607:tc30": null,
   "dr2607:tc31": {
     "budget": {
@@ -1340,154 +1191,154 @@
   "dr2607:tc34": null,
   "dr2607:tc35": null,
   "dr2607:tc36": {
-    "budget": {
-      "max_depth": 6,
-      "max_nodes": 12,
-      "max_subplans": 4
-    },
+    "plan_id": "synth:derived.estimated_recent_revenue:sum:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
-        "aggregation": null,
-        "cost_estimate": 1,
-        "dedupe_policy": null,
-        "descending": true,
-        "evidence_emission": {
-          "caveat_refs": [],
-          "enabled": false,
-          "metric_ref": null
-        },
-        "expected_cardinality": "<=3341",
-        "expected_schema": [
-          {
-            "name": "estimated_recent_revenue",
-            "semantic_ref": "derived.estimated_recent_revenue",
-            "type": "number"
-          }
-        ],
-        "group_by": [],
-        "input_grain": "listing_snapshot",
-        "inputs": [],
-        "invariants": [],
-        "limit": null,
         "node_id": "n1",
         "op": "Scan",
-        "original_cardinality": null,
-        "output_grain": "listing_snapshot",
-        "predicates": [],
-        "rank_by": null,
+        "inputs": [],
         "refs": [
           "derived.estimated_recent_revenue"
         ],
+        "predicates": [],
         "relation": null,
-        "risk_estimate": 0,
         "source": "product_snapshot_metrics.csv",
-        "units": []
-      },
-      {
         "aggregation": null,
-        "cost_estimate": 1,
-        "dedupe_policy": null,
+        "group_by": [],
+        "rank_by": null,
         "descending": true,
-        "evidence_emission": {
-          "caveat_refs": [],
-          "enabled": false,
-          "metric_ref": null
-        },
-        "expected_cardinality": "<=3341",
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
         "expected_schema": [
           {
             "name": "estimated_recent_revenue",
-            "semantic_ref": "derived.estimated_recent_revenue",
-            "type": "number"
+            "type": "number",
+            "semantic_ref": "derived.estimated_recent_revenue"
           }
         ],
-        "group_by": [],
-        "input_grain": "listing_snapshot",
+        "expected_cardinality": "<=3341",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
         "inputs": [
           "n1"
         ],
-        "invariants": [],
-        "limit": null,
-        "node_id": "n2",
-        "op": "Filter",
-        "original_cardinality": null,
-        "output_grain": "listing_snapshot",
+        "refs": [],
         "predicates": [
           {
+            "ref": "dim.country",
             "op": "eq",
             "parameter": "country",
-            "ref": "dim.country",
             "value": "vn"
           },
           {
+            "ref": "dim.date",
             "op": "eq",
             "parameter": "date",
-            "ref": "dim.date",
             "value": "2026-07-03"
           }
         ],
-        "rank_by": null,
-        "refs": [],
         "relation": null,
-        "risk_estimate": 0,
         "source": null,
-        "units": []
-      },
-      {
         "aggregation": null,
-        "cost_estimate": 1,
-        "dedupe_policy": null,
+        "group_by": [],
+        "rank_by": null,
         "descending": true,
-        "evidence_emission": {
-          "caveat_refs": [],
-          "enabled": false,
-          "metric_ref": null
-        },
-        "expected_cardinality": "<=3341",
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
         "expected_schema": [
           {
             "name": "estimated_recent_revenue",
-            "semantic_ref": "derived.estimated_recent_revenue",
-            "type": "number"
+            "type": "number",
+            "semantic_ref": "derived.estimated_recent_revenue"
           }
         ],
-        "group_by": [],
-        "input_grain": "listing_snapshot",
+        "expected_cardinality": "<=3341",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n4",
+        "op": "Aggregate",
         "inputs": [
           "n2"
         ],
-        "invariants": [],
-        "limit": null,
-        "node_id": "n5",
-        "op": "Project",
-        "original_cardinality": null,
-        "output_grain": "listing_snapshot",
-        "predicates": [],
-        "rank_by": null,
         "refs": [
           "derived.estimated_recent_revenue"
         ],
+        "predicates": [],
         "relation": null,
-        "risk_estimate": 0,
         "source": null,
-        "units": []
+        "aggregation": "sum",
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "country_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "estimated_recent_revenue",
+            "type": "number",
+            "semantic_ref": "derived.estimated_recent_revenue"
+          }
+        ],
+        "expected_cardinality": "1",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
       }
     ],
-    "output_node": "n5",
-    "plan_id": "synth:derived.estimated_recent_revenue:median:nogroup:none:vn:2026-07-03",
+    "output_node": "n4",
     "requested_output_shape": [
       {
         "name": "estimated_recent_revenue",
-        "semantic_ref": "derived.estimated_recent_revenue",
-        "type": "number"
+        "type": "number",
+        "semantic_ref": "derived.estimated_recent_revenue"
       }
     ],
-    "source_tier": "btc_dataset",
-    "subplan_count": 1,
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
     "time_scope": [
       "2026-07-03"
-    ]
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
   },
   "dr2607:tc37": null,
   "dr2607:tc38": null,

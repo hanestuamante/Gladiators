@@ -18,17 +18,29 @@ def runtime() -> AgentRuntime:
     return AgentRuntime()
 
 
-def test_a_branch_that_never_ran_says_so_with_a_reason(runtime):
-    """Ca ans035. Trước W12, lời từ chối là "không có provider" — chỉ sai đường:
-    người đọc trace đi mua một provider trong khi thứ chặn là
-    ``_synthesis_beats_template``. Nhánh không chạy phải trông KHÁC nhánh chạy
-    rồi thua."""
-    response = runtime.run("Giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?")
-    assert response.gate.action == "abstain"
-    attempts = {item["branch"]: item for item in response.planning["attempts"]}
+def test_the_case_the_gateway_used_to_skip_now_answers(runtime):
+    """Ca ans035 — ca W12 dùng để chứng minh "nhánh chưa bao giờ chạy".
 
-    assert attempts["synthesizer"]["tried"] is False
-    assert "beats_template" in attempts["synthesizer"]["declined"]
+    Trước W12, lời từ chối là "không có provider" — chỉ sai đường: người đọc
+    trace đi mua một provider trong khi thứ chặn là
+    ``_synthesis_beats_template``. W5.3 mở đúng cái cổng đó cho câu hỏi vô
+    hướng, nên ans035 nay trả lời được.
+    """
+    response = runtime.run("Giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?")
+    assert response.gate.action == "allow"
+    assert 132000.0 in [item.value for item in response.evidence]
+    attempts = {item["branch"]: item for item in response.planning["attempts"]}
+    assert attempts["synthesizer"]["tried"] is True
+    assert attempts["synthesizer"]["declined"] == []
+
+
+def test_a_branch_that_never_ran_says_so_with_a_reason(runtime):
+    """Bất biến W12 vẫn phải đúng cho MỌI nhánh không chạy, trên một câu vẫn bị
+    từ chối — nếu không, lần chặn tiếp theo lại vô hình như trước W12."""
+    response = runtime.run("Giá trung bình tại Việt Nam ngày 03/07 là bao nhiêu?")
+    assert response.gate.action == "abstain"
+    assert response.gate.rule_id == "A19-AGGREGATION"
+    attempts = {item["branch"]: item for item in response.planning["attempts"]}
     # tried=False bắt buộc kèm lý do — cho MỌI nhánh không chạy.
     for item in attempts.values():
         if not item["tried"]:

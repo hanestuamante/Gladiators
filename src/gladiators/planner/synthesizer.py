@@ -338,6 +338,20 @@ def _bound_refs(items) -> list[str]:
     return [item.ref for item in items if item.ref and not item.unresolved]
 
 
+
+def _wants_scalar_aggregate(request: AnalyticalRequest) -> bool:
+    """Câu hỏi một CON SỐ TỔNG HỢP trên toàn tập, không phải các DÒNG (W5.2).
+
+    Chỉ True khi câu nêu TƯỜNG MINH một phép tổng hợp. Suy từ việc
+    ``_choose_aggregation`` có trả về gì đó thì mọi câu xếp hạng cũng dính: hàm
+    đó trả ``"median"`` như một giá trị MẶC ĐỊNH cho mọi measure, kể cả plan chỉ
+    ``Rank`` các dòng — 6 trong 58 plan đang bị khoá có hình
+    ``Scan→Filter→Rank``, và một node ``Aggregate`` ở đó sẽ gộp cả thị trường
+    thành một dòng rồi xếp hạng chính nó.
+    """
+    return request.requested_aggregation is not None and request.ranking is None
+
+
 def _choose_aggregation(
     measure_ref: str, request: AnalyticalRequest, decline: list[str] | None = None,
 ) -> str | None:
@@ -352,8 +366,17 @@ def _choose_aggregation(
     if not allowed:
         _decline(decline, "no_certified_aggregation")
         return None
-    if "mean_requested" in request.assumptions or "mean" in request.analytical_operators:
-        return "mean" if "mean" in allowed else None
+    requested = request.requested_aggregation
+    if requested is not None:
+        # W5.1: yêu cầu một phép tính catalog chưa chứng nhận là một lời TỪ
+        # CHỐI, không bao giờ là một phép thay thế. Trả lời câu hỏi trung bình
+        # bằng trung vị đúng là lớp sai mà cả tầng này tồn tại để chặn.
+        # Không ghi decline ở đây: caller ghi `aggregation_not_certified` ngay
+        # khi hàm này trả None, và ghi hai lần trên cùng một đường làm hai lối
+        # từ chối KHÁC NHAU trông giống nhau trong trace.
+        return requested if requested in allowed else None
+    # Không nêu phép tính: giữ nguyên đường mặc định hôm nay, để plan_id của 58
+    # plan đang bị khoá không đổi.
     if CATALOG[measure_ref].counts_unit:
         return "count" if "count" in allowed else None
     return "median" if "median" in allowed else allowed[0]
@@ -537,7 +560,7 @@ def synthesize(
         cursor = "nf2"
 
     grain = "listing_snapshot"
-    if dimensions or counted_unit:
+    if dimensions or counted_unit or _wants_scalar_aggregate(request):
         nodes.append(PlanNode(
             node_id="n4", op="Aggregate", inputs=(cursor,), refs=(measure_ref,),
             group_by=tuple(dimensions), aggregation=aggregation,

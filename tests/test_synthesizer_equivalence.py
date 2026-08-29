@@ -77,14 +77,38 @@ def test_existing_plans_are_unchanged(key):
     assert _plan_of(question, country) == BASELINE[key]
 
 
+# Plan biến mất CÓ CHỦ ĐÍCH: câu hỏi yêu cầu mean, catalog không chứng nhận mean
+# cho discount_percent ('median','min','max'), và phép thay thầm mean→median là
+# đúng lớp sai mà _choose_aggregation tồn tại để chặn. Từ chối đúng hơn một con
+# số sai. Ca này cross-market nên A16-CROSS-CURRENCY chặn trước khi thực thi ⇒
+# hành vi runtime KHÔNG đổi, chỉ plan đổi.
+INTENTIONALLY_LOST = {
+    "dr2607:tc29": "mean không được chứng nhận cho measure.discount_percent",
+}
+
+
 def test_no_plan_is_lost():
-    """Không câu nào đang có plan được phép rơi về None."""
+    """Không câu nào đang có plan được phép rơi về None, trừ ca đã khai lý do."""
     lost = [
         key for key, expected in BASELINE.items()
         if isinstance(expected, dict) and "exc" not in expected
         and _plan_of(*QUESTIONS[key]) is None
     ]
     assert lost == [], f"WP đã lấy đi plan của: {lost}"
+
+
+def test_an_intentionally_lost_plan_is_lost_for_the_reason_it_declares():
+    """Allowlist phải THẬT SỰ mất plan, và mất vì đúng mã decline đã ghi — nếu
+    không nó là một tấm thảm quét bụi thay vì một quyết định."""
+    from gladiators.planner.synthesizer import synthesize
+
+    for key, reason in INTENTIONALLY_LOST.items():
+        question, country = QUESTIONS[key]
+        codes: list[str] = []
+        assert synthesize(
+            PARSER.parse(question, "vi", country), country, decline=codes,
+        ) is None, key
+        assert "aggregation_not_certified" in codes, (key, reason, codes)
 
 
 def test_baseline_still_describes_the_same_corpus():

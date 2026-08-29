@@ -43,6 +43,10 @@ class RequestDigest(BaseModel):
     # V2 §4.4: the digest must carry the date range that was asked for, so a
     # temporal answer can be checked against it instead of being trusted.
     date_range: tuple[str, ...] = ()
+    # W5.1: phép tổng hợp câu hỏi nêu tường minh, khoá xuyên bốn lớp. Không có
+    # nó ở digest thì alignment không có gì để đối chiếu và một câu hỏi trung
+    # bình được trả bằng trung vị vẫn "khớp" mọi thứ khác.
+    requested_aggregation: str | None = None
 
 
 class ContextBundle(BaseModel):
@@ -139,6 +143,10 @@ def request_digest(request: StructuredRequest) -> RequestDigest:
         requested_dimensions=refs("requested_dimensions"),
         requested_output_shape=str(analytical.get("requested_output_shape") or "table"),
         qualifiers=tuple(str(x) for x in request.slots.get("qualifiers", ())),
+        requested_aggregation=(
+            str(analytical["requested_aggregation"])
+            if analytical.get("requested_aggregation") else None
+        ),
         date_range=tuple(normalize_date_range(request.date_range)),
         sub_request_ids=tuple(
             str(item.get("sub_id")) for item in request.slots.get("sub_requests", ())

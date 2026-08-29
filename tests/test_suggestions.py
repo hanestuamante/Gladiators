@@ -56,9 +56,15 @@ def test_suggestions_are_deterministic(runtime):
 # --- A8-R3 · không đổi rule_id và reason ---------------------------------
 
 def test_rule_id_and_reason_are_untouched(runtime):
-    """WP này CHỈ thêm phần gợi ý."""
-    response = runtime.run("Giá trung vị tại VN")
-    assert response.gate.rule_id == "A19-PLAN"
+    """WP này CHỈ thêm phần gợi ý.
+
+    Câu neo đổi từ "Giá trung vị tại VN" sang "Giá trung bình tại VN": W5 làm
+    câu trung vị TRẢ LỜI ĐƯỢC (132 000 — đó là mục đích của W5), nên test này
+    cần một câu vẫn bị từ chối; trung bình chưa được chứng nhận cho
+    measure.price và ra A19-AGGREGATION (W5.1).
+    """
+    response = runtime.run("Giá trung bình tại VN")
+    assert response.gate.rule_id == "A19-AGGREGATION"
     assert "gợi ý" not in response.gate.reason.lower()
     assert response.gate.answerable_alternative
 

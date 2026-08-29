@@ -36,7 +36,12 @@ from tests.test_execution_plan import snapshot
 
 PARSER = DeterministicSemanticParser()
 ROUTER = TopicRouter()
-QUESTION = "Giá trung bình tại Việt Nam"
+# W5.1 (SolutionSpec2808 §6.2): "trung bình" nay là một yêu cầu TƯỜNG MINH, và
+# measure.price chỉ chứng nhận median/min/max — nên câu cũ đúng ra phải bị TỪ
+# CHỐI, và một test về cơ chế phân rã không được dựa vào một câu hệ từ chối.
+# Đổi sang phép tính đã chứng nhận; hành vi bị đổi được khoá riêng ở
+# test_the_uncertified_mean_is_refused_not_substituted bên dưới.
+QUESTION = "Giá trung vị tại Việt Nam"
 
 
 def digest_for(question: str, countries=("vn",)) -> RequestDigest:
@@ -167,7 +172,8 @@ def test_a_plan_that_cannot_be_built_fails_closed():
 # --- end to end through the decomposer -----------------------------------
 
 def cross_market_input() -> DecomposerInput:
-    question = "Giá trung bình tại Việt Nam và Indonesia"
+    # W5.1: xem ghi chú ở QUESTION — mean chưa được chứng nhận cho measure.price.
+    question = "Giá trung vị tại Việt Nam và Indonesia"
     request = PARSER.parse(question, "vi", "vn")
     routing = ROUTER.route(question, request)
     return DecomposerInput(
@@ -270,3 +276,18 @@ def test_an_invalid_proposal_is_rejected_before_any_subplan_is_planned():
     decomposer.build_execution_plan(payload)
     # The single-country request is feasible, so no split and no planning at all.
     assert calls == []
+
+
+def test_the_uncertified_mean_is_refused_not_substituted():
+    """Câu hỏi cũ của bộ test này: "Giá trung bình tại Việt Nam".
+
+    measure.price chứng nhận median/min/max, KHÔNG có mean. Trước W5.1 hệ trả
+    một plan median cho một câu hỏi mean — cùng một con số, một câu hỏi khác.
+    """
+    from gladiators.planner.synthesizer import synthesize
+
+    codes: list[str] = []
+    assert synthesize(
+        PARSER.parse("Giá trung bình tại Việt Nam", "vi", "vn"), "vn", decline=codes,
+    ) is None
+    assert codes == ["aggregation_not_certified"]

@@ -113,6 +113,15 @@ def atomize_request(digest, request) -> tuple[RequestAtom, ...]:
         atoms.append(make_atom("aggregation", semantic_ref=getattr(ranking, "order_by", None),
                                value=f"rank:{getattr(ranking, 'direction', 'desc')}"))
 
+    requested_aggregation = getattr(request, "requested_aggregation", None) or getattr(
+        digest, "requested_aggregation", None,
+    )
+    if requested_aggregation:
+        # Atom RIÊNG với atom ranking: "trung bình" và "xếp hạng giảm dần" là
+        # hai yêu cầu khác nhau, và gộp chúng làm một atom thì một câu hỏi mất
+        # đi một nửa yêu cầu mà tổng số atom không đổi.
+        atoms.append(make_atom("aggregation", value=f"agg:{requested_aggregation}"))
+
     shape = getattr(request, "requested_output_shape", None)
     if shape:
         atoms.append(make_atom("output_shape_kind", value=str(shape)))

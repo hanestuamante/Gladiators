@@ -1,6 +1,8 @@
 """P7 AnalyticalRequest contract, catalog slicing và deterministic fallback."""
 from __future__ import annotations
 
+from .query_ir import Aggregation
+
 import re
 import unicodedata
 from typing import Any, Literal
@@ -101,6 +103,68 @@ class AnalyticalRequest(BaseModel):
     assumptions: tuple[str, ...] = ()
     requested_output_shape: Literal["scalar", "table", "ranking", "comparison"]
     unsupported_operators: tuple[str, ...] = ()
+    # W5.1: phép tổng hợp mà câu hỏi nêu TƯỜNG MINH. Dùng chính kiểu Aggregation
+    # của IR thay vì chép một Literal thứ hai — hai danh sách là hai chỗ để
+    # chúng lệch nhau. Additive, mặc định None ⇒ fixture cũ không hỏng.
+    requested_aggregation: Aggregation | None = None
+
+
+
+# W5.1 — cụm nêu TƯỜNG MINH một phép tổng hợp. Hai cue khác nhau cùng xuất hiện
+# ⇒ ghi ambiguity và KHÔNG chọn theo thứ tự bảng: chọn theo thứ tự bảng là để
+# thứ tự khai báo trả lời hộ một câu hỏi mơ hồ.
+_AGGREGATION_CUES: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("trung vi", "median"), "median"),
+    (("trung binh", "binh quan", "rata rata", "average", "mean"), "mean"),
+    (("tong cong", "cong lai", "tong ", "total", "sum"), "sum"),
+    # CHỆCH KHỎI SPEC CÓ CHỦ ĐÍCH: bảng §6.2 liệt cả `max`/`min` trần. Đo trên
+    # bộ đề thật thì `"max"` trần khớp "iPhone 15 Pro Max" trong dr2607:tc35 và
+    # biến một câu phân tích doanh số thành một câu hỏi cực trị — đúng lớp lỗi
+    # "$7.7 billion → anchor chiến dịch 7.7" ở CLAUDE.md §3.1. Cụm tiếng Việt và
+    # `maximum`/`minimum` không có hình thái đó nên được giữ.
+    (("cao nhat", "lon nhat", "toi da", "maximum"), "max"),
+    (("thap nhat", "nho nhat", "toi thieu", "minimum"), "min"),
+)
+
+# Cực trị chỉ là một CON SỐ khi câu hỏi hỏi một con số. "Price original cao nhất
+# tại VN" hôm nay trả về các DÒNG đã xếp hạng và 58 plan bị khoá phụ thuộc điều
+# đó; "Giá cao nhất tại Indonesia LÀ BAO NHIÊU" mới là câu hỏi vô hướng. Thiếu
+# điều kiện này, năm entry baseline đổi hình mà không câu hỏi nào đổi nghĩa.
+_SCALAR_INTERROGATIVE = ("bao nhieu", "berapa", "la bao nhieu", "how much")
+# "cao nhất/thấp nhất" chỉ là scalar aggregate khi câu KHÔNG hỏi một chủ thể
+# xếp hạng: "listing nào có giá cao nhất" hỏi một DÒNG, còn "giá cao nhất là
+# bao nhiêu" hỏi một CON SỐ. Không dùng `ranking is not None` làm dấu hiệu —
+# parser suy ranking từ chính cụm so sánh, nên mọi câu có "cao nhất" đều có
+# ranking và điều kiện sẽ luôn đúng, tức luật không bao giờ bắn.
+_EXTREMUM_AGGREGATIONS = frozenset({"max", "min"})
+_RANKING_SUBJECT = re.compile(
+    r"\b(listing|san pham|mat hang|hang hoa|shop|cua hang|thuong hieu|brand|"
+    r"danh muc|toko|produk|merek|kategori)\b[^?]{0,24}?\b(nao|mana|dengan)\b",
+)
+
+
+def _names_a_ranking_subject(normalized: str) -> bool:
+    return bool(_RANKING_SUBJECT.search(normalized))
+
+
+def _detect_requested_aggregation(
+    normalized: str, has_ranking_subject: bool, asks_for_a_number: bool,
+) -> tuple[str | None, str | None]:
+    """``(aggregation, ambiguity)`` — phép tổng hợp câu hỏi NÊU RA, nếu có."""
+    hits: list[str] = []
+    for terms, aggregation in _AGGREGATION_CUES:
+        if any(term in normalized for term in terms) and aggregation not in hits:
+            hits.append(aggregation)
+    if has_ranking_subject or not asks_for_a_number:
+        hits = [item for item in hits if item not in _EXTREMUM_AGGREGATIONS]
+    if not hits:
+        return None, None
+    if len(hits) > 1:
+        return None, (
+            "Câu hỏi nêu nhiều phép tổng hợp khác nhau: "
+            + ", ".join(hits) + "; không chọn hộ một trong số đó."
+        )
+    return hits[0], None
 
 
 _EXPLICIT_TOP_N = re.compile(r"\btop\s*(\d{1,2})\b")
@@ -342,6 +406,24 @@ class DeterministicSemanticParser:
             comparison = {"mode": "descriptive_group_comparison"}
             operators.append("compare")
         ambiguities = []
+        requested_aggregation, aggregation_ambiguity = _detect_requested_aggregation(
+            normalized, has_ranking_subject=_names_a_ranking_subject(normalized),
+            asks_for_a_number=any(
+                term in normalized for term in _SCALAR_INTERROGATIVE
+            ),
+        )
+        if aggregation_ambiguity:
+            ambiguities.append(aggregation_ambiguity)
+        if requested_aggregation in _EXTREMUM_AGGREGATIONS and ranking is not None:
+            # W5.2: "giá cao nhất LÀ BAO NHIÊU" hỏi một CON SỐ, còn ranking suy
+            # ra từ chính cụm "cao nhất" biến nó thành một câu hỏi về các DÒNG.
+            # Giữ cả hai thì plan xếp hạng các dòng trong khi câu hỏi yêu cầu
+            # một giá trị tổng hợp, và lời từ chối sinh ra nói về measure bị
+            # thay chứ không nói về thứ thật sự sai. Đo trước khi đổi: 0 entry
+            # trong 60 plan bị khoá thay đổi.
+            ranking = None
+            requested_grain = "group"
+            operators = [item for item in operators if item != "rank"]
         monetary = any(item.ref in {"measure.price", "derived.estimated_recent_revenue"} for item in measures)
         if not country:
             ambiguities.append(
@@ -359,6 +441,7 @@ class DeterministicSemanticParser:
             assumptions=tuple(assumptions),
             requested_output_shape="ranking" if ranking else "scalar" if not grouping else "table",
             unsupported_operators=unsupported_ops,
+            requested_aggregation=requested_aggregation,
         )
 
 

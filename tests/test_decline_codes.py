@@ -158,6 +158,16 @@ def test_inner_functions_share_the_callers_collector(parser):
 # --- baseline 58 plan không đổi ----------------------------------------------
 
 DELIBERATE_BASELINE_CHANGES = {
+    "dr2607:tc29": (
+        "W5.1 (SolutionSpec2808 §6.2): câu hỏi nêu 'trung bình', "
+        "measure.discount_percent chỉ chứng nhận median/min/max — hệ từng thay "
+        "thầm mean→median. Plan biến mất CÓ CHỦ ĐÍCH."
+    ),
+    "dr2607:tc36": (
+        "W5.1: câu hỏi nêu 'tổng ... cộng lại' và sum nằm trong "
+        "valid_aggregations của derived.estimated_recent_revenue — plan_id đổi "
+        "median→sum."
+    ),
     "dr2607:tc01": (
         "W1.2 (SolutionSpec2808 §2.4): 'tại shop Perfetti Van Melle Vietnam' "
         "trước đây thành group_by entity.shop — trả mọi shop. "

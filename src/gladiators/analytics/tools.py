@@ -576,10 +576,20 @@ class AnalyticsTools:
         }
         parts = plan.plan_id.split(":")
         output_node = next(node for node in plan.nodes if node.node_id == plan.output_node)
+        # W5.1: phép tổng hợp ĐÃ THỰC HIỆN, đọc từ node Aggregate đã compile —
+        # KHÔNG đọc từ plan_id. plan_id là telemetry, không phải contract thực
+        # thi, và một plan_id khai ":median:" trong khi SQL trả về các dòng thô
+        # là chính hình lỗi W5 tồn tại để sửa.
+        performed_aggregations = tuple(sorted({
+            str(node.aggregation) for node in plan.nodes
+            if node.op == "Aggregate" and node.aggregation
+        }))
         execution_attrs = {
             "expected_field_count": len(plan.requested_output_shape),
             "postconditions_passed": len(result.postconditions),
             "has_invariants": bool(output_node.invariants),
+            **({"aggregation": performed_aggregations[0]}
+               if len(performed_aggregations) == 1 else {}),
         }
         # W14.3: cùng chỗ rank_tie_at_cut được đọc — sau execute, TRƯỚC khi
         # dựng Evidence.

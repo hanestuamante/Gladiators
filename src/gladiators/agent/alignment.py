@@ -146,6 +146,24 @@ def check_plan_alignment(
             tuple(sorted(refs)),
         ))
 
+    requested_aggregation = getattr(digest, "requested_aggregation", None)
+    if plan is not None and requested_aggregation:
+        # W5.1: phép tổng hợp là một phần của CÂU HỎI. Plan không mang node
+        # Aggregate tương ứng, hoặc mang một phép khác, là đang trả lời một câu
+        # hỏi khác — và không lớp nào phía sau phân biệt được hai con số đó.
+        performed = {
+            node.aggregation for node in plan.nodes
+            if node.op == "Aggregate" and node.aggregation
+        }
+        if performed and requested_aggregation not in performed:
+            issues.append(AlignmentIssue(
+                "aggregation_mismatch",
+                f"Câu hỏi yêu cầu phép tổng hợp {requested_aggregation} nhưng plan "
+                "thực hiện: " + ", ".join(sorted(performed)) + ".",
+                (requested_aggregation,),
+                tuple(sorted(performed)),
+            ))
+
     # Only inspect output semantic refs for substitution. Intermediate refs may
     # legitimately support a derived metric (for example price × sold).
     if plan is not None:

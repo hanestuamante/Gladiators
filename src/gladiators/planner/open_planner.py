@@ -11,7 +11,7 @@ from gladiators.domain.relations import RELATIONS
 from gladiators.agent.context import ContextBundle
 
 from .analytical import build_analytical_plan, infer_deterministic_template
-from .synthesizer import rule_for_declines, synthesize
+from .synthesizer import rule_for_declines, synthesize, _wants_scalar_aggregate
 from .query_ir import CARDINALITY_GRAMMAR, LogicalQueryPlan
 from .semantic_parser import AnalyticalRequest, CatalogSlicer
 from .validator import PlanIssue, validate_plan
@@ -100,6 +100,12 @@ def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
         predicate.field_ref not in {"dim.country", "dim.date"}
         for predicate in request.filters
     ):
+        return True
+    # W5.3: không template nào tính một con số tổng hợp trên toàn thị trường,
+    # nên lựa chọn hôm nay không phải "một số sai" mà là A19-PLAN cho một câu
+    # dữ liệu trả lời được. Điều kiện "nêu tường minh" giữ nguyên tính MỘT
+    # CHIỀU của guard: không nêu phép tổng hợp thì không có gì đổi.
+    if _wants_scalar_aggregate(request):
         return True
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
     if len(dates) == 1 and dates[0] != LATEST_SNAPSHOT:
@@ -248,7 +254,13 @@ class OpenAnalyticalPlanner:
             branch_attempts.append({
                 "branch": "llm_ir", "tried": False, "declined": ["no_provider"],
             })
+            # W5.1: message phải nói về lý do THẬT. "Thiếu provider" cho một
+            # câu bị từ chối vì aggregation chưa chứng nhận là chỉ sai đường —
+            # người đọc trace đi mua một provider trong khi thứ chặn là catalog.
             raise OpenPlannerError(
+                "Câu hỏi nêu một phép tổng hợp mà catalog chưa chứng nhận cho "
+                "chỉ số này."
+                if "aggregation_not_certified" in decline else
                 "Không có semantic planner provider cho câu hỏi ngoài certified template.",
                 rule_id=rule_for_declines(decline),
                 decline_codes=tuple(decline),
