@@ -150,7 +150,30 @@ PYTHONPATH=src .venv/Scripts/python.exe scripts/build_ledger_report.py
 tin để kết luận chứ không phải bằng chứng rằng giá trị không tồn tại. Hệ quả: eval
 vẫn chạy, vẫn xanh, và một lớp kiểm biến mất mà không ai thấy.
 
-Trạng thái đo ngày **27/08/2026** tại `d4073c2`, `--provider offline`:
+Trạng thái đo ngày **29/08/2026** tại `5224c23` (15/15 work package của
+`docs/SolutionSpec2808.md` đã thi công phần máy làm được), `--provider offline`:
+
+| Chỉ số (tên mới W9.1) | 27/08 | 29/08 |
+| --- | ---: | ---: |
+| `pytest -q` | 1200 passed | **1508 passed**, 1 skipped |
+| `answerable_coverage` (bộ độc lập, 46 câu) | 0.526 | **0.85** |
+| `answer_rate_all` | 0.4545 | **0.7391** |
+| `over_refusal_rate` | 0.474 | **0.15** |
+| `risk` · `over_answer_rate` | 0.0 · 0.0 | **0.0 · 0.0** (giữ qua MỌI mốc) |
+| metamorphic (quan hệ đo được) | 0.910 | **1.0** (MR-3/MR-8 khai not_measured) |
+| multiturn 24 ca / 48 lượt | 6 lượt lệch | **0** (cả nhánh stateless, 0 leak) |
+| diagnose_refusals | 18 ca oan | **4** (2 A-MISSING-ADS chờ registry, 2 beats_template) |
+| AURC | 0.0454 | **0.0294** |
+
+Ablation SAU các khối mới: L0 ≡ L1 ≡ L2 vẫn trùng khít — "nút thắt là thiếu
+khối, không phải cổng gác" đứng vững ở coverage 0.85. Còn chờ NGƯỜI/provider
+(không code thay được): W9.4 bộ đề độc lập 60–100 câu cần hai người chú thích;
+W10.3 chờ xuất xứ `raw_extra_data` ghi vào docs/qa/; W14 giai đoạn B chờ data
+owner duyệt `price-repdigit-nine`; W9.6 đo BGK-20 bằng provider thật; sáu
+oracle topic gate chờ reviewer ký. Chú ý W9.1: khoá `coverage` cũ mang HAI
+nghĩa — số mới đọc `answerable_coverage`/`answer_rate_all`.
+
+Trạng thái đo cũ ngày **27/08/2026** tại `d4073c2`, `--provider offline`:
 
 | Suite | Hiện tại | Mốc cũ |
 | --- | --- | --- |
