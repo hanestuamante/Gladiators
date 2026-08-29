@@ -84,14 +84,12 @@ class ArtifactRepository:
                 declared = None
             if declared:
                 return str(declared)
-        h = hashlib.sha256()
-        for name in sorted(["products_clean.csv", "product_snapshot_metrics.csv", "product_transition_metrics.csv"]):
-            # Git may check text artifacts out as CRLF on Windows and LF on
-            # Linux.  The dataset is identical in both cases, so its version
-            # must be based on canonical text bytes rather than OS line endings.
-            payload = (self.root / name).read_bytes()
-            h.update(payload.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
-        return h.hexdigest()[:16]
+        # W1.3: MỘT thuật toán, dùng chung với build_value_index — hai hàm băm
+        # khác nhau là đúng thứ lỗi mục này sửa (27de9bff… vs a821e39d… cùng chỉ
+        # một bộ dữ liệu mà không chỗ nào kiểm lệch).
+        from .dataset_version import compute_dataset_version
+
+        return compute_dataset_version(self.root)
 
     def capability_profile(self) -> dict[str, object]:
         p = self.products

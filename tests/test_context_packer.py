@@ -172,7 +172,9 @@ def test_catalog_render_never_leaks_a_physical_column():
 
 def test_invariants_for_ref_comes_from_the_registry():
     assert "INV-CURRENCY-NO-MIX" in invariants_for_ref("measure.price")
-    assert invariants_for_ref("dim.brand") == ()
+    # W1.5: dim.brand giờ nằm trong semantic_refs của
+    # INV-FILTER-LITERAL-IS-DATASET-VALUE — context cho brand phải mang nó.
+    assert invariants_for_ref("dim.brand") == ("INV-FILTER-LITERAL-IS-DATASET-VALUE",)
 
 
 # --- hashing --------------------------------------------------------------

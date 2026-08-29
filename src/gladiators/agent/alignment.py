@@ -228,10 +228,34 @@ def _evidence_ref(item: Evidence) -> str | None:
     return None
 
 
+def _empty_result_is_self_evident(evidence) -> bool:
+    """Zero-row được miễn đối chiếu measure CHỈ KHI nó tự chứng minh được (W1.7).
+
+    "Không dòng nào khớp" là một kết quả hợp lệ và nó không mang measure, nên
+    check_evidence_alignment sẽ báo measure_dropped cho một câu trả lời đúng.
+    Nhưng miễn VÔ ĐIỀU KIỆN thì một số 0 do lọc hỏng cũng được miễn — và hai
+    số 0 đó trông giống hệt nhau. Tự chứng minh nghĩa là: số predicate thực thi
+    khớp số predicate trong plan, và mọi literal đi lọc đã được xác nhận tồn
+    tại trong value index.
+    """
+    for item in evidence:
+        if item.metric != "result_count" or not item.attrs.get("empty_result"):
+            continue
+        executed = item.attrs.get("executed_predicate_count", 0)
+        planned = item.attrs.get("planned_predicate_count", 0)
+        if executed != planned:
+            return False
+        bindings = item.attrs.get("filter_bindings", ()) or ()
+        if any(not verified for _ref, verified in bindings):
+            return False
+        return True
+    return False
+
+
 def check_evidence_alignment(
     digest: RequestDigest, evidence: list[Evidence],
 ) -> AlignmentVerdict:
-    if any(item.metric == "result_count" and item.attrs.get("empty_result") for item in evidence):
+    if _empty_result_is_self_evident(evidence):
         return AlignmentVerdict(True, ())
     refs = {_evidence_ref(item) for item in evidence}
     missing = tuple(sorted(set(digest.requested_measures) - refs))
@@ -460,7 +484,7 @@ def check_evidence_scope_alignment(
     digest: RequestDigest, evidence: list[Evidence],
 ) -> AlignmentVerdict:
     """Scope-only alignment for producers without a semantic plan (macros)."""
-    if any(item.metric == "result_count" and item.attrs.get("empty_result") for item in evidence):
+    if _empty_result_is_self_evident(evidence):
         return AlignmentVerdict(True, ())
     issues = _scope_issues(digest, evidence)
     return AlignmentVerdict(not issues, tuple(issues))
@@ -472,7 +496,7 @@ def check_answer_alignment(
     claims: tuple[ResponseClaim, ...],
     answer: str,
 ) -> AlignmentVerdict:
-    if any(item.metric == "result_count" and item.attrs.get("empty_result") for item in evidence):
+    if _empty_result_is_self_evident(evidence):
         return AlignmentVerdict(True, ())
     refs_by_id = {item.evidence_id: _evidence_ref(item) for item in evidence}
     claimed = {refs_by_id.get(claim.evidence_id) for claim in claims}

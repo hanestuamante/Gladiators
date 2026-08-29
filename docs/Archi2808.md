@@ -40,7 +40,7 @@ vụ bốn mục đích:
 | Phép kiểm | Kết quả ngày 28/08/2026 |
 | --- | --- |
 | Toàn bộ pytest, thư mục tạm ngắn trên Windows | **1207 passed, 1 skipped** |
-| Metadata binding verifier | 7 bảng, 219 cột, 86 catalog object, 10 relation, 33 metric, 11 invariant, 0 lỗi |
+| Metadata binding verifier | 7 bảng, 219 cột, 86 catalog object, 10 relation, 33 metric, 12 invariant, 0 lỗi |
 | Test lỗi đường dẫn dài chạy riêng | 1 passed |
 | Cassette vật lý trong checkout | **0 file JSON**; chỉ có artifacts/search_cassettes/REVIEW.md |
 | UI schema graph | **Không có** src/gladiators/ui_schema.py và không có route /schema-graph |
@@ -565,7 +565,7 @@ Không semantic ref nào được nối thẳng xuống cột bằng suy đoán 
 | Relation | 10: 4 join, 6 inline |
 | Metric | 33 |
 | Metric edge | 13 |
-| Invariant | 11: 10 hard, 1 warning |
+| Invariant | 12: 11 hard, 1 warning |
 | Qualifier | 4 |
 | Topic card | 14 |
 | Intent | 11 |
@@ -578,8 +578,8 @@ Hash chốt từ scripts/verify_metadata_bindings.py:
 | catalog | 7e448513d3c60b20 |
 | relation | 2b7e06170852ab14 |
 | metric | b906688ffa6ecb55 |
-| invariant | 5281c579b00dcca9 |
-| binding | 19844bb6656f2fb5 |
+| invariant | f0ef05c393b16b9c |
+| binding | 4d27637768639fb1 |
 
 Hash là bằng chứng trạng thái, không phải hằng số nghiệp vụ. Registry đổi hợp lệ
 thì hash phải đổi và tài liệu/release proof phải được cập nhật.
@@ -594,7 +594,7 @@ thì hash phải đổi và tài liệu/release proof phải được cập nh�
 analysis_unit là đơn vị đếm và có counting_key; nó không mặc nhiên là cột
 GROUP BY. physical_dimension mới bắt buộc có physical binding để gom nhóm.
 
-### 6.4. 11 invariant
+### 6.4. 12 invariant
 
 | Invariant | Mức |
 | --- | --- |
@@ -606,6 +606,7 @@ GROUP BY. physical_dimension mới bắt buộc có physical binding để gom n
 | INV-DATE-RANGE-HONOURED | hard |
 | INV-COUNTRY-COVERAGE | hard |
 | INV-EMPTY-RESULT-IS-VALID | hard |
+| INV-FILTER-LITERAL-IS-DATASET-VALUE | hard |
 | INV-NO-CAUSAL-CLAIM | hard |
 | INV-NO-INTERNAL-VOCABULARY | hard |
 | INV-PROXY-NOT-VERIFIED-SALES | warning |
@@ -1025,6 +1026,7 @@ site.
 | A-REFS-DISCONNECTED | Ref không nối được; mặc định shadow |
 | A-VALUE-NOT-FOUND | Giá trị dimension được nêu không có trong index |
 | A-EMPTY-RESULT-RELAXED | Chỉ có kết quả sau khi nới sai điều kiện |
+| A-EMPTY-RESULT-UNVERIFIED | Zero-row nhưng không chứng minh được bộ lọc đã chạy đúng giá trị được nêu (W1.8); fixable=False |
 | A-MACRO-EVIDENCE-CONTRACT | Dự kiến chặn evidence sai contract macro; nhánh allow hiện chưa tới được mã này |
 | A-NO-EVIDENCE | Không có evidence đủ dùng |
 | A-INSUFFICIENT-SNAPSHOTS | Không đủ snapshot |

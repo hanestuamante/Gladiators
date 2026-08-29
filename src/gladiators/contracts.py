@@ -96,6 +96,11 @@ class GateDecision(BaseModel):
 
 
 class Evidence(BaseModel):
+    # W1.4: bất biến hệ thống #4 cưỡng chế bằng model, không dựa vào kỷ luật của
+    # caller. Không tuyên bố deep-freeze cho object lồng trong attrs — caller
+    # cũng không được giữ rồi mutate dict đã truyền vào.
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
     evidence_id: str
     source_tier: Literal["btc_dataset", "reference", "external"]
     metric: str

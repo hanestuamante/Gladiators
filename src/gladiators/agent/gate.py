@@ -276,24 +276,13 @@ class ContractDrivenGate:
             return decide_from(GateDecision(
                 action="allow", rule_id="A14-LIVE",
                 reason="Live-search context path đã được bật có điều kiện."))
-        if request.intent == "open_analytical":
-            if not request.analytical:
-                add("A19-PLAN", 2, "abstain",
-                    "Thiếu AnalyticalRequest cho open analytical path.",
-                    "capability", "missing_analytical")
-                return decide_from(GateDecision(action="allow", rule_id="A-ALLOW", reason=""))
+        # W1 (SolutionSpec2808 §2.11): vòng P chạy cho CẢ analytical_query lẫn
+        # open_analytical. Trước đây nó nằm trong nhánh open_analytical, nên
+        # "brand Bibika" (sai chính tả) đi đường certified template được ALLOW
+        # với bảng tất cả brand — đúng phép nới "không tìm thấy thì trả tất cả"
+        # mà A4-R5 cấm. Lỗ này có từ trước W1; bảng test W1 đòi bịt.
+        if request.intent in {"open_analytical", "analytical_query"} and request.analytical:
             analytical_request = AnalyticalRequest.model_validate(request.analytical)
-            admission = classify_a19(analytical_request)
-            if admission:
-                action, rule_id, reason = admission
-                add(rule_id, 3, action, reason, "grain", "a19_admission")
-            # WP-A2: ref không nối được với nhau bằng quan hệ đã chứng nhận thì
-            # gate phải nói ĐÚNG lý do đó, thay vì để câu đi tiếp rồi hỏng ở
-            # planner với A19-PLAN — một lời từ chối mô tả sai bản chất khiến
-            # người dùng diễn đạt lại và nhận đúng lời từ chối đó.
-            #
-            # Mặc định SHADOW (A2-R1): tính blocker, ghi verdict, không đổi
-            # quyết định cho tới khi đo được 0 thay đổi kết cục.
             # WP-A5.1 vòng P: bản song sinh của A-ENTITY-NOT-FOUND cho GIÁ TRỊ
             # chiều. Hỏi về một thương hiệu không có trong dữ liệu phải bị chặn
             # SỚM, thay vì lập cả kế hoạch rồi hỏng ở tầng khác với một lý do mô
@@ -321,6 +310,24 @@ class ContractDrivenGate:
                     "entity", "value_not_found", refs=(value_ref,),
                     # Không thông tin nào người dùng thêm vào sẽ tạo ra giá trị đó.
                     fixable=False)
+        if request.intent == "open_analytical":
+            if not request.analytical:
+                add("A19-PLAN", 2, "abstain",
+                    "Thiếu AnalyticalRequest cho open analytical path.",
+                    "capability", "missing_analytical")
+                return decide_from(GateDecision(action="allow", rule_id="A-ALLOW", reason=""))
+            analytical_request = AnalyticalRequest.model_validate(request.analytical)
+            admission = classify_a19(analytical_request)
+            if admission:
+                action, rule_id, reason = admission
+                add(rule_id, 3, action, reason, "grain", "a19_admission")
+            # WP-A2: ref không nối được với nhau bằng quan hệ đã chứng nhận thì
+            # gate phải nói ĐÚNG lý do đó, thay vì để câu đi tiếp rồi hỏng ở
+            # planner với A19-PLAN — một lời từ chối mô tả sai bản chất khiến
+            # người dùng diễn đạt lại và nhận đúng lời từ chối đó.
+            #
+            # Mặc định SHADOW (A2-R1): tính blocker, ghi verdict, không đổi
+            # quyết định cho tới khi đo được 0 thay đổi kết cục.
             if request.intent == "open_analytical":
                 blockers = connectivity_blockers(analytical_request)
                 self.last_connectivity = {

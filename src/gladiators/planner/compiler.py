@@ -39,6 +39,10 @@ class CompiledQuery:
     # tie straddling the cut, then trims back to rank_limit.
     rank_column: str | None = None
     rank_limit: int | None = None
+    # W1.4: phát hiện predicate RƠI MẤT giữa plan và SQL. Mặc định 0 để không
+    # phá caller cũ dựng CompiledQuery bằng tay.
+    planned_predicate_count: int = 0
+    executed_predicate_count: int = 0
 
 
 # §E1/§E2: tên view và join key KHÔNG còn được khai ở đây. Mọi thứ vật lý đến từ
@@ -70,7 +74,14 @@ def _column_for(ref: str, preferred_source: str | None = None) -> str:
     raise CompilationError(f"Semantic ref chưa có physical mapping: {ref}")
 
 
-def _predicate_expression(predicate: Predicate, source: str | None, params: list[object]) -> exp.Expression:
+def _predicate_expression(
+    predicate: Predicate, source: str | None, params: list[object],
+    counters: dict[str, int] | None = None,
+) -> exp.Expression:
+    # W1.4: đếm NGAY TẠI đây — chỉ tăng khi predicate thật sự thành AST. Không
+    # suy từ số parameter: IN có nhiều parameter còn IS NULL có thể không có.
+    if counters is not None:
+        counters["executed"] = counters.get("executed", 0) + 1
     column = exp.column(_column_for(predicate.ref, source))
     value = predicate.value
     if predicate.op == "in":
@@ -229,6 +240,13 @@ _JOIN_PROJECTIONS: dict[str, Callable[[str, str], list[exp.Expression]]] = {
 # tử vật chất hoá mà quên cập nhật ở đây làm phép chiếu cuối chọn sai biên.
 _MATERIALIZING_OPS = frozenset({"Scan", "Aggregate", "Project", "Union", "Join"})
 
+# ``Join`` vật chất hoá một frame MỚI nhưng KHÔNG đổi tên cột: nó phát
+# ``l.*`` cộng các cột phải đặt alias bằng chính TÊN VẬT LÝ của chúng
+# (``_project_relation.take``). Đọc alias của ``expected_schema`` ở đây làm biên
+# plan chiếu một tên chưa từng tồn tại — DuckDB báo "column referenced that
+# exists in the SELECT clause but cannot be referenced before it is defined".
+_PHYSICAL_NAME_OPS = frozenset({"Scan", "Join"})
+
 RANK_KEY_ALIAS = "__rank_key__"
 
 
@@ -236,15 +254,19 @@ def _exposed_name(ref: str, node: PlanNode, nodes: dict[str, PlanNode]) -> str:
     """Tên cột mà sub-query của ``node`` THẬT SỰ phơi ra cho ``ref``.
 
     Đi ngược theo ``inputs[0]`` tới toán tử vật chất hoá gần nhất. Tới ``Scan``
-    thì tên là cột vật lý; tới ``Aggregate``/``Project``/``Union``/``Join`` thì
-    tên là alias mà node đó đã khai. Đoán một trong hai là sai một nửa số plan.
+    hay ``Join`` thì tên là cột VẬT LÝ; tới ``Aggregate``/``Project``/``Union``
+    thì tên là alias mà node đó đã khai. Đoán một trong hai là sai một nửa số
+    plan.
     """
     current, seen = node, set()
     while current.node_id not in seen:
         seen.add(current.node_id)
         if current.op in _MATERIALIZING_OPS:
-            if current.op == "Scan":
-                return _column_for(ref, current.source)
+            if current.op in _PHYSICAL_NAME_OPS:
+                return _column_for(
+                    ref, current.source if current.op == "Scan"
+                    else _source_hint(current, nodes),
+                )
             for field in current.expected_schema:
                 if field.semantic_ref == ref:
                     return field.name
@@ -300,6 +322,7 @@ def _compile_node(
     nodes: dict[str, PlanNode],
     params: list[object],
     rank_state: dict[str, object] | None = None,
+    counters: dict[str, int] | None = None,
 ) -> exp.Query:
     rank_state = {} if rank_state is None else rank_state
     if node.op == "Scan":
@@ -314,7 +337,7 @@ def _compile_node(
     if node.op == "Filter":
         query = _from_input(inputs[0], f"q_{node.node_id}")
         for predicate in node.predicates:
-            query = query.where(_predicate_expression(predicate, source, params))
+            query = query.where(_predicate_expression(predicate, source, params, counters))
         return query
     if node.op in {"DeriveMetric", "TemporalCompare"}:
         # Vòng đầu chỉ cho derived columns đã được preprocessing/metric registry materialize.
@@ -449,12 +472,14 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
     compiled: dict[str, exp.Query] = {}
     params: list[object] = []
     rank_state: dict[str, object] = {}
+    counters: dict[str, int] = {"executed": 0}
+    planned_predicates = sum(len(node.predicates) for node in plan.nodes)
     pending = list(plan.nodes)
     while pending:
         progressed = False
         for node in pending[:]:
             if all(parent in compiled for parent in node.inputs):
-                compiled[node.node_id] = _compile_node(node, compiled, nodes, params, rank_state)
+                compiled[node.node_id] = _compile_node(node, compiled, nodes, params, rank_state, counters)
                 pending.remove(node)
                 progressed = True
         if not progressed:
@@ -463,6 +488,13 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
         compiled[plan.output_node], plan, nodes, rank_state,
     )
     _assert_select_only(expression)
+    if counters["executed"] != planned_predicates:
+        # W1.4: một predicate có trong plan mà không thành AST là một bộ lọc rơi
+        # âm thầm — chính hình lỗi "brand='bibica' → 0 dòng" ở tầng khác.
+        raise CompilationError(
+            "Predicate rơi mất giữa plan và SQL: "
+            f"plan khai {planned_predicates}, SQL mang {counters['executed']}."
+        )
     sql = expression.sql(dialect="duckdb")
     plan_hash = hashlib.sha256(plan.model_dump_json().encode("utf-8")).hexdigest()[:16]
     output = nodes[plan.output_node]
@@ -476,4 +508,6 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
         ordered=any(node.op == "Rank" for node in plan.nodes),
         rank_column=rank_state.get("column"),
         rank_limit=rank_state.get("limit"),
+        planned_predicate_count=planned_predicates,
+        executed_predicate_count=counters["executed"],
     )

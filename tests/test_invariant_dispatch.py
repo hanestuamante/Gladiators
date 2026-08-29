@@ -31,9 +31,10 @@ from gladiators.planner.validator import validate_plan
 
 # --- build-time resolution ------------------------------------------------
 
-def test_all_eleven_specs_resolve_to_a_handler():
-    assert len(INVARIANTS) == 11
-    assert len(INVARIANT_HANDLERS) == 11
+def test_every_spec_resolves_to_a_handler():
+    # 12 từ W1.5 (SolutionSpec2808 §2.7): INV-FILTER-LITERAL-IS-DATASET-VALUE.
+    assert len(INVARIANTS) == 12
+    assert len(INVARIANT_HANDLERS) == 12
     for spec in INVARIANTS.values():
         assert spec.validator_id in INVARIANT_HANDLERS, spec.invariant_id
 

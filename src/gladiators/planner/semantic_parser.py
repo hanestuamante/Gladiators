@@ -252,6 +252,30 @@ class DeterministicSemanticParser:
             filters.append(AnalyticalPredicate(
                 field_ref=value_ref, op="eq", value_binding=literal,
             ))
+        # W1.2 bước hai: đơn vị phân tích được NÊU TÊN cụ thể thì thành bộ lọc.
+        # "shop" giải thành entity.shop (đơn vị đếm), nên dimension_refs ở trên
+        # không chứa dim.shop_name và tên shop không bao giờ được bind — câu
+        # "listing CỦA shop X" bị đọc thành "listing THEO TỪNG shop", một câu hỏi
+        # khác, trả lời trong im lặng (120 listing thành bảng đếm 10 shop).
+        # Khớp 0 hoặc >1 ⇒ không làm gì: câu đang gom nhóm chứ không lọc.
+        if country:
+            from gladiators.domain.catalog import VALUE_DIMENSION_BY_UNIT
+
+            for unit_binding in list(dimensions):
+                dim_ref = VALUE_DIMENSION_BY_UNIT.get(unit_binding.ref or "")
+                if dim_ref is None:
+                    continue
+                named = bind_values(normalized, country, frozenset({dim_ref}))
+                if len(named) != 1:
+                    continue
+                value_ref, literal = named[0]
+                filters.append(AnalyticalPredicate(
+                    field_ref=value_ref, op="eq", value_binding=literal,
+                ))
+                # Đơn vị đã thành điều kiện lọc thì không còn là chiều gom nhóm.
+                dimensions = [
+                    item for item in dimensions if item.ref != unit_binding.ref
+                ]
         qualifier_refs: set[str] = set()
         for spec, value, _surface in qualifier_match(normalized):
             filters.append(AnalyticalPredicate(

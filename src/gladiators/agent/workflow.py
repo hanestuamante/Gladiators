@@ -18,7 +18,6 @@ from gladiators.domain.intent_registry import default_registry
 from gladiators.domain.invariant_handlers import (
     InvariantContext,
     enforce_invariants,
-    hard_violations,
 )
 from gladiators.planner.macros import default_macro_registry
 from gladiators.planner.analytical import AnalyticalPlanError, build_analytical_plan, infer_deterministic_template
@@ -43,6 +42,7 @@ from gladiators.planner.risk import EscalationConfig, score_plan
 import duckdb
 from gladiators.planner.critic import PlanCritic
 from .embedding import BGEIndex
+from .value_probe import assert_index_matches
 from .entity_resolution import EntityResolver, expected_entity_types
 from .consistency import check_evidence_arithmetic
 from .ledger import record_refusal
@@ -207,6 +207,12 @@ class _EmptyExecution:
 
     row_count: int
     relaxed_filters: bool
+    # W1.5: ba trường cho INV-FILTER-LITERAL-IS-DATASET-VALUE — cặp (ref, cờ đã
+    # chứng minh) và hai bộ đếm predicate; lệch nhau nghĩa là một bộ lọc rơi mất
+    # giữa plan và SQL.
+    filter_bindings: tuple = ()
+    executed_predicate_count: int = 0
+    planned_predicate_count: int = 0
 
 
 class AgentRuntime:
@@ -237,6 +243,10 @@ class AgentRuntime:
     ):
         self._data_dir = data_dir
         self.repo = ArtifactRepository(data_dir)
+        # W1 preflight: chỉ mục giá trị lệch phiên bản dataset là thông tin SAI
+        # (literal của một dataset khác) — nổ ngay lúc dựng, không đợi tới lúc
+        # một bộ lọc âm thầm trả sai. Thiếu chỉ mục thì vẫn im lặng như cũ.
+        assert_index_matches(self.repo.dataset_version)
         self.registry = default_registry()
         self.macros = default_macro_registry()
         # WP-A3: bộ nhớ hội thoại sống trong tiến trình, KHÔNG ghi đĩa. Nó rỗng
@@ -1650,21 +1660,50 @@ class AgentRuntime:
                         relaxed_filters=bool(
                             evidence[0].attrs.get("relaxed_filters", False),
                         ),
+                        filter_bindings=tuple(
+                            evidence[0].attrs.get("filter_bindings", ()) or (),
+                        ),
+                        executed_predicate_count=int(
+                            evidence[0].attrs.get("executed_predicate_count", 0) or 0,
+                        ),
+                        planned_predicate_count=int(
+                            evidence[0].attrs.get("planned_predicate_count", 0) or 0,
+                        ),
                     ),
                     evidence=tuple(evidence),
                 ))
+                fired = {item.invariant_id for item in violations}
                 planning_meta["empty_result"] = {
                     "row_count": 0,
-                    "violations": [item.rule_id for item in violations],
+                    # W1.6: InvariantViolation không có rule_id — bản cũ viết
+                    # item.rule_id và AttributeError ngay lần đầu có violation,
+                    # nên nhánh abstain bên dưới là code chết từ lúc viết.
+                    "violations": [item.invariant_id for item in violations],
+                    # Khoá đếm (§0.3): nhánh không bao giờ bắn trông giống hệt
+                    # nhánh bắn mà vô ích — chỉ telemetry phân biệt được.
+                    "handler_fired": {
+                        "zero_row_relaxed": "INV-EMPTY-RESULT-IS-VALID" in fired,
+                        "filter_literal": "INV-FILTER-LITERAL-IS-DATASET-VALUE" in fired,
+                    },
                 }
-                if hard_violations(violations):
-                    # Chỉ một cách vi phạm được: kết quả rỗng đạt được bằng cách
-                    # NỚI filter. Đó không còn là câu trả lời cho câu đã hỏi.
+                if "INV-EMPTY-RESULT-IS-VALID" in fired:
+                    # Kết quả rỗng đạt được bằng cách NỚI filter. Đó không còn
+                    # là câu trả lời cho câu đã hỏi.
                     evidence = []
                     decision = GateDecision(
                         action="abstain", rule_id="A-EMPTY-RESULT-RELAXED",
                         reason="Kết quả rỗng chỉ đạt được sau khi nới điều kiện lọc, "
                                "nên nó không trả lời đúng câu đã hỏi.",
+                    )
+                elif "INV-FILTER-LITERAL-IS-DATASET-VALUE" in fired:
+                    # W1.8: số 0 chưa chứng minh được bộ lọc đã chạy đúng giá
+                    # trị được nêu — không phải một kết quả. Không chữ số trong
+                    # message (verifier.scan_numbers).
+                    evidence = []
+                    decision = GateDecision(
+                        action="abstain", rule_id="A-EMPTY-RESULT-UNVERIFIED",
+                        reason="Không chứng minh được bộ lọc đã chạy đúng giá trị "
+                               "được nêu, nên số không này không phải một kết quả.",
                     )
                 else:
                     decision = GateDecision(

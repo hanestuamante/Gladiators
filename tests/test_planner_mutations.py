@@ -518,7 +518,7 @@ def _empty_brand_plan(country: str, metric: str) -> LogicalQueryPlan:
     json.loads(Path("eval/empty_result_acceptance.json").read_text(encoding="utf-8")),
     ids=lambda case: case["id"],
 )
-def test_empty_analytical_result_is_valid_zero_row_evidence(case, tmp_path):
+def test_an_unverified_empty_result_is_refused_not_allowed(case, tmp_path):
     metric = "measure.price" if "Price" in case["question"] else "measure.rating"
     plan = _empty_brand_plan(case["country"], metric)
 
@@ -529,13 +529,17 @@ def test_empty_analytical_result_is_valid_zero_row_evidence(case, tmp_path):
             return plan.model_dump(mode="json")
 
     response = AgentRuntime(trace_dir=tmp_path, llm_client=EmptyPlanner()).run(case["question"])
-    assert response.gate.action == "allow"
-    assert len(response.evidence) == 1
-    assert response.evidence[0].metric == "result_count"
-    assert response.evidence[0].value == 0
-    assert response.evidence[0].attrs["empty_result"] is True
-    assert response.tool_calls[0].status == "ok"
-    assert response.verification["passed"] is True
+    # ĐỔI CONTRACT CÓ CHỦ ĐÍCH (SolutionSpec2808 §2.10, W1.8): literal
+    # "__brand_does_not_exist__" không tồn tại trong value index, nên số 0 này
+    # KHÔNG chứng minh được bộ lọc đã chạy đúng giá trị — nó chính là hình lỗi
+    # brand='bibica' (dữ liệu ghi 'Bibica', đáp án 96) mà W1 sinh ra để chặn.
+    # Zero-row VỚI literal đã verified vẫn là allow — xem
+    # tests/test_value_binding.py::test_a_verified_zero_row_is_still_a_result.
+    assert response.gate.action == "abstain"
+    assert response.gate.rule_id == "A-EMPTY-RESULT-UNVERIFIED"
+    assert response.evidence == []
+    fired = response.planning["empty_result"]["handler_fired"]
+    assert fired == {"zero_row_relaxed": False, "filter_literal": True}
 
 
 def _l4_brand_plan(country: str, measures: list[str]) -> LogicalQueryPlan:

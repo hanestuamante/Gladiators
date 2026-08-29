@@ -157,8 +157,18 @@ def test_inner_functions_share_the_callers_collector(parser):
 
 # --- baseline 58 plan không đổi ----------------------------------------------
 
-def test_the_equivalence_baseline_is_untouched():
-    """§13.6 dòng cuối: ``synthesizer_equivalence_baseline.json`` — 0 entry đổi.
+DELIBERATE_BASELINE_CHANGES = {
+    "dr2607:tc01": (
+        "W1.2 (SolutionSpec2808 §2.4): 'tại shop Perfetti Van Melle Vietnam' "
+        "trước đây thành group_by entity.shop — trả mọi shop. "
+        "VALUE_DIMENSION_BY_UNIT bind tên shop thành predicate dim.shop_name "
+        "và bỏ grouping."
+    ),
+}
+
+
+def test_the_equivalence_baseline_only_moves_where_a_work_package_declared_it():
+    """§13.6 dòng cuối: baseline chỉ được dịch ở khoá đã khai báo lý do.
 
     So với bản trong git HEAD thay vì chạy lại 173 câu: phép kiểm HÀNH VI đầy đủ
     đã có ở ``test_synthesizer_equivalence.py`` (chạy trong cùng suite), còn ở
@@ -175,4 +185,14 @@ def test_the_equivalence_baseline_is_untouched():
     if head.returncode != 0:
         pytest.skip("không đọc được bản HEAD của baseline (repo cạn?)")
     current = json.loads(Path(path).read_text(encoding="utf-8"))
-    assert current == json.loads(head.stdout), "baseline đã bị dịch"
+    committed = json.loads(head.stdout)
+    changed = {
+        key for key in set(current) | set(committed)
+        if current.get(key) != committed.get(key)
+    }
+    # Đổi baseline phải là một thay đổi contract CÓ KHAI BÁO, kèm lý do — không
+    # phải một file bị dịch trong im lặng. Danh sách chỉ nới đúng những khoá đã
+    # nêu; mọi khoá khác đổi vẫn đỏ.
+    assert changed <= set(DELIBERATE_BASELINE_CHANGES), sorted(
+        changed - set(DELIBERATE_BASELINE_CHANGES),
+    )

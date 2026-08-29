@@ -1,4 +1,4 @@
-"""Dò tồn tại giá trị — Spec2308 §WP-A5.1, vòng P.
+"""Dò tồn tại giá trị — Spec2308 §WP-A5.1, nâng schema v2 ở SolutionSpec2808 §2.
 
 Bản song sinh của ``A-ENTITY-NOT-FOUND`` cho **giá trị chiều**: hỏi về một
 thương hiệu không có trong dữ liệu thì phải bị chặn **sớm**, thay vì lập cả kế
@@ -8,6 +8,12 @@ Không LLM, không truy vấn thêm: chỉ tra một chỉ mục dựng sẵn.
 
 A4-R4: khớp **chính xác theo token đã chuẩn hoá**, không fuzzy. Một tên gần
 giống bị đoán thành tên khác là đúng lớp lỗi tệ nhất của hệ này.
+
+**W1.1 — vì sao chỉ mục phải mang cả bản gốc.** Bản v1 fold tên rồi chỉ giữ bản
+đã fold; literal ``"bibica"`` đi thẳng vào predicate và ``brand = 'bibica'`` trả
+**0 dòng** trong khi dữ liệu ghi ``Bibica`` và đáp án là **96**. Số 0 đó đi qua
+mọi lớp kiểm như một "kết quả rỗng hợp lệ" — trả bản đã fold là trả một chuỗi
+KHÔNG tồn tại trong dữ liệu.
 """
 from __future__ import annotations
 
@@ -17,6 +23,10 @@ from functools import lru_cache
 from pathlib import Path
 
 VALUE_INDEX_PATH = Path("artifacts/value_index.json")
+
+# W1.1: loader v2 phải TỪ CHỐI payload v1 — một chỉ mục v1 (list) nạp bằng loader
+# v2 (dict) sẽ đọc list thành iterable của ký tự và bind ra literal một chữ cái.
+INDEX_SCHEMA_VERSION = "value-index.v2"
 
 # Chỉ ba chiều này có chỉ mục; ref khác không dò được và phải đi lối cũ.
 INDEXED_REFS = frozenset({
@@ -31,27 +41,106 @@ def _fold(value: str) -> str:
 
 
 @lru_cache(maxsize=1)
-def _index() -> dict[str, dict[str, set[str]]]:
-    """Chỉ mục đã fold. Không có file ⇒ rỗng ⇒ vòng P im lặng bỏ qua.
-
-    Im lặng ở đây là đúng: thiếu chỉ mục là thiếu THÔNG TIN để kết luận, không
-    phải bằng chứng rằng giá trị không tồn tại.
-    """
+def _payload() -> dict:
+    """Payload thô đã qua kiểm schema. Sai schema ⇒ ``{}`` như khi thiếu file."""
     if not VALUE_INDEX_PATH.exists():
         return {}
     try:
         payload = json.loads(VALUE_INDEX_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
-    return {
-        ref: {country: {_fold(name) for name in names} for country, names in per.items()}
-        for ref, per in (payload.get("values") or {}).items()
-    }
+    if payload.get("schema_version") != INDEX_SCHEMA_VERSION:
+        return {}
+    values = payload.get("values")
+    if not isinstance(values, dict):
+        return {}
+    for per_country in values.values():
+        if not isinstance(per_country, dict):
+            return {}
+        for mapping in per_country.values():
+            if not isinstance(mapping, dict):
+                return {}
+    ambiguous = payload.get("ambiguous", {})
+    if not isinstance(ambiguous, dict):
+        return {}
+    return payload
+
+
+def _index() -> dict[str, dict[str, dict[str, str]]]:
+    """``ref -> country -> {folded: original}``. Rỗng ⇒ vòng P im lặng bỏ qua.
+
+    Im lặng ở đây là đúng: thiếu chỉ mục là thiếu THÔNG TIN để kết luận, không
+    phải bằng chứng rằng giá trị không tồn tại.
+    """
+    return _payload().get("values") or {}
+
+
+def _ambiguous() -> dict[str, dict[str, dict[str, list[str]]]]:
+    """Khoá fold mà HAI TÊN GỐC trở lên cùng đổ về — tồn tại nhưng không bind được.
+
+    Đo được trên dataset thật: "Trang điểm mắt"/"Trang điểm mặt" chỉ khác nhau ở
+    dấu, mà ``_fold`` bỏ dấu. Bind một trong hai là lọc thầm theo tên sai; chấm
+    nó là vắng mặt (A-VALUE-NOT-FOUND) cũng sai vì giá trị CÓ THẬT. Lối đúng duy
+    nhất là "biết nó tồn tại, từ chối chọn hộ".
+    """
+    return _payload().get("ambiguous") or {}
+
+
+def is_ambiguous(ref: str, country: str, folded: str) -> bool:
+    return folded in (_ambiguous().get(ref, {}).get(country) or {})
 
 
 def index_is_available() -> bool:
     return bool(_index())
 
+
+def index_dataset_version() -> str | None:
+    """Chỉ mục này dựng cho dataset nào — để preflight so với repository."""
+    version = _payload().get("dataset_version")
+    return str(version) if version else None
+
+
+def original_of(ref: str, country: str, folded: str) -> str | None:
+    """Bản NGUYÊN VĂN trong dataset ứng với một khoá đã fold — API công khai.
+
+    Thay cho ``lexicon._original_of`` từng đọc lại JSON: trong cùng một repo,
+    một nhánh làm đúng còn nhánh kia làm sai — W1 hợp nhất chúng về đây.
+    """
+    return (_index().get(ref, {}).get(country) or {}).get(folded)
+
+
+
+def assert_index_matches(repository_dataset_version: str) -> None:
+    """Preflight lúc dựng runtime (§2.5): chỉ mục LỆCH thì phải nổ, THIẾU thì thôi.
+
+    Thiếu chỉ mục là thiếu *thông tin* — vòng dò im lặng bỏ qua như hôm nay.
+    Chỉ mục lệch phiên bản là thông tin *SAI*: nó sinh ra literal thuộc về một
+    dataset khác, và mọi cờ "đã verified" từ nó đều vô nghĩa.
+    """
+    from gladiators.data.dataset_version import DatasetVersionError
+
+    if not VALUE_INDEX_PATH.exists():
+        return
+    try:
+        payload = json.loads(VALUE_INDEX_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise DatasetVersionError(
+            f"Không đọc được {VALUE_INDEX_PATH}: {exc}. Dựng lại bằng "
+            "scripts/build_value_index.py."
+        ) from exc
+    schema = payload.get("schema_version")
+    if schema != INDEX_SCHEMA_VERSION:
+        raise DatasetVersionError(
+            f"Chỉ mục giá trị mang schema {schema!r}, runtime cần "
+            f"{INDEX_SCHEMA_VERSION!r}. Dựng lại bằng scripts/build_value_index.py."
+        )
+    index_version = payload.get("dataset_version")
+    if index_version != repository_dataset_version:
+        raise DatasetVersionError(
+            f"Chỉ mục giá trị dựng cho dataset {index_version!r} nhưng repository "
+            f"đang là {repository_dataset_version!r}. Dựng lại bằng "
+            "scripts/build_value_index.py."
+        )
 
 def missing_values(request) -> tuple[tuple[str, str], ...]:
     """Cặp ``(ref, giá trị)`` mà chỉ mục nói là KHÔNG tồn tại ở thị trường này.
@@ -79,7 +168,8 @@ def missing_values(request) -> tuple[tuple[str, str], ...]:
         known = index.get(ref, {}).get(country)
         if known is None:
             continue
-        if _fold(value) not in known:
+        folded_value = _fold(value)
+        if folded_value not in known and not is_ambiguous(ref, country, folded_value):
             missing.append((ref, value))
     return tuple(missing)
 
@@ -91,14 +181,16 @@ def bind_values(
     normalized_question: str, country: str | None,
     dimension_refs: frozenset[str] = frozenset(),
 ) -> tuple[tuple[str, str], ...]:
-    """Giá trị có thật xuất hiện nguyên văn trong câu — A4.3 bước 2.
+    """Giá trị có thật xuất hiện nguyên văn trong câu — trả **BẢN GỐC** (W1.1).
 
-    Khớp CHÍNH XÁC theo token đã chuẩn hoá, không fuzzy (A4-R4). Ưu tiên giá trị
-    DÀI nhất: "Nestlé Chính hãng" phải thắng "Nestlé", vì bind cái ngắn hơn là
-    lọc rộng hơn câu hỏi.
+    Khớp CHÍNH XÁC theo token đã chuẩn hoá, không fuzzy (A4-R4).
 
-    Khớp nhiều giá trị cùng một ref ⇒ trả rỗng cho ref đó: câu hỏi đang gom
-    nhóm, không lọc (§A4.4 bước 2).
+    **Maximal span, không phải ``max(hits, key=len)``** (§2.3): giữ vị trí
+    bắt đầu/kết thúc của từng khớp, bỏ khớp nằm TRỌN trong một khớp dài hơn, rồi
+    chỉ bind khi còn đúng MỘT span cực đại. Hai span cực đại rời nhau (câu nêu
+    hai brand để so sánh) ⇒ không chọn span dài hơn — chọn là âm thầm thu hẹp
+    một câu hỏi nhiều thực thể thành một thực thể. Luật này vẫn cho
+    ``Bibica Official Store`` thắng phần con ``Bibica``.
     """
     index = _index()
     if not index or not country:
@@ -112,14 +204,27 @@ def bind_values(
         # lớp lỗi tệ nhất của hệ này.
         if ref not in dimension_refs:
             continue
-        names = per_country.get(country) or set()
-        hits = [
-            name for name in names
-            if len(name) >= MIN_VALUE_LENGTH and f" {name} " in folded
+        mapping = per_country.get(country) or {}
+        spans: list[tuple[int, int, str]] = []
+        for name in mapping:
+            if len(name) < MIN_VALUE_LENGTH:
+                continue
+            start = folded.find(f" {name} ")
+            if start >= 0:
+                spans.append((start + 1, start + 1 + len(name), name))
+        # Bỏ span nằm trọn trong span khác dài hơn.
+        maximal = [
+            (start, end, name) for start, end, name in spans
+            if not any(
+                (o_start <= start and end <= o_end) and (o_start, o_end) != (start, end)
+                for o_start, o_end, _ in spans
+            )
         ]
-        if len(hits) != 1:
+        if len(maximal) != 1:
             continue
-        bound.append((ref, max(hits, key=len)))
+        original = mapping.get(maximal[0][2])
+        if original is not None:
+            bound.append((ref, original))
     return tuple(bound)
 
 
@@ -160,7 +265,7 @@ def named_but_absent(
     for ref, cues in _DIMENSION_CUES.items():
         if ref not in dimension_refs:
             continue
-        known = index.get(ref, {}).get(country) or set()
+        known = index.get(ref, {}).get(country) or {}
         for cue in cues:
             parts = cue.split()
             for position in range(len(words) - len(parts)):
@@ -171,7 +276,10 @@ def named_but_absent(
                     continue
                 if not _looks_like_a_proper_name(candidate, raw_question):
                     continue
-                if not any(candidate in name for name in known):
+                ambiguous_keys = _ambiguous().get(ref, {}).get(country) or {}
+                if not any(candidate in name for name in known) and not any(
+                    candidate in name for name in ambiguous_keys
+                ):
                     absent.append((ref, candidate))
                 break
     return tuple(dict.fromkeys(absent))

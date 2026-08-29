@@ -18,7 +18,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from gladiators.agent.value_probe import INDEXED_REFS, _fold, _index
+from gladiators.agent.value_probe import INDEXED_REFS, _fold, _index, original_of
 from gladiators.external.injection_guard import sanitize_and_check
 
 # Cụm ứng viên tối thiểu. Ngắn hơn thì một mảnh chữ bất kỳ trong snippet cũng
@@ -88,7 +88,7 @@ def normalize_to_dataset_value(
             reason="no_match" if not matches else "ambiguous_match",
         )
     return LexiconResolution(
-        surface=surface, resolved=_original_of(matches[0], ref, country),
+        surface=surface, resolved=original_of(ref, country, matches[0]),
         ref=ref, country=country, source_id=source_id, reason="resolved",
     )
 
@@ -109,24 +109,6 @@ def _candidates(text: str, known: set[str]) -> list[str]:
         name for name in hits
         if not any(name != other and name in other for other in hits)
     ]
-
-
-def _original_of(folded: str, ref: str, country: str) -> str | None:
-    """Chuỗi NGUYÊN VĂN trong dataset ứng với dạng đã fold.
-
-    Trả bản đã fold sẽ là trả một chuỗi không tồn tại trong dữ liệu — đúng thứ
-    luật vàng cấm, chỉ ở dạng khó thấy hơn.
-    """
-    import json
-    from gladiators.agent.value_probe import VALUE_INDEX_PATH
-
-    if not VALUE_INDEX_PATH.exists():
-        return None
-    payload = json.loads(VALUE_INDEX_PATH.read_text(encoding="utf-8"))
-    for name in (payload.get("values") or {}).get(ref, {}).get(country, []):
-        if _fold(name) == folded:
-            return name
-    return None
 
 
 def candidate_surfaces(text: str) -> tuple[str, ...]:

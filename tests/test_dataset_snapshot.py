@@ -22,6 +22,20 @@ import pytest
 
 from gladiators.data.repository import MANIFEST_NAME, ArtifactRepository
 
+
+@pytest.fixture(autouse=True)
+def _no_value_index(monkeypatch, tmp_path):
+    """Dataset tổng hợp của test này KHÔNG có value index — trạng thái thật là
+    "thiếu chỉ mục" (im lặng bỏ qua), không phải "chỉ mục của repo áp vào một
+    dataset khác" (preflight W1 sẽ nổ DatasetVersionError, và nổ ĐÚNG)."""
+    from gladiators.agent import value_probe
+
+    monkeypatch.setattr(value_probe, "VALUE_INDEX_PATH", tmp_path / "no_index.json")
+    value_probe._payload.cache_clear()
+    yield
+    value_probe._payload.cache_clear()
+
+
 QUESTION = "Có bao nhiêu listing tại Việt Nam ngày 03/07?"
 
 

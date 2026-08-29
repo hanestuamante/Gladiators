@@ -337,6 +337,38 @@ class _ZeroRowIsAResult(_Handler):
 
 
 @dataclass(frozen=True)
+class _FilterLiteralIsDatasetValue(_Handler):
+    """Zero-row chỉ là một KẾT QUẢ khi bộ lọc chứng minh được nó đã chạy đúng.
+
+    Hai cách vi phạm, cả hai đều làm số 0 trở nên vô nghĩa: một literal chưa
+    được chứng minh tồn tại trong value index (``brand='bibica'`` khi dữ liệu
+    ghi ``Bibica``), hoặc số predicate thực thi lệch số predicate trong plan
+    (một bộ lọc rơi mất giữa plan và SQL). Đọc ``spec.semantic_refs`` thay vì
+    giữ bản sao danh sách ref — hai danh sách là hai chỗ để chúng lệch nhau.
+    """
+
+    def validate(self, spec, context):
+        execution = context.execution
+        if execution is None or getattr(execution, "row_count", None) != 0:
+            return ()
+        executed = getattr(execution, "executed_predicate_count", None)
+        planned = getattr(execution, "planned_predicate_count", None)
+        if executed is not None and planned is not None and executed != planned:
+            return (self.violation(
+                spec, context, reason="predicate_count_mismatch",
+            ),)
+        unverified = sorted(
+            ref for ref, verified in getattr(execution, "filter_bindings", ()) or ()
+            if ref in spec.semantic_refs and not verified
+        )
+        if unverified:
+            return (self.violation(
+                spec, context, reason="unverified_literal", refs=unverified,
+            ),)
+        return ()
+
+
+@dataclass(frozen=True)
 class _WordingRule(_Handler):
     """Bọc ``agent.wording.check_wording``; mỗi rule tag map về một invariant.
 
@@ -389,6 +421,9 @@ INVARIANT_HANDLERS: dict[str, InvariantHandler] = {
         ),
         _ZeroRowIsAResult(
             "execution.zero_row_is_a_result", "1.0", frozenset({"execution", "evidence"}),
+        ),
+        _FilterLiteralIsDatasetValue(
+            "binding.filter_literal_exists_in_dataset", "1.0", frozenset({"execution"}),
         ),
         _WordingRule(
             "wording.no_causal_claim", "1.0", frozenset({"answer"}),

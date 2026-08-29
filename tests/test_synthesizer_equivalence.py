@@ -15,6 +15,13 @@ KHÔNG mang ``rating_star_num`` sang, nên join đó không khai thứ nó tồn
 mang. Bản mới khai đúng, và chạy thật cho ``shop_rating = 4.947162`` — khớp
 chính xác giá trị tính bằng pandas.
 
+Mục thứ ba cập nhật có chủ đích ở W1.2 (SolutionSpec2808 §2.4) — ``dr2607:tc01``:
+"tại shop Perfetti Van Melle Vietnam" trước đây thành ``group_by entity.shop``
+(trả mọi shop), vì surface "shop" giải về đơn vị đếm chứ không phải chiều mang
+tên. VALUE_DIMENSION_BY_UNIT bind tên shop thành predicate
+``dim.shop_name = 'Perfetti Van Melle Vietnam'`` và bỏ grouping — "listing CỦA
+shop X" không còn bị đọc thành "listing THEO TỪNG shop".
+
 Câu trước đây ``None`` mà nay có plan là **mở rộng hợp lệ** — đó chính là mục
 tiêu của WP. Chiều ngược lại thì không: một plan biến mất hoặc đổi hình nghĩa là
 WP đã lấy đi năng lực đang có, và test này bắt đúng chiều đó.

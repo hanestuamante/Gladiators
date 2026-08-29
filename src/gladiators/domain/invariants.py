@@ -45,6 +45,19 @@ class InvariantSpec(BaseModel):
 
 _SPECS: tuple[InvariantSpec, ...] = (
     InvariantSpec(
+        # W1.5: zero-row chỉ là một KẾT QUẢ khi chứng minh được bộ lọc đã chạy
+        # đúng giá trị được nêu. brand='bibica' trả 0 dòng trong khi dữ liệu ghi
+        # 'Bibica' và đáp án là 96 — số 0 đó đi qua mọi lớp kiểm như một "kết quả
+        # rỗng hợp lệ".
+        invariant_id="INV-FILTER-LITERAL-IS-DATASET-VALUE", version="1.0",
+        severity="hard", applies_to=("execution",),
+        semantic_refs=("dim.brand", "dim.shop_name", "dim.platform_category_name"),
+        operators=("Filter",),
+        validator_id="binding.filter_literal_exists_in_dataset",
+        message_key="invariant.filter_literal_is_dataset_value",
+        owner="architecture",
+    ),
+    InvariantSpec(
         invariant_id="INV-CURRENCY-NO-MIX", version="1.0", severity="hard",
         applies_to=("request", "plan", "evidence"),
         semantic_refs=("measure.price", "measure.price_original", "derived.estimated_recent_revenue"),

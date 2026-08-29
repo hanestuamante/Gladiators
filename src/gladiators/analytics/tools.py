@@ -32,6 +32,24 @@ class _CachedExecution:
     rank_limit: int | None
 
 
+
+def _literal_verified(predicate, country: str) -> bool:
+    """Literal của predicate đã được chứng minh tồn tại trong value index chưa.
+
+    ``True`` khi một trong ba: ref không dò được (không phải chỗ lỗi này sống);
+    giá trị không phải chuỗi; hoặc literal đúng BẰNG bản gốc trong chỉ mục —
+    ``brand = 'bibica'`` trả 0 dòng vì dữ liệu ghi ``Bibica``, và cờ này là cách
+    số 0 đó phân biệt được với một zero-row thật.
+    """
+    from gladiators.agent.value_probe import INDEXED_REFS, _fold, original_of
+
+    if predicate.ref not in INDEXED_REFS:
+        return True
+    if not isinstance(predicate.value, str):
+        return True
+    return original_of(predicate.ref, country, _fold(predicate.value)) == predicate.value
+
+
 class AnalyticsTools:
     """Deterministic analytics. LLMs never calculate values in this class."""
 
@@ -496,6 +514,19 @@ class AnalyticsTools:
                            predicate.ref for node in plan.nodes
                            for predicate in node.predicates
                        })),
+                       # W1.4: ref + CỜ đã-chứng-minh, KHÔNG kèm literal — literal
+                       # có thể chứa chữ số và verifier.scan_numbers sẽ chấm
+                       # chúng là số không có evidence (CLAUDE.md §3.1).
+                       "filter_bindings": tuple(sorted(
+                           (predicate.ref, _literal_verified(predicate, country))
+                           for node in plan.nodes
+                           for predicate in node.predicates
+                       )),
+                       # Lấy từ CompiledQuery, KHÔNG đếm lại trên plan: mục đích
+                       # là phát hiện predicate rơi mất giữa plan và SQL.
+                       "executed_predicate_count": compiled.executed_predicate_count,
+                       "planned_predicate_count": compiled.planned_predicate_count,
+                       "relaxed_filters": False,
                        **execution_attrs},
             )]
         row = result.frame.iloc[0]

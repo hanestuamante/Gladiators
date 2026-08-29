@@ -123,7 +123,11 @@ def test_invariant_ids_resolve_and_hard_rules_are_covered():
     assert attached <= set(INVARIANTS)
     from gladiators.domain.invariants import hard_invariants
     missing = sorted(set(hard_invariants()) - attached)
-    assert missing in ([], ["INV-COUNTRY-COVERAGE", "INV-NO-INTERNAL-VOCABULARY"]), missing
+    # INV-FILTER-LITERAL-IS-DATASET-VALUE (W1.5) là luật execution-stage xuyên
+    # suốt như hai luật kia — không topic nào "sở hữu" nó, mọi zero-row đều qua.
+    cross_cutting = ["INV-COUNTRY-COVERAGE", "INV-FILTER-LITERAL-IS-DATASET-VALUE",
+                     "INV-NO-INTERNAL-VOCABULARY"]
+    assert missing in ([], cross_cutting), missing
 
 
 def test_registry_hash_is_stable_and_sensitive():

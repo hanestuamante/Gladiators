@@ -365,6 +365,19 @@ class CatalogError(ValueError):
     """Raised at import when the catalog contradicts itself. Build-breaking by design."""
 
 
+# W1.2 · Chiều mang TÊN của một đơn vị phân tích. Câu hỏi nêu tên shop dùng
+# surface "shop", mà surface đó giải thành entity.shop (đơn vị đếm) chứ không
+# phải dim.shop_name (chiều mang tên) — nên giá trị không bao giờ được bind và
+# câu "listing CỦA shop X" bị đọc thành "listing THEO TỪNG shop": một câu hỏi
+# khác, trả lời trong im lặng. Đo được: 120 listing của Richy - Chi nhánh Miền
+# Nam bị trả thành bảng đếm theo 10 shop.
+VALUE_DIMENSION_BY_UNIT: dict[str, str] = {
+    "entity.shop": "dim.shop_name",
+    "entity.brand": "dim.brand",
+    "entity.platform_category": "dim.platform_category_name",
+}
+
+
 def _build_catalog(objects: list[CatalogObject]) -> dict[str, CatalogObject]:
     catalog: dict[str, CatalogObject] = {}
     physical: dict[str, str] = {}
@@ -401,6 +414,19 @@ def _build_catalog(objects: list[CatalogObject]) -> dict[str, CatalogObject]:
 
 
 CATALOG = _build_catalog(_BASE_OBJECTS)
+
+# W1.2: kiểm VALUE_DIMENSION_BY_UNIT lúc import, theo đúng khuôn _build_catalog —
+# một ánh xạ trỏ ref không tồn tại (hoặc chiều không có cột vật lý để lọc) phải
+# fail build, không đợi tới lúc một câu hỏi cụ thể chạm vào nó.
+for _unit_ref, _dim_ref in VALUE_DIMENSION_BY_UNIT.items():
+    if _unit_ref not in CATALOG:
+        raise CatalogError(f"VALUE_DIMENSION_BY_UNIT: đơn vị không tồn tại: {_unit_ref}")
+    if _dim_ref not in CATALOG:
+        raise CatalogError(f"VALUE_DIMENSION_BY_UNIT: chiều không tồn tại: {_dim_ref}")
+    if not CATALOG[_dim_ref].physical:
+        raise CatalogError(
+            f"VALUE_DIMENSION_BY_UNIT: {_dim_ref} không có cột vật lý — không lọc được"
+        )
 
 # Reverse of ``counts_unit``: the metric that counts a given analysis unit.
 COUNT_METRIC_BY_UNIT: dict[str, str] = {
