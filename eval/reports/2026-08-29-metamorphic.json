@@ -5,19 +5,19 @@
   "cases": 44,
   "checks": 308,
   "totals": {
-    "pass": 128,
-    "fail": 10,
-    "skip": 166,
+    "pass": 140,
+    "fail": 0,
+    "skip": 164,
     "suspect": 4
   },
-  "metamorphic_consistency_rate": 0.9014,
+  "metamorphic_consistency_rate": 0.9722,
   "by_relation": {
     "MR-1": {
-      "pass": 16,
-      "fail": 10,
+      "pass": 26,
+      "fail": 0,
       "skip": 18,
       "suspect": 0,
-      "rate": 0.6154
+      "rate": 1.0
     },
     "MR-3": {
       "pass": 0,
@@ -48,11 +48,11 @@
       "rate": 1.0
     },
     "MR-7": {
-      "pass": 22,
+      "pass": 24,
       "fail": 0,
-      "skip": 18,
+      "skip": 16,
       "suspect": 4,
-      "rate": 0.8462
+      "rate": 0.8571
     },
     "MR-8": {
       "pass": 0,
@@ -62,98 +62,7 @@
       "rate": null
     }
   },
-  "failures": [
-    {
-      "case": "ans005",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → clarify",
-      "question": "Có bao nhiêu shop ở Việt Nam?",
-      "variant": "Số lượng shop ở Việt Nam là bao nhiêu?"
-    },
-    {
-      "case": "ans007",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → clarify",
-      "question": "Có bao nhiêu shop ở Indonesia?",
-      "variant": "Số lượng shop ở Indonesia là bao nhiêu?"
-    },
-    {
-      "case": "ans009",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → abstain",
-      "question": "Có bao nhiêu listing đã xác minh tại Việt Nam ngày 03/07?",
-      "variant": "Số lượng listing đã xác minh tại Việt Nam ngày 03/07 là bao nhiêu?"
-    },
-    {
-      "case": "ans010",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → abstain",
-      "question": "Có bao nhiêu listing đã xác minh tại Indonesia ngày 03/07?",
-      "variant": "Số lượng listing đã xác minh tại Indonesia ngày 03/07 là bao nhiêu?"
-    },
-    {
-      "case": "ans027",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → clarify",
-      "question": "Có bao nhiêu thương hiệu tại Việt Nam ngày 03/07?",
-      "variant": "Số lượng thương hiệu tại Việt Nam ngày 03/07 là bao nhiêu?"
-    },
-    {
-      "case": "ans029",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → clarify",
-      "question": "Có bao nhiêu thương hiệu tại Indonesia ngày 03/07?",
-      "variant": "Số lượng thương hiệu tại Indonesia ngày 03/07 là bao nhiêu?"
-    },
-    {
-      "case": "ans031",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → clarify",
-      "question": "Có bao nhiêu shop chính hãng ở Việt Nam?",
-      "variant": "Số lượng shop chính hãng ở Việt Nam là bao nhiêu?"
-    },
-    {
-      "case": "ans032",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → abstain",
-      "question": "Có bao nhiêu listing của shop chính hãng tại Việt Nam ngày 03/07?",
-      "variant": "Số lượng listing của shop chính hãng tại Việt Nam ngày 03/07 là bao nhiêu?"
-    },
-    {
-      "case": "ans033",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → clarify",
-      "question": "Có bao nhiêu shop chính hãng ở Indonesia?",
-      "variant": "Số lượng shop chính hãng ở Indonesia là bao nhiêu?"
-    },
-    {
-      "case": "ans034",
-      "relation": "MR-1",
-      "kind": "invariant",
-      "verdict": "fail",
-      "reason": "action allow → abstain",
-      "question": "Có bao nhiêu listing của shop chính hãng tại Indonesia ngày 03/07?",
-      "variant": "Số lượng listing của shop chính hãng tại Indonesia ngày 03/07 là bao nhiêu?"
-    }
-  ],
+  "failures": [],
   "suspects": [
     {
       "case": "ans005",

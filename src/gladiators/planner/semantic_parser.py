@@ -16,7 +16,7 @@ from gladiators.domain.alias_index import (
     compound_shadowed,
     default_alias_index,
 )
-from gladiators.domain.catalog import CATALOG, CatalogObject
+from gladiators.domain.catalog import CATALOG, CatalogObject, COUNT_METRIC_BY_SURFACE_REF
 from gladiators.domain.qualifiers import match as qualifier_match
 
 # Wordings that make the noun beside them the thing being counted rather than a
@@ -251,6 +251,31 @@ def _comparison_predicates(
     return kept, predicates
 
 
+# W4.1 — khung "Số lượng X là bao nhiêu?" và "Có bao nhiêu X?" hỏi cùng một
+# thứ. Bộ alias khớp trên cụm DÍNH LIỀN ("bao nhieu shop"), nên khung thứ hai
+# làm cụm đó tách ra và câu mất measure. Viết lại NGUYÊN KHUNG và chép `rest`
+# nguyên văn: định ngữ ("da xac minh", "chinh hang") nằm trong `rest` nên nó
+# không thể rơi mất — đó là điều kiện để phép viết lại này không đổi câu hỏi.
+_COUNT_FRAME_VI = re.compile(
+    r"^(?P<lead>.*?)\bso luong\s+(?P<rest>.+?)\s+la bao nhieu\b.*$"
+)
+_COUNT_FRAME_ID = re.compile(
+    r"^(?P<lead>.*?)\bjumlah\s+(?P<rest>.+?)\s+(?:adalah\s+)?berapa\b.*$"
+)
+
+
+def _normalise_count_frame(normalized: str) -> tuple[str, bool]:
+    """``(câu đã viết lại, có viết lại không)`` — cờ đếm số lần nhánh bắn."""
+    for frame in (_COUNT_FRAME_VI, _COUNT_FRAME_ID):
+        found = frame.match(normalized)
+        if found:
+            rewritten = " ".join(
+                f"{found.group('lead')} co bao nhieu {found.group('rest')}".split()
+            )
+            return rewritten, True
+    return normalized, False
+
+
 _EXPLICIT_TOP_N = re.compile(r"\btop\s*(\d{1,2})\b")
 # Vietnamese/Indonesian plural markers that ask for a list rather than one row.
 # Deliberately narrow: "cac san pham" as a *grouping domain* ("trung binh cua
@@ -337,6 +362,8 @@ class DeterministicSemanticParser:
 
     def parse(self, text: str, language: str, country: str | None) -> AnalyticalRequest:
         normalized = normalize(text)
+        # W4.1: viết lại khung đếm TRƯỚC _link — alias khớp cụm dính liền.
+        normalized, count_frame_normalised = _normalise_count_frame(normalized)
         measures = self._link(normalized, {"measure", "derived_metric"})
         dimension_text = normalized
         for measure in measures:
@@ -445,6 +472,38 @@ class DeterministicSemanticParser:
         )
         filters.extend(comparison_filters)
 
+        # W4.2 — đếm theo CẤU TRÚC, không theo cụm dính liền. Bốn điều kiện đều
+        # bắt buộc: measures rỗng (câu "giá trung vị theo brand" không được biến
+        # brand thành measure); đúng MỘT ứng viên (hai chiều thì chọn một là
+        # chọn hộ người hỏi); LIỀN KỀ từ hỏi số lượng, kiểm bằng boundary regex
+        # chứ không phải `in` ("rating theo brand ... có bao nhiêu listing"
+        # không được đếm brand); ref nằm trong registry đã duyệt.
+        count_frame_ambiguity: str | None = None
+        if not measures:
+            count_candidates = []
+            for item in dimensions:
+                if not item.ref or item.ref not in COUNT_METRIC_BY_SURFACE_REF:
+                    continue
+                surface = normalize(item.surface_text)
+                adjacency = re.compile(
+                    r"(?:bao nhieu|berapa|how many)\s+" + re.escape(surface) + r"\b",
+                )
+                if adjacency.search(normalized):
+                    count_candidates.append(item)
+            if len(count_candidates) == 1:
+                chosen = count_candidates[0]
+                measures = [SemanticBinding(
+                    surface_text=chosen.surface_text,
+                    ref=COUNT_METRIC_BY_SURFACE_REF[chosen.ref],
+                )]
+                dimensions = [item for item in dimensions if item is not chosen]
+            elif len(count_candidates) > 1:
+                count_frame_ambiguity = (
+                    "Câu hỏi số lượng nêu nhiều chiều cùng lúc: "
+                    + ", ".join(item.surface_text for item in count_candidates)
+                    + "; không chọn hộ một trong số đó."
+                )
+
         descending = any(term in normalized for term in ("cao nhat", "nhieu nhat", "lon nhat", "highest", "tertinggi", "top"))
         ascending = any(term in normalized for term in ("thap nhat", "it nhat", "lowest", "terendah"))
         rank_ref = next((item.ref for item in measures if item.ref), None)
@@ -497,6 +556,11 @@ class DeterministicSemanticParser:
             comparison = {"mode": "descriptive_group_comparison"}
             operators.append("compare")
         ambiguities = []
+        if count_frame_ambiguity:
+            ambiguities.append(count_frame_ambiguity)
+        if count_frame_normalised:
+            # Khoá đếm (§0.3 ô 4): nhánh viết lại phải đếm được số lần nó bắn.
+            assumptions = (*assumptions, "count_frame_normalised")
         requested_aggregation, aggregation_ambiguity = _detect_requested_aggregation(
             normalized, has_ranking_subject=_names_a_ranking_subject(normalized),
             asks_for_a_number=any(

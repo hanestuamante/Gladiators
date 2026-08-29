@@ -206,8 +206,15 @@ _MEASURE_ALIASES: dict[str, tuple[str, ...]] = {
     "voucher_start_time": ("thời điểm bắt đầu voucher", "voucher start", "mulai voucher"),
     "voucher_end_time": ("thời điểm kết thúc voucher", "voucher end", "akhir voucher"),
     "rating": ("điểm đánh giá", "sao đánh giá", "đánh giá", "rating", "penilaian"),
-    "rating_count": ("số lượt đánh giá", "số đánh giá", "review count", "jumlah ulasan"),
-    "liked_count": ("số lượt thích", "lượt yêu thích", "likes", "jumlah suka"),
+    # W4.3: thêm alias TRẦN "lượt đánh giá" — cùng lớp lỗi với "lượt thích".
+    "rating_count": ("số lượt đánh giá", "lượt đánh giá", "số đánh giá",
+                     "review count", "jumlah ulasan"),
+    # W4.3: alias TRẦN — người dùng nói "nhiều lượt thích nhất", không nói "số
+    # lượt thích nhiều nhất". "lượt thích" là chuỗi con của "thay đổi lượt
+    # thích" (liked_delta); AliasIndex khớp DÀI TRƯỚC và xoá span đã nhận, nên
+    # thứ tự đúng được bảo toàn — test khoá cả hai chiều.
+    "liked_count": ("số lượt thích", "lượt thích", "lượt yêu thích", "likes",
+                    "jumlah suka"),
     "images_count": ("số ảnh", "số lượng hình", "image count", "jumlah gambar"),
     "variation_options_count": ("số phân loại", "số tuỳ chọn hiển thị", "variation count", "jumlah variasi"),
     "vouchers_count": ("số nhãn voucher", "voucher label count", "jumlah voucher"),
@@ -354,6 +361,21 @@ _DERIVED_PHYSICAL = {
 # Which analysis unit each count metric counts. The compiler reads the physical
 # key from the entity rather than matching a ref name, so adding a countable unit
 # is a catalog edit, not another branch in ``_column_for``.
+# W4.2 — chiều nào, khi đứng ngay sau một từ để hỏi số lượng, là "đếm đơn vị
+# nào". Đếm shop_name phân biệt KHÔNG bằng đếm shop: metric đích mang
+# counts_unit riêng (entity.shop → counting_key shop_id) và phép đếm vẫn chạy
+# trên khoá đó.
+COUNT_METRIC_BY_SURFACE_REF: dict[str, str] = {
+    "dim.brand":                  "derived.brand_count",
+    "entity.brand":               "derived.brand_count",
+    "dim.shop_name":              "derived.shop_count",
+    "entity.shop":                "derived.shop_count",
+    "dim.platform_category_name": "derived.category_count",
+    "entity.platform_category":   "derived.category_count",
+    "dim.product_name":           "derived.product_count",
+    "entity.product_listing":     "derived.product_count",
+}
+
 _COUNTS_UNIT = {
     "product_count": "entity.product_listing",
     "discounted_listing_count": "entity.product_listing",
@@ -442,6 +464,20 @@ for _unit_ref, _dim_ref in VALUE_DIMENSION_BY_UNIT.items():
             f"VALUE_DIMENSION_BY_UNIT: {_dim_ref} không có cột vật lý — không lọc được"
         )
 
+
+# W4.2: mọi khoá/giá trị của bảng đếm-theo-chiều phải tồn tại, và metric đích
+# phải là một metric ĐẾM — gõ sai một ref phải nổ lúc import, không phải lúc
+# một câu hỏi vô tình chạm vào nó.
+for _surface_ref, _count_ref in COUNT_METRIC_BY_SURFACE_REF.items():
+    if _surface_ref not in CATALOG or _count_ref not in CATALOG:
+        raise CatalogError(
+            f"COUNT_METRIC_BY_SURFACE_REF trỏ tới ref không tồn tại: "
+            f"{_surface_ref} -> {_count_ref}",
+        )
+    if not CATALOG[_count_ref].counts_unit:
+        raise CatalogError(
+            f"COUNT_METRIC_BY_SURFACE_REF: {_count_ref} không phải metric đếm",
+        )
 
 # W14.1: ref của mọi ValueClassRule phải TỒN TẠI. Kiểm ở đây thay vì trong
 # metrics.py vì module này import module đó — kiểm ngược lại là một vòng import.
