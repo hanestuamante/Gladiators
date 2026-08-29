@@ -324,6 +324,27 @@ class ContractDrivenGate:
                     "entity", "value_not_found", refs=(value_ref,),
                     # Không thông tin nào người dùng thêm vào sẽ tạo ra giá trị đó.
                     fixable=False)
+        if request.intent == "analytical_query" and request.analytical:
+            # W8.3: alias collision không có quyết định ưu tiên phải fail-closed
+            # trên CẢ đường certified template — nếu chỉ chặn ở open_analytical,
+            # "bao nhiêu listing CÓ VOUCHER" rơi về template listing_count và
+            # trả 668: điều kiện mơ hồ bị bỏ trong im lặng, đúng phép nới
+            # A4-R5 cấm (668 là toàn thị trường, không phải nhóm có voucher).
+            # CHỈ đọc ambiguity CÓ KIỂU (alias collision) — chuỗi "Thiếu
+            # country" trong field ambiguities cũ được bộ nhớ hội thoại lấp ở
+            # lượt sau, và chặn nó ở đây làm hỏng chính WP-A3 (đo được:
+            # "Có bao nhiêu listing?" lượt hai với country đã nhớ bị clarify).
+            collisions = tuple(
+                (request.analytical or {}).get("semantic_ambiguities") or ()
+            )
+            if collisions:
+                text = "; ".join(
+                    f'Cụm "{item.get("surface")}" có nhiều nghĩa; hãy nêu rõ.'
+                    if isinstance(item, dict) else str(item)
+                    for item in collisions
+                )
+                add("A-ANALYTICAL-AMBIGUITY", 2, "clarify", text,
+                    "grain", "semantic_ambiguity")
         if request.intent == "open_analytical":
             if not request.analytical:
                 add("A19-PLAN", 2, "abstain",

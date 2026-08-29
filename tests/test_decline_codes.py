@@ -158,6 +158,14 @@ def test_inner_functions_share_the_callers_collector(parser):
 # --- baseline 58 plan không đổi ----------------------------------------------
 
 DELIBERATE_BASELINE_CHANGES = {
+    # W8.3: sáu câu voucher — plan cũ tồn tại nhờ alias trần được chọn THẦM
+    # nghĩa structured; xem INTENTIONALLY_LOST ở test_synthesizer_equivalence.
+    'questions:q28': 'W8.3 voucher ambiguity',
+    'questions:q29': 'W8.3 voucher ambiguity',
+    'questions:q32': 'W8.3 voucher ambiguity',
+    'questions:q60': 'W8.3 voucher ambiguity',
+    'questions_v2:v2q10': 'W8.3 voucher ambiguity',
+    'questions_v2:v2q11': 'W8.3 voucher ambiguity',
     "questions_counting:cnt04": (
         "W11.2 (SolutionSpec2808 §12.3): câu MỚI thêm vào suite counting — "
         "tỷ lệ có mẫu số khai (bgk11). Mở rộng, không dịch entry cũ."

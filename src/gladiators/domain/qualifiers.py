@@ -31,7 +31,14 @@ class QualifierSpec:
     ref: str                      # phải có trong CATALOG và có physical
     surfaces: tuple[str, ...]     # đã normalize, đã bỏ dấu
     negations: tuple[str, ...]    # surface mang nghĩa phủ định
-    value: bool = True
+    # W8.3: hợp đồng predicate có KIỂU, dùng chuẩn operator §12.2.1 — cờ nhãn
+    # voucher bind vào vouchers_count cần "gte 1", không phải "eq True"; một
+    # qualifier hard-code eq bool sẽ biên dịch sai kiểu hoặc bị catalog từ chối.
+    value: object = True
+    op: str = "eq"
+    negated_op: str = "eq"
+    negated_value: object = False
+    null_policy: str = "exclude"
     # Bind được thành predicate hay chưa. Xem `_BASE_SCAN_ARTIFACT` bên dưới:
     # một điều kiện nằm ở bảng khác cần join mà grammar hiện tại đặt sai chỗ,
     # nên nó phải TIẾP TỤC bị từ chối thay vì lọc hụt trong im lặng.
@@ -52,11 +59,26 @@ QUALIFIERS: tuple[QualifierSpec, ...] = (
         ("khong nghi ban",),
         bindable=True,      # A1: nF2 lọc SAU join belongs_to
     ),
+    # W8.3: "có voucher" trần là HAI khái niệm (structured 0/474 trên ID so
+    # với nhãn hiển thị 210/474) — surface trần rời khỏi registry, chỉ còn hai
+    # qualifier tường minh; cụm trần thành alias của CẢ HAI ref và fail-closed
+    # bằng ambiguity ở _link.
     QualifierSpec(
-        "has_voucher", "derived.has_structured_voucher",
-        ("co voucher", "co ma giam gia"),
-        ("khong co voucher", "khong voucher"),
+        "has_structured_voucher", "derived.has_structured_voucher",
+        ("voucher co cau truc", "ma voucher co cau truc"),
+        ("khong co voucher co cau truc",),
         bindable=True,      # A1: nF2 lọc SAU join has_sales_metric
+    ),
+    QualifierSpec(
+        # ref là cột ĐẾM nhãn (xem ghi chú _DERIVED_PHYSICAL ở catalog.py):
+        # "có nhãn voucher" nghĩa là vouchers_count >= 1.
+        "has_voucher_label", "measure.vouchers_count",
+        ("co nhan voucher", "voucher hien thi", "nhan voucher"),
+        ("khong co nhan voucher",),
+        # Cột đếm nhãn: dương là "ít nhất một nhãn", phủ định là "không nhãn
+        # nào" — và null KHÔNG suy thành "không có" (null_policy exclude).
+        value=1, op="gte", negated_op="lte", negated_value=0,
+        bindable=True,
     ),
     QualifierSpec(
         "shopee_verified", "dim.shopee_verified",
@@ -181,7 +203,15 @@ def _is_grouping(normalized: str, surface: str) -> bool:
     return False
 
 
-def match(normalized: str) -> list[tuple[QualifierSpec, bool, str]]:
+@dataclass(frozen=True)
+class MatchedQualifier:
+    spec: QualifierSpec
+    op: str
+    value: object
+    surface: str
+
+
+def match(normalized: str) -> list["MatchedQualifier"]:
     """Điều kiện LỌC xuất hiện trong câu, kèm giá trị và surface đã khớp.
 
     Kiểm phủ định TRƯỚC: ``"khong co voucher"`` chứa ``"co voucher"``, nên xét
@@ -195,13 +225,15 @@ def match(normalized: str) -> list[tuple[QualifierSpec, bool, str]]:
         if not spec.bindable:
             continue
         hit = next(
-            ((s, not spec.value) for s in spec.negations if s in normalized),
-            next(((s, spec.value) for s in spec.surfaces if s in normalized), None),
+            ((s, spec.negated_op, spec.negated_value) for s in spec.negations
+             if s in normalized),
+            next(((s, spec.op, spec.value) for s in spec.surfaces
+                  if s in normalized), None),
         )
         if hit is None:
             continue
-        surface, value = hit
+        surface, op, value = hit
         if _is_grouping(normalized, surface):
             continue
-        hits.append((spec, value, surface))
+        hits.append(MatchedQualifier(spec=spec, op=op, value=value, surface=surface))
     return hits

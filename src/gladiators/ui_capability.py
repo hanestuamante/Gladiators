@@ -29,7 +29,9 @@ DATASET_LIMITS: tuple[str, ...] = (
 # Câu hỏi mẫu cho mỗi intent. B8-R2 buộc chúng phải CHẠY ĐƯỢC THẬT, và test
 # khẳng định điều đó — một câu mẫu không chạy được là một lời hứa sai.
 SAMPLE_QUESTIONS: dict[str, str] = {
-    "voucher_coverage": "Có bao nhiêu listing có voucher tại Việt Nam ngày 03/07?",
+    # W8.3: câu mẫu phải NÊU RÕ khái niệm — "có voucher" trần nay fail-closed
+    # bằng ambiguity (structured so với nhãn hiển thị là hai đại lượng khác).
+    "voucher_coverage": "Có bao nhiêu listing có voucher có cấu trúc tại Việt Nam ngày 03/07?",
     "promotion_effectiveness": "So sánh nhóm có voucher và không voucher tại Việt Nam",
     "open_analytical": "Có bao nhiêu shop ở Việt Nam?",
     "schema_relation_explain": "Shop và listing liên quan thế nào?",

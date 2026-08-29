@@ -66,8 +66,10 @@ def test_negation_flips_the_value():
 def test_negation_is_checked_before_the_affirmative_substring():
     """"chua xac minh" chứa "xac minh"; xét ngược chiều sẽ bind ngược nghĩa."""
     hits = match("bao nhieu listing chua xac minh tai vn")
-    assert [(spec.qualifier_id, value) for spec, value, _ in hits] == [
-        ("shopee_verified", False),
+    # W8.3: match trả MatchedQualifier có kiểu (op/value theo hợp đồng) thay
+    # cho tuple — phủ định của cờ bool vẫn là eq False.
+    assert [(h.spec.qualifier_id, h.op, h.value) for h in hits] == [
+        ("shopee_verified", "eq", False),
     ]
 
 

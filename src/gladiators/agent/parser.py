@@ -353,7 +353,16 @@ class MultilingualIntentParser:
             # V2 §2.8: "shop nào có chiến lược voucher hiệu quả nhất" — L4 descriptive
             # ranking theo voucher_profile_rank_v1, KHÔNG phải câu promo hai-nhóm.
             intent = "voucher_profile_rank"
-        elif any(x in n for x in ("voucher", "khuyen mai", "promotion", "promosi", "promo")):
+        elif any(x in n for x in ("voucher", "khuyen mai", "promotion", "promosi", "promo")) and not ("voucher" in n and re.search(
+            # Chỉ chuyển hướng khi câu ĐẾM MỘT ĐƠN VỊ VÀ nói về VOUCHER — đếm
+            # theo khuyến mãi/promotion (tc30) vẫn thuộc macro như trước W8.3.
+            r"(?:bao nhieu|so luong|berapa|how many)\s+(?:listing|san pham|mat hang|shop|item|produk)",
+            n,
+        )):
+            # W8.3: câu ĐẾM có từ voucher không phải câu promo hai-nhóm — nó đi
+            # đường analytical, nơi qualifier tường minh bind được predicate và
+            # cụm "có voucher" trần fail-closed bằng ambiguity (hai khái niệm:
+            # structured 0/474 trên ID so với nhãn hiển thị 210/474).
             intent = "promotion_effectiveness"
         elif any(x in n for x in ("gia thay doi", "bien dong gia", "price change", "perubahan harga")):
             intent = "analytical_query"

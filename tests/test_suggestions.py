@@ -73,6 +73,7 @@ def test_rule_id_and_reason_are_untouched(runtime):
 
 def test_trial_runs_do_not_recurse(runtime):
     """Gợi ý gọi runtime.run, mà run lại sinh gợi ý — phải có chốt chặn."""
-    response = runtime.run("Có bao nhiêu listing có voucher tại Việt Nam ngày 03/07?")
+    # W8.3: câu neo nêu rõ khái niệm — "có voucher" trần nay clarify.
+    response = runtime.run("Có bao nhiêu listing có voucher có cấu trúc tại Việt Nam ngày 03/07?")
     assert response.gate.action == "allow"
     assert getattr(runtime, "_in_suggestion_trial", False) is False

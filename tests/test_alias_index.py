@@ -71,12 +71,26 @@ def test_find_in_prefers_the_longest_alias(index):
 
 # --- WP-A4.1 · bảng ưu tiên là nguồn duy nhất phân giải surface mơ hồ -------
 
+# W8.3: surface mơ hồ KHÔNG ưu tiên không còn bị nuốt — _link nổi
+# SemanticAmbiguity và câu fail-closed A-ANALYTICAL-AMBIGUITY. Va chạm voucher
+# là CÓ CHỦ ĐÍCH (hai khái niệm, cấm chọn thầm — cấm cả thêm vào
+# PREFERRED_REF_BY_SURFACE); mọi va chạm khác vẫn phải có ưu tiên tường minh.
+DELIBERATE_COLLISIONS = {"co voucher", "voucher", "has voucher"}
+
+
 def test_preferred_ref_covers_every_ambiguous_surface(index):
-    """Surface mơ hồ không có ưu tiên thì binder bỏ qua — mất binding trong im lặng."""
+    """Va chạm ngoài danh sách chủ đích phải có ưu tiên — và danh sách chủ đích
+    KHÔNG được có ưu tiên (chọn thầm là chính lỗi W8.3 đóng)."""
     from gladiators.domain.alias_index import PREFERRED_REF_BY_SURFACE
 
-    uncovered = sorted(set(index.collisions()) - set(PREFERRED_REF_BY_SURFACE))
+    uncovered = sorted(
+        set(index.collisions()) - set(PREFERRED_REF_BY_SURFACE)
+        - DELIBERATE_COLLISIONS,
+    )
     assert uncovered == [], f"surface mơ hồ chưa có ưu tiên: {uncovered}"
+    assert not DELIBERATE_COLLISIONS & set(PREFERRED_REF_BY_SURFACE), (
+        "surface voucher không được có ưu tiên — nó phải fail-closed"
+    )
 
 
 def test_preferred_ref_points_only_at_real_refs(index):

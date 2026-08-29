@@ -65,6 +65,13 @@ class EntityBinding(BaseModel):
     status: Literal["resolved", "ambiguous", "unresolved"] = "unresolved"
 
 
+class SemanticAmbiguity(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["alias_collision"]
+    surface: str
+    candidate_refs: tuple[str, ...]
+
+
 class AnalyticalPredicate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     field_ref: str
@@ -116,6 +123,10 @@ class AnalyticalRequest(BaseModel):
     # của IR thay vì chép một Literal thứ hai — hai danh sách là hai chỗ để
     # chúng lệch nhau. Additive, mặc định None ⇒ fixture cũ không hỏng.
     requested_aggregation: Aggregation | None = None
+    # W8.3: alias collision không có quyết định ưu tiên — có kiểu, và mọi
+    # collision đều fail-closed qua classify_a19, không chỉ voucher. Field
+    # `ambiguities` chuỗi cũ giữ đọc một release cho tương thích payload.
+    semantic_ambiguities: tuple[SemanticAmbiguity, ...] = ()
 
 
 
@@ -276,6 +287,19 @@ def _normalise_count_frame(normalized: str) -> tuple[str, bool]:
     return normalized, False
 
 
+def _human_label(ref: str) -> str:
+    """Nhãn người đọc cho một ref — alias tiếng Việt đầu tiên nếu có
+    (INV-NO-INTERNAL-VOCABULARY: không lộ ref nội bộ hay tên tự sinh)."""
+    obj = CATALOG.get(ref)
+    if obj is None or not obj.aliases:
+        return ref.split(".")[-1].replace("_", " ")
+    vietnamese = next(
+        (alias for alias in obj.aliases if any(ord(ch) > 127 for ch in alias)),
+        None,
+    )
+    return vietnamese or obj.aliases[0]
+
+
 _EXPLICIT_TOP_N = re.compile(r"\btop\s*(\d{1,2})\b")
 # Vietnamese/Indonesian plural markers that ask for a list rather than one row.
 # Deliberately narrow: "cac san pham" as a *grouping domain* ("trung binh cua
@@ -350,8 +374,15 @@ class DeterministicSemanticParser:
             if match.ambiguous:
                 preferred = PREFERRED_REF_BY_SURFACE.get(match.surface)
                 # Surface mơ hồ mà không có ưu tiên: chọn một ref theo thứ tự
-                # index là trả lời một câu hỏi khác trong im lặng.
+                # index là trả lời một câu hỏi khác trong im lặng — và NUỐT nó
+                # (continue trần cũ) cũng vậy: "có voucher" là hai khái niệm
+                # (structured 0/474 trên ID so với nhãn 210/474), câu phải
+                # fail-closed bằng ambiguity chứ không lặng lẽ mất binding.
                 if preferred is None or preferred not in match.refs:
+                    self._pending_ambiguities.append(SemanticAmbiguity(
+                        kind="alias_collision", surface=match.surface,
+                        candidate_refs=tuple(match.refs),
+                    ))
                     continue
                 ref = preferred
             if ref in seen_refs or CATALOG[ref].kind not in kinds:
@@ -364,6 +395,7 @@ class DeterministicSemanticParser:
         normalized = normalize(text)
         # W4.1: viết lại khung đếm TRƯỚC _link — alias khớp cụm dính liền.
         normalized, count_frame_normalised = _normalise_count_frame(normalized)
+        self._pending_ambiguities: list[SemanticAmbiguity] = []
         measures = self._link(normalized, {"measure", "derived_metric"})
         dimension_text = normalized
         for measure in measures:
@@ -452,18 +484,34 @@ class DeterministicSemanticParser:
                     item for item in dimensions if item.ref != unit_binding.ref
                 ]
         qualifier_refs: set[str] = set()
-        for spec, value, _surface in qualifier_match(normalized):
+        qualifier_surfaces: list[str] = []
+        for matched in qualifier_match(normalized):
+            # W8.3: op/value đến từ hợp đồng CÓ KIỂU của qualifier — cờ nhãn
+            # voucher là "vouchers_count gte 1", không phải "eq True".
             filters.append(AnalyticalPredicate(
-                field_ref=spec.ref, op="eq", value_binding=value,
+                field_ref=matched.spec.ref, op=matched.op,
+                value_binding=matched.value,
             ))
-            qualifier_refs.add(spec.ref)
+            qualifier_refs.add(matched.spec.ref)
+            qualifier_surfaces.append(matched.surface)
         # Một ref đã thành điều kiện lọc thì KHÔNG còn là thứ được đo. "Bao nhiêu
         # listing CÓ VOUCHER" đo số listing; "có voucher" là điều kiện. Để nó ở
         # cả hai chỗ làm request khai hai measure cho một câu hỏi một measure, và
         # synthesizer từ chối vì đúng lý do sai.
         if qualifier_refs:
-            measures = [item for item in measures if item.ref not in qualifier_refs]
-            dimensions = [item for item in dimensions if item.ref not in qualifier_refs]
+            def _is_condition(binding) -> bool:
+                # W8.3: qualifier có thể bind một REF KHÁC với alias cùng cụm
+                # ("có nhãn voucher" → predicate trên measure.vouchers_count,
+                # alias trên derived.has_voucher_label) — so theo SURFACE để
+                # cụm đã thành điều kiện không đội lốt thứ được đo.
+                surface = normalize(binding.surface_text)
+                return binding.ref in qualifier_refs or any(
+                    surface in matched or matched in surface
+                    for matched in qualifier_surfaces
+                )
+
+            measures = [item for item in measures if not _is_condition(item)]
+            dimensions = [item for item in dimensions if not _is_condition(item)]
 
         # W11.1: chạy SAU _link (measure đã bind) và TRƯỚC khi chốt
         # requested_measures/ranking.
@@ -556,6 +604,17 @@ class DeterministicSemanticParser:
             comparison = {"mode": "descriptive_group_comparison"}
             operators.append("compare")
         ambiguities = []
+        semantic_ambiguities = tuple(dict.fromkeys(self._pending_ambiguities))
+        for item in semantic_ambiguities:
+            # Render lựa chọn từ MÔ TẢ catalog, không lộ ref nội bộ
+            # (INV-NO-INTERNAL-VOCABULARY).
+            choices = " hoặc ".join(
+                _human_label(ref)
+                for ref in item.candidate_refs
+            )
+            ambiguities.append(
+                f'Cụm "{item.surface}" có thể chỉ {choices}; hãy nêu rõ nghĩa nào.'
+            )
         if count_frame_ambiguity:
             ambiguities.append(count_frame_ambiguity)
         if count_frame_normalised:
@@ -608,6 +667,7 @@ class DeterministicSemanticParser:
             requested_output_shape="ranking" if ranking else "scalar" if not grouping else "table",
             unsupported_operators=unsupported_ops,
             requested_aggregation=requested_aggregation,
+            semantic_ambiguities=semantic_ambiguities,
         )
 
 

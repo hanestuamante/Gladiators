@@ -300,9 +300,16 @@ _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     # question like "So sánh voucher tại Việt Nam" resolved to nothing and routed
     # as unknown even though T3 answers it. Longest-alias-first matching means
     # the more specific phrases above still win where they appear.
-    "has_structured_voucher": ("có voucher", "có mã giảm giá", "voucher",
+    # W8.3: surface chung "có voucher"/"voucher" nằm trên CẢ HAI ref — alias
+    # collision là CÓ CHỦ ĐÍCH: _link thấy hai ứng viên và fail-closed bằng
+    # A-ANALYTICAL-AMBIGUITY thay vì chọn thầm một khái niệm. KHÔNG thêm chúng
+    # vào PREFERRED_REF_BY_SURFACE.
+    "has_structured_voucher": ("voucher có cấu trúc", "mã voucher có cấu trúc",
+                               "có voucher", "có mã giảm giá", "voucher",
                                "mã giảm giá", "has voucher", "punya voucher"),
-    "has_voucher_label": ("có nhãn voucher", "has voucher label"),
+    "has_voucher_label": ("có nhãn voucher", "voucher hiển thị", "nhãn voucher",
+                          "có voucher", "voucher", "has voucher",
+                          "has voucher label"),
     "has_promo": ("có khuyến mãi", "đang khuyến mãi", "khuyến mãi", "promotion",
                   "promo", "has promotion", "ada promo"),
     # W11.2: alias khớp CẢ CỤM, không khớp "tỷ lệ" trần — "tỷ lệ" một mình không
@@ -357,6 +364,12 @@ _DERIVED_PHYSICAL = {
     # discount tại query time.
     "has_promo": ("product_snapshot_metrics.csv.has_displayed_discount",),
 }
+# W8.3 — CHỆCH KHỎI SPEC CÓ CHỦ ĐÍCH: spec muốn _DERIVED_PHYSICAL ánh xạ
+# has_voucher_label → vouchers_count, nhưng bất biến "một cột vật lý thuộc đúng
+# một ref" (có trước W8.3, bảo vệ physical_index mà _project_relation đọc) chặn
+# — cột đó đã thuộc measure.vouchers_count. Cùng predicate đạt được bằng cách
+# cho QUALIFIER nhãn bind thẳng measure.vouchers_count với op gte 1; ref
+# derived.has_voucher_label giữ vai trò KHÁI NIỆM cho alias/ambiguity.
 
 # Which analysis unit each count metric counts. The compiler reads the physical
 # key from the entity rather than matching a ref name, so adding a countable unit

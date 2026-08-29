@@ -186,17 +186,16 @@
     "question": "Có bao nhiêu listing có voucher tại Việt Nam ngày 03/07?",
     "paraphrase_group": "g_voucher_vn",
     "answerable": true,
-    "expected_action": "allow",
-    "expected_value": {
-      "listing_count": 577
-    },
+    "expected_action": "clarify",
+    "expected_value": null,
     "oracle_snippet": "S[(S.country_code=='vn')&(S.date=='2026-07-03')].drop_duplicates('product_listing_key').has_structured_voucher.sum()",
     "author": "scripts/build_question_bank.py",
-    "author_read_source_code": true
+    "author_read_source_code": true,
+    "expected_note": "W8.3: cụm 'có voucher' chỉ hai khái niệm khác nhau; oracle cũ đo has_structured_voucher trong khi câu hỏi không nói rõ"
   },
   {
     "id": "ans016",
-    "question": "Ngày 03/07 tại Việt Nam, bao nhiêu sản phẩm kèm voucher?",
+    "question": "Có bao nhiêu listing có voucher có cấu trúc tại Việt Nam ngày 03/07?",
     "paraphrase_group": "g_voucher_vn",
     "answerable": true,
     "expected_action": "allow",
@@ -209,20 +208,32 @@
   },
   {
     "id": "ans017",
-    "question": "Có bao nhiêu listing có voucher tại Indonesia ngày 03/07?",
-    "paraphrase_group": "g_voucher_id",
+    "question": "Có bao nhiêu listing có nhãn voucher tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_voucher_vn",
     "answerable": true,
     "expected_action": "allow",
     "expected_value": {
-      "listing_count": 0
+      "listing_count": 419
     },
-    "oracle_snippet": "S[(S.country_code=='id')&(S.date=='2026-07-03')].drop_duplicates('product_listing_key').has_structured_voucher.sum()",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').vouchers_count.gt(0).sum()",
     "author": "scripts/build_question_bank.py",
     "author_read_source_code": true
   },
   {
     "id": "ans018",
-    "question": "Ngày 03/07 tại Indonesia, bao nhiêu sản phẩm kèm voucher?",
+    "question": "Có bao nhiêu listing có voucher tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_voucher_id",
+    "answerable": true,
+    "expected_action": "clarify",
+    "expected_value": null,
+    "oracle_snippet": "S[(S.country_code=='id')&(S.date=='2026-07-03')].drop_duplicates('product_listing_key').has_structured_voucher.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true,
+    "expected_note": "W8.3: cụm 'có voucher' chỉ hai khái niệm khác nhau; oracle cũ đo has_structured_voucher trong khi câu hỏi không nói rõ"
+  },
+  {
+    "id": "ans019",
+    "question": "Có bao nhiêu listing có voucher có cấu trúc tại Indonesia ngày 03/07?",
     "paraphrase_group": "g_voucher_id",
     "answerable": true,
     "expected_action": "allow",
@@ -234,7 +245,20 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans019",
+    "id": "ans020",
+    "question": "Có bao nhiêu listing có nhãn voucher tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_voucher_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 210
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').vouchers_count.gt(0).sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans021",
     "question": "Số listing tại Việt Nam thay đổi thế nào từ 01/07 đến 03/07?",
     "paraphrase_group": "g_delta_vn",
     "answerable": true,
@@ -247,7 +271,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans020",
+    "id": "ans022",
     "question": "Số listing tại Indonesia thay đổi thế nào từ 01/07 đến 03/07?",
     "paraphrase_group": "g_delta_id",
     "answerable": true,
@@ -260,7 +284,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans021",
+    "id": "ans023",
     "question": "Ngày 01/07 tại Việt Nam có bao nhiêu listing?",
     "paraphrase_group": "g_day_2026-07-01_vn",
     "answerable": true,
@@ -273,7 +297,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans022",
+    "id": "ans024",
     "question": "Ngày 01/07 tại Indonesia có bao nhiêu listing?",
     "paraphrase_group": "g_day_2026-07-01_id",
     "answerable": true,
@@ -286,7 +310,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans023",
+    "id": "ans025",
     "question": "Ngày 02/07 tại Việt Nam có bao nhiêu listing?",
     "paraphrase_group": "g_day_2026-07-02_vn",
     "answerable": true,
@@ -299,7 +323,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans024",
+    "id": "ans026",
     "question": "Ngày 02/07 tại Indonesia có bao nhiêu listing?",
     "paraphrase_group": "g_day_2026-07-02_id",
     "answerable": true,
@@ -312,7 +336,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans025",
+    "id": "ans027",
     "question": "Ngày 03/07 tại Việt Nam có bao nhiêu listing?",
     "paraphrase_group": "g_day_2026-07-03_vn",
     "answerable": true,
@@ -325,7 +349,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans026",
+    "id": "ans028",
     "question": "Ngày 03/07 tại Indonesia có bao nhiêu listing?",
     "paraphrase_group": "g_day_2026-07-03_id",
     "answerable": true,
@@ -338,7 +362,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans027",
+    "id": "ans029",
     "question": "Có bao nhiêu thương hiệu tại Việt Nam ngày 03/07?",
     "paraphrase_group": "g_brand_vn",
     "answerable": true,
@@ -351,7 +375,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans028",
+    "id": "ans030",
     "question": "Việt Nam ngày 03/07 có bao nhiêu brand khác nhau?",
     "paraphrase_group": "g_brand_vn",
     "answerable": true,
@@ -364,7 +388,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans029",
+    "id": "ans031",
     "question": "Có bao nhiêu thương hiệu tại Indonesia ngày 03/07?",
     "paraphrase_group": "g_brand_id",
     "answerable": true,
@@ -377,7 +401,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans030",
+    "id": "ans032",
     "question": "Indonesia ngày 03/07 có bao nhiêu brand khác nhau?",
     "paraphrase_group": "g_brand_id",
     "answerable": true,
@@ -390,7 +414,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans031",
+    "id": "ans033",
     "question": "Có bao nhiêu shop chính hãng ở Việt Nam?",
     "paraphrase_group": "g_official_vn",
     "answerable": true,
@@ -403,7 +427,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans032",
+    "id": "ans034",
     "question": "Có bao nhiêu listing của shop chính hãng tại Việt Nam ngày 03/07?",
     "paraphrase_group": "g_official_vn_listing",
     "answerable": true,
@@ -416,7 +440,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans033",
+    "id": "ans035",
     "question": "Có bao nhiêu shop chính hãng ở Indonesia?",
     "paraphrase_group": "g_official_id",
     "answerable": true,
@@ -429,7 +453,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans034",
+    "id": "ans036",
     "question": "Có bao nhiêu listing của shop chính hãng tại Indonesia ngày 03/07?",
     "paraphrase_group": "g_official_id_listing",
     "answerable": true,
@@ -442,7 +466,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans035",
+    "id": "ans037",
     "question": "Giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?",
     "paraphrase_group": "g_median_price_vn",
     "answerable": true,
@@ -455,7 +479,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans036",
+    "id": "ans038",
     "question": "Điểm đánh giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?",
     "paraphrase_group": "g_median_rating_vn",
     "answerable": true,
@@ -468,7 +492,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans037",
+    "id": "ans039",
     "question": "Giá trung vị tại Indonesia ngày 03/07 là bao nhiêu?",
     "paraphrase_group": "g_median_price_id",
     "answerable": true,
@@ -481,7 +505,7 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans038",
+    "id": "ans040",
     "question": "Điểm đánh giá trung vị tại Indonesia ngày 03/07 là bao nhiêu?",
     "paraphrase_group": "g_median_rating_id",
     "answerable": true,
@@ -494,30 +518,8 @@
     "author_read_source_code": true
   },
   {
-    "id": "ans039",
-    "question": "Lợi nhuận ròng của từng shop tại Việt Nam là bao nhiêu?",
-    "paraphrase_group": "g_no_039",
-    "answerable": false,
-    "expected_action": "abstain",
-    "expected_value": null,
-    "oracle_snippet": "không tính được từ data/processed/*.csv",
-    "author": "scripts/build_question_bank.py",
-    "author_read_source_code": true
-  },
-  {
-    "id": "ans040",
-    "question": "Chi phí quảng cáo trên mỗi đơn tại Indonesia là bao nhiêu?",
-    "paraphrase_group": "g_no_040",
-    "answerable": false,
-    "expected_action": "abstain",
-    "expected_value": null,
-    "oracle_snippet": "không tính được từ data/processed/*.csv",
-    "author": "scripts/build_question_bank.py",
-    "author_read_source_code": true
-  },
-  {
     "id": "ans041",
-    "question": "Tỷ lệ chuyển đổi của listing tại Việt Nam ngày 03/07?",
+    "question": "Lợi nhuận ròng của từng shop tại Việt Nam là bao nhiêu?",
     "paraphrase_group": "g_no_041",
     "answerable": false,
     "expected_action": "abstain",
@@ -528,7 +530,7 @@
   },
   {
     "id": "ans042",
-    "question": "Tồn kho còn lại của từng sản phẩm tại Việt Nam?",
+    "question": "Chi phí quảng cáo trên mỗi đơn tại Indonesia là bao nhiêu?",
     "paraphrase_group": "g_no_042",
     "answerable": false,
     "expected_action": "abstain",
@@ -539,7 +541,7 @@
   },
   {
     "id": "ans043",
-    "question": "Dự báo doanh số tuần sau tại Indonesia?",
+    "question": "Tỷ lệ chuyển đổi của listing tại Việt Nam ngày 03/07?",
     "paraphrase_group": "g_no_043",
     "answerable": false,
     "expected_action": "abstain",
@@ -550,8 +552,30 @@
   },
   {
     "id": "ans044",
-    "question": "Giá của đối thủ ngoài sàn cho sản phẩm này là bao nhiêu?",
+    "question": "Tồn kho còn lại của từng sản phẩm tại Việt Nam?",
     "paraphrase_group": "g_no_044",
+    "answerable": false,
+    "expected_action": "abstain",
+    "expected_value": null,
+    "oracle_snippet": "không tính được từ data/processed/*.csv",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans045",
+    "question": "Dự báo doanh số tuần sau tại Indonesia?",
+    "paraphrase_group": "g_no_045",
+    "answerable": false,
+    "expected_action": "abstain",
+    "expected_value": null,
+    "oracle_snippet": "không tính được từ data/processed/*.csv",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans046",
+    "question": "Giá của đối thủ ngoài sàn cho sản phẩm này là bao nhiêu?",
+    "paraphrase_group": "g_no_046",
     "answerable": false,
     "expected_action": "abstain",
     "expected_value": null,

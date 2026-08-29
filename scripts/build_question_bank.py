@@ -118,16 +118,43 @@ def build() -> list[dict]:
             (snapshots.country_code == country)
             & (snapshots.date.astype(str) == LATEST)
         ].drop_duplicates("product_listing_key")
-        value = {"listing_count": int(frame.has_structured_voucher.sum())}
+        structured_value = {"listing_count": int(frame.has_structured_voucher.sum())}
         group = f"g_voucher_{country}"
         snippet = (
             f"S[(S.country_code=='{country}')&(S.date=='{LATEST}')]"
             ".drop_duplicates('product_listing_key').has_structured_voucher.sum()"
         )
-        cases.append(_case(nid(), f"Có bao nhiêu listing có voucher tại {label} ngày 03/07?",
-                           group, True, value, snippet))
-        cases.append(_case(nid(), f"Ngày 03/07 tại {label}, bao nhiêu sản phẩm kèm voucher?",
-                           group, True, value, snippet))
+        # W8.4: "có voucher" là HAI khái niệm (structured so với nhãn hiển thị
+        # — trên ID: 0/474 so với 210/474). Câu mơ hồ giữ clarify; hai câu
+        # tường minh đo hai oracle KHÁC NHAU.
+        ambiguous = _case(
+            nid(), f"Có bao nhiêu listing có voucher tại {label} ngày 03/07?",
+            group, True, None, snippet,
+        )
+        ambiguous["expected_action"] = "clarify"
+        ambiguous["expected_note"] = (
+            "W8.3: cụm 'có voucher' chỉ hai khái niệm khác nhau; oracle cũ đo "
+            "has_structured_voucher trong khi câu hỏi không nói rõ"
+        )
+        cases.append(ambiguous)
+        cases.append(_case(
+            nid(),
+            f"Có bao nhiêu listing có voucher có cấu trúc tại {label} ngày 03/07?",
+            group, True, structured_value, snippet,
+        ))
+        label_scope = products[
+            (products.country_code == country)
+            & (products.date.astype(str) == LATEST)
+        ].drop_duplicates("product_listing_key")
+        label_value = {
+            "listing_count": int((label_scope.vouchers_count > 0).sum()),
+        }
+        cases.append(_case(
+            nid(), f"Có bao nhiêu listing có nhãn voucher tại {label} ngày 03/07?",
+            group, True, label_value,
+            f"P[(P.country_code=='{country}')&(P.date=='{LATEST}')]"
+            ".drop_duplicates('product_listing_key').vouchers_count.gt(0).sum()",
+        ))
 
     # --- biến động số listing giữa hai snapshot ---------------------------
     for country, label in MARKET.items():
