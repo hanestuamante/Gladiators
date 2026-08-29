@@ -223,6 +223,77 @@ _JOIN_PROJECTIONS: dict[str, Callable[[str, str], list[exp.Expression]]] = {
 }
 
 
+# --- W13.1 · Chiếu hợp đồng output ở biên plan --------------------------------
+# Chỉ các toán tử này dựng danh sách cột; phần còn lại đi xuyên bằng SELECT *.
+# Danh sách là DỮ LIỆU chứ không phải trí nhớ của người đọc code: thêm một toán
+# tử vật chất hoá mà quên cập nhật ở đây làm phép chiếu cuối chọn sai biên.
+_MATERIALIZING_OPS = frozenset({"Scan", "Aggregate", "Project", "Union", "Join"})
+
+RANK_KEY_ALIAS = "__rank_key__"
+
+
+def _exposed_name(ref: str, node: PlanNode, nodes: dict[str, PlanNode]) -> str:
+    """Tên cột mà sub-query của ``node`` THẬT SỰ phơi ra cho ``ref``.
+
+    Đi ngược theo ``inputs[0]`` tới toán tử vật chất hoá gần nhất. Tới ``Scan``
+    thì tên là cột vật lý; tới ``Aggregate``/``Project``/``Union``/``Join`` thì
+    tên là alias mà node đó đã khai. Đoán một trong hai là sai một nửa số plan.
+    """
+    current, seen = node, set()
+    while current.node_id not in seen:
+        seen.add(current.node_id)
+        if current.op in _MATERIALIZING_OPS:
+            if current.op == "Scan":
+                return _column_for(ref, current.source)
+            for field in current.expected_schema:
+                if field.semantic_ref == ref:
+                    return field.name
+            return _column_for(ref, _source_hint(current, nodes))
+        if not current.inputs or current.inputs[0] not in nodes:
+            break
+        current = nodes[current.inputs[0]]
+    return _column_for(ref, _source_hint(node, nodes))
+
+
+def _project_output_contract(
+    expression: exp.Query, plan: LogicalQueryPlan,
+    nodes: dict[str, PlanNode], rank_state: dict[str, object],
+) -> exp.Select:
+    """Chiếu đúng các cột plan đã KHAI, ở đúng biên của plan (W13.1).
+
+    Ba lớp kiểm hiện có cùng bỏ sót một điều: validator so schema ĐÃ KHAI,
+    compiler cho Rank đi xuyên bằng SELECT *, executor bắt lệch cột nhưng bằng
+    một exception không ai bắt. Một plan mà output_node là toán tử đi xuyên và
+    tổ tiên vật chất hoá gần nhất là Scan LUÔN LUÔN vi phạm hợp đồng output của
+    chính nó — 24/84 câu xếp hạng trả HTTP 500 vì đúng hình đó.
+
+    Phát ra KHÔNG ĐIỀU KIỆN. Một nhánh "chỉ chiếu khi cần" là một nhánh ai đó
+    sẽ quên khi thêm toán tử thứ mười ba; chiếu luôn làm hợp đồng đúng *theo
+    cấu trúc*. Khi biên đã đúng tên, câu chiếu là ``"x" AS "x"`` — vô hại.
+    """
+    output = nodes[plan.output_node]
+    fields = []
+    for field in plan.requested_output_shape:
+        if not field.semantic_ref:
+            raise CompilationError("requested_output_shape thiếu semantic_ref")
+        fields.append(exp.alias_(
+            exp.column(_exposed_name(field.semantic_ref, output, nodes)),
+            field.name, quoted=True,
+        ))
+    if rank_state.get("column"):
+        # Khoá xếp hạng phải sống sót qua phép chiếu, nếu không tie detector của
+        # executor bị mù và một kết quả HOÀ ở mép cắt đi ra như một câu trả lời
+        # chắc chắn. Đây là hồi quy đã đo được ở bản thiếu nhánh này.
+        rank_ref = rank_state.get("ref")
+        exposed = (
+            _exposed_name(str(rank_ref), output, nodes) if rank_ref
+            else str(rank_state["column"])
+        )
+        fields.append(exp.alias_(exp.column(exposed), RANK_KEY_ALIAS, quoted=True))
+        rank_state["column"] = RANK_KEY_ALIAS
+    return exp.select(*fields).from_(expression.subquery("q_out"))
+
+
 def _compile_node(
     node: PlanNode,
     compiled: dict[str, exp.Query],
@@ -298,6 +369,11 @@ def _compile_node(
         # rating brand" query returns one arbitrary brand out of 21 tied at the
         # same rating, and the cut is invisible to everything downstream.
         rank_state["column"] = column
+        # W13.1: ref semantic của khoá xếp hạng, KHÔNG phải tên cột vật lý. Đo
+        # được ở đường template highest_price_listing: rank column là price_num
+        # nhưng output_node là một Project phơi ra "price" — chiếu theo tên vật
+        # lý ở biên đó cho BinderException trên 4/84 câu.
+        rank_state["ref"] = node.rank_by
         rank_state["limit"] = node.limit
         fetch = node.limit + 1 if node.limit is not None else None
         return _from_input(inputs[0], f"q_{node.node_id}").order_by(exp.Ordered(this=exp.column(column), desc=node.descending)).limit(fetch)
@@ -383,7 +459,9 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
                 progressed = True
         if not progressed:
             raise CompilationError("Không thể topo-sort plan")
-    expression = compiled[plan.output_node]
+    expression = _project_output_contract(
+        compiled[plan.output_node], plan, nodes, rank_state,
+    )
     _assert_select_only(expression)
     sql = expression.sql(dialect="duckdb")
     plan_hash = hashlib.sha256(plan.model_dump_json().encode("utf-8")).hexdigest()[:16]

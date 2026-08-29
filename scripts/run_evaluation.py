@@ -435,6 +435,10 @@ def main():
                         (response.planning.get("wording_repair") or {}).get("passed"),
                     ),
                     "loop_empty_result": bool(response.planning.get("empty_result")),
+                    # W13.3: nếu W13.1 đúng thì cột này bằng 0 trên mọi suite —
+                    # và một số 0 ĐO ĐƯỢC khác hẳn một nhánh không ai biết có
+                    # chạy hay không.
+                    "execution_failed": bool(response.planning.get("execution_error")),
                     # WP-B10 cần "? giây" cạnh "? USD"; timing đã có từ WP-A6 nên
                     # đây chỉ là chuyển nó ra tới bảng chi phí.
                     "seconds": round(
@@ -487,6 +491,7 @@ def main():
         name: sum(1 for row in first_run if row.get(f"loop_{name}"))
         for name in ("value_probe", "context_relax", "wording_repair", "empty_result")
     }
+    execution_error_fired = sum(1 for row in first_run if row.get("execution_failed"))
     expected_a19_rows = [row for row in rows if any(case["id"] == row["id"] and case.get("expected_rule", "").startswith("A19") for case in cases)]
     # Row không chấm được không được lẫn vào mẫu số của accuracy: chia cho
     # chúng là biến "chưa đo" thành "đo được và trượt".
@@ -507,7 +512,7 @@ def main():
         "plan_stability_rate": div(sum(len(ids) == 1 for ids in stability_cases), len(stability_cases)) if stability_cases else None,
         "complexity_classification_accuracy": div(sum(r["complexity_level"] == r["expected_complexity_level"] for r in complexity_rows), len(complexity_rows)) if complexity_rows else None,
         "escalation_rate": div(sum(r.get("escalation_mode") in {"critic", "nversion"} for r in rows), len(rows)),
-        "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)), "cheap_loops_fired": cheap_loops,
+        "abstention_precision": precision, "abstention_recall": recall, "abstention_f1": div(2 * precision * recall, precision + recall), "crash_rate": div(crashes, len(rows)), "cheap_loops_fired": cheap_loops, "execution_error_fired": execution_error_fired,
         "provider": args.provider,
         "median_seconds": (
             round(statistics.median([row["seconds"] for row in first_run if row.get("seconds")]), 4)
@@ -515,7 +520,6 @@ def main():
         ),
         "clarify_recovery_rate": clarify_recovery_rate,
         "clarify_recovery_cases": len(recovery_rows),
-        "placeholder_cases": placeholders,
         "placeholder_cases": placeholders,
         # WP-B1: cặp abstention_* ở trên chỉ đếm `abstain` nên mù hoàn toàn
         # với `clarify`. Giữ chúng để so chuỗi thời gian (B1-R1), thêm sáu

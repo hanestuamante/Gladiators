@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from gladiators.data.coverage import ARTIFACTS
 from gladiators.domain.tables import VIEW_NAMES
 
-from .compiler import CompiledQuery, assert_read_only_sql
+from .compiler import RANK_KEY_ALIAS, CompiledQuery, assert_read_only_sql
 
 
 ExecutionIssueCode = Literal[
@@ -129,6 +129,13 @@ class QueryExecutor:
                 boundary = frame.iloc[query.rank_limit - 1][column]
                 rank_tie_at_cut = bool(frame.iloc[query.rank_limit][column] == boundary)
             frame = frame.iloc[: query.rank_limit].reset_index(drop=True)
+            if RANK_KEY_ALIAS in frame.columns and RANK_KEY_ALIAS not in query.expected_columns:
+                # W13.2: cột kỹ thuật, không thuộc hợp đồng. Bỏ SAU tie
+                # detection — bỏ trước là lấy đi đúng thứ vừa được mang theo để
+                # phát hiện hoà, và thứ tự này là bắt buộc chứ không phải sở
+                # thích: tie detection đọc frame[rank_column], mà rank_column
+                # giờ chính là RANK_KEY_ALIAS.
+                frame = frame.drop(columns=[RANK_KEY_ALIAS])
         if not query.ordered and len(frame) > 1:
             # A grouped result with no Rank is a set, and DuckDB returns sets in
             # whatever order its hash table iterated -- observed differing between

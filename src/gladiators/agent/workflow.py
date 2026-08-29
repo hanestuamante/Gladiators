@@ -37,7 +37,10 @@ from gladiators.planner.synthesizer import (
 )
 from gladiators.planner.validator import validate_plan
 from gladiators.planner.consensus import ConsensusError, NVersionResolver
+from gladiators.planner.compiler import CompilationError
+from gladiators.planner.executor import ExecutionFailure
 from gladiators.planner.risk import EscalationConfig, score_plan
+import duckdb
 from gladiators.planner.critic import PlanCritic
 from .embedding import BGEIndex
 from .entity_resolution import EntityResolver, expected_entity_types
@@ -1544,7 +1547,39 @@ class AgentRuntime:
             timer.leave("plan")
             ctx = ToolContext(request=request, tools=tools, resolver=self.resolver, logical_plan=logical_plan)
             with timer.stage("execute"):
-                dispatch(tool_plan, ctx)
+                try:
+                    dispatch(tool_plan, ctx)
+                except (ExecutionFailure, CompilationError, duckdb.Error) as exc:
+                    # W13.3 · Fail-closed (bất biến #6): một plan không chạy được
+                    # là một lời TỪ CHỐI, không phải một traceback. Bắt ba lớp CÓ
+                    # KIỂU, không bắt Exception: nuốt mọi thứ biến một lỗi lập
+                    # trình thành một lời từ chối trông bình thường, và đó là
+                    # cách một hồi quy sống sót qua CI.
+                    decision = GateDecision(
+                        action="abstain", rule_id="A19-EXECUTION",
+                        reason="Kế hoạch không chạy được trên dữ liệu hiện tại.",
+                        answerable_alternative="Hãy hỏi lại với phạm vi hẹp hơn, "
+                                               "hoặc hỏi một chỉ số khác.",
+                    )
+                    # Không Evidence nào được đi tiếp: một plan hỏng giữa chừng
+                    # có thể đã ghi Evidence một phần, và trả nó ra là trả một
+                    # phần câu trả lời không ai kiểm.
+                    ctx.evidence = []
+                    tool_plan = ()
+                    issue = getattr(exc, "issue", None)
+                    planning_meta.update(
+                        outcome="execution_failed",
+                        # code/details CÓ KIỂU, không phải str(exc):
+                        # diagnose_refusals đọc khoá này, và một chuỗi tự do ở
+                        # đây làm W12 mất đúng lớp chẩn đoán nó tồn tại để cung
+                        # cấp.
+                        execution_error={
+                            "type": type(exc).__name__,
+                            "code": getattr(issue, "code", None),
+                            "message_key": getattr(issue, "message_key", None),
+                            "details": dict(getattr(issue, "details", {}) or {}),
+                        },
+                    )
             evidence, resolved_key = ctx.evidence, ctx.resolved_listing_key
             calls.extend(ctx.calls)
             partial = request.slots.get("partial_unsupported")
@@ -1570,12 +1605,25 @@ class AgentRuntime:
                 # picking the best seller, and the same reason the feasibility
                 # analyzer refuses an ambiguous grain rather than choosing one.
                 evidence = []
+                # W13.5: chiều lấy từ node Rank của plan, KHÔNG từ chuỗi câu hỏi
+                # — message từng ghi cứng "cao nhất" kể cả khi câu hỏi là "thấp
+                # nhất", đo được trên "Sản phẩm nào có điểm đánh giá thấp nhất
+                # tại Việt Nam?".
+                rank_descending = next(
+                    (
+                        node.descending
+                        for node in (logical_plan.nodes if logical_plan else ())
+                        if node.op == "Rank"
+                    ),
+                    True,
+                )
+                superlative = "cao nhất" if rank_descending else "thấp nhất"
                 decision = GateDecision(
                     action="abstain",
                     rule_id="A22-ALIGN-RANK-TIE",
-                    reason="Nhiều nhóm cùng đạt giá trị cao nhất nên không xếp hạng được; "
+                    reason=f"Nhiều nhóm cùng đạt giá trị {superlative} nên không xếp hạng được; "
                            "chọn một nhóm trong số đó sẽ là một câu trả lời tuỳ tiện.",
-                    answerable_alternative="Hãy hỏi danh sách các nhóm đạt mức cao nhất, "
+                    answerable_alternative=f"Hãy hỏi danh sách các nhóm đạt mức {superlative}, "
                                            "hoặc thêm tiêu chí phụ để phân định.",
                 )
             elif (
