@@ -42,14 +42,12 @@ def test_a_brand_count_binds_the_original_casing(runtime):
     assert 96 in values.values()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="W7: plan shop-filter tất định vẫn bị thang leo thang rủi ro chặn "
-           "(A19-PLAN); §18 ràng buộc 2 — W1 chỉ làm tên shop bind được, W7 mở "
-           "đường chạy.",
-)
 def test_a_shop_count_binds_the_shop_name(runtime):
-    """Richy - Chi nhánh Miền Nam, VN, 03/07 → allow · 120 (cần W7)."""
+    """Richy - Chi nhánh Miền Nam, VN, 03/07 → allow · 120.
+
+    W1 làm tên shop bind được thành predicate; W7 gỡ thang leo thang khỏi plan
+    tất định để nó được CHẠY. Hai mảnh của cùng một câu trả lời.
+    """
     response = runtime.run(
         'Có bao nhiêu listing của shop "Richy - Chi nhánh Miền Nam" '
         "tại Việt Nam ngày 03/07?",
@@ -59,13 +57,13 @@ def test_a_shop_count_binds_the_shop_name(runtime):
     assert 120 in values.values()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="W7: cùng đường thực thi bị chặn như positive control 120 — ca giao "
-           "rỗng chỉ nghiệm thu được sau khi hai control trả đúng số khác 0.",
-)
 def test_an_empty_intersection_is_a_result(runtime):
-    """Bibica **tại** shop Richy → allow · 0 — zero-row thật (cần W7)."""
+    """Bibica **tại** shop Richy → allow · 0 — zero-row THẬT.
+
+    Ca này chỉ có nghĩa vì hai positive control ở trên đã trả đúng 96 và 120:
+    nghiệm thu "không có kết quả cũng là một kết quả" bằng một số 0 mà chưa
+    chứng minh được hệ biết trả ra số khác 0 là nghiệm thu chính cái lỗi W1 sửa.
+    """
     response = runtime.run(
         "Có bao nhiêu listing của thương hiệu Bibica tại shop "
         '"Richy - Chi nhánh Miền Nam" tại Việt Nam ngày 03/07?',

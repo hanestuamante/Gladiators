@@ -1350,8 +1350,22 @@ class AgentRuntime:
                         if request.intent == "open_analytical"
                         else "L3" if analytical_kind == "top_shop_by_listing_count" else "L2"
                     )
+                    # W7.1: nhánh nào ĐÃ CHỌN plan thì nhánh đó cấp xuất xứ.
+                    # Không suy ngược bằng prefix của plan_id và không đọc từ
+                    # planning_meta["mode"] — dict đó chỉ được dựng SAU lời gọi
+                    # score_plan bên dưới.
+                    if planner_result is not None:
+                        plan_provenance = (
+                            "llm_ir" if planner_result.mode == "llm_semantic_plan"
+                            else planner_result.mode
+                        )
+                    elif synthesized is not None:
+                        plan_provenance = "deterministic_synthesis"
+                    else:
+                        plan_provenance = "deterministic_template"
                     risk = score_plan(
                         logical_plan, complexity_level=complexity_level,
+                        plan_provenance=plan_provenance,
                         config=EscalationConfig(
                             enable_critic=self.enable_critic, enable_nversion=self.enable_nversion,
                         ),
@@ -1367,6 +1381,26 @@ class AgentRuntime:
                         else "deterministic_template",
                         "plan_id": logical_plan.plan_id,
                         "ir_version": logical_plan.ir_version, "complexity_level": complexity_level,
+                        # W7.3: object `risk` là biểu diễn mới; bốn khoá phẳng
+                        # bên dưới giữ trong một chu kỳ tương thích cho consumer
+                        # hiện tại, và cả hai lấy từ CÙNG một QueryRiskResult.
+                        "risk": {
+                            "score": risk.score,
+                            "requested_mode": risk.requested_mode,
+                            "effective_mode": risk.effective_mode,
+                            "provenance": plan_provenance,
+                            # Khoá đếm số lần nhánh THẬT SỰ bắn (CLAUDE.md
+                            # §5.1.3): không có nó, "vị từ tất định đã mở khoá 4
+                            # câu" và "vị từ chưa bao giờ chạy" là hai bảng số
+                            # giống hệt nhau.
+                            "deterministic_bypass": {
+                                "applied": bool(
+                                    plan_provenance != "llm_ir"
+                                    and risk.reason.startswith("Plan tất định đạt")
+                                ),
+                                "reason": risk.reason,
+                            },
+                        },
                         "risk_score": risk.score, "requested_escalation": risk.requested_mode,
                         **({"attempts": branch_attempts} if branch_attempts else {}),
                         "escalation_mode": risk.effective_mode,

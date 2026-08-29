@@ -396,7 +396,14 @@ Thứ tự:
 2. deterministic template nếu phù hợp;
 3. LLM semantic planner nếu có provider;
 4. validator;
-5. risk escalation tùy cấu hình;
+5. risk escalation tùy cấu hình — **chỉ cho plan do mô hình sinh** (W7):
+   `score_plan(..., plan_provenance=...)`. Với plan tất định (synthesis,
+   template, macro đã chứng nhận) đạt `deterministic_plan_is_acceptable`, thang
+   leo thang không áp: thang tồn tại để review output của mô hình, và một plan
+   không có mô hình nào trong đó không có gì để một mô hình khác review. Vị từ
+   kiểm sáu tính chất trực tiếp trên plan (validator, đường quan hệ dài 1, ngân
+   sách join, dedupe trước aggregate, enrichment tĩnh không dùng như panel,
+   operator trong hợp đồng). Điểm rủi ro vẫn được tính và ghi trace;
 6. compiler;
 7. DuckDB executor;
 8. evidence builder.

@@ -303,24 +303,42 @@ def test_v2_analytical_eval_suite_has_unique_cases():
     assert len({case["id"] for case in suite}) == len(suite)
 
 
-def test_top_shop_query_is_fail_closed_while_critic_flag_is_off(tmp_path):
+def test_top_shop_query_runs_on_the_deterministic_predicate_with_critic_off(tmp_path):
+    """ĐỔI CONTRACT CÓ CHỦ ĐÍCH — W7 (SolutionSpec2808 §8.3.1).
+
+    Câu này trước đây fail-closed vì ``complexity_level == "L3"`` ép ``critic``
+    bất kể điểm rủi ro, và cờ critic tắt ⇒ blocked. Bật cờ cũng KHÔNG gỡ được:
+    nhánh critic ném "chưa có LLM provider hỗ trợ P9". Tức không cấu hình phát
+    hành nào trả lời được nó, trong khi plan template của nó là plan do NGƯỜI
+    viết và đã được chứng nhận — thang leo thang tồn tại để review plan do mô
+    hình sinh, và nó không có mô hình nào trong đó (§8.2).
+
+    Cờ critic VẪN tắt; thứ đổi là vị từ tất định, không phải một ngưỡng nới.
+    """
     runtime = AgentRuntime(trace_dir=tmp_path, enable_critic=False)
     response = runtime.run("Shop nào có nhiều listing nhất tại VN?")
     assert response.request.slots["analytical_kind"] == "top_shop_by_listing_count"
-    assert response.gate.action == "abstain"
-    assert response.gate.rule_id == "A19-PLAN"
+    assert response.gate.action == "allow"
+    assert runtime.enable_critic is False
+    assert response.planning["risk"]["provenance"] == "deterministic_template"
+    assert response.planning["risk"]["deterministic_bypass"]["applied"] is True
+    # complexity_level vẫn được tính và ghi trace: nó là quan sát về độ phức
+    # tạp, không phải quyết định về việc ai được review.
+    assert response.planning["complexity_level"] == "L3"
     assert response.planning["requested_escalation"] == "critic"
-    assert response.planning["escalation_mode"] == "blocked"
+    assert response.planning["escalation_mode"] == "single"
     assert response.verification["passed"] is True
 
 
-def test_top_shop_join_runs_after_critic_acceptance(tmp_path):
+def test_top_shop_join_gives_the_same_answer_whatever_the_critic_flag_says(tmp_path):
+    """W7: với plan tất định, bật/tắt critic không còn đổi kết quả — critic
+    không bao giờ chạy cho nó, nên ``planning["critic"]`` vắng mặt."""
     from gladiators.agent.llm import FakeLLMClient
     runtime = AgentRuntime(trace_dir=tmp_path, enable_critic=True, llm_client=FakeLLMClient())
     response = runtime.run("Shop nào có nhiều listing nhất tại VN?")
     assert response.gate.action == "allow"
-    assert response.planning["escalation_mode"] == "critic"
-    assert response.planning["critic"] == {"provider": "fake", "issues": []}
+    assert response.planning["escalation_mode"] == "single"
+    assert "critic" not in response.planning
     evidence = {item.metric: item for item in response.evidence}
     latest = runtime.repo.products.query("country_code == 'vn' and date == '2026-07-03'")
     expected_count = int(latest.groupby("shop_id").product_listing_key.nunique().max())
@@ -362,8 +380,25 @@ def test_plan_critic_issue_blocks_execution_without_tool_call(tmp_path):
                 "message": "Aggregate grain chưa đủ rõ.",
             }]}
 
-    runtime = AgentRuntime(trace_dir=tmp_path, enable_critic=True, llm_client=RejectingCriticClient())
-    response = runtime.run("Shop nào có nhiều listing nhất tại VN?")
+        def plan_analytical(self, payload):
+            # Plan hợp lệ, điểm rủi ro đủ để yêu cầu critic — mục đích của ca
+            # này là critic THẬT SỰ chạy rồi từ chối, không phải plan hỏng.
+            return _brand_rating_plan().model_dump(mode="json")
+
+    # W7 (SolutionSpec2808 §8.2): critic chỉ còn áp cho plan do MÔ HÌNH sinh —
+    # câu template cũ đi vị từ tất định và không bao giờ tới critic nữa. Hợp
+    # đồng "critic từ chối ⇒ chặn, KHÔNG tool call" vẫn phải được phủ, nên nó
+    # chuyển sang đúng nơi nó còn áp: đường llm_semantic_plan.
+    runtime = AgentRuntime(trace_dir=tmp_path, enable_critic=True,
+                           llm_client=RejectingCriticClient())
+    runtime.open_planner.use_synthesizer = False
+    # Câu L3: phải là câu THẬT SỰ yêu cầu critic, không phải câu chạy thẳng —
+    # một ca "critic từ chối" trên đường không có critic là một test xanh không
+    # kiểm gì (CLAUDE.md §5.1.3).
+    response = runtime.run("Brand nào có rating cao nhất theo từng danh mục tại VN?")
+    assert response.planning["mode"] == "llm_semantic_plan"
+    assert response.planning["risk"]["provenance"] == "llm_ir"
+    assert response.planning["risk"]["deterministic_bypass"]["applied"] is False
     assert response.gate.action == "abstain"
     assert response.gate.rule_id == "A19-PLAN"
     assert response.tool_calls == []
@@ -581,7 +616,9 @@ def test_a19_subrules_are_deterministic():
         assert classify_a19(request)[1] == expected_rule
 
 
-def test_open_planner_repairs_once_then_executes_validated_ir(tmp_path):
+def _brand_rating_plan() -> LogicalQueryPlan:
+    """Plan hợp lệ, hình Scan→Filter→Aggregate→Rank — dùng chung cho hai ca
+    đường llm_semantic_plan: vòng repair, và critic từ chối."""
     output = (
         OutputField(name="brand", type="string", semantic_ref="dim.brand"),
         OutputField(name="rating", type="number", semantic_ref="measure.rating"),
@@ -615,6 +652,11 @@ def test_open_planner_repairs_once_then_executes_validated_ir(tmp_path):
             ),
         ),
     )
+    return valid
+
+
+def test_open_planner_repairs_once_then_executes_validated_ir(tmp_path):
+    valid = _brand_rating_plan()
 
     class RepairingPlanner:
         provider, model, prompt_version = "test", "repair", "p8-test"

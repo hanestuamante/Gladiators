@@ -35,14 +35,21 @@ def test_a_branch_that_never_ran_says_so_with_a_reason(runtime):
             assert item["declined"], f"nhánh {item['branch']} không thử mà không nói vì sao"
 
 
-def test_a_risk_blocked_case_shows_the_synthesizer_actually_succeeded(runtime):
-    """Ca ans031: plan ĐÚNG và chạy được, thứ chặn là thang leo thang. Trước W12
-    nó không phân biệt được với một ca synthesizer bó tay — cùng A19-PLAN."""
+def test_the_case_the_ladder_used_to_block_now_answers(runtime):
+    """Ca ans031 — chính ca mà W12 dùng để chứng minh "plan ĐÚNG, thang chặn".
+
+    W12 làm cho lý do nhìn thấy được: ``attempts`` cho thấy synthesizer thành
+    công và không từ chối gì, nên A19-PLAN ở đây khác hẳn A19-PLAN của một ca
+    synthesizer bó tay. W7 gỡ nốt cái chặn. Hai khẳng định của W12 vẫn phải
+    đúng — nếu ``attempts`` mất đi thì lần chặn tiếp theo lại vô hình như cũ.
+    """
     response = runtime.run(
         "Có bao nhiêu listing của shop chính hãng tại Việt Nam ngày 03/07?",
     )
-    assert response.gate.action == "abstain"
-    assert response.planning["escalation_mode"] == "blocked"
+    assert response.gate.action == "allow"
+    assert 465 in [item.value for item in response.evidence]
+    assert response.planning["escalation_mode"] == "single"
+    assert response.planning["risk"]["deterministic_bypass"]["applied"] is True
     attempts = {item["branch"]: item for item in response.planning["attempts"]}
     assert attempts["synthesizer"]["tried"] is True
     assert attempts["synthesizer"]["declined"] == []

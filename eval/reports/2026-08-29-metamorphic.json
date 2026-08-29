@@ -5,19 +5,19 @@
   "cases": 44,
   "checks": 308,
   "totals": {
-    "pass": 122,
-    "fail": 8,
-    "skip": 174,
+    "pass": 124,
+    "fail": 10,
+    "skip": 170,
     "suspect": 4
   },
-  "metamorphic_consistency_rate": 0.9104,
+  "metamorphic_consistency_rate": 0.8986,
   "by_relation": {
     "MR-1": {
-      "pass": 18,
-      "fail": 8,
+      "pass": 16,
+      "fail": 10,
       "skip": 18,
       "suspect": 0,
-      "rate": 0.6923
+      "rate": 0.6154
     },
     "MR-3": {
       "pass": 0,
@@ -48,11 +48,11 @@
       "rate": 1.0
     },
     "MR-7": {
-      "pass": 14,
+      "pass": 18,
       "fail": 0,
-      "skip": 26,
+      "skip": 22,
       "suspect": 4,
-      "rate": 0.7778
+      "rate": 0.8182
     },
     "MR-8": {
       "pass": 0,
@@ -122,18 +122,36 @@
       "relation": "MR-1",
       "kind": "invariant",
       "verdict": "fail",
-      "reason": "action abstain → clarify",
+      "reason": "action allow → clarify",
       "question": "Có bao nhiêu shop chính hãng ở Việt Nam?",
       "variant": "Số lượng shop chính hãng ở Việt Nam là bao nhiêu?"
+    },
+    {
+      "case": "ans032",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action allow → abstain",
+      "question": "Có bao nhiêu listing của shop chính hãng tại Việt Nam ngày 03/07?",
+      "variant": "Số lượng listing của shop chính hãng tại Việt Nam ngày 03/07 là bao nhiêu?"
     },
     {
       "case": "ans033",
       "relation": "MR-1",
       "kind": "invariant",
       "verdict": "fail",
-      "reason": "action abstain → clarify",
+      "reason": "action allow → clarify",
       "question": "Có bao nhiêu shop chính hãng ở Indonesia?",
       "variant": "Số lượng shop chính hãng ở Indonesia là bao nhiêu?"
+    },
+    {
+      "case": "ans034",
+      "relation": "MR-1",
+      "kind": "invariant",
+      "verdict": "fail",
+      "reason": "action allow → abstain",
+      "question": "Có bao nhiêu listing của shop chính hãng tại Indonesia ngày 03/07?",
+      "variant": "Số lượng listing của shop chính hãng tại Indonesia ngày 03/07 là bao nhiêu?"
     }
   ],
   "suspects": [

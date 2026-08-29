@@ -301,8 +301,17 @@ def test_dimension_named_in_question_must_not_be_dropped_by_the_plan(responses):
     # The wrong answer and the right one differ by 203 listings, so a regression
     # that re-allows the template is not a rounding difference.
     assert oracle["vn_all_listings"] != oracle["vn_official_shop_listings"]
-    assert response.gate.action != "allow"
+    # W7 (SolutionSpec2808 §8.7): plan tất định đã lọc đúng chiều từ đầu — thứ
+    # chặn nó là thang leo thang, không phải một lỗ hổng ngữ nghĩa. Hợp đồng
+    # giữ NGUYÊN nghĩa ("chiều được nêu không bị bỏ"); thứ đổi là cách chứng
+    # minh nó: trước đây chỉ chứng minh được bằng một lời từ chối, nay chứng
+    # minh được bằng chính con số đã lọc.
     assert str(oracle["vn_all_listings"]) not in answer_text(response)
+    if response.gate.action == "allow":
+        assert any(
+            item.value == oracle["vn_official_shop_listings"]
+            for item in response.evidence
+        ), "allow thì phải allow con số ĐÃ LỌC, không phải tổng thị trường"
 
 
 @contract_test("p0-date-point-substituted")

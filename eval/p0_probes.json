@@ -266,20 +266,38 @@
       "expected_state": "green",
       "red_reason": null,
       "baseline": {
-        "action": "abstain",
-        "rule_id": "A19-PLAN",
+        "action": "allow",
+        "rule_id": "A-ALLOW",
         "request_countries": [
           "vn"
         ],
         "planning": {
           "mode": "deterministic_synthesis",
           "plan_id": "synth:derived.product_count:count:nogroup:none:vn:2026-07-03:belongs_to:1.1",
-          "semantic_refs": []
+          "semantic_refs": [
+            "derived.product_count",
+            "dim.country",
+            "dim.date",
+            "dim.shop_official",
+            "entity.product_listing"
+          ]
         },
-        "evidence": [],
-        "n_claims": 0,
+        "evidence": [
+          {
+            "metric": "listing_count",
+            "value": 465,
+            "unit": "listings",
+            "attrs": {
+              "country": "vn",
+              "observed_date": "2026-07-03"
+            }
+          }
+        ],
+        "n_claims": 1,
         "answer_markers": [
-          "Không thể trả lời"
+          "Kết quả",
+          "Phạm vi",
+          "Cách tính"
         ],
         "answer_absent": [
           "668"
@@ -288,12 +306,12 @@
       "contract": {
         "statement": "action != allow while the plan ignores a dimension named in the question"
       },
-      "observed_note": "Was ALLOW returning 668 — the unfiltered VN total — for a question whose true answer is 465 (203-listing overcount). Two sibling questions ('thương hiệu NESCAFÉ', 'theo từng shop') returned the same 668, which is what makes this a silent wrong answer rather than an imprecise one. The plan is unchanged; the grouping_dropped check in check_plan_alignment blocks it. Answering properly needs a group-by/filter the listing_count template does not have, which is P4 synthesizer scope. Note answer_absent pins '668' so a regression that re-allows the wrong number fails here even if the rule_id changes.",
-      "fixed_in": "P1 §4.4 grouping coverage",
-      "fixed_at": "2026-08-01",
-      "expected_action": "clarify",
+      "observed_note": "Was ALLOW returning 668 — the unfiltered VN total — for a question whose true answer is 465 (203-listing overcount). Two sibling questions ('thương hiệu NESCAFÉ', 'theo từng shop') returned the same 668, which is what makes this a silent wrong answer rather than an imprecise one. The plan is unchanged; the grouping_dropped check in check_plan_alignment blocks it. Answering properly needs a group-by/filter the listing_count template does not have, which is P4 synthesizer scope. Note answer_absent pins '668' so a regression that re-allows the wrong number fails here even if the rule_id changes. W7 (SolutionSpec2808 §8): fixture này trước đây TỰ MÂU THUẪN — khai expected_action='clarify'/A22-ALIGN-GROUPING trong khi baseline trong chính nó ghi abstain/A19-PLAN, và runtime khớp baseline. Plan tất định đã đúng từ đầu (465, khớp oracle độc lập); thứ chặn nó là thang leo thang rủi ro áp cho một plan không có mô hình nào trong đó. answer_absent giữ '668' để một hồi quy trả lại con số sai cũ vẫn đỏ ở đây.",
+      "fixed_in": "W7 §8 — vị từ chấp nhận tất định",
+      "fixed_at": "2026-08-29",
+      "expected_action": "allow",
       "allowed_rule_ids": [
-        "A22-ALIGN-GROUPING"
+        "A-ALLOW"
       ],
       "expected_plan_properties": {
         "countries": [
