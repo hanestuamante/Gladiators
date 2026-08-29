@@ -584,9 +584,9 @@ Hash chốt từ scripts/verify_metadata_bindings.py:
 | table | a3f67e54a1f181c4 |
 | catalog | 7e448513d3c60b20 |
 | relation | 2b7e06170852ab14 |
-| metric | b906688ffa6ecb55 |
+| metric | 73389566248e9c5a |
 | invariant | f0ef05c393b16b9c |
-| binding | 4d27637768639fb1 |
+| binding | af72fd962caee96e |
 
 Hash là bằng chứng trạng thái, không phải hằng số nghiệp vụ. Registry đổi hợp lệ
 thì hash phải đổi và tài liệu/release proof phải được cập nhật.
@@ -1034,6 +1034,7 @@ site.
 | A-VALUE-NOT-FOUND | Giá trị dimension được nêu không có trong index |
 | A-EMPTY-RESULT-RELAXED | Chỉ có kết quả sau khi nới sai điều kiện |
 | A-EMPTY-RESULT-UNVERIFIED | Zero-row nhưng không chứng minh được bộ lọc đã chạy đúng giá trị được nêu (W1.8); fixable=False |
+| A19-VALUE-CLASS | Giá trị quyết định câu trả lời rơi vào một quy tắc chất lượng dữ liệu CHƯA ĐƯỢC DUYỆT (W14.3); fixable=False |
 | A-MACRO-EVIDENCE-CONTRACT | Dự kiến chặn evidence sai contract macro; nhánh allow hiện chưa tới được mã này |
 | A-NO-EVIDENCE | Không có evidence đủ dùng |
 | A-INSUFFICIENT-SNAPSHOTS | Không đủ snapshot |

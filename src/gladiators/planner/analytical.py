@@ -5,6 +5,7 @@ Các template này dành cho L0–L2 phổ biến, không gọi LLM. Câu ngoài
 """
 from __future__ import annotations
 
+from gladiators.domain.metrics import approved_exclusion_predicates
 from .query_ir import LogicalQueryPlan, OutputField, PlanNode, Predicate
 from .semantic_parser import AnalyticalRequest
 
@@ -88,7 +89,8 @@ def _price_change_by_date(kind: str, country: str) -> LogicalQueryPlan:
                 node_id="n2", op="Filter", inputs=("n1",), predicates=(
                     Predicate(ref="dim.country", op="eq", parameter="country", value=country),
                     Predicate(ref="measure.price", op="gte", parameter="price_floor", value=0),
-                    Predicate(ref="measure.price", op="lt", parameter="price_sentinel", value=999999999),
+                    *(Predicate(ref=ref, op=op, parameter="price_sentinel", value=value)
+                      for ref, op, value in approved_exclusion_predicates("measure.price")),
                 ), input_grain="listing_snapshot", output_grain="listing_snapshot",
                 expected_schema=output, expected_cardinality="<=2046",
             ),
@@ -188,8 +190,10 @@ def _highest_listing(kind: str, country: str) -> LogicalQueryPlan:
         Predicate(ref="dim.date", op="eq", parameter="date", value="2026-07-03"),
         Predicate(ref=metric_ref, op="gte", parameter="metric_floor", value=0),
     ]
-    if kind == "highest_price_listing":
-        predicates.append(Predicate(ref="measure.price", op="lt", parameter="price_sentinel", value=999999999))
+    # W14.2: gắn theo METRIC_REF, không theo kind — cùng một luật cho
+    # lowest_price_listing và mọi kind khác dùng cùng measure.
+    for ref, op, value in approved_exclusion_predicates(metric_ref):
+        predicates.append(Predicate(ref=ref, op=op, parameter="price_sentinel", value=value))
     return LogicalQueryPlan(
         plan_id=f"analytical:{kind}:{country}:1.0", time_scope=("2026-07-03",),
         output_node="n4", requested_output_shape=output,

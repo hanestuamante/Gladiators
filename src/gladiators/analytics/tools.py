@@ -33,6 +33,112 @@ class _CachedExecution:
 
 
 
+
+
+def _count_excluded_rows(plan, compiled, repo) -> dict[str, int]:
+    """Số dòng mà predicate loại lớp giá trị đã bỏ đi, theo từng ref.
+
+    Đếm bằng cách chạy lại đúng phạm vi lọc KHÔNG có predicate loại — nếu chỉ
+    trừ hai con số tổng thì mọi predicate khác của câu hỏi cũng bị tính vào ``k``
+    và con số nêu ra sẽ mô tả sai thứ đã xảy ra.
+    """
+    from gladiators.domain.metrics import matches_value_class, value_class_rules_for
+
+    if not compiled.exclusion_predicate_refs:
+        return {}
+    counts: dict[str, int] = {}
+    for ref in compiled.exclusion_predicate_refs:
+        column = _physical_column_of(ref)
+        if column is None or column not in repo.products.columns:
+            continue
+        scope = repo.products
+        for node in plan.nodes:
+            for predicate in node.predicates:
+                if predicate.ref == "dim.country" and predicate.op == "eq":
+                    scope = scope[scope.country_code == predicate.value]
+                elif predicate.ref == "dim.date" and predicate.op == "eq":
+                    scope = scope[scope.date == predicate.value]
+        approved = [
+            rule for rule in value_class_rules_for(ref) if rule.decision_id is not None
+        ]
+        hit = sum(
+            1 for value in scope[column].dropna().tolist()
+            if any(matches_value_class(rule, value) for rule in approved)
+        )
+        if hit:
+            counts[ref] = hit
+    return counts
+
+
+def _physical_column_of(ref: str) -> str | None:
+    from gladiators.domain.catalog import CATALOG
+
+    obj = CATALOG.get(ref)
+    for physical in getattr(obj, "physical", ()) or ():
+        if physical.startswith("products_clean.csv."):
+            return physical.split(".")[-1]
+    return None
+
+
+def _value_class_report(plan, compiled, result) -> dict:
+    """Giá trị BIÊN của kết quả có rơi vào một luật CHƯA DUYỆT không (W14.3).
+
+    Chỉ đọc những dòng ĐÃ được lấy về — không quét thêm dữ liệu. "Biên" định
+    nghĩa theo hình plan:
+
+    - có ``Rank``: các dòng trong frame sau khi cắt, cộng dòng executor vẫn giữ
+      để chấm hoà;
+    - có ``Aggregate`` với ``max``/``min``: chính dòng kết quả;
+    - ``median``/``mean``/``sum``/``count``/``share``: KHÔNG kiểm. Trung vị bền
+      với đuôi — chặn nó lấy đi năng lực mà không đổi được con số nào.
+    """
+    from gladiators.domain.metrics import matches_value_class, value_class_rules_for
+
+    aggregations = {
+        node.aggregation for node in plan.nodes
+        if node.op == "Aggregate" and node.aggregation
+    }
+    has_rank = any(node.op == "Rank" for node in plan.nodes)
+    if not has_rank and not (aggregations & {"max", "min"}):
+        return {}
+
+    frame = result.frame
+    if frame.empty:
+        return {}
+
+    checked: list[str] = []
+    hits: list[dict] = []
+    columns_by_ref = {
+        field.semantic_ref: field.name
+        for field in plan.requested_output_shape if field.semantic_ref
+    }
+    for ref, column in columns_by_ref.items():
+        rules = value_class_rules_for(ref)
+        if not rules or column not in frame.columns:
+            continue
+        checked.append(ref)
+        for rule in rules:
+            companion_column = columns_by_ref.get(rule.companion_ref or "")
+            for row_index, value in enumerate(frame[column].tolist()):
+                companion = (
+                    frame[companion_column].tolist()[row_index]
+                    if companion_column in frame.columns else None
+                ) if companion_column else None
+                if not matches_value_class(rule, value, companion):
+                    continue
+                hits.append({
+                    "ref": ref, "rule_id": rule.rule_id, "value": float(value),
+                    "row_index": row_index, "approved": rule.decision_id is not None,
+                })
+    return {
+        "checked_refs": sorted(checked),
+        "boundary_hits": hits,
+        # Khoá đếm bắt buộc (§0.3 ô 4): không có nó, "chưa bao giờ có ca nào" và
+        # "nhánh chưa bao giờ chạy" là hai bảng số giống hệt nhau.
+        "blocked": any(not hit["approved"] for hit in hits),
+    }
+
+
 def _literal_verified(predicate, country: str) -> bool:
     """Literal của predicate đã được chứng minh tồn tại trong value index chưa.
 
@@ -475,6 +581,14 @@ class AnalyticsTools:
             "postconditions_passed": len(result.postconditions),
             "has_invariants": bool(output_node.invariants),
         }
+        # W14.3: cùng chỗ rank_tie_at_cut được đọc — sau execute, TRƯỚC khi
+        # dựng Evidence.
+        self.last_value_class = _value_class_report(plan, compiled, result)
+        # W14.4: bao nhiêu dòng bị loại thì phải nói ra bấy nhiêu. Đếm THẬT trên
+        # cùng phạm vi lọc, không suy từ hằng số.
+        excluded_by_value_class = _count_excluded_rows(plan, compiled, self.repo)
+        if excluded_by_value_class:
+            execution_attrs["excluded_by_value_class"] = excluded_by_value_class
         if result.rank_tie_at_cut:
             # A tie straddling the cut means different things at different
             # limits. At limit 1 the question asks which single row is highest

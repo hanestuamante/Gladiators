@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from typing import Literal, TypedDict, get_args
 
 from gladiators.domain.catalog import CATALOG
+from gladiators.domain.metrics import approved_exclusion_predicates
 from gladiators.domain.qualifiers import QUALIFIERS
 from gladiators.domain.relations import (
     ENTITY_BY_RIGHT_SOURCE,
@@ -474,10 +475,14 @@ def synthesize(
             remote_predicates.append(predicate)
         else:
             predicates.append(predicate)
-    if measure_ref == "measure.price":
-        # §4.8: never rank or aggregate a price without dropping the sentinel.
+    # W14.2: luật đã DUYỆT của BẤT KỲ measure nào đều thành predicate, theo cùng
+    # một đường. Trước đây một measure được bảo vệ bằng một câu `if` còn tám
+    # measure kia không, và không ai thấy sự chênh đó vì nó không phải một hàng
+    # trong bảng. Measure chưa khai luật nào thì không có predicate nào — y hệt
+    # hôm nay, nên không measure nào đổi hành vi vì bản thân thay đổi này.
+    for ref, op, value in approved_exclusion_predicates(measure_ref):
         predicates.append(Predicate(
-            ref="measure.price", op="lt", parameter="price_sentinel", value=PRICE_SENTINEL,
+            ref=ref, op=op, parameter="price_sentinel", value=value,
         ))
 
     nodes: list[PlanNode] = [

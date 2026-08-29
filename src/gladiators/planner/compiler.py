@@ -13,6 +13,7 @@ import sqlglot
 from sqlglot import exp
 
 from gladiators.domain.catalog import CATALOG, counting_column
+from gladiators.domain.metrics import approved_exclusion_predicates
 from gladiators.domain.relations import RELATIONS
 from gladiators.domain.tables import VIEW_NAMES
 
@@ -43,6 +44,9 @@ class CompiledQuery:
     # phá caller cũ dựng CompiledQuery bằng tay.
     planned_predicate_count: int = 0
     executed_predicate_count: int = 0
+    # W14.4: ref nào đã có predicate loại lớp giá trị ĐÃ DUYỆT. Câu trả lời dựa
+    # trên n−k dòng mà không nói k là câu trả lời không tái lập được.
+    exclusion_predicate_refs: tuple[str, ...] = ()
 
 
 # §E1/§E2: tên view và join key KHÔNG còn được khai ở đây. Mọi thứ vật lý đến từ
@@ -510,4 +514,12 @@ def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
         rank_limit=rank_state.get("limit"),
         planned_predicate_count=planned_predicates,
         executed_predicate_count=counters["executed"],
+        exclusion_predicate_refs=tuple(sorted({
+            predicate.ref
+            for node in plan.nodes for predicate in node.predicates
+            if any(
+                predicate.ref == ref and predicate.op == op and predicate.value == value
+                for ref, op, value in approved_exclusion_predicates(predicate.ref)
+            )
+        })),
     )

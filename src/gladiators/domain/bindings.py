@@ -135,7 +135,25 @@ def _relation_payload(relations: Mapping[str, RelationSpec]) -> list[dict[str, o
     return payload
 
 
-def _metric_payload(metrics: Mapping[str, MetricSpec]) -> list[dict[str, object]]:
+def _metric_payload(metrics: Mapping[str, MetricSpec]) -> dict[str, object]:
+    """Spec metric + registry lớp giá trị.
+
+    W14.1: ``VALUE_CLASS_RULES`` quyết định dòng nào bị loại khỏi một measure,
+    tức nó là một phần ĐỊNH NGHĨA metric. Không băm nó vào đây thì một lần đổi
+    luật đi qua CI mà không hash nào đổi — và hash tồn tại chính để chặn điều đó.
+    """
+    from .metrics import VALUE_CLASS_RULES
+
+    return {"specs": _metric_specs_payload(metrics), "value_class_rules": [
+        {"rule_id": rule.rule_id, "ref": rule.ref, "kind": rule.kind,
+         "value_class": rule.value_class, "min_digits": rule.min_digits,
+         "values": list(rule.values), "companion_ref": rule.companion_ref,
+         "decision_id": rule.decision_id}
+        for rule in sorted(VALUE_CLASS_RULES, key=lambda item: item.rule_id)
+    ]}
+
+
+def _metric_specs_payload(metrics: Mapping[str, MetricSpec]) -> list[dict[str, object]]:
     return [
         {
             "name": spec.name, "grain": spec.grain, "unit": spec.unit,

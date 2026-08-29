@@ -782,6 +782,16 @@ class AgentRuntime:
                     if metric.metric == "monthly_sold" else
                     "Kết quả ở cấp listing; giá sentinel và giá không hợp lệ đã bị loại trước khi xếp hạng."
                 )
+                # W14.4: nêu ĐÚNG số dòng đã loại. Một câu trả lời dựa trên n−k
+                # dòng mà không nói k là một câu trả lời không tái lập được. Con
+                # số này có evidence hậu thuẫn (attrs), nên nó không phải một
+                # chữ số bịa theo nghĩa của verifier.
+                excluded = metric.attrs.get("excluded_by_value_class") or {}
+                if excluded:
+                    total_excluded = sum(int(value) for value in excluded.values())
+                    limitation += (
+                        f" Số dòng bị loại vì giá trị không phải một phép đo: {total_excluded}."
+                    )
                 scope_evidence = metric
             else:
                 result_count = by_metric.get("result_count")
@@ -1637,8 +1647,26 @@ class AgentRuntime:
                     rule_id="A22-ALIGN-SUBREQUEST",
                     reason="Đã trả phần có evidence; phần ngoài dữ liệu được nêu riêng.",
                 )
+            value_class = getattr(tools, "last_value_class", None) or {}
+            if value_class:
+                planning_meta["value_class"] = value_class
             if ctx.clarify is not None:
                 decision = ctx.clarify
+            elif decision.action == "allow" and value_class.get("blocked"):
+                # W14.3: giá trị quyết định câu trả lời rơi vào một luật chất
+                # lượng dữ liệu CHƯA ĐƯỢC DUYỆT. Không khẳng định nó là rác —
+                # chỉ khẳng định chưa ai quyết định nó là gì. Không chữ số
+                # trong message (CLAUDE.md §3.1).
+                evidence = []
+                decision = GateDecision(
+                    action="abstain", rule_id="A19-VALUE-CLASS",
+                    reason="Giá trị quyết định câu trả lời này là một giá trị mà quy "
+                           "tắc chất lượng dữ liệu chưa được duyệt: chưa xác định "
+                           "được nó là một mức giá thật hay một ô để trống. Trả lời "
+                           "bằng nó sẽ là một con số không ai kiểm được.",
+                    answerable_alternative="Hãy hỏi một chỉ số khác, hoặc hỏi mức "
+                                           "phổ biến thay vì giá trị cực trị.",
+                )
             elif decision.action == "allow" and evidence and any(
                 item.attrs.get("rank_tie_at_cut") for item in evidence
             ):

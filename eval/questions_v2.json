@@ -209,7 +209,8 @@
         "5"
       ]
     },
-    "expected_rule": "A22-ALIGN-RANK-TIE"
+    "expected_rule": "A19-VALUE-CLASS",
+    "expected_rule_note": "W14: hai dòng giá cao nhất ở ID là [ FREE GIFT ] 999999999 và [GIVEAWAY] 9999999 — giá trị giữ chỗ, không phải mức giá. Hoà ở mép cắt là TRIỆU CHỨNG; nguyên nhân là giá trị quyết định câu trả lời chưa được phân loại. Trước W14 lý do đúng chỉ đúng do trùng hợp: nếu chỉ có MỘT dòng giữ chỗ, hệ sẽ allow nó như một mức giá thật."
   },
   {
     "id": "v2q08",

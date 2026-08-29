@@ -21,6 +21,41 @@ ConstraintOp = Literal["eq", "ne", "lt", "lte", "gt", "gte", "in"]
 NullPolicy = Literal["exclude", "false", "propagate"]
 
 
+ValueClass = Literal[
+    "measurement",       # giá trị là một phép đo thật (mặc định, không đổi gì)
+    "placeholder",       # ô "không có giá trị" được điền bằng một số
+    "display_ceiling",   # trần hiển thị của sàn: giá trị thật >= số này
+    "no_observation",    # null bị mã hoá thành 0 (chưa ai đánh giá, chưa ai thích)
+]
+
+
+class ValueClassError(ValueError):
+    """Registry lớp giá trị tự mâu thuẫn — nổ lúc import, không lúc chạy."""
+
+
+@dataclass(frozen=True)
+class ValueClassRule:
+    """Luật nhận ra một giá trị KHÔNG phải phép đo.
+
+    ``repdigit_nine`` khớp một số nguyên dương mà MỌI chữ số đều là 9 và có ít
+    nhất ``min_digits`` chữ số. Luật theo ĐẶC TÍNH, nên nó sống sót qua một lần
+    làm mới dữ liệu; một danh sách ID thì không.
+
+    ``decision_id is None`` nghĩa là ĐÃ PHÁT HIỆN, CHƯA DUYỆT: luật đó không
+    được loại dòng nào — loại dòng là đổi định nghĩa metric, và đó là quyết
+    định của chủ dữ liệu, không phải của code.
+    """
+
+    rule_id: str
+    ref: str
+    kind: Literal["repdigit_nine", "equals", "companion_is_zero"]
+    value_class: ValueClass
+    min_digits: int | None = None
+    values: tuple[float, ...] = ()
+    companion_ref: str | None = None
+    decision_id: str | None = None      # None = ĐÃ PHÁT HIỆN, CHƯA DUYỆT
+
+
 @dataclass(frozen=True)
 class MetricConstraint:
     """Filter thuộc ĐỊNH NGHĨA metric, không phải predicate của người hỏi.
@@ -549,3 +584,93 @@ def impact_of(metric: str) -> MetricImpact:
 
 def effective_caveats(metric: str) -> tuple[tuple[str, str], ...]:
     return METRIC_GRAPH.effective_caveats(metric)
+
+
+# --- Lớp giá trị (W14.1, SolutionSpec2808 §15.5) ---------------------------
+#
+# Một hằng số `PRICE_SENTINEL` trong source bảo vệ ĐÚNG MỘT measure, tám measure
+# còn lại không được bảo vệ, và không ai thấy sự chênh đó vì nó là một câu `if`
+# chứ không phải một hàng trong bảng. Registry này biến nó thành bảng.
+VALUE_CLASS_RULES: tuple[ValueClassRule, ...] = (
+    # Hằng số đang chạy, di trú NGUYÊN VĂN. decision_id ghi đúng xuất xứ của nó
+    # — một literal trong source, không phải một quyết định có chữ ký. Ghi như
+    # vậy để lần review đầu tiên nhìn thấy sự thật đó.
+    ValueClassRule("price-sentinel-legacy", "measure.price", "equals",
+                   "placeholder", values=(999_999_999,),
+                   decision_id="legacy-source-literal"),
+    # PHÁT HIỆN, CHƯA DUYỆT: decision_id=None ⇒ KHÔNG loại dòng nào, chỉ chặn
+    # câu trả lời mà giá trị biên rơi vào đây (§15.7).
+    ValueClassRule("price-repdigit-nine", "measure.price", "repdigit_nine",
+                   "placeholder", min_digits=7, decision_id=None),
+    ValueClassRule("price-original-repdigit-nine", "measure.price_original",
+                   "repdigit_nine", "placeholder", min_digits=7, decision_id=None),
+    ValueClassRule("rating-no-observation", "measure.rating", "companion_is_zero",
+                   "no_observation", companion_ref="measure.rating_count",
+                   decision_id=None),
+)
+
+
+def _check_value_class_rules(rules: tuple[ValueClassRule, ...]) -> None:
+    """Kiểm phần KHÔNG cần catalog. Phần cần catalog kiểm ở ``catalog.py`` ngay
+    sau khi ``CATALOG`` dựng xong — catalog import module này, nên kiểm ref ở
+    đây là một vòng import, và một kiểm chạy muộn hơn import là một kiểm không
+    tồn tại với người vừa gõ sai một ref."""
+    seen: set[str] = set()
+    for rule in rules:
+        if rule.rule_id in seen:
+            raise ValueClassError(f"rule_id trùng: {rule.rule_id}")
+        seen.add(rule.rule_id)
+        if rule.kind == "repdigit_nine" and (rule.min_digits or 0) < 3:
+            raise ValueClassError(f"{rule.rule_id}: repdigit_nine cần min_digits >= 3")
+        if rule.kind == "equals" and not rule.values:
+            raise ValueClassError(f"{rule.rule_id}: equals cần values không rỗng")
+        if rule.kind == "companion_is_zero" and rule.companion_ref is None:
+            raise ValueClassError(f"{rule.rule_id}: companion_is_zero cần companion_ref")
+
+
+def matches_value_class(rule: ValueClassRule, value: object,
+                        companion: object | None = None) -> bool:
+    """Giá trị này có rơi vào luật không. Không đọc tiêu đề, không đoán nghiệp vụ."""
+    if rule.kind == "companion_is_zero":
+        try:
+            return float(companion) == 0.0 if companion is not None else False
+        except (TypeError, ValueError):
+            return False
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return False
+    if rule.kind == "equals":
+        return any(number == float(item) for item in rule.values)
+    # repdigit_nine: nguyên dương, mọi chữ số đều là 9, đủ số chữ số.
+    if number <= 0 or number != int(number):
+        return False
+    digits = str(int(number))
+    return len(digits) >= (rule.min_digits or 0) and set(digits) == {"9"}
+
+
+def value_class_rules_for(ref: str) -> tuple[ValueClassRule, ...]:
+    return tuple(rule for rule in VALUE_CLASS_RULES if rule.ref == ref)
+
+
+def approved_exclusion_predicates(ref: str) -> tuple[tuple[str, str, object], ...]:
+    """``(ref, op, value)`` cho những luật ĐÃ DUYỆT của một measure.
+
+    Chỉ luật có ``decision_id`` mới thành predicate. Với registry khởi tạo, hàm
+    trả đúng ``price < 999999999`` cho ``measure.price`` và RỖNG cho mọi ref
+    khác — tức không measure nào đổi hành vi vì bản thân thay đổi này.
+
+    Trả tuple thuần thay vì ``Predicate`` để ``domain`` không phụ thuộc
+    ``planner``; call site dựng object của tầng nó.
+    """
+    predicates: list[tuple[str, str, object]] = []
+    for rule in VALUE_CLASS_RULES:
+        if rule.ref != ref or rule.decision_id is None:
+            continue
+        if rule.kind == "equals":
+            for value in rule.values:
+                predicates.append((ref, "lt", value))
+    return tuple(predicates)
+
+
+_check_value_class_rules(VALUE_CLASS_RULES)

@@ -588,6 +588,15 @@ def test_validator_requires_price_sentinel_filter_before_l4_aggregate():
     )
 
 
+# ĐỔI CONTRACT CÓ CHỦ ĐÍCH — W14 (SolutionSpec2808 §15). Đo trên dữ liệu thật:
+# ``MAX(price_original)`` theo brand ở Indonesia trả 9 999 999 cho HAI brand —
+# một giá trị giữ chỗ mà quy tắc chất lượng dữ liệu chưa ai duyệt. Trước W14 ca
+# này khẳng định ``allow``, tức khẳng định một bảng có hai ô giữ chỗ nằm giữa
+# các giá trị thật là một câu trả lời. Không có lớp nào phía sau bắt được: tie
+# detector chỉ sống trên đường Rank.
+VALUE_CLASS_BLOCKED_L4 = {"l4c04"}
+
+
 @pytest.mark.parametrize(
     "case",
     json.loads(Path("eval/l4_acceptance.json").read_text(encoding="utf-8")),
@@ -619,6 +628,7 @@ def test_independent_l4_oracle_matches_validated_fixture_plan(case):
     json.loads(Path("eval/l4_acceptance.json").read_text(encoding="utf-8")),
     ids=lambda case: case["id"],
 )
+
 def test_composite_l4_runs_two_blinded_agreeing_planners(case, tmp_path):
     plan = _l4_brand_plan(case["country"], case["measures"])
 
@@ -635,11 +645,18 @@ def test_composite_l4_runs_two_blinded_agreeing_planners(case, tmp_path):
     response = AgentRuntime(
         trace_dir=tmp_path, llm_client=AgreeingL4Planner(), enable_nversion=True,
     ).run(case["question"])
-    assert response.gate.action == "allow"
+    # Cơ chế L4 (hai planner bịt mắt, không bất đồng) phải đúng cho MỌI ca —
+    # kể cả ca bị chặn ở lớp sau, nếu không "cơ chế chạy" và "cơ chế không bao
+    # giờ tới lượt" là hai bảng số giống hệt nhau.
     assert response.planning["complexity_level"] == "L4"
     assert response.planning["escalation_mode"] == "nversion"
     assert response.planning["nversion"]["plan_disagreement"] is False
     assert set(case["measures"]).issubset({
         field.semantic_ref for field in plan.requested_output_shape
     })
+    if case["id"] in VALUE_CLASS_BLOCKED_L4:
+        assert response.gate.action == "abstain"
+        assert response.gate.rule_id == "A19-VALUE-CLASS"
+        return
+    assert response.gate.action == "allow"
     assert response.evidence and response.verification["passed"] is True

@@ -6,10 +6,11 @@ Catalog ánh xạ semantic refs sang cột vật lý. Planner chỉ thấy refs;
 """
 from __future__ import annotations
 
+
 from dataclasses import dataclass, replace
 from typing import Literal
 
-from .metrics import METRICS
+from .metrics import METRICS, VALUE_CLASS_RULES
 from .tables import PhysicalColumnRef, TableRegistryError, parse_physical
 
 CatalogKind = Literal["entity", "dimension", "measure", "derived_metric", "context"]
@@ -427,6 +428,16 @@ for _unit_ref, _dim_ref in VALUE_DIMENSION_BY_UNIT.items():
         raise CatalogError(
             f"VALUE_DIMENSION_BY_UNIT: {_dim_ref} không có cột vật lý — không lọc được"
         )
+
+
+# W14.1: ref của mọi ValueClassRule phải TỒN TẠI. Kiểm ở đây thay vì trong
+# metrics.py vì module này import module đó — kiểm ngược lại là một vòng import.
+for _rule in VALUE_CLASS_RULES:
+    for _ref in (_rule.ref, _rule.companion_ref):
+        if _ref is not None and _ref not in CATALOG:
+            raise CatalogError(
+                f"ValueClassRule {_rule.rule_id} trỏ tới ref không có trong catalog: {_ref}",
+            )
 
 # Reverse of ``counts_unit``: the metric that counts a given analysis unit.
 COUNT_METRIC_BY_UNIT: dict[str, str] = {
