@@ -13,7 +13,18 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements-dev.txt
+      - run: pip install -e .[dev]
+
+      # W3 (SolutionSpec2808 §4.3): artifacts/ gitignored, và value_index.json
+      # là artifact BẮT BUỘC cho vòng dò giá trị — thiếu nó thì
+      # value_probe._index() trả rỗng và một lớp kiểm biến mất TRONG IM LẶNG,
+      # eval vẫn xanh. Ba lệnh dựng chạy offline, TRƯỚC pytest.
+      - name: Dựng artifact bắt buộc (W3)
+        run: |
+          PYTHONPATH=src python scripts/build_value_index.py
+          PYTHONPATH=src python scripts/build_question_bank.py
+          PYTHONPATH=src python scripts/build_multiturn_suite.py
+
       - run: python -m pytest -q
       - run: PYTHONPATH=src python scripts/run_evaluation.py --runs 3 --provider offline
 

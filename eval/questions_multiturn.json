@@ -1,524 +1,526 @@
 [
- {
-  "id": "mt001",
-  "session_id": "mt001",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Việt Nam?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu listing?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "listing_count": 668
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt002",
-  "session_id": "mt002",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Việt Nam?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu sản phẩm?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "listing_count": 668
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt003",
-  "session_id": "mt003",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Việt Nam?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu listing đã xác minh?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "verified_count": 191
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt004",
-  "session_id": "mt004",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Việt Nam?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Sản phẩm nào có giá cao nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "max_price": 3033180.0
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt005",
-  "session_id": "mt005",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Việt Nam?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Shop nào có nhiều listing nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "top_shop_listing_count": 120
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt006",
-  "session_id": "mt006",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Việt Nam?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Ngày nào có doanh thu cao nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": null
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt007",
-  "session_id": "mt007",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu listing?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "listing_count": 668
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt008",
-  "session_id": "mt008",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu sản phẩm?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "listing_count": 668
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt009",
-  "session_id": "mt009",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu listing đã xác minh?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "verified_count": 191
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt010",
-  "session_id": "mt010",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Sản phẩm nào có giá cao nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "max_price": 3033180.0
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt011",
-  "session_id": "mt011",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Shop nào có nhiều listing nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "top_shop_listing_count": 120
-    }
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt012",
-  "session_id": "mt012",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Ngày nào có doanh thu cao nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": null
-   }
-  ],
-  "country": "vn",
-  "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt013",
-  "session_id": "mt013",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Indonesia?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu listing?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "listing_count": 474
-    }
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt014",
-  "session_id": "mt014",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Indonesia?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu sản phẩm?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "listing_count": 474
-    }
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt015",
-  "session_id": "mt015",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Indonesia?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu listing đã xác minh?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "verified_count": 3
-    }
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt016",
-  "session_id": "mt016",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Indonesia?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Sản phẩm nào có giá cao nhất?",
-    "expected_action": "abstain",
-    "expected_action_without_memory": "clarify",
-    "allowed_rule_ids": [
-     "A19-VALUE-CLASS"
+  {
+    "id": "mt001",
+    "session_id": "mt001",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Việt Nam?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu listing?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "listing_count": 668
+        }
+      }
     ],
-    "expected_note": "W15.4: oracle cũ 9999999.0 là một giá trị giữ chỗ (spec §15.1); abstain A19-VALUE-CLASS cho tới khi data owner duyệt price-repdigit-nine"
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt017",
-  "session_id": "mt017",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Indonesia?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Shop nào có nhiều listing nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "top_shop_listing_count": 220
-    }
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt018",
-  "session_id": "mt018",
-  "turns": [
-   {
-    "question": "Có bao nhiêu shop ở Indonesia?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Ngày nào có doanh thu cao nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": null
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt019",
-  "session_id": "mt019",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu listing?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "listing_count": 474
-    }
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt020",
-  "session_id": "mt020",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu sản phẩm?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "listing_count": 474
-    }
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt021",
-  "session_id": "mt021",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Có bao nhiêu listing đã xác minh?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "verified_count": 3
-    }
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt022",
-  "session_id": "mt022",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Sản phẩm nào có giá cao nhất?",
-    "expected_action": "abstain",
-    "expected_action_without_memory": "clarify",
-    "allowed_rule_ids": [
-     "A19-VALUE-CLASS"
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt002",
+    "session_id": "mt002",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Việt Nam?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu sản phẩm?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "listing_count": 668
+        }
+      }
     ],
-    "expected_note": "W15.4: oracle cũ 9999999.0 là một giá trị giữ chỗ (spec §15.1); abstain A19-VALUE-CLASS cho tới khi data owner duyệt price-repdigit-nine"
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt023",
-  "session_id": "mt023",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Shop nào có nhiều listing nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": {
-     "top_shop_listing_count": 220
-    }
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- },
- {
-  "id": "mt024",
-  "session_id": "mt024",
-  "turns": [
-   {
-    "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
-    "expected_action": "allow"
-   },
-   {
-    "question": "Ngày nào có doanh thu cao nhất?",
-    "expected_action": "allow",
-    "expected_action_without_memory": "clarify",
-    "expected_value": null
-   }
-  ],
-  "country": "id",
-  "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
-  "author": "scripts/build_multiturn_suite.py",
-  "author_read_source_code": true
- }
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt003",
+    "session_id": "mt003",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Việt Nam?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu listing đã xác minh?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "verified_count": 191
+        }
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt004",
+    "session_id": "mt004",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Việt Nam?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Sản phẩm nào có giá cao nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "max_price": 3033180.0
+        }
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt005",
+    "session_id": "mt005",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Việt Nam?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Shop nào có nhiều listing nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "top_shop_listing_count": 120
+        }
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt006",
+    "session_id": "mt006",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Việt Nam?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Ngày nào có doanh thu cao nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": null
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt007",
+    "session_id": "mt007",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu listing?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "listing_count": 668
+        }
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt008",
+    "session_id": "mt008",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu sản phẩm?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "listing_count": 668
+        }
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt009",
+    "session_id": "mt009",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu listing đã xác minh?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "verified_count": 191
+        }
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt010",
+    "session_id": "mt010",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Sản phẩm nào có giá cao nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "max_price": 3033180.0
+        }
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt011",
+    "session_id": "mt011",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Shop nào có nhiều listing nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "top_shop_listing_count": 120
+        }
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt012",
+    "session_id": "mt012",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Ngày nào có doanh thu cao nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": null
+      }
+    ],
+    "country": "vn",
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt013",
+    "session_id": "mt013",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Indonesia?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu listing?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "listing_count": 474
+        }
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt014",
+    "session_id": "mt014",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Indonesia?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu sản phẩm?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "listing_count": 474
+        }
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt015",
+    "session_id": "mt015",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Indonesia?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu listing đã xác minh?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "verified_count": 3
+        }
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt016",
+    "session_id": "mt016",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Indonesia?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Sản phẩm nào có giá cao nhất?",
+        "expected_action": "abstain",
+        "expected_action_without_memory": "clarify",
+        "expected_value": null,
+        "allowed_rule_ids": [
+          "A19-VALUE-CLASS"
+        ],
+        "expected_note": "W15.4: oracle thô là một giá trị giữ chỗ (repdigit, spec §15.1); abstain cho tới khi data owner duyệt price-repdigit-nine"
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt017",
+    "session_id": "mt017",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Indonesia?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Shop nào có nhiều listing nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "top_shop_listing_count": 220
+        }
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt018",
+    "session_id": "mt018",
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Indonesia?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Ngày nào có doanh thu cao nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": null
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt019",
+    "session_id": "mt019",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu listing?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "listing_count": 474
+        }
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt020",
+    "session_id": "mt020",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu sản phẩm?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "listing_count": 474
+        }
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt021",
+    "session_id": "mt021",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Có bao nhiêu listing đã xác minh?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "verified_count": 3
+        }
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt022",
+    "session_id": "mt022",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Sản phẩm nào có giá cao nhất?",
+        "expected_action": "abstain",
+        "expected_action_without_memory": "clarify",
+        "expected_value": null,
+        "allowed_rule_ids": [
+          "A19-VALUE-CLASS"
+        ],
+        "expected_note": "W15.4: oracle thô là một giá trị giữ chỗ (repdigit, spec §15.1); abstain cho tới khi data owner duyệt price-repdigit-nine"
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt023",
+    "session_id": "mt023",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Shop nào có nhiều listing nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": {
+          "top_shop_listing_count": 220
+        }
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "mt024",
+    "session_id": "mt024",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Ngày nào có doanh thu cao nhất?",
+        "expected_action": "allow",
+        "expected_action_without_memory": "clarify",
+        "expected_value": null
+      }
+    ],
+    "country": "id",
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key')",
+    "author": "scripts/build_multiturn_suite.py",
+    "author_read_source_code": true
+  }
 ]

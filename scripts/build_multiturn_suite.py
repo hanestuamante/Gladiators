@@ -96,6 +96,42 @@ def build() -> list[dict]:
                 expected = (
                     None if metric == "any" else per_country[country].get(metric)
                 )
+                # W15.4/W14.3: giá trị biên rơi vào một ValueClassRule CHƯA
+                # DUYỆT ⇒ suite không được ghim nó làm đáp án — đó là một giá
+                # trị giữ chỗ, và kỳ vọng đúng là abstain·A19-VALUE-CLASS cho
+                # tới khi data owner quyết (§15.9 bước 4).
+                boundary_blocked = False
+                if metric == "max_price" and expected is not None:
+                    from gladiators.domain.metrics import (
+                        matches_value_class, value_class_rules_for,
+                    )
+
+                    boundary_blocked = any(
+                        rule.decision_id is None
+                        and matches_value_class(rule, expected)
+                        for rule in value_class_rules_for("measure.price")
+                    )
+                follow_up = {
+                    "question": question,
+                    # Không có bộ nhớ, lượt này ra clarify vì thiếu thị
+                    # trường. Đây chính là thứ WP-A3 phải lật.
+                    "expected_action": "allow",
+                    "expected_action_without_memory": "clarify",
+                    "expected_value": (
+                        None if expected is None else {metric: expected}
+                    ),
+                }
+                if boundary_blocked:
+                    follow_up.update({
+                        "expected_action": "abstain",
+                        "allowed_rule_ids": ["A19-VALUE-CLASS"],
+                        "expected_value": None,
+                        "expected_note": (
+                            "W15.4: oracle thô là một giá trị giữ chỗ "
+                            "(repdigit, spec §15.1); abstain cho tới khi data "
+                            "owner duyệt price-repdigit-nine"
+                        ),
+                    })
                 cases.append({
                     "id": f"mt{index:03d}",
                     "session_id": f"mt{index:03d}",
@@ -104,16 +140,7 @@ def build() -> list[dict]:
                             "question": opener.format(label=label),
                             "expected_action": "allow",
                         },
-                        {
-                            "question": question,
-                            # Không có bộ nhớ, lượt này ra clarify vì thiếu thị
-                            # trường. Đây chính là thứ WP-A3 phải lật.
-                            "expected_action": "allow",
-                            "expected_action_without_memory": "clarify",
-                            "expected_value": (
-                                None if expected is None else {metric: expected}
-                            ),
-                        },
+                        follow_up,
                     ],
                     "country": country,
                     "oracle_snippet": (
