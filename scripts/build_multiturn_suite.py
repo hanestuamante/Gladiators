@@ -61,7 +61,17 @@ def oracles() -> dict[str, dict[str, object]]:
             (products.country_code == country)
             & (products.date.astype(str) == LATEST)
         ].drop_duplicates("product_listing_key")
-        clean = latest[latest.price_num < 999_999_999]
+        # W15.4: bản sao thứ SÁU của hằng số sentinel từng nằm ở đây — oracle
+        # kế thừa đúng cái cờ thiếu và ghim 9 999 999 (một giá trị giữ chỗ) làm
+        # đáp án. Bộ sinh gọi cùng registry của W14; luật CHƯA duyệt không loại
+        # dòng, nên max_price có thể rơi vào giá trị giữ chỗ — khi đó suite phải
+        # khai abstain·A19-VALUE-CLASS chứ không khai allow với con số đó.
+        from gladiators.domain.metrics import approved_exclusion_predicates
+
+        clean = latest
+        for _ref, op, value in approved_exclusion_predicates("measure.price"):
+            if op == "lt":
+                clean = clean[clean.price_num < value]
         per_country[country] = {
             "listing_count": int(len(latest)),
             "verified_count": int(latest.shopee_verified_bool.sum())

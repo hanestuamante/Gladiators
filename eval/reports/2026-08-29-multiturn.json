@@ -1,0 +1,16 @@
+{
+  "suite": "eval/questions_multiturn.json",
+  "measured_on": "2026-08-29",
+  "cases": 24,
+  "turns": 48,
+  "turns_failed": 0,
+  "cases_failed": [],
+  "coverage": 1.0,
+  "risk": 0.0,
+  "over_refusal_rate": 0.0,
+  "stateless_turns": 24,
+  "stateless_failed": 0,
+  "session_leaks": [],
+  "failures": [],
+  "stateless_failures": []
+}

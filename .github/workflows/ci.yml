@@ -17,6 +17,19 @@ jobs:
       - run: python -m pytest -q
       - run: PYTHONPATH=src python scripts/run_evaluation.py --runs 3 --provider offline
 
+      # W15.2: questions_critic khai expected_action từ ngày đầu nhưng không ai
+      # chấm — ba ca allow của nó bị CẢ HAI cấu hình phát hành chặn cho tới W7.
+      # Sau W7 nó là 4/4 và trở thành CỔNG; đặt nó làm cổng trước W7 là ghim một
+      # cổng đỏ vào CI và dạy mọi người bỏ qua CI.
+      - name: Suite critic được chấm như một cổng (W15.2)
+        run: PYTHONPATH=src python scripts/run_evaluation.py --suite eval/questions_critic.json --runs 3 --provider offline
+
+      # W15.1: suite multiturn có hợp đồng riêng (chuỗi lượt chung session_id,
+      # lượt sau khai HAI kỳ vọng) — harness chấm cả nhánh có và không có bộ
+      # nhớ, kèm leak probe giữa các ca. Thoát khác 0 khi bất kỳ lượt nào lệch.
+      - name: Suite multiturn được chấm cả hai nhánh (W15.1)
+        run: PYTHONPATH=src python scripts/run_multiturn.py
+
       # Bước làm sạch dữ liệu chạy TRONG CI, không phải chỉ chạy được trong CI.
       # Nó dựng lại data/processed từ data/raw rồi so schema + giá trị với bản
       # đang commit. Trước đây bước này nằm trong một notebook phải bấm Run All,
