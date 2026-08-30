@@ -181,7 +181,28 @@ def _execute_analytical_plan(ctx: ToolContext) -> None:
     if ctx.logical_plan is None:
         ctx.calls.append(ToolCall(name="execute_analytical_plan", status="error", error="Thiếu validated LogicalQueryPlan"))
         return
-    evidence = ctx.tools.execute_analytical_plan(ctx.logical_plan)
+    from gladiators.analytics.tools import SparseObservationError
+
+    try:
+        evidence = ctx.tools.execute_analytical_plan(ctx.logical_plan)
+    except SparseObservationError as exc:
+        # W29-R1 — phạm vi quá thưa để phát biểu về nó. `clarify`, KHÔNG phải
+        # `abstain`: câu hỏi TRẢ LỜI ĐƯỢC, chỉ không ở cái grain thời gian người
+        # dùng nêu. Dùng đúng idiom `ctx.clarify` mà `_resolve_entity` đã dùng,
+        # nên `dispatch()` dừng sớm bằng cơ chế có sẵn.
+        ctx.clarify = GateDecision(
+            action="clarify", rule_id="A-SPARSE-OBSERVATION", reason=str(exc),
+            clarification_slot="observation_window",
+            answerable_alternative=(
+                "Hệ thống trả lời được theo lần quan sát gần nhất của từng "
+                "listing, và sẽ nêu rõ cửa sổ quan sát."
+            ),
+        )
+        ctx.calls.append(ToolCall(
+            name="execute_analytical_plan", status="error",
+            error="sparse_observation",
+        ))
+        return
     _record(ctx, "execute_analytical_plan", {"plan_id": ctx.logical_plan.plan_id}, evidence)
 
 

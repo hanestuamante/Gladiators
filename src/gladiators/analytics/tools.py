@@ -695,7 +695,12 @@ class AnalyticsTools:
                 ),
                 None,
             )
-            self.last_density = density_check(_refs, _dates, _country, _agg)
+            # Root của CHÍNH bản dữ liệu đang phục vụ. Mặc định 'data/processed'
+            # sẽ đọc mật độ của MỘT BẢN KHÁC — và một cửa mật độ đọc nhầm bản là
+            # một cửa không gác gì.
+            self.last_density = density_check(
+                _refs, _dates, _country, _agg, str(self.repo.root),
+            )
         except DensityError:
             raise
         if self.last_density is not None and self.last_density.action == "clarify":

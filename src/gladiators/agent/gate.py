@@ -354,8 +354,10 @@ class ContractDrivenGate:
         # phục vụ — nó không cần plan. Guard ở compiler GIỮ NGUYÊN làm phòng
         # tuyến thứ hai (nó bắt cả plan do LLM sinh).
         if uncollected_artifacts:
-            from gladiators.domain.catalog import CATALOG
-
+            # KHÔNG import CATALOG ở đây: một import cục bộ biến tên đó thành
+            # BIẾN LOCAL cho cả hàm, nên mọi tham chiếu khác tới nó (phase 4)
+            # thành UnboundLocalError khi nhánh này không chạy — một crash chỉ
+            # xảy ra trên đường KHÔNG có artifact tuỳ chọn.
             wanted = {
                 item.get("ref")
                 for key in ("requested_measures", "requested_dimensions")

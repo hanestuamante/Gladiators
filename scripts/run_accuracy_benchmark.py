@@ -85,6 +85,17 @@ REFUSAL_CLASS_BY_RULE = {
     "A-MISSING-TRAFFIC": "missing_field",
     "A-DATA-ABSENT": "missing_field",
     "A19-CAT": "missing_field",
+    # W22: mã sinh từ `domain/absent_concepts.py`. Registry đó fail ở import nếu
+    # `capability_key` không có trong CAPABILITY_MESSAGES, nhưng nó KHÔNG kiểm
+    # được bảng này — nên mã mới mà quên khai ở đây sẽ ra `None` và ca đó bị
+    # chấm "đúng action, sai nhóm lý do".
+    "A-MISSING-NPS": "missing_field",
+    "A-MISSING-HEADCOUNT": "missing_field",
+    "A-MISSING-PAGEVIEW": "missing_field",
+    "A-MISSING-HOURLY": "missing_grain",
+    "A-ARTIFACT-NOT-COLLECTED": "not_collected",
+    "A-SPARSE-OBSERVATION": "sparse_observation",
+    "A-SNAPSHOT-GAP": "date_out_of_range",
     "A-MISSING-SKU": "missing_grain",
     "A-MISSING-ORDERS": "missing_grain",
     "A19-GRAIN": "missing_grain",
@@ -375,6 +386,11 @@ def main() -> int:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--provider", default="offline")
     parser.add_argument("--out-dir", default="eval/reports/accuracy")
+    # Đo trên MỘT BẢN DỮ LIỆU KHÁC. Oracle vẫn tính từ `data/processed`, nên
+    # đọc số phải kèm §1.5.3 của Spec3008: đếm và giá tái lập chính xác qua hai
+    # bộ, còn measure THƯA thì không — 11 ca dùng chúng có oracle mất hiệu lực.
+    parser.add_argument("--data-dir", default=None)
+    parser.add_argument("--label", default=None)
     args = parser.parse_args()
 
     # Oracle verify TRƯỚC khi chấm — điểm trên fixture trôi là điểm vô nghĩa.
@@ -391,7 +407,7 @@ def main() -> int:
 
     from gladiators.agent.workflow import AgentRuntime
 
-    runtime = AgentRuntime()
+    runtime = AgentRuntime(data_dir=args.data_dir) if args.data_dir else AgentRuntime()
     per_case_runs: dict[str, list[dict]] = defaultdict(list)
     crashes = 0
     latencies: list[float] = []
