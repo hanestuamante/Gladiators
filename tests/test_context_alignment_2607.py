@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from conftest import DATA_DIR
+
 from pathlib import Path
 import ast
 import json
@@ -186,7 +188,7 @@ def test_confidence_decision_table(inputs, expected):
 
 
 def test_dataset_version_is_cached(monkeypatch):
-    repository = ArtifactRepository("data/processed")
+    repository = ArtifactRepository(DATA_DIR)
     original = Path.read_bytes
     calls = 0
 
@@ -232,7 +234,7 @@ def test_cardinality_schema_and_executor_enforcement():
             expected_schema=(OutputField(name="country_code", type="string"),),
             expected_cardinality="khoảng 5",
         )
-    executor = QueryExecutor(ArtifactRepository("data/processed"))
+    executor = QueryExecutor(ArtifactRepository(DATA_DIR))
     try:
         query = CompiledQuery(
             sql="SELECT country_code FROM products LIMIT 2",

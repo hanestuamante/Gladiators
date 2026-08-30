@@ -28,10 +28,11 @@ from gladiators.planner.consensus import NVersionResolver
 from gladiators.domain.intent_registry import default_registry
 from gladiators.external.contracts import SourceLocator
 from gladiators.api import app
+from conftest import DATA_DIR
 
 
 def test_real_headers_satisfy_contract():
-    result = validate_artifacts("data/processed")
+    result = validate_artifacts(DATA_DIR)
     assert result["products_clean.csv"]["rows"] > 0
     assert result["semantic_coverage_manifest.json"] == {"artifacts": 7, "columns": 219}
 
@@ -71,8 +72,8 @@ def test_relation_registry_is_closed_and_fanout_safe():
 
 
 def test_semantic_coverage_manifest_matches_every_physical_header():
-    assert validate_manifest("data/processed") == {"artifacts": 7, "columns": 219}
-    generated = build_manifest("data/processed")
+    assert validate_manifest(DATA_DIR) == {"artifacts": 7, "columns": 219}
+    generated = build_manifest(DATA_DIR)
     assert len(generated["entries"]) == 219
     assert len({(x["table"], x["column"]) for x in generated["entries"]}) == 219
 
@@ -755,7 +756,7 @@ def test_p10_is_blinded_and_p11_can_only_select_a_valid_candidate():
             }
 
     client = AlternateAndJudge()
-    resolver = NVersionResolver(ArtifactRepository("data/processed"), client, client)
+    resolver = NVersionResolver(ArtifactRepository(DATA_DIR), client, client)
     result = resolver.resolve("Giá sản phẩm theo xếp hạng tại VN", request, "vn", primary)
     assert result.selected == "alternate"
     assert result.plan.plan_id == alternate.plan_id

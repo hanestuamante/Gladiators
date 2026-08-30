@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from functools import cached_property
 from pathlib import Path
 
@@ -14,6 +15,13 @@ from .contracts import validate_artifacts
 # phải thứ suy ra bằng cách băm lại CSV mỗi lần — xem docstring của thuộc tính đó.
 MANIFEST_NAME = "DATASET_VERSION.json"
 POINTER_NAME = "CURRENT"
+
+# Bản dữ liệu mặc định. Đọc được từ môi trường vì "bản nào đang phục vụ" và "bản
+# nào một phép kiểm nói về" là HAI câu hỏi khác nhau, và trước đây chúng dùng
+# chung một hằng số: đổi bản phục vụ làm 155 test đổi nghĩa trong im lặng —
+# chúng vẫn chạy, vẫn khẳng định, nhưng khẳng định về một bộ dữ liệu khác.
+# Không phải một công tắc cấu hình: mã nguồn KHÔNG bao giờ đặt biến này.
+DEFAULT_DATA_DIR = os.environ.get("GLADIATORS_DATA_DIR") or "data/processed"
 
 
 class ArtifactRepository:
@@ -30,14 +38,14 @@ class ArtifactRepository:
     không phải một hiệu ứng phụ của việc file trên đĩa đổi giữa chừng.
     """
 
-    def __init__(self, root: str | Path = "data/processed", validate: bool = True):
+    def __init__(self, root: str | Path | None = None, validate: bool = True):
         # Trỏ vào một thư mục CÓ CON TRỎ (data/) thì đi theo con trỏ; trỏ thẳng
         # vào thư mục dữ liệu thì dùng luôn. Giữ cả hai để data/processed cũ chạy
         # y nguyên — một thay đổi hạ tầng bắt mọi người sửa lệnh ngay hôm đó là
         # một thay đổi không ai áp dụng.
         from .versions import resolve
 
-        root = Path(root)
+        root = Path(root if root is not None else DEFAULT_DATA_DIR)
         resolved = resolve(root) if (root / POINTER_NAME).exists() else None
         self.data_root = root
         self.root = resolved or root

@@ -57,8 +57,10 @@ class DensityVerdict:
 
 
 @lru_cache(maxsize=8)
-def _payload(data_root: str) -> dict:
-    path = Path(data_root) / FILENAME
+def _payload(data_root: str | None) -> dict:
+    from gladiators.data.repository import DEFAULT_DATA_DIR
+
+    path = Path(data_root or DEFAULT_DATA_DIR) / FILENAME
     if not path.exists():
         raise DensityError(
             f"thiếu {path}. Mật độ quan sát là dữ liệu của bản dữ liệu; thiếu nó "
@@ -74,12 +76,12 @@ def _payload(data_root: str) -> dict:
     return data
 
 
-def thresholds(data_root: str = "data/processed") -> tuple[float, float]:
+def thresholds(data_root: str | None = None) -> tuple[float, float]:
     data = _payload(data_root)
     return float(data.get("coverage_dense", 0.95)), float(data.get("coverage_refuse", 0.50))
 
 
-def mode_of(column: str, data_root: str = "data/processed") -> str:
+def mode_of(column: str, data_root: str | None = None) -> str:
     """``panel`` | ``point_in_time`` cho một cột vật lý ``<artifact>.<column>``."""
     entry = (_payload(data_root).get("columns") or {}).get(column)
     return str(entry["mode"]) if entry else "panel"
@@ -87,7 +89,7 @@ def mode_of(column: str, data_root: str = "data/processed") -> str:
 
 def coverage_of(
     column: str, dates: tuple[str, ...] = (), country: str | None = None,
-    data_root: str = "data/processed",
+    data_root: str | None = None,
 ) -> float | None:
     """Mật độ của cột trên SCOPE được nêu (LUẬT W29-R5).
 
@@ -111,7 +113,7 @@ def coverage_of(
 
 def check(
     refs: tuple[str, ...], dates: tuple[str, ...], country: str | None,
-    aggregation: str | None, data_root: str = "data/processed",
+    aggregation: str | None, data_root: str | None = None,
     filter_refs: tuple[str, ...] = (),
 ) -> DensityVerdict | None:
     """Kết luận cho một plan, hoặc ``None`` khi W29 không có gì để nói.

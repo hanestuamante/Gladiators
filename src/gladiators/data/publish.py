@@ -143,9 +143,16 @@ def publish_dataset(
     *,
     quarantine_root: str | Path = "data/quarantine",
     label: str | None = None,
-    baseline_dir: str | Path = "data/processed",
+    baseline_dir: str | Path | None = None,
 ) -> PublishResult:
     """Bốn bước của §11.2. Không bao giờ đè bản đang phục vụ.
+
+    ``baseline_dir=None`` nghĩa là **bản đang phục vụ** — cửa so bộ mới với bộ
+    đang chạy, nên bản nền phải là một thứ được nêu chứ không phải một hằng số
+    viết cứng ở đây. Đo được: khi bản phục vụ đổi sang bộ 20 ngày,
+    ``rating_count_detail_count`` thôi là hằng ở bản nền, nên cùng một bộ dữ
+    liệu đóng băng chuyển từ ``published`` sang ``quarantined`` mà không có gì
+    trong nó thay đổi — cửa đổi phán quyết vì bản NỀN đổi.
 
     Bước 1 hỏng ⇒ ``refused`` và KHÔNG ghi gì. Bước 2/3 hỏng ⇒ ``quarantined``:
     chép nguyên bộ vào ``data/quarantine/<label>/`` kèm ``QUARANTINE.json`` lý
@@ -206,7 +213,11 @@ def publish_dataset(
             ))
         frames[name] = frame
     steps.append("quality")
-    known_degenerate = _known_degenerate(Path(baseline_dir))
+    from .repository import DEFAULT_DATA_DIR
+
+    known_degenerate = _known_degenerate(
+        Path(baseline_dir if baseline_dir is not None else DEFAULT_DATA_DIR),
+    )
     for name, frame in frames.items():
         issues.extend(_quality_issues(name, frame, known_degenerate))
 

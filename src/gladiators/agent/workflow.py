@@ -276,7 +276,7 @@ class _EmptyExecution:
 class AgentRuntime:
     def __init__(
         self,
-        data_dir: str = "data/processed",
+        data_dir: str | None = None,
         trace_dir: str = "artifacts/traces",
         enable_gate: bool = True,
         enable_verifier: bool = True,
@@ -299,8 +299,9 @@ class AgentRuntime:
         enable_voucher_profile: bool | None = None,
         llm_parser_scope: str = "always",
     ):
-        self._data_dir = data_dir
-        self.repo = ArtifactRepository(data_dir)
+        from gladiators.data.repository import DEFAULT_DATA_DIR
+        self._data_dir = data_dir or DEFAULT_DATA_DIR
+        self.repo = ArtifactRepository(self._data_dir)
         # W1 preflight: chỉ mục giá trị lệch phiên bản dataset là thông tin SAI
         # (literal của một dataset khác) — nổ ngay lúc dựng, không đợi tới lúc
         # một bộ lọc âm thầm trả sai. Thiếu chỉ mục thì vẫn im lặng như cũ.

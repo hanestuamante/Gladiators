@@ -126,9 +126,11 @@ def calendar_from_dates(
     )
 
 
-def _resolve_root(root: str | Path) -> Path:
+def _resolve_root(root: str | Path | None) -> Path:
     """Trỏ vào thư mục CÓ con trỏ thì đi theo con trỏ — cùng luật với repository."""
-    path = Path(root)
+    from gladiators.data.repository import DEFAULT_DATA_DIR
+
+    path = Path(root if root is not None else DEFAULT_DATA_DIR)
     pointer = path / POINTER_NAME
     if pointer.exists():
         target = pointer.read_text(encoding="utf-8").strip()
@@ -182,7 +184,7 @@ def _from_artifact(root: Path) -> SnapshotCalendar:
 
 
 @lru_cache(maxsize=8)
-def load_calendar(data_root: str | Path = "data/processed") -> SnapshotCalendar:
+def load_calendar(data_root: str | Path | None = None) -> SnapshotCalendar:
     """Lịch của bản dữ liệu tại ``data_root``, cache theo đường dẫn.
 
     Ưu tiên khối ``calendar`` trong manifest (ghi lúc build); lùi về đọc artifact
@@ -195,7 +197,7 @@ def load_calendar(data_root: str | Path = "data/processed") -> SnapshotCalendar:
 
 def default_calendar() -> SnapshotCalendar:
     """Lịch của bản dữ liệu đang phục vụ."""
-    return load_calendar("data/processed")
+    return load_calendar()
 
 
 def full_window() -> tuple[str, ...]:

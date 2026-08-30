@@ -14,6 +14,7 @@ import pandas as pd
 import pytest
 
 from gladiators.data.publish import publish_dataset
+from conftest import DATA_DIR
 
 REPO = Path(__file__).resolve().parents[1]
 EXTRA = REPO / "raw_extra_data" / "datashopee"
@@ -144,12 +145,12 @@ def test_a_clean_dataset_publishes_and_gets_its_version(tmp_path):
 
 
 def test_the_frozen_dataset_would_pass_and_keep_its_version(tmp_path):
-    """data/processed hiện tại đi qua cửa với ĐÚNG 27de9bff184f4f89 —
+    """Bản đóng băng đi qua cửa với ĐÚNG 27de9bff184f4f89 —
     cửa publish không được đổi nghĩa của bản đang đóng băng."""
     import shutil
 
     staging = tmp_path / "incoming"
-    shutil.copytree(REPO / "data" / "processed", staging)
+    shutil.copytree(Path(DATA_DIR), staging)
     # Bỏ file phụ không phải bảng để manifest chỉ khai CSV.
     _manifest_for(staging)
     result = publish_dataset(staging, quarantine_root=tmp_path / "q")

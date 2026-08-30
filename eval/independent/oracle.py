@@ -5,6 +5,8 @@ bytes directly and recomputes gold answers with plain pandas operations.
 """
 from __future__ import annotations
 
+import os
+
 import hashlib
 from pathlib import Path
 
@@ -24,7 +26,7 @@ def _sha256(paths: tuple[Path, ...]) -> str:
     return digest.hexdigest()[:16]
 
 
-def build_oracle(data_dir: str | Path = "data/processed") -> dict:
+def build_oracle(data_dir: str | Path = os.environ.get("GLADIATORS_DATA_DIR") or "data/processed") -> dict:
     root = Path(data_dir)
     product_path = root / "products_clean.csv"
     snapshot_path = root / "product_snapshot_metrics.csv"

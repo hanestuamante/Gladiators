@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
 
 
-def build(data_dir: str | Path = "data/processed") -> list[dict]:
+def build(data_dir: str | Path = os.environ.get("GLADIATORS_DATA_DIR") or "data/processed") -> list[dict]:
     root = Path(data_dir)
     products = pd.read_csv(root / "products_clean.csv", dtype={"item_id": str, "shop_id": str})
     snapshots = pd.read_csv(
@@ -125,7 +126,7 @@ def build(data_dir: str | Path = "data/processed") -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir", default="data/processed")
+    parser.add_argument("--data-dir", default=os.environ.get("GLADIATORS_DATA_DIR") or "data/processed")
     parser.add_argument("--output", default="eval/independent/dr2607_expected.json")
     args = parser.parse_args()
     output = Path(args.output)

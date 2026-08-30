@@ -17,6 +17,7 @@ from gladiators.domain.relations import RELATIONS
 from scripts.build_eval_coverage_matrix import build
 from eval.independent.l4_oracle import build_l4_denotation
 from eval.independent.oracle import _sha256, build_oracle
+from conftest import DATA_DIR
 
 
 def _codes(plan: LogicalQueryPlan) -> set[str]:
@@ -115,7 +116,7 @@ def test_compiler_parameterizes_user_values():
     "SELECT 1; SELECT 2",
 ])
 def test_executor_rejects_non_compiler_or_external_sql(sql):
-    executor = QueryExecutor(ArtifactRepository("data/processed"))
+    executor = QueryExecutor(ArtifactRepository(DATA_DIR))
     query = CompiledQuery(
         sql=sql, parameters=(), plan_hash="mutation", expected_columns=(), postconditions=(),
     )
@@ -200,7 +201,7 @@ def test_independent_oracle_matches_frozen_gold_and_imports_no_production_code()
     source = Path("eval/independent/oracle.py").read_text(encoding="utf-8")
     assert "from gladiators" not in source and "import gladiators" not in source
     frozen = json.loads(Path("eval/independent/golden_v2.json").read_text(encoding="utf-8"))
-    assert build_oracle("data/processed") == frozen
+    assert build_oracle(DATA_DIR) == frozen
 
 
 def test_independent_oracle_hash_is_newline_canonical(tmp_path):
@@ -225,7 +226,7 @@ def test_semantic_linking_cases_resolve_only_expected_catalog_objects(case):
 
 
 def _execute(plan: LogicalQueryPlan):
-    executor = QueryExecutor(ArtifactRepository("data/processed"))
+    executor = QueryExecutor(ArtifactRepository(DATA_DIR))
     try:
         return executor.execute(compile_plan(plan)).frame
     finally:
@@ -260,7 +261,7 @@ def test_dedupe_operator_compiles_and_executes(country):
     )
     frame = _execute(plan)
     assert not frame.empty and tuple(frame.columns) == ("product_name", "price")
-    products = ArtifactRepository("data/processed").products
+    products = ArtifactRepository(DATA_DIR).products
     expected = products.loc[products.country_code == country].product_listing_key.nunique()
     assert len(frame) == expected
 
@@ -614,7 +615,7 @@ VALUE_CLASS_BLOCKED_L4 = {"l4c04"}
 )
 def test_independent_l4_oracle_matches_validated_fixture_plan(case):
     plan = _l4_brand_plan(case["country"], case["measures"])
-    repository = ArtifactRepository("data/processed")
+    repository = ArtifactRepository(DATA_DIR)
     executor = QueryExecutor(repository)
     try:
         actual = executor.execute(compile_plan(plan)).frame

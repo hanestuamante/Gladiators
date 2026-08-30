@@ -56,7 +56,7 @@
         "expected_action": "allow",
         "expected_action_without_memory": "clarify",
         "expected_value": {
-          "verified_count": 191
+          "verified_count": 0
         }
       }
     ],
@@ -186,7 +186,7 @@
         "expected_action": "allow",
         "expected_action_without_memory": "clarify",
         "expected_value": {
-          "verified_count": 191
+          "verified_count": 0
         }
       }
     ],
@@ -316,7 +316,7 @@
         "expected_action": "allow",
         "expected_action_without_memory": "clarify",
         "expected_value": {
-          "verified_count": 3
+          "verified_count": 0
         }
       }
     ],
@@ -448,7 +448,7 @@
         "expected_action": "allow",
         "expected_action_without_memory": "clarify",
         "expected_value": {
-          "verified_count": 3
+          "verified_count": 0
         }
       }
     ],

@@ -31,7 +31,7 @@ from .tables import (
     build_table_registry,
 )
 
-DEFAULT_DATA_DIR = "data/processed"
+from gladiators.data.repository import DEFAULT_DATA_DIR  # noqa: F401
 MANIFEST_FILENAME = "semantic_coverage_manifest.json"
 
 

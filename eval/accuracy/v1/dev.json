@@ -144,7 +144,9 @@
     },
     "annotation_status": "adjudicated",
     "author_read_source_code_before_seal": true,
-    "tags": []
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): câu hỏi KHÔNG nêu ngày, nên nó hỏi về **đợt thu gần nhất**; oracle ghim `date_start=2026-07-03` vì đó là đợt cuối của LỊCH bộ 3 ngày. Trên bộ 20 ngày đợt cuối là 21/07, và hệ trả đúng giá trị (10 shop) với phạm vi 21/07 — giá trị khớp, mô tả phạm vi thì không. Đây là oracle mô tả một lịch khác, không phải hệ trả sai: chấm nó ở đây sẽ tính một câu đúng vào `answer_risk`."
   },
   {
     "id": "acc-v1-0008",
@@ -193,7 +195,9 @@
     },
     "annotation_status": "adjudicated",
     "author_read_source_code_before_seal": true,
-    "tags": []
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): câu hỏi KHÔNG nêu ngày, nên nó hỏi về **đợt thu gần nhất**; oracle ghim `date_start=2026-07-03` vì đó là đợt cuối của LỊCH bộ 3 ngày. Trên bộ 20 ngày đợt cuối là 21/07, và hệ trả đúng giá trị (10 shop) với phạm vi 21/07 — giá trị khớp, mô tả phạm vi thì không. Đây là oracle mô tả một lịch khác, không phải hệ trả sai: chấm nó ở đây sẽ tính một câu đúng vào `answer_risk`."
   },
   {
     "id": "acc-v1-0009",
@@ -2216,7 +2220,9 @@
     "oracle": null,
     "annotation_status": "adjudicated",
     "author_read_source_code_before_seal": true,
-    "tags": []
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): ca này KHÔNG trả lời được vì LỊCH của bộ đóng băng dừng ở 03/07 — đó là thuộc tính của bản dữ liệu, không phải của câu hỏi. Trên bộ 20 ngày, 04/07 có đợt thu thật và hệ trả 684 listing, đúng và truy vết được. Chấm nó ở đó sẽ đếm một câu trả lời ĐÚNG thành `over_answer` — tức làm hỏng chính bất biến mà chỉ số đó tồn tại để canh."
   },
   {
     "id": "acc-v1-0092",

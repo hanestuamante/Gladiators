@@ -6,6 +6,8 @@ semantic-to-column mapping.
 """
 from __future__ import annotations
 
+import os
+
 from pathlib import Path
 from typing import Any
 
@@ -35,7 +37,7 @@ def _scalar(value: Any) -> Any:
     return value
 
 
-def build_l4_denotation(case: dict, data_dir: str | Path = "data/processed") -> list[dict[str, Any]]:
+def build_l4_denotation(case: dict, data_dir: str | Path = os.environ.get("GLADIATORS_DATA_DIR") or "data/processed") -> list[dict[str, Any]]:
     """Return reviewed-shape candidate gold for one explicit max-by-brand case."""
     if case.get("aggregation") != "max":
         raise ValueError("L4 oracle hiện chỉ hỗ trợ aggregation=max đã khai trong fixture.")

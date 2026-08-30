@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -26,7 +27,12 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-DATA = REPO / "data" / "processed"
+# Oracle NÀY được seal theo hash của `products_clean.csv` bộ đóng băng, nên nó
+# chỉ có nghĩa trên đúng bản đó — chạy nó trên bản khác thì phép kiểm hash sẽ đỏ,
+# và đỏ là hành vi đúng. Đường dẫn đọc từ môi trường để cùng một biến điều khiển
+# mọi lớp, thay vì mỗi lớp tự ghi một hằng số rồi lệch nhau trong im lặng.
+DATA = Path(os.environ.get("GLADIATORS_DATA_DIR")
+            or REPO / "data" / "frozen_3day")
 LATEST = "2026-07-03"
 
 if hasattr(sys.stdout, "reconfigure"):

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -34,8 +35,18 @@ def _rows(frame: pd.DataFrame, columns: list[str]) -> list[dict]:
     return frame[columns].to_dict("records")
 
 
-def build(data_dir: str | Path = "data/processed") -> list[dict]:
-    root = Path(data_dir)
+def build(data_dir: str | Path | None = None) -> list[dict]:
+    # Oracle NÀY mô tả bộ đóng băng 3 ngày — cùng bản mà denotation trong
+    # `p0_probe_expected.json` được tính trên đó. Để nó chạy theo "bản nào đang
+    # phục vụ" là để một phép so sánh hai vế đứng trên hai bản dữ liệu khác nhau,
+    # và kết quả không nói được gì về hệ.
+    #
+    # Đọc THẲNG biến môi trường, KHÔNG import `gladiators.data.repository`: cả
+    # giá trị của file này nằm ở chỗ nó không chạm vào hệ đang bị kiểm — một
+    # oracle mượn hằng số của hệ thì nó không còn là bên thứ hai nữa. Phép kiểm
+    # ở `test_p0_regression_lock` chặn đúng chuyện đó bằng cách quét cây AST.
+    root = Path(data_dir if data_dir is not None
+                else os.environ.get("GLADIATORS_DATA_DIR") or "data/processed")
     dtype = {"item_id": str, "shop_id": str}
     products = pd.read_csv(root / "products_clean.csv", dtype=dtype)
     snapshots = pd.read_csv(root / "product_snapshot_metrics.csv", dtype=dtype)
@@ -318,7 +329,7 @@ def build(data_dir: str | Path = "data/processed") -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-dir", default="data/processed")
+    parser.add_argument("--data-dir", default=None)
     parser.add_argument("--output", default="eval/independent/p0_probe_expected.json")
     args = parser.parse_args()
     output = Path(args.output)

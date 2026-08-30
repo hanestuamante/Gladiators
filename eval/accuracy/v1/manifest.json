@@ -65,8 +65,8 @@
     "product_snapshot_metrics.csv": "e71ca60488fa5bdb03544d3483937e633b974e70b71c69556157cce9660e35be",
     "shop_info_clean.csv": "9c72a533e1554f38db97cd4fd1b3edfb35bbd50d1a6b01512a9699a28ca83b16"
   },
-  "dev_sha256": "69f485a8d46b9b471e91c4c08ae5c72c97481ac52ecd1b63df17f6aaa6571fc5",
-  "holdout_sha256": "72cda19b96bb0b2f24c2891ee5d1e01ffdd86cf56749be126ae4bd75f3fc8007",
+  "dev_sha256": "f144b1a951a6b83967b7fb0757505e6c33c7e626e70cc113de66d1f6815a72ca",
+  "holdout_sha256": "fe4b9c0bc1b7e2ba52e46565f08c39a0cb9092c043d872374f7934868b0aaa64",
   "sealed_at": "2026-08-29",
   "changelog": [
     {
@@ -91,6 +91,16 @@
       "date": "2026-08-31",
       "change": "W-ACC-1 — 15 ca khai `oracle_dataset=\"frozen_3day\"` + `oracle_scope_note`",
       "why": "KHÔNG đổi một giá trị kỳ vọng nào, KHÔNG xoá ca nào — chỉ khai ra phạm vi mà oracle vốn đã có. Các ca này dùng cột chỉ được quan sát MỘT LẦN mỗi listing trên bộ mở rộng (rating/likes/sold/discount) hoặc cột ĐỔI GRAIN (`shopee_verified`, listing→shop, xem extract_adapter §4). Chấm chúng trên bộ 20 ngày đo khoảng cách giữa hai bản dữ liệu chứ không đo hệ: `max_likes` 10 449 so với 23, `discount>50` 8 so với 0. Trước khi khai, sáu ca như vậy bị đếm là LỖI trong khi hệ đang chạy đúng, và ba ca đếm-có-lọc bị chấm là số sai trong khi thứ hỏng là oracle. Ca vẫn được chấm bình thường trên bộ đóng băng — nơi oracle của chúng đúng."
+    },
+    {
+      "date": "2026-08-31",
+      "change": "W-ACC-1 (bổ sung) — acc-v1-0091 khai `oracle_dataset=\"frozen_3day\"`",
+      "why": "Cùng luật, khác trục: 15 ca trước scope theo CỘT quan sát thưa, ca này scope theo LỊCH. \"Ngày 04/07 không trả lời được\" là phát biểu về bộ 3 ngày; trên bộ 20 ngày ngày đó có đợt thu thật và câu trả lời 684 listing là đúng. Giữ nguyên kỳ vọng cũ sẽ chấm một câu đúng thành `over_answer`, tức làm hỏng chính bất biến chỉ số đó canh. Không đổi giá trị, không xoá."
+    },
+    {
+      "date": "2026-08-31",
+      "change": "W-ACC-1 (bổ sung 2) — 5 ca 'bao nhiêu shop' không nêu ngày khai `frozen_3day`",
+      "why": "Trục thứ ba của cùng một luật: câu hỏi không nêu ngày hỏi về ĐỢT THU GẦN NHẤT, và oracle ghim 03/07 vì đó là đợt cuối của lịch cũ. Trên bộ 20 ngày đợt cuối là 21/07; hệ trả đúng 10 shop, chỉ mô tả phạm vi là của lịch khác. Không đổi giá trị kỳ vọng, không xoá ca. Tổng cộng 21 ca khai `frozen_3day`: 15 theo CỘT quan sát thưa, 1 theo NGÀY ngoài cửa sổ cũ, 5 theo ĐỢT THU GẦN NHẤT."
     }
   ],
   "annotation": {

@@ -17,6 +17,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from conftest import DATA_DIR
 from gladiators.analytics import AnalyticsTools
 from gladiators.data.repository import ArtifactRepository
 
@@ -31,7 +32,7 @@ def tools() -> AnalyticsTools:
 @pytest.fixture(scope="module")
 def oracle() -> dict[str, int]:
     """Ground truth from the artifacts, independent of the code under test."""
-    frame = pd.read_csv("data/processed/product_snapshot_metrics.csv")
+    frame = pd.read_csv(f"{DATA_DIR}/product_snapshot_metrics.csv")
     latest = frame.loc[frame.date.astype(str) == str(frame.date.astype(str).max())]
     vn = latest.loc[latest.country_code == "vn"].drop_duplicates("product_listing_key")
     flags = vn.has_structured_voucher.fillna(False).astype(bool)

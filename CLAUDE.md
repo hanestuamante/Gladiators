@@ -113,17 +113,38 @@ cho câu hỏi về mức giảm giá. A22 sinh ra để lấp đúng khe đó.
 
 ## 4. Mô hình dữ liệu
 
-- Dataset đóng băng: **3 snapshot 01–03/07/2026**, 3.341 dòng, 1.157 listing, 20 shop, 2 market (vn/id).
-- **Bộ mới `raw_extra_data/` đã nối được** (30/08): 20 snapshot 01–21/07/2026,
-  22.695 dòng, 1.276 listing, cùng 20 shop. Ba ngày chồng lấn **tái lập đúng**
-  bộ đóng băng (listing khớp, giá khớp tới từng đồng). Nó **chưa** thay
-  `data/processed`; dựng bằng `extract_adapter.adapt_extract` → `run_pipeline`.
-  Mọi quyết định của bước nối ở `docs/qa/raw_extra_data_provenance.md` — đọc nó
-  trước khi đụng vào adapter.
-- **Artifact tuỳ chọn**: `shop_stats_clean.csv` (panel ngày cấp shop) chỉ có ở bộ
-  mới. Vắng mặt là trạng thái **được khai** (`domain/tables.py::OPTIONAL_ARTIFACTS`),
-  không phải lỗi; câu hỏi cần nó bị từ chối vì **thiếu dữ liệu**, không phải vì
-  không hiểu câu hỏi. `shop_info` giữ nguyên grain cũ — panel KHÔNG chảy vào nó.
+- **Bản đang phục vụ (31/08): 20 snapshot 01–21/07/2026**, 22.695 dòng,
+  1.276 listing, 20 shop, 2 market (vn/id). `dataset_version` `0bdaf214249f0507`,
+  phát hành ở `data/versions/906fc8289f10eca1/`, `data/CURRENT` trỏ vào đó, và
+  `data/processed` mang đúng nội dung đó.
+- **Bản đóng băng cũ** (3 snapshot 01–03/07, 3.341 dòng, 1.157 listing,
+  `27de9bff184f4f89`) nằm ở `data/versions/a3eb6936b1cc5603/` và trong git
+  history trước `MVP_Dai_V2`. Ba ngày chồng lấn tái lập đúng: 3.341/3.341 dòng,
+  1.157/1.157 listing, giá khớp tới từng đồng. **Trừ `rating`**: dump mới lưu
+  làm tròn 2 chữ số (4,896159 → 4,90) nên 7/12 quan sát chồng lấn lệch ở chữ số
+  thứ ba — cùng `rating_count`, cùng listing, cùng ngày, tức mất độ chính xác ở
+  nguồn chứ không phải giá trị khác.
+- **Dựng lại** (`data/raw_extended/` gitignored vì là dẫn xuất):
+  `adapt_extract("raw_extra_data/datashopee", "data/raw_extended")` →
+  `scripts/build_dataset.py --raw data/raw_extended --publish --activate`. Đã
+  chứng minh là **điểm bất động**: dựng lại lần hai, lấy chính bản mới làm
+  `reference_dir`, ra raw **trùng khít từng byte** (`e46492a6b4d96ef3`) — nên
+  lệnh này chạy được mãi về sau, không chỉ đúng một lần. Mọi quyết định của bước
+  nối ở `docs/qa/raw_extra_data_provenance.md` — đọc nó trước khi đụng adapter.
+- **Đổi bản kéo theo bốn artifact phải dựng lại**, nếu không hệ nổ lúc khởi động
+  hoặc mất một lớp kiểm trong im lặng: `artifacts/value_index.json`,
+  `data/processed/observation_density.json`, `eval/independent/answerable_manual.json`,
+  `eval/questions_multiturn.json`.
+- **Cột đổi theo bản dữ liệu** — đây là đổi HỢP ĐỒNG với người dùng, không phải
+  chi tiết kỹ thuật: `shopee_verified` cấp listing **không còn** (dump chỉ có cờ
+  cấp SHOP; grain đổi, xem `extract_adapter` §4), và `rating`/`liked_count`/
+  `monthly_sold`/`history_sold`/`discount_percent` chỉ được quan sát **một lần
+  mỗi listing** thay vì mỗi đợt thu. Câu hỏi tổng hợp trên chúng nay bị W29 hỏi
+  lại thay vì trả một con số tính từ vài quan sát.
+- **`shop_stats_clean.csv` (panel ngày cấp shop) nay CÓ**, nên 11 measure
+  `measure.shop_daily_*` dùng được. Nó vẫn khai ở `OPTIONAL_ARTIFACTS`: vắng mặt
+  là trạng thái **được khai**, không phải lỗi. `shop_info` giữ nguyên grain cũ —
+  panel KHÔNG chảy vào nó.
 - Grain nhỏ nhất là **product listing** = `{country}:{shop_id}:{item_id}`. **Không có SKU.**
 - Catalog: **99 semantic object** (`domain/catalog.py`), trong đó 11 measure
   `measure.shop_daily_*` đọc panel shop và chỉ dùng được khi đã thu artifact tuỳ

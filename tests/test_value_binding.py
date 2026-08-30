@@ -10,6 +10,8 @@ minh được hệ biết trả ra số khác 0 là nghiệm thu chính cái l�
 """
 from __future__ import annotations
 
+from conftest import DATA_DIR
+
 import json
 from pathlib import Path
 
@@ -238,5 +240,5 @@ def test_the_index_matches_the_repository_dataset_version():
     if not value_probe.index_is_available():
         pytest.skip("artifacts/value_index.json chưa dựng")
     assert value_probe.index_dataset_version() == compute_dataset_version(
-        Path("data/processed"),
+        Path(DATA_DIR),
     )
