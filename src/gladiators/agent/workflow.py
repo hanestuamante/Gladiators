@@ -88,6 +88,36 @@ _METRIC_LABELS = {
 }
 
 
+# Lý do đọc được cho một mã decline của bộ ngữ pháp tất định. W23-R1 đòi lời từ
+# chối mô tả CÂU HỎI; một mã trần trong trace không phải một câu người đọc hiểu.
+_DECLINE_REASON: dict[str, str] = {
+    "aggregation_not_certified":
+        "Câu hỏi nêu một phép tổng hợp mà chỉ số này không cho phép.",
+    "no_certified_aggregation":
+        "Chỉ số được hỏi không có phép tổng hợp nào được chứng nhận.",
+    "measure_count_not_one":
+        "Câu hỏi nêu nhiều hơn một chỉ số; hệ chỉ dựng được kế hoạch cho một.",
+    "measure_not_in_catalog":
+        "Chỉ số được hỏi không nằm trong danh mục ngữ nghĩa.",
+    "measure_not_answerable":
+        "Chỉ số được hỏi không được mở cho truy vấn.",
+    "date_count_unsupported":
+        "Câu hỏi trải nhiều đợt thu hơn mức một kế hoạch đơn diễn đạt được.",
+    "unbound_qualifier":
+        "Câu hỏi nêu một điều kiện mà hệ chưa lọc được.",
+    "country_missing": "Câu hỏi chưa nêu thị trường.",
+    "relation_grain_invalid":
+        "Điều kiện được nêu đòi một phép nối mà mô hình quan hệ không diễn đạt.",
+}
+
+
+def _decline_reason(codes) -> str | None:
+    for code in codes or ():
+        if code in _DECLINE_REASON:
+            return _DECLINE_REASON[code]
+    return None
+
+
 def _alternative_for(request) -> str | None:
     """Phép tổng hợp CÓ chứng nhận gần nhất, diễn đạt bằng lời.
 
@@ -1307,41 +1337,91 @@ class AgentRuntime:
                 try:
                     analytical_kind = request.slots.get("analytical_kind", "")
                     planner_result = None
+                    # Hai nhánh intent dùng chung ba biến này sau khi hợp nhất
+                    # ở W23; khai trước để nhánh nào không chạm tới cũng đọc
+                    # được một giá trị có nghĩa thay vì UnboundLocalError.
+                    synthesized = None
+                    candidate_request = None
+                    decline_codes: list[str] = []
                     if request.intent == "open_analytical":
                         analytical_request = AnalyticalRequest.model_validate(request.analytical)
-                        try:
-                            plan_bundle = ContextBundle(
-                                stage="plan", purpose="P8", request_digest=digest,
-                                prompt_version=str(getattr(self.llm_client, "prompt_version", "deterministic-v1")),
-                                dataset_version=self.repo.dataset_version,
-                                budget_tokens=BUDGETS[("plan", "P8")],
-                            )
-                            planner_result = self.open_planner.plan(
-                                user_text, analytical_request, request.country,
-                                context_bundle=plan_bundle,
-                            )
-                        except OpenPlannerError as exc:
-                            # A5.2 + W12.2: mọi lý do typed phải sống sót qua lần
-                            # raise này — chết ở boundary thì decline collector
-                            # gom được bao nhiêu cũng vô nghĩa.
-                            failed = AnalyticalPlanError(
-                                str(exc),
-                                rule_id=exc.rule_id,
-                                decline_codes=exc.decline_codes,
-                                attempts=exc.attempts,
-                            )
-                            failed.context_relax = exc.context_relax
-                            raise failed from exc
-                        logical_plan = planner_result.plan
+                        # W23 (Spec3008 §10) — THỬ BỘ SINH TẤT ĐỊNH TRƯỚC, trên
+                        # CẢ HAI nhánh intent.
+                        #
+                        # Trước W23, `open_analytical` đi thẳng tới `open_planner`
+                        # (cần LLM provider). Cấu hình phát hành chạy
+                        # `--provider offline`, nên mọi câu "listing nào có nhiều
+                        # lượt thích nhất" nhận `A19-PLAN` với lời từ chối
+                        # "Không có semantic planner provider" — một câu MÔ TẢ
+                        # HARNESS, cho một câu hỏi mà `synthesize()` trả lời
+                        # được. Bộ ngữ pháp tất định của W5/W6/W17 không phục vụ
+                        # nhánh này chỉ vì một tai nạn định tuyến.
+                        open_declines: list[str] = []
+                        # Cùng MỘT cờ điều khiển bộ sinh tất định trên nhánh
+                        # open. W23 dời lời gọi ra khỏi `open_planner`, nên nếu
+                        # không đọc cờ ở đây thì nó thành một công tắc không nối
+                        # với gì — và một công tắc như vậy làm người đọc tin họ
+                        # đang cô lập nhánh LLM trong khi không phải.
+                        open_synth = synthesize(
+                            analytical_request, request.country,
+                            decline=open_declines,
+                        ) if getattr(self.open_planner, "use_synthesizer", True) else None
+                        branch_attempts.append({
+                            "branch": "synthesizer", "tried": True,
+                            "declined": list(open_declines),
+                        })
+                        if open_synth is not None and validate_plan(open_synth.plan).valid:
+                            logical_plan = open_synth.plan
+                            synthesized = open_synth.plan
+                            candidate_request = analytical_request
+                            decline_codes = list(open_declines)
+                            analytical_kind = f"synthesized:{analytical_kind or 'open'}"
+                            branch_attempts.append({
+                                "branch": "open_planner", "tried": False,
+                                "declined": ["deterministic_synthesis_won"],
+                            })
+                            plan_provenance = "deterministic_synthesis"
+                        else:
+                            try:
+                                plan_bundle = ContextBundle(
+                                    stage="plan", purpose="P8", request_digest=digest,
+                                    prompt_version=str(getattr(self.llm_client, "prompt_version", "deterministic-v1")),
+                                    dataset_version=self.repo.dataset_version,
+                                    budget_tokens=BUDGETS[("plan", "P8")],
+                                )
+                                planner_result = self.open_planner.plan(
+                                    user_text, analytical_request, request.country,
+                                    context_bundle=plan_bundle,
+                                )
+                            except OpenPlannerError as exc:
+                                # A5.2 + W12.2: mọi lý do typed phải sống sót qua
+                                # lần raise này — chết ở boundary thì decline
+                                # collector gom được bao nhiêu cũng vô nghĩa.
+                                #
+                                # LUẬT W23-R1: không bao giờ nói "không có
+                                # provider" khi bộ ngữ pháp tất định ĐÃ TỪ CHỐI
+                                # CÓ LÝ DO. Lời từ chối phải mô tả CÂU HỎI, không
+                                # mô tả cấu hình chạy.
+                                codes = tuple(open_declines) or exc.decline_codes
+                                failed = AnalyticalPlanError(
+                                    rule_for_declines(open_declines) != "A19-PLAN"
+                                    and _decline_reason(open_declines) or str(exc),
+                                    rule_id=(
+                                        rule_for_declines(open_declines)
+                                        if open_declines else exc.rule_id
+                                    ),
+                                    decline_codes=codes,
+                                    attempts=exc.attempts or tuple(branch_attempts),
+                                )
+                                failed.context_relax = exc.context_relax
+                                raise failed from exc
+                            logical_plan = planner_result.plan
                     else:
                         # Certified-kind questions skipped the synthesizer entirely,
                         # so "bao nhiêu listing tại VN ngày 01/07" still compiled to
                         # the listing_count template, which hard-codes 2026-07-03.
                         # Same rule as the open path: synthesise only where the
                         # template is known to be wrong, not merely absent.
-                        synthesized = None
-                        candidate_request = None
-                        decline_codes: list[str] = []
                         if request.analytical:
                             candidate = AnalyticalRequest.model_validate(request.analytical)
                             candidate_request = candidate
