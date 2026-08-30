@@ -59,7 +59,11 @@ def corpus() -> tuple[str, ...]:
     # eval/reports/<ngày>-sql-baseline.json đã kéo topic_scoped từ 65,9% xuống
     # 63,4% đúng bằng cách đó. Một phép đo được phép đọc corpus; nó không được
     # phép trở thành corpus.
-    excluded = {"independent", "reports"}
+    # `eval/accuracy/` là benchmark accuracy độc lập (TC_formulation) — cùng
+    # lớp với independent/: bộ đề sinh từ dữ liệu, KHÔNG phải corpus mà ngưỡng
+    # topic_scoped 0.65 được hiệu chỉnh trên đó. Trộn vào kéo topic_scoped từ
+    # 69% xuống 57.6% đúng bằng cơ chế đã ghi ở comment trên.
+    excluded = {"independent", "reports", "accuracy"}
     for path in glob.glob("eval/**/*.json", recursive=True):
         if excluded & set(path.replace("\\", "/").split("/")):
             continue

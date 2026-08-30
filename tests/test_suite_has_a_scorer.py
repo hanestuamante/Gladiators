@@ -40,6 +40,12 @@ SCORED_BY = {
     "eval/dr2607.json": "tests/test_dr2607_regression.py::test_executable_route_contracts",
     "eval/p0_probes.json": "tests/test_p0_regression_lock.py::test_baseline_action_and_rule_are_pinned",
     "eval/independent/answerable_manual.json": "scripts/run_risk_coverage.py",
+    # Benchmark accuracy v1 (TC_formulation): scorer nghiêm ngặt riêng, chạy
+    # trong CI (dev) và ở release evaluation (holdout).
+    "eval/accuracy/v1/dev.json":
+        "scripts/run_accuracy_benchmark.py --split dev (CI)",
+    "eval/accuracy/v1/holdout.json":
+        "scripts/run_accuracy_benchmark.py --split holdout (release evaluation)",
 }
 
 # Bộ đề chỉ dùng với provider thật, cố ý không có scorer offline. Nằm trong
@@ -48,6 +54,17 @@ SCORED_BY = {
 PROVIDER_ONLY = {
     "eval/groq_regression.json": "cần provider Groq — không replay offline được",
     "eval/pilot_gemini.json": "cần provider Gemini — không replay offline được",
+}
+
+# Bản ghi ANNOTATION thô của benchmark accuracy — không phải suite để chấm:
+# chúng là đầu vào của adjudication (agreement/kappa ghi ở manifest), và nhãn
+# trong đó đã được hợp nhất vào dev.json/holdout.json vốn CÓ scorer.
+ANNOTATION_RECORDS = {
+    "eval/accuracy/v1/annotations_A.json",
+    "eval/accuracy/v1/annotations_B.json",
+    # JSON Schema của benchmark — nhắc TÊN trường expected_action trong định
+    # nghĩa kiểu, không khai kỳ vọng nào.
+    "eval/accuracy/v1/schema.json",
 }
 
 
@@ -64,9 +81,13 @@ def test_every_suite_declaring_expected_action_has_a_scorer():
     declaring = sorted(
         str(path.relative_to(REPO)).replace("\\", "/")
         for path in REPO.glob("eval/**/*.json")
-        if _declares_expected_action(path)
+        # eval/reports/ là ĐẦU RA của các phép đo — per-case verdict trong đó
+        # nhắc expected_action nhưng không phải một suite cần scorer.
+        if "reports" not in path.parts and _declares_expected_action(path)
     )
     for path in declaring:
+        if path in ANNOTATION_RECORDS:
+            continue
         assert path in SCORED_BY or path in PROVIDER_ONLY, (
             f"{path} khai expected_action nhưng không ai đọc nó — thêm scorer "
             "hoặc khai lý do vào PROVIDER_ONLY"

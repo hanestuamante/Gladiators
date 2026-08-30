@@ -1,0 +1,865 @@
+[
+ {
+  "id": "acc-v1-0001",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 668,
+  "reason": "Đếm product_listing_key duy nhất, vn, 2026-07-03: 668."
+ },
+ {
+  "id": "acc-v1-0002",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 668,
+  "reason": "Cùng phép đếm câu 1 diễn đạt lại: 668 listing vn ngày 03/07."
+ },
+ {
+  "id": "acc-v1-0003",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 474,
+  "reason": "Đếm listing duy nhất, id, 2026-07-03: 474."
+ },
+ {
+  "id": "acc-v1-0004",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 474,
+  "reason": "Bản tiếng Anh của câu 3: 474 listing id ngày 03/07."
+ },
+ {
+  "id": "acc-v1-0005",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 10,
+  "reason": "shop_id duy nhất tại vn: 10 (cả shop_info lẫn products)."
+ },
+ {
+  "id": "acc-v1-0006",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 10,
+  "reason": "Câu 5 viết không dấu, nghĩa không đổi: 10 shop vn."
+ },
+ {
+  "id": "acc-v1-0007",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 10,
+  "reason": "shop_id duy nhất tại id: 10."
+ },
+ {
+  "id": "acc-v1-0008",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 10,
+  "reason": "Bản tiếng Anh của câu 7: 10 shop id."
+ },
+ {
+  "id": "acc-v1-0009",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 30,
+  "reason": "brand phân biệt (không null) vn 03/07: 30; 26 listing thiếu brand không tính là thương hiệu."
+ },
+ {
+  "id": "acc-v1-0010",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 30,
+  "reason": "Diễn đạt lại câu 9: 30 thương hiệu phân biệt vn 03/07."
+ },
+ {
+  "id": "acc-v1-0011",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 12,
+  "reason": "brand phân biệt (không null) id 03/07: 12 (đếm theo chuỗi brand như ghi trong dữ liệu)."
+ },
+ {
+  "id": "acc-v1-0012",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 581,
+  "reason": "Đếm listing duy nhất vn ngày 2026-07-01: 581."
+ },
+ {
+  "id": "acc-v1-0013",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 96,
+  "reason": "brand=='Bibica', vn, 03/07: 96 listing."
+ },
+ {
+  "id": "acc-v1-0014",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 96,
+  "reason": "Diễn đạt lại câu 13: 96 listing Bibica vn 03/07."
+ },
+ {
+  "id": "acc-v1-0015",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 82,
+  "reason": "brand=='ORION', vn, 03/07: 82 listing."
+ },
+ {
+  "id": "acc-v1-0016",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 215,
+  "reason": "brand=='GLAD2GLOW', id, 03/07: 215 listing."
+ },
+ {
+  "id": "acc-v1-0017",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 120,
+  "reason": "shop_name khớp đúng, vn 03/07: 120 listing."
+ },
+ {
+  "id": "acc-v1-0018",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 120,
+  "reason": "Diễn đạt lại câu 17: 120 listing."
+ },
+ {
+  "id": "acc-v1-0019",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 220,
+  "reason": "shop 'Glad2Glow Official Store', id 03/07: 220 listing."
+ },
+ {
+  "id": "acc-v1-0020",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 191,
+  "reason": "shopee_verified_bool==True, vn 03/07: 191 listing."
+ },
+ {
+  "id": "acc-v1-0021",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 191,
+  "reason": "Câu 20 viết không dấu: 191 listing đã xác minh."
+ },
+ {
+  "id": "acc-v1-0022",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 8,
+  "reason": "discount_percent_num > 50, vn 03/07: 8 listing."
+ },
+ {
+  "id": "acc-v1-0023",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 270,
+  "reason": "discount_percent_num > 50, id 03/07: 270 listing."
+ },
+ {
+  "id": "acc-v1-0024",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 132000,
+  "reason": "Trung vị price_num vn 03/07 = 132.000 VND (không có giá sentinel ở vn ngày này)."
+ },
+ {
+  "id": "acc-v1-0025",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 132000,
+  "reason": "Diễn đạt lại câu 24: 132.000 VND."
+ },
+ {
+  "id": "acc-v1-0026",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 78900,
+  "reason": "Trung vị price_num id 03/07 = 78.900 IDR; kết quả không đổi dù loại 1 dòng giá placeholder GIVEAWAY."
+ },
+ {
+  "id": "acc-v1-0027",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 78900,
+  "reason": "Câu 26 viết không dấu: 78.900 IDR."
+ },
+ {
+  "id": "acc-v1-0028",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 4.9286,
+  "reason": "Trung vị rating_num trên listing đã có đánh giá (loại 43 dòng rating=0, rating_count=0 tức chưa được đánh giá) = 4.9286; nếu gộp cả 0 là 4.9236."
+ },
+ {
+  "id": "acc-v1-0029",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 4.9027,
+  "reason": "Trung vị rating_num trên listing đã có đánh giá (loại 17 dòng chưa được đánh giá) = 4.9027; nếu gộp cả 0 là 4.9013."
+ },
+ {
+  "id": "acc-v1-0030",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 5.66,
+  "reason": "Trung bình images_count vn 03/07 = 5.6602 ảnh/listing."
+ },
+ {
+  "id": "acc-v1-0031",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 12567,
+  "reason": "Tổng liked_count_num của 96 listing Bibica vn 03/07 = 12.567."
+ },
+ {
+  "id": "acc-v1-0032",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "name": "Bộ 3 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 567G",
+   "item_id": 42232012026,
+   "price": 3033180
+  },
+  "reason": "Giá cao nhất vn 03/07 là 3.033.180 VND, duy nhất một listing; vn không có giá placeholder ngày này."
+ },
+ {
+  "id": "acc-v1-0033",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "name": "Bộ 3 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 567G",
+   "item_id": 42232012026,
+   "price": 3033180
+  },
+  "reason": "Diễn đạt lại câu 32: cùng listing giá 3.033.180 VND."
+ },
+ {
+  "id": "acc-v1-0034",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "name": "[Phiên bản ống hút 4 chiều] Sữa lúa mạch Nestlé MILO thùng 12 x 180ml (12x4x180ml)",
+   "item_id": 7005434955,
+   "likes": 10449
+  },
+  "reason": "Max liked_count_num vn 03/07 = 10.449, duy nhất một listing."
+ },
+ {
+  "id": "acc-v1-0035",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": {
+   "name": "[Hot Sale!]Glad2Glow Perfect Cover Cushion Foundation Waterproof Make Up Setting Concealer BB Cream",
+   "item_id": 29905930406,
+   "likes": 250790
+  },
+  "reason": "Max liked_count_num id 03/07 = 250.790, duy nhất một listing."
+ },
+ {
+  "id": "acc-v1-0036",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": {
+   "name": "Glad2Glow Pomegranate Niacinamide Brightening Moisturizer",
+   "rating_count": 464216
+  },
+  "reason": "Max rating_count_num id 03/07 = 464.216, duy nhất một listing."
+ },
+ {
+  "id": "acc-v1-0037",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "name": "Richy - Chi nhánh Miền Nam",
+   "listings": 120
+  },
+  "reason": "Shop nhiều listing nhất vn 03/07: Richy - Chi nhánh Miền Nam (120), duy nhất."
+ },
+ {
+  "id": "acc-v1-0038",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "name": "Richy - Chi nhánh Miền Nam",
+   "listings": 120
+  },
+  "reason": "Diễn đạt lại câu 37."
+ },
+ {
+  "id": "acc-v1-0039",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": {
+   "name": "Glad2Glow Official Store",
+   "listings": 220
+  },
+  "reason": "Shop nhiều listing nhất id 03/07: Glad2Glow Official Store (220), duy nhất."
+ },
+ {
+  "id": "acc-v1-0040",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "name": "Richy",
+   "listings": 186
+  },
+  "reason": "Thương hiệu nhiều listing nhất vn 03/07: Richy (186), duy nhất (thứ nhì Bibica 96)."
+ },
+ {
+  "id": "acc-v1-0041",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": {
+   "name": "GLAD2GLOW",
+   "listings": 215
+  },
+  "reason": "Thương hiệu nhiều listing nhất id 03/07: GLAD2GLOW (215), duy nhất."
+ },
+ {
+  "id": "acc-v1-0042",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 1000,
+  "reason": "Min price_num vn 03/07 = 1.000 VND (listing bánh Richy KARO, giá niêm yết thật)."
+ },
+ {
+  "id": "acc-v1-0043",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "tie": true,
+   "top_value": 9,
+   "tie_count": 76
+  },
+  "reason": "Max images_count vn 03/07 = 9 nhưng 76 listing cùng đạt 9 ảnh — đáp án là hòa nhiều dòng."
+ },
+ {
+  "id": "acc-v1-0044",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": {
+   "tie": true,
+   "top_value": 9,
+   "tie_count": 64
+  },
+  "reason": "Max images_count id 03/07 = 9 với 64 listing đồng hạng."
+ },
+ {
+  "id": "acc-v1-0045",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 1135000,
+  "reason": "Max giá thật id 03/07 = 1.135.000 IDR (Cyeecare Set 3in1); loại 3 dòng giá placeholder 9.999.999/999.999.999 gắn trên tiêu đề GIVEAWAY/FREE GIFT vì không phải giá bán thật."
+ },
+ {
+  "id": "acc-v1-0046",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 96.26,
+  "reason": "643/668 listing vn 03/07 có discount_percent_num>0 (trùng has_displayed_discount) = 96.26%."
+ },
+ {
+  "id": "acc-v1-0047",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 96.26,
+  "reason": "Diễn đạt lại câu 46: 96.26%."
+ },
+ {
+  "id": "acc-v1-0048",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 88.19,
+  "reason": "418/474 listing id 03/07 có giảm giá = 88.19%."
+ },
+ {
+  "id": "acc-v1-0049",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "from": 581,
+   "to": 668,
+   "delta": 87
+  },
+  "reason": "Listing vn tăng từ 581 (01/07) lên 668 (03/07), +87."
+ },
+ {
+  "id": "acc-v1-0050",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "from": 581,
+   "to": 668,
+   "delta": 87
+  },
+  "reason": "Diễn đạt lại câu 49: tăng 87 listing."
+ },
+ {
+  "id": "acc-v1-0051",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": {
+   "from": 474,
+   "to": 474,
+   "delta": 0
+  },
+  "reason": "Listing id giữ nguyên 474 ở cả 01/07 và 03/07, thay đổi = 0."
+ },
+ {
+  "id": "acc-v1-0052",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": {
+   "winner": "Richy - Chi nhánh Miền Nam",
+   "Richy - Chi nhánh Miền Nam": 120,
+   "Bibica Official Store": 96
+  },
+  "reason": "Richy - Chi nhánh Miền Nam 120 > Bibica Official Store 96 (vn 03/07)."
+ },
+ {
+  "id": "acc-v1-0053",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": {
+   "winner": "GLAD2GLOW",
+   "GLAD2GLOW": 215,
+   "Cyeecare": 65,
+   "diff": 150
+  },
+  "reason": "GLAD2GLOW 215 so với Cyeecare 65, hơn 150 listing (id 03/07)."
+ },
+ {
+  "id": "acc-v1-0054",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 372537,
+  "reason": "item_id 2260506115 vn 03/07 có price_num = 372.537 VND, duy nhất một dòng."
+ },
+ {
+  "id": "acc-v1-0055",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 4.9164,
+  "reason": "item_id 7005434955 vn 03/07 có rating_num = 4.9164."
+ },
+ {
+  "id": "acc-v1-0056",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 29689,
+  "reason": "Tên sản phẩm khớp đúng duy nhất 1 listing (item 2260506115), rating_count_num = 29.689."
+ },
+ {
+  "id": "acc-v1-0057",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 0,
+  "reason": "Giao brand Bibica với shop Richy - Chi nhánh Miền Nam vn 03/07: 0 listing — đếm được và bằng 0."
+ },
+ {
+  "id": "acc-v1-0058",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 0,
+  "reason": "ORION không có listing nào tại id ngày 03/07; dữ liệu đếm được, đáp án là 0."
+ },
+ {
+  "id": "acc-v1-0059",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 0,
+  "reason": "Không listing vn 03/07 nào có price_num > 5.000.000 (max 3.033.180); đáp án 0."
+ },
+ {
+  "id": "acc-v1-0060",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 0,
+  "reason": "Cyeecare chỉ xuất hiện ở id; tại vn 03/07 đếm ra 0 listing."
+ },
+ {
+  "id": "acc-v1-0061",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 0,
+  "reason": "ghaniskin là shop thị trường id; tại vn 03/07 đếm ra 0 listing."
+ },
+ {
+  "id": "acc-v1-0062",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 577,
+  "reason": "Câu nêu rõ 'voucher có cấu trúc' → has_structured_voucher, vn 03/07: 577 listing."
+ },
+ {
+  "id": "acc-v1-0063",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 210,
+  "reason": "Câu nêu rõ 'nhãn voucher hiển thị' → vouchers_count>0 (trường vouchers hiển thị), id 03/07: 210 listing."
+ },
+ {
+  "id": "acc-v1-0064",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "id",
+  "expected_value": 10,
+  "reason": "Turn cuối hỏi số shop tại Indonesia (kế thừa câu hỏi turn 1): 10 shop."
+ },
+ {
+  "id": "acc-v1-0065",
+  "answerability": "directly_answerable",
+  "expected_action": "allow",
+  "scope_country": "vn",
+  "expected_value": 96,
+  "reason": "Turn cuối: trong 668 listing vn 03/07, brand Bibica chiếm 96."
+ },
+ {
+  "id": "acc-v1-0066",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": null,
+  "expected_value": null,
+  "reason": "Thiếu thị trường: vn (668) và id (474) cho đáp án khác nhau; 'tổng cả hai' cũng là một cách hiểu khác nữa."
+ },
+ {
+  "id": "acc-v1-0067",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": null,
+  "expected_value": null,
+  "reason": "Bản tiếng Anh của câu 66 — vẫn thiếu thị trường bắt buộc."
+ },
+ {
+  "id": "acc-v1-0068",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": null,
+  "expected_value": null,
+  "reason": "Thiếu cả thị trường lẫn ngày snapshot; mỗi tổ hợp cho một con số khác nhau."
+ },
+ {
+  "id": "acc-v1-0069",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "'Có voucher' có hai cách đọc cho số khác hẳn nhau tại vn 03/07: voucher có cấu trúc = 577, nhãn voucher hiển thị = 419."
+ },
+ {
+  "id": "acc-v1-0070",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "id",
+  "expected_value": null,
+  "reason": "'Có voucher' tại id 03/07: voucher có cấu trúc = 0 nhưng nhãn voucher hiển thị = 210 — hai cách đọc trái ngược, phải hỏi lại."
+ },
+ {
+  "id": "acc-v1-0071",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "'Lớn nhất' theo tiêu chí nào? Theo số listing là Richy - Chi nhánh Miền Nam (120), theo follower là Kinh Do Official Store (548k), theo item_count là Nestlé Chính hãng (1753) — ba đáp án khác nhau."
+ },
+ {
+  "id": "acc-v1-0072",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "'Tốt nhất' không có tiêu chí: rating, lượt thích, lượt đánh giá đều hợp lý và trỏ tới sản phẩm khác nhau; cũng thiếu ngày."
+ },
+ {
+  "id": "acc-v1-0073",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "'Milo' khớp 18 listing vn với giá từ 85.500 đến 492.240 VND — phải hỏi listing nào; cũng thiếu ngày."
+ },
+ {
+  "id": "acc-v1-0074",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "'Bán chạy' không có ngưỡng định nghĩa (monthly_sold bao nhiêu thì gọi là bán chạy?) — mỗi ngưỡng cho một số khác."
+ },
+ {
+  "id": "acc-v1-0075",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": null,
+  "expected_value": null,
+  "reason": "Thiếu thị trường: max vn = 3.033.180 VND, max id = 1.135.000 IDR — hai đơn vị tiền khác nhau, không gộp được."
+ },
+ {
+  "id": "acc-v1-0076",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "'Theo nhóm' không nói nhóm gì: theo shop, theo thương hiệu hay theo ngành hàng — mỗi grain là một bảng đáp án khác."
+ },
+ {
+  "id": "acc-v1-0077",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": null,
+  "expected_value": null,
+  "reason": "Thiếu thị trường và ngày; câu tiếng Indonesia nhưng không nêu thị trường nào."
+ },
+ {
+  "id": "acc-v1-0078",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "'Số liệu' không xác định chỉ số nào (số listing, giá, rating, lượt thích...) và ngày nào."
+ },
+ {
+  "id": "acc-v1-0079",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Không nêu hai shop nào trong 10 shop vn và so sánh theo tiêu chí gì."
+ },
+ {
+  "id": "acc-v1-0080",
+  "answerability": "needs_clarification",
+  "expected_action": "clarify",
+  "scope_country": null,
+  "expected_value": null,
+  "reason": "Thiếu thị trường, khoảng thời gian, và 'doanh số' chưa định nghĩa (dữ liệu chỉ có monthly_sold là proxy hiển thị)."
+ },
+ {
+  "id": "acc-v1-0081",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Dữ liệu không có chi phí, giá vốn hay lợi nhuận; snapshot chỉ có giá niêm yết và chỉ số hiển thị."
+ },
+ {
+  "id": "acc-v1-0082",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "id",
+  "expected_value": null,
+  "reason": "Không có dữ liệu lợi nhuận/chi phí cho bất kỳ thương hiệu nào."
+ },
+ {
+  "id": "acc-v1-0083",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Không có dữ liệu tồn kho; dataset chỉ có snapshot listing hiển thị."
+ },
+ {
+  "id": "acc-v1-0084",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Không có dữ liệu lượt xem trang."
+ },
+ {
+  "id": "acc-v1-0085",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Không có dữ liệu đơn hàng lẫn lượt xem nên không tính được tỷ lệ chuyển đổi."
+ },
+ {
+  "id": "acc-v1-0086",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Không có dữ liệu đơn hàng theo ngày."
+ },
+ {
+  "id": "acc-v1-0087",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "id",
+  "expected_value": null,
+  "reason": "Không có chuỗi doanh số thật để dự báo; dataset đóng băng 3 ngày snapshot, không hỗ trợ dự đoán tuần sau."
+ },
+ {
+  "id": "acc-v1-0088",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Bản tiếng Anh của yêu cầu dự báo — dữ liệu 3 snapshot không dự báo được doanh số tương lai."
+ },
+ {
+  "id": "acc-v1-0089",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": null,
+  "expected_value": null,
+  "reason": "Không có doanh thu thật (chỉ proxy ước tính) và không có tỷ giá để cộng VND với IDR."
+ },
+ {
+  "id": "acc-v1-0090",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "id",
+  "expected_value": null,
+  "reason": "Dataset không chứa tỷ giá IDR/VND nên không quy đổi được."
+ },
+ {
+  "id": "acc-v1-0091",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Ngày 04/07 nằm ngoài cửa sổ snapshot 01–03/07/2026."
+ },
+ {
+  "id": "acc-v1-0092",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Ngày 30/06 nằm ngoài cửa sổ snapshot 01–03/07/2026."
+ },
+ {
+  "id": "acc-v1-0093",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Không có dữ liệu khảo sát NPS; rating shop không phải NPS."
+ },
+ {
+  "id": "acc-v1-0094",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Không có dữ liệu nhân sự của shop."
+ },
+ {
+  "id": "acc-v1-0095",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Dataset không có grain SKU (nhỏ nhất là listing) và không có doanh số theo SKU."
+ },
+ {
+  "id": "acc-v1-0096",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Không có dữ liệu trong ngày theo giờ và không có doanh thu thật; snapshot theo ngày."
+ },
+ {
+  "id": "acc-v1-0097",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "id",
+  "expected_value": null,
+  "reason": "Tiền đề sai: listing id giữ nguyên 474→474 từ 01/07 đến 03/07, không hề tăng; câu hỏi nhân quả 'vì sao' cũng vượt khả năng dữ liệu quan sát."
+ },
+ {
+  "id": "acc-v1-0098",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Tiền đề sai: listing vn TĂNG 581→668 trong 01–03/07, không mất một nửa; nhân quả cũng không suy được từ snapshot."
+ },
+ {
+  "id": "acc-v1-0099",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "vn",
+  "expected_value": null,
+  "reason": "Dataset chỉ có Shopee; không có giá đối thủ ngoài sàn."
+ },
+ {
+  "id": "acc-v1-0100",
+  "answerability": "unanswerable",
+  "expected_action": "abstain",
+  "scope_country": "id",
+  "expected_value": null,
+  "reason": "Không có dữ liệu chi phí quảng cáo (is_ad cũng toàn False, không quan sát được)."
+ }
+]

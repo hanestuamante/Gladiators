@@ -41,6 +41,16 @@ jobs:
       - name: Suite multiturn được chấm cả hai nhánh (W15.1)
         run: PYTHONPATH=src python scripts/run_multiturn.py
 
+      # Benchmark accuracy v1 (TC_formulation): oracle verify + contract +
+      # mutation chạy trong pytest ở trên; ở đây chạy DEV benchmark offline —
+      # cổng là "harness chạy trọn và phát report", KHÔNG phải một ngưỡng điểm:
+      # một baseline xấu là kết quả hợp lệ (§15). Holdout KHÔNG chạy trong CI
+      # thường — chỉ ở release evaluation (job tách riêng, §11).
+      - name: Oracle benchmark accuracy tái tính khớp fixture
+        run: python eval/accuracy/v1/oracle.py --verify
+      - name: Dev accuracy benchmark (offline, report-only)
+        run: PYTHONPATH=src python scripts/run_accuracy_benchmark.py --split dev --runs 1
+
       # Bước làm sạch dữ liệu chạy TRONG CI, không phải chỉ chạy được trong CI.
       # Nó dựng lại data/processed từ data/raw rồi so schema + giá trị với bản
       # đang commit. Trước đây bước này nằm trong một notebook phải bấm Run All,

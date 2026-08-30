@@ -1,0 +1,1504 @@
+{
+ "schema_version": "accuracy-report.v1",
+ "suite": "eval/accuracy/v1/holdout.json",
+ "suite_status": "provisional_contaminated",
+ "annotation_status": "adjudicated",
+ "split": "holdout",
+ "execution_mode": "offline_deterministic",
+ "runs": 3,
+ "scorer_version": "accuracy-scorer.v1",
+ "git_commit": "f39ca81",
+ "worktree_dirty": true,
+ "dataset_hashes": {
+  "products_clean.csv": "c4e1db3a04807e4cece5aea1327767d9ede1ea006fd12d4f65a7993fc914d390",
+  "product_snapshot_metrics.csv": "e71ca60488fa5bdb03544d3483937e633b974e70b71c69556157cce9660e35be",
+  "shop_info_clean.csv": "9c72a533e1554f38db97cd4fd1b3edfb35bbd50d1a6b01512a9699a28ca83b16"
+ },
+ "holdout_sha256": "243dd77b1fd0954b9da6d86544e4fecf52dad9cb5c994ecf94f4f3169ddbeba0",
+ "dev_sha256": "33625025ad5465e711107d4f235579f007b60b618a85ccd5fca1e5e0fffab29a",
+ "cases": 48,
+ "metrics": {
+  "strict_e2e_accuracy": {
+   "point": 0.4792,
+   "n": 48,
+   "k": 23,
+   "wilson95": [
+    0.3447,
+    0.6167
+   ]
+  },
+  "correct_answer_coverage": {
+   "point": 0.4545,
+   "n": 33,
+   "k": 15,
+   "wilson95": [
+    0.2984,
+    0.6201
+   ]
+  },
+  "answerable_coverage": {
+   "point": 0.5758,
+   "n": 33,
+   "k": 19,
+   "wilson95": [
+    0.4081,
+    0.7276
+   ]
+  },
+  "answer_risk": {
+   "point": 0.25,
+   "n": 20,
+   "k": 5,
+   "wilson95": [
+    0.1119,
+    0.4687
+   ]
+  },
+  "over_refusal_rate": {
+   "point": 0.3939,
+   "n": 33,
+   "k": 13,
+   "wilson95": [
+    0.2468,
+    0.5632
+   ]
+  },
+  "over_answer_rate": {
+   "point": 0.125,
+   "n": 8,
+   "k": 1,
+   "wilson95": [
+    0.0224,
+    0.4709
+   ]
+  },
+  "refusal_precision": {
+   "point": 0.5,
+   "n": 28,
+   "k": 14,
+   "wilson95": [
+    0.3263,
+    0.6737
+   ]
+  },
+  "refusal_recall": {
+   "point": 0.875,
+   "n": 8,
+   "k": 7,
+   "wilson95": [
+    0.5291,
+    0.9776
+   ]
+  },
+  "refusal_reason_accuracy": {
+   "point": 0.625,
+   "n": 8,
+   "k": 5,
+   "wilson95": [
+    0.3057,
+    0.8632
+   ]
+  },
+  "clarification_precision": {
+   "point": 0.2857,
+   "n": 7,
+   "k": 2,
+   "wilson95": [
+    0.0822,
+    0.6411
+   ]
+  },
+  "clarification_recovery_rate": {
+   "point": 0.0,
+   "n": 4,
+   "k": 0,
+   "wilson95": [
+    0.0,
+    0.4899
+   ]
+  },
+  "paraphrase_action_consistency": {
+   "point": 0.8,
+   "n": 10,
+   "k": 8,
+   "wilson95": [
+    0.4902,
+    0.9433
+   ]
+  },
+  "paraphrase_value_consistency": {
+   "point": 0.4,
+   "n": 10,
+   "k": 4,
+   "wilson95": [
+    0.1682,
+    0.6873
+   ]
+  },
+  "action_stability_rate": {
+   "point": 1.0,
+   "n": 48,
+   "k": 48,
+   "wilson95": [
+    0.9259,
+    1.0
+   ]
+  },
+  "crash_rate": {
+   "point": 0.0,
+   "n": 144,
+   "k": 0,
+   "wilson95": [
+    0.0,
+    0.026
+   ]
+  },
+  "unscoreable_count": 0
+ },
+ "latency_s": {
+  "p50": 0.067,
+  "p95": 0.321
+ },
+ "failures": [
+  {
+   "id": "acc-v1-0002",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-AGGREGATION",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0014",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "listing_count: kỳ vọng 96, evidence có [668]"
+   ]
+  },
+  {
+   "id": "acc-v1-0015",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "listing_count: kỳ vọng 82, evidence có [5, 4, 9]"
+   ]
+  },
+  {
+   "id": "acc-v1-0016",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0031",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0035",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0038",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "shop_name: không có evidence metric ∈ ('shop_name',)"
+   ]
+  },
+  {
+   "id": "acc-v1-0052",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-ENTITY",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0053",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0056",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0057",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "listing_count: kỳ vọng 0, evidence có [120]"
+   ]
+  },
+  {
+   "id": "acc-v1-0058",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0059",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0060",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0061",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-ENTITY",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0063",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0064",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0066",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0070",
+   "answerability": "needs_clarification",
+   "action": "abstain",
+   "rule_id": "A-VOUCHER-ID",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0071",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-ANALYTICAL-AMBIGUITY",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0074",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-ENTITY",
+   "reasons": [
+    "clarify không chạm slot definition_threshold"
+   ]
+  },
+  {
+   "id": "acc-v1-0077",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0088",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A19-AGGREGATION",
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A19-AGGREGATION→None ≠ forecast_unsupported"
+   ]
+  },
+  {
+   "id": "acc-v1-0096",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A19-PLAN→None ≠ missing_grain"
+   ]
+  },
+  {
+   "id": "acc-v1-0098",
+   "answerability": "unanswerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "action allow ∉ accepted ['abstain', 'clarify']"
+   ]
+  }
+ ],
+ "per_case": [
+  {
+   "id": "acc-v1-0001",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.607,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0002",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-AGGREGATION",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.321,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0005",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.294,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0006",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.033,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0011",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.273,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0013",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.281,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0014",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "listing_count: kỳ vọng 96, evidence có [668]"
+   ],
+   "crash": false,
+   "latency_s": 0.039,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0015",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "listing_count: kỳ vọng 82, evidence có [5, 4, 9]"
+   ],
+   "crash": false,
+   "latency_s": 0.332,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0016",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.267,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0017",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.32,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0018",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.044,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0023",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.317,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0024",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.362,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0025",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.047,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0029",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.277,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0031",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.078,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0035",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.391,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0037",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.343,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0038",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "shop_name: không có evidence metric ∈ ('shop_name',)"
+   ],
+   "crash": false,
+   "latency_s": 0.291,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0043",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.067,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0048",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.252,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0052",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-ENTITY",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.063,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0053",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.074,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0056",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.082,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0057",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "listing_count: kỳ vọng 0, evidence có [120]"
+   ],
+   "crash": false,
+   "latency_s": 0.044,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0058",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.066,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0059",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.078,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0060",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.069,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0061",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-ENTITY",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.074,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0062",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.043,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0063",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.064,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0064",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.092,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0065",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.108,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0066",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.086,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0067",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-CROSS-CURRENCY-SCOPE",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.019,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0070",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "abstain",
+   "rule_id": "A-VOUCHER-ID",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.08900000000000001,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0071",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-ANALYTICAL-AMBIGUITY",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.14100000000000001,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0072",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A19-METRIC",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.061,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0074",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-ENTITY",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "clarify không chạm slot definition_threshold"
+   ],
+   "crash": false,
+   "latency_s": 0.076,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0077",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.08900000000000001,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0081",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-PROFIT",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_field",
+   "latency_s": 0.012,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0082",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-PROFIT",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_field",
+   "latency_s": 0.011,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0086",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-ORDERS",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_grain",
+   "latency_s": 0.011,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0087",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-FORECAST",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "forecast_unsupported",
+   "latency_s": 0.012,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0088",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A19-AGGREGATION",
+   "expected_action": "abstain",
+   "strict_pass": false,
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A19-AGGREGATION→None ≠ forecast_unsupported"
+   ],
+   "crash": false,
+   "refusal_class": null,
+   "latency_s": 0.406,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0096",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "expected_action": "abstain",
+   "strict_pass": false,
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A19-PLAN→None ≠ missing_grain"
+   ],
+   "crash": false,
+   "refusal_class": null,
+   "latency_s": 0.064,
+   "run": 1,
+   "actions_by_run": [
+    "abstain",
+    "abstain",
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0097",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-PREMISE",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "false_premise",
+   "latency_s": 0.352,
+   "run": 1,
+   "actions_by_run": [
+    "clarify",
+    "clarify",
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0098",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "abstain",
+   "strict_pass": false,
+   "reasons": [
+    "action allow ∉ accepted ['abstain', 'clarify']"
+   ],
+   "crash": false,
+   "latency_s": 0.039,
+   "run": 1,
+   "actions_by_run": [
+    "allow",
+    "allow",
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  }
+ ]
+}
