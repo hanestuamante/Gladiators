@@ -6,7 +6,11 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from gladiators.domain.catalog import CATALOG
+from gladiators.domain.catalog import (
+    ADDITIVITY_BY_MEASURE,
+    CATALOG,
+    refusal_for_aggregation,
+)
 from gladiators.domain.invariant_handlers import (
     InvariantContext,
     InvariantViolation,
@@ -20,11 +24,16 @@ IssueCode = Literal[
     "missing_semantic_object", "wrong_filter", "wrong_join_path", "grain_mismatch",
     "fanout_risk", "unit_mismatch", "temporal_mismatch", "unsupported_claim",
     "budget_exceeded", "schema_invalid", "tier_violation", "non_physical_grouping",
+    # W26-R4: một phép tổng hợp mà tính chất của đại lượng không cho phép.
+    "non_additive_aggregation",
 ]
 
 # Outward code for a validation issue, so a plan defect reaches the caller as a
 # decision that can be looked up rather than an uncaught CompilationError.
-RULE_ID_BY_ISSUE: dict[str, str] = {"non_physical_grouping": "A19-PLAN-GROUPING"}
+RULE_ID_BY_ISSUE: dict[str, str] = {
+    "non_physical_grouping": "A19-PLAN-GROUPING",
+    "non_additive_aggregation": "A19-AGGREGATION",
+}
 DEFAULT_PLAN_RULE_ID = "A19-PLAN"
 
 
@@ -112,6 +121,23 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
     # ba ref tử/mẫu/tỷ lệ — plan KHÔNG được tự thay tử số hay mẫu số. Validator
     # mở closure từ registry, không tin schema plan tự khai.
     from gladiators.domain.metrics import METRICS
+
+    # W26-R4 — cấm cộng một proxy cửa sổ qua NHIỀU đợt thu. Luật này trước đây
+    # chỉ sống ở synthesizer, nên template và LLM planner đi vòng qua nó. Đặt ở
+    # validator vì đó là chỗ MỌI producer đi qua. Trên bộ 3 ngày cộng nhầm nhân
+    # sai số lên 3 lần; trên bộ 20 ngày là 20 lần.
+    snapshots = len({date for date in (plan.time_scope or ())})
+    if snapshots > 1:
+        for node in plan.nodes:
+            if node.op != "Aggregate" or node.aggregation != "sum":
+                continue
+            for ref in node.refs:
+                reason = refusal_for_aggregation(ref, "sum")
+                if reason and CATALOG.get(ref) and                         ADDITIVITY_BY_MEASURE.get(ref.split(".", 1)[-1]) == "proxy_window":
+                    issues.append(PlanIssue(
+                        code="non_additive_aggregation", node_id=node.node_id,
+                        message=reason,
+                    ))
 
     for node in plan.nodes:
         if node.op != "Aggregate" or node.aggregation != "share":

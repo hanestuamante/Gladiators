@@ -180,13 +180,50 @@ DELIBERATE_BASELINE_CHANGES = {
         "valid_aggregations của derived.estimated_recent_revenue — plan_id đổi "
         "median→sum."
     ),
+    "semantic_linking:sl37": (
+        "W24 (Spec3008 §11): ca MỚI thêm vào suite semantic_linking — catalog "
+        "trước đây KHÔNG có object nào phơi `products_clean.csv.item_id`, nên "
+        "không plan nào lọc được về một listing cụ thể và mọi câu nêu mã sản "
+        "phẩm bị `_has_unbound_qualifier` từ chối. Mở rộng, không dịch entry "
+        "cũ. Đã đối chiếu với pandas trước khi thêm: mã 2260506115 tại vn ngày "
+        "03/07 có giá 372537.0, và hệ trả đúng con số đó."
+    ),
     "dr2607:tc01": (
         "W1.2 (SolutionSpec2808 §2.4): 'tại shop Perfetti Van Melle Vietnam' "
         "trước đây thành group_by entity.shop — trả mọi shop. "
         "VALUE_DIMENSION_BY_UNIT bind tên shop thành predicate dim.shop_name "
-        "và bỏ grouping."
+        "và bỏ grouping. "
+        "W25-R3 (Spec3008 §12): dim.shop_name nay CÓ cột trên products_clean, "
+        "nên bộ lọc theo tên shop không cần cạnh belongs_to nữa — node Join "
+        "thành Project. Đã chạy CẢ HAI plan trên dữ liệu thật trước khi sửa "
+        "fixture: 22 dòng, cùng giá trị (4.0 / 95.0 / 104.0 …). Rút gọn thuần, "
+        "không đổi kết quả."
     ),
 }
+
+
+def _strip_labels(node):
+    """Bỏ TÊN CỘT của các field chiếu một đơn vị phân tích.
+
+    W25 đổi tên chiếu từ khoá (``shop_id``) sang nhãn (``shop_name``) — cùng
+    ``semantic_ref``, cùng kiểu, chỉ khác nhãn hiển thị. Bỏ đúng trường ``name``
+    của đúng những field đó, giữ nguyên mọi thứ khác.
+    """
+    from gladiators.domain.catalog import LABEL_REF_BY_UNIT
+
+    if isinstance(node, dict):
+        if node.get("semantic_ref") in LABEL_REF_BY_UNIT and "name" in node:
+            node = {k: v for k, v in node.items() if k != "name"}
+        return {k: _strip_labels(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_strip_labels(x) for x in node]
+    return node
+
+
+def _only_labels_moved(current, committed) -> bool:
+    if not isinstance(current, dict) or not isinstance(committed, dict):
+        return False
+    return _strip_labels(current) == _strip_labels(committed)
 
 
 def _strip_cardinality(node):
@@ -237,6 +274,13 @@ def test_the_equivalence_baseline_only_moves_where_a_work_package_declared_it():
     changed = {
         key for key in changed
         if not _only_cardinality_moved(current.get(key), committed.get(key))
+    }
+    # W25 (Spec3008 §12): tên cột chiếu đổi từ KHOÁ sang NHÃN. Cùng khuôn với
+    # lớp trên — khai bằng tên mà không kiểm là mở cửa cho mọi thay đổi khác đi
+    # kèm, nên lớp này cũng tự chứng minh.
+    changed = {
+        key for key in changed
+        if not _only_labels_moved(current.get(key), committed.get(key))
     }
     # Đổi baseline phải là một thay đổi contract CÓ KHAI BÁO, kèm lý do — không
     # phải một file bị dịch trong im lặng. Danh sách chỉ nới đúng những khoá đã

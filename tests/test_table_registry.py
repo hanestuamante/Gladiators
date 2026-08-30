@@ -59,7 +59,11 @@ def test_registry_covers_eight_artifacts_and_219_columns(snapshot):
     # binding của panel ngày cấp shop. Đếm ở đây là binding CATALOG KHAI, không
     # phải binding đã resolve ra cột thật — 11 cái mới trỏ vào một artifact bản
     # này chưa thu, và ``columns == 219`` bên trên chính là chỗ nói điều đó.
-    assert counts["catalog_bindings"] == 94
+    # 94 → 96 ở W24: `dim.item_id` phơi `products_clean.csv.item_id` (trước đó
+    # catalog KHÔNG có object nào phơi cột này, nên không plan nào lọc được về
+    # một listing cụ thể), và `dim.shop_name` thêm cột trên bảng listing để
+    # W25 chiếu được TÊN shop thay vì `shop_id`.
+    assert counts["catalog_bindings"] == 96
     assert set(snapshot.tables) == set(ArtifactName)
     assert snapshot.tables[ArtifactName.SHOP_STATS].columns == ()
 

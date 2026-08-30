@@ -27,11 +27,16 @@ class AnalyticalPlanError(ValueError):
         rule_id: str = "A19-PLAN",
         decline_codes: tuple[str, ...] = (),
         attempts: tuple = (),
+        answerable_alternative: str | None = None,
     ):
         super().__init__(message)
         self.rule_id = rule_id
         self.decline_codes = decline_codes
         self.attempts = attempts
+        # W26-R1: câu hỏi kế bên TRẢ LỜI ĐƯỢC, nếu có. Mặc định None ⇒ caller cũ
+        # vẫn cho ra `abstain` như hôm nay; chỉ khi có phương án thật thì lời từ
+        # chối mới thành `clarify`.
+        self.answerable_alternative = answerable_alternative
 
 
 def infer_deterministic_template(request: AnalyticalRequest) -> str | None:

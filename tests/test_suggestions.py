@@ -63,7 +63,14 @@ def test_rule_id_and_reason_are_untouched(runtime):
     cần một câu vẫn bị từ chối; trung bình chưa được chứng nhận cho
     measure.price và ra A19-AGGREGATION (W5.1).
     """
-    response = runtime.run("Giá trung bình tại VN")
+    # W26 (Spec3008 §13): "Giá trung bình" KHÔNG còn bị từ chối —
+    # `measure.price` khai `snapshot_stock`, và trung bình giá là một đại
+    # lượng đọc được (đối chiếu pandas: 242351.2844 trên 668 listing vn ngày
+    # 03/07). Câu neo đổi sang ĐIỂM ĐÁNH GIÁ, một đại lượng `ordinal`: trung
+    # bình của một thang thứ bậc không phải một điểm đánh giá, nên nó vẫn
+    # phải bị từ chối. Thứ test này bảo vệ — không thay thầm mean bằng
+    # median — không đổi; chỉ đại lượng mang tính chất đó mới đổi.
+    response = runtime.run("Điểm đánh giá trung bình tại VN")
     assert response.gate.rule_id == "A19-AGGREGATION"
     assert "gợi ý" not in response.gate.reason.lower()
     assert response.gate.answerable_alternative

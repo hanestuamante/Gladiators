@@ -61,6 +61,11 @@ class CatalogObject:
     counting_key: str | None = None
     # For a count metric: the entity ref whose instances it counts.
     counts_unit: str | None = None
+    # W24-R1: ref này có được xuất hiện trong ``plan.group_by`` không. Mặc định
+    # True ⇒ mọi ref cũ giữ nguyên hành vi. ``dim.item_id`` khai False vì gom
+    # nhóm theo nó trả về một dòng mỗi listing — đó không phải một câu hỏi, và
+    # nó lộ luôn một định danh nội bộ.
+    groupable: bool = True
     # Bản đã parse của ``physical``, sinh ở ``_build_catalog``. ``physical`` giữ
     # nguyên một release cho fixture/serializer cũ; writer và compiler mới chỉ
     # đọc ``physical_bindings`` vì chỉ nó biết artifact nào là artifact nào
@@ -98,6 +103,7 @@ def _object(
     source_tier: SourceTier = "btc_dataset",
     counting_key: str | None = None,
     counts_unit: str | None = None,
+    groupable: bool = True,
 ) -> CatalogObject:
     if answerability is None:
         answerability = "exposed_as_dimension" if kind in {"entity", "dimension"} else "exposed_as_measure"
@@ -109,6 +115,7 @@ def _object(
         _default_analysis_role(kind, answerability),
         counting_key,
         counts_unit,
+        groupable,
     )
 
 
@@ -139,7 +146,23 @@ _BASE_OBJECTS = [
     _object("dim.product_name", "dimension", ("sản phẩm", "san pham", "product", "produk"),
             ("products_clean.csv.product_name", "products_clean.csv.product_name_clean", "product_snapshot_metrics.csv.product_name")),
     _object("dim.brand", "dimension", ("thương hiệu", "thuong hieu", "brand", "merek"), ("products_clean.csv.brand",), traps=()),
-    _object("dim.shop_name", "dimension", ("shop", "cửa hàng", "cua hang", "toko"), ("shop_info_clean.csv.shop_name",), time="static_latest"),
+    # W24: THÊM cột trên bảng listing (cùng ref ⇒ không vi phạm luật "một cột
+    # thuộc một ref"). Trước đó mọi câu lọc hay HIỆN TÊN shop phải đi quan hệ
+    # `belongs_to`, và `_field()` chiếu `physical[0]` nên plan gom theo shop
+    # xuất ra `shop_id` — câu trả lời in một định danh nội bộ.
+    _object("dim.shop_name", "dimension", ("shop", "cửa hàng", "cua hang", "toko"),
+            ("shop_info_clean.csv.shop_name", "products_clean.csv.shop_name"),
+            time="static_latest"),
+    # W24: catalog trước đây KHÔNG phơi `item_id` dù cột tồn tại, nên không plan
+    # nào lọc được về một listing cụ thể và `_has_unbound_qualifier` từ chối mọi
+    # câu hỏi nêu mã sản phẩm — đúng logic, nhưng cái nó bảo vệ là một khoảng
+    # trống lấp được. `groupable=False`: gom nhóm theo item_id ra một dòng mỗi
+    # listing, đó không phải một câu hỏi.
+    _object("dim.item_id", "dimension",
+            ("mã sản phẩm", "ma san pham", "mã listing", "ma listing",
+             "item id", "product code", "kode produk"),
+            ("products_clean.csv.item_id",),
+            type="string", grain="listing", filters=("eq", "in"), groupable=False),
     _object("dim.platform_category_name", "dimension",
             ("danh mục sàn", "danh mục", "platform category", "category", "kategori"),
             ("category_platform_clean.csv.display_category_name",)),
@@ -259,6 +282,73 @@ _MEASURES: dict[str, tuple[tuple[str, ...], str, str, tuple[int, ...], Answerabi
     "shop_category_total": (("category_list_clean.csv.total_num",), "listings", "number", (3,), "exposed_as_measure"),
 }
 
+# ── W26: khai TÍNH CHẤT, suy ra PHÉP ────────────────────────────────────────
+#
+# ``valid_aggregations`` trước đây là một tuple phẳng gán tay, giống hệt nhau cho
+# mọi measure (``median/min/max``). Một bảng phẳng không phát biểu được *vì sao*
+# một phép hợp lệ hay không, nên mỗi mục là một quyết định không kiểm lại được và
+# lời từ chối chỉ nói được "catalog chưa chứng nhận" — một câu mô tả REGISTRY,
+# không mô tả ĐẠI LƯỢNG.
+Additivity = Literal[
+    "additive", "ordinal", "snapshot_stock", "ratio", "count", "proxy_window",
+]
+
+AGGREGATIONS_BY_ADDITIVITY: dict[str, tuple[str, ...]] = {
+    # đếm sự vật; cộng qua các dòng có nghĩa
+    "additive":       ("sum", "mean", "median", "min", "max"),
+    # thang THỨ BẬC: trung bình sao không phải trung bình của gì cả
+    "ordinal":        ("median", "min", "max"),
+    # cộng giá qua các listing vô nghĩa
+    "snapshot_stock": ("median", "mean", "min", "max"),
+    "ratio":          ("share", "median", "mean"),
+    "count":          ("count",),
+    # proxy của một cửa sổ CHƯA XÁC NHẬN — cộng qua snapshot là tính TRÙNG
+    "proxy_window":   ("median", "min", "max"),
+}
+
+ADDITIVITY_BY_MEASURE: dict[str, str] = {
+    "liked_count": "additive", "rating_count": "additive",
+    "images_count": "additive", "vouchers_count": "additive",
+    "variation_options_count": "additive",
+    "rating": "ordinal", "shop_rating": "ordinal",
+    # Spec3008 §13.2: cộng giá qua các listing vô nghĩa, nhưng TRUNG BÌNH giá
+    # thì có nghĩa — "giá trung bình của listing tại VN" là một đại lượng đọc
+    # được. W26-R2: nới đúng phần chứng minh được.
+    "price": "snapshot_stock", "price_original": "snapshot_stock",
+    "price_before_promo": "snapshot_stock", "discount_percent": "snapshot_stock",
+    "monthly_sold": "proxy_window", "history_sold": "proxy_window",
+}
+
+# Lý do có KIỂU cho một phép bị từ chối. Nói về đại lượng, không về bảng.
+AGGREGATION_REFUSAL: dict[tuple[str, str], str] = {
+    ("ordinal", "mean"): (
+        "Điểm đánh giá là thang thứ bậc; trung bình của nó không phải một điểm "
+        "đánh giá. Có thể hỏi trung vị."
+    ),
+    ("ordinal", "sum"): (
+        "Điểm đánh giá là thang thứ bậc; cộng các điểm lại không tạo ra một đại "
+        "lượng có nghĩa."
+    ),
+    ("proxy_window", "sum"): (
+        "Chỉ số này là proxy của một cửa sổ chưa xác nhận; cộng qua các đợt thu "
+        "sẽ tính trùng cùng một lượt bán."
+    ),
+    ("snapshot_stock", "sum"): (
+        "Cộng giá của nhiều listing không tạo ra một mức giá; hãy hỏi trung vị "
+        "hoặc tổng giá trị ước tính."
+    ),
+}
+
+
+def refusal_for_aggregation(measure_ref: str, aggregation: str) -> str | None:
+    """Vì sao phép này không được chứng nhận cho đại lượng này (W26-R1)."""
+    name = measure_ref.split(".", 1)[-1]
+    additivity = ADDITIVITY_BY_MEASURE.get(name)
+    if additivity is None:
+        return None
+    return AGGREGATION_REFUSAL.get((additivity, aggregation))
+
+
 for name, (physical, unit, type_, traps, status) in _MEASURES.items():
     caveats = ["Dùng đúng grain và scope theo metric/relation registry."]
     if name in {"price", "price_original"}:
@@ -270,7 +360,13 @@ for name, (physical, unit, type_, traps, status) in _MEASURES.items():
     _BASE_OBJECTS.append(_object(
         f"measure.{name}", "measure",
         (name.replace("_", " "),) + _MEASURE_ALIASES.get(name, ()), physical,
-        type=type_, unit=unit, aggregations=("median", "min", "max"),
+        type=type_, unit=unit,
+        # W26: phép được chứng nhận SUY RA từ tính chất cộng được, không gán tay.
+        # Measure chưa khai tính chất giữ nguyên bộ cũ — nới phải là nới đúng
+        # phần chứng minh được, không phải nới cả bảng.
+        aggregations=AGGREGATIONS_BY_ADDITIVITY.get(
+            ADDITIVITY_BY_MEASURE.get(name, ""), ("median", "min", "max"),
+        ),
         filters=("eq", "lt", "lte", "gt", "gte"), traps=traps, answerability=status,
         caveats=tuple(caveats),
     ))
@@ -437,6 +533,19 @@ _DERIVED_PHYSICAL = {
 # nào". Đếm shop_name phân biệt KHÔNG bằng đếm shop: metric đích mang
 # counts_unit riêng (entity.shop → counting_key shop_id) và phép đếm vẫn chạy
 # trên khoá đó.
+# W25-R1 — KHOÁ GOM NHÓM và NHÃN HIỂN THỊ là HAI thứ.
+#
+# Gom nhóm theo ``shop_id`` là đúng: nó là khoá. Nhưng ``_field()`` đặt tên cột
+# chiếu bằng ``physical[0]``, nên plan gom theo shop chiếu ra ``shop_id`` và câu
+# trả lời in ``108166524`` thay vì tên shop — một định danh NỘI BỘ rò ra ngoài
+# (``INV-NO-INTERNAL-VOCABULARY``).
+LABEL_REF_BY_UNIT: dict[str, str] = {
+    "entity.shop": "dim.shop_name",
+    "entity.brand": "dim.brand",
+    "entity.platform_category": "dim.platform_category_name",
+    "entity.product_listing": "dim.product_name",
+}
+
 COUNT_METRIC_BY_SURFACE_REF: dict[str, str] = {
     "dim.brand":                  "derived.brand_count",
     "entity.brand":               "derived.brand_count",
@@ -540,6 +649,16 @@ for _unit_ref, _dim_ref in VALUE_DIMENSION_BY_UNIT.items():
 # W4.2: mọi khoá/giá trị của bảng đếm-theo-chiều phải tồn tại, và metric đích
 # phải là một metric ĐẾM — gõ sai một ref phải nổ lúc import, không phải lúc
 # một câu hỏi vô tình chạm vào nó.
+for _unit_ref, _label_ref in LABEL_REF_BY_UNIT.items():
+    if _unit_ref not in CATALOG or _label_ref not in CATALOG:
+        raise CatalogError(
+            f"LABEL_REF_BY_UNIT trỏ tới ref không tồn tại: {_unit_ref} → {_label_ref}",
+        )
+    if not CATALOG[_label_ref].physical:
+        raise CatalogError(
+            f"LABEL_REF_BY_UNIT: nhãn {_label_ref} không có cột vật lý nào để chiếu",
+        )
+
 for _surface_ref, _count_ref in COUNT_METRIC_BY_SURFACE_REF.items():
     if _surface_ref not in CATALOG or _count_ref not in CATALOG:
         raise CatalogError(

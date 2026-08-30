@@ -288,6 +288,14 @@ def test_the_uncertified_mean_is_refused_not_substituted():
 
     codes: list[str] = []
     assert synthesize(
-        PARSER.parse("Giá trung bình tại Việt Nam", "vi", "vn"), "vn", decline=codes,
+        # W26 (Spec3008 §13): "Giá trung bình" KHÔNG còn bị từ chối —
+        # `measure.price` khai `snapshot_stock`, và trung bình giá là một đại
+        # lượng đọc được (đối chiếu pandas: 242351.2844 trên 668 listing vn ngày
+        # 03/07). Câu neo đổi sang ĐIỂM ĐÁNH GIÁ, một đại lượng `ordinal`: trung
+        # bình của một thang thứ bậc không phải một điểm đánh giá, nên nó vẫn
+        # phải bị từ chối. Thứ test này bảo vệ — không thay thầm mean bằng
+        # median — không đổi; chỉ đại lượng mang tính chất đó mới đổi.
+        PARSER.parse("Điểm đánh giá trung bình tại Việt Nam", "vi", "vn"),
+        "vn", decline=codes,
     ) is None
     assert codes == ["aggregation_not_certified"]

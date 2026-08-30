@@ -145,7 +145,15 @@ CONTRACTS: dict[int, dict[str, object]] = {
         "complexity_level": "L3",
         "answerability_class": "C2",
         "expected_action": "clarify",
-        "allowed_rule_ids": ["A16-CROSS-CURRENCY", "A22-ALIGN-MEASURE"],
+        # W26/W28-B: trước đây câu này bị chặn vì `mean` không được chứng nhận
+        # cho discount_percent — một lý do nói về BẢNG catalog. Nay phép trung
+        # bình hợp lệ (snapshot_stock), nên trở ngại còn lại là trở ngại THẬT:
+        # câu hỏi so hai thị trường trong khi plan chỉ phủ một, và alignment nói
+        # đúng điều đó. Hai bảo đảm giữ nguyên: không `A-ALLOW`, và không trộn
+        # VND với IDR.
+        "allowed_rule_ids": [
+            "A16-CROSS-CURRENCY", "A22-ALIGN-MEASURE", "A22-ALIGN-COUNTRY",
+        ],
         "forbidden_rule_ids": ["A-ALLOW"],
         "forbidden_analytical_kind": "listing_count",
         "expected_semantic_refs": ["measure.voucher_discount", "dim.country"],
@@ -209,7 +217,18 @@ CONTRACTS: dict[int, dict[str, object]] = {
         "complexity_level": "L3",
         "answerability_class": "C1",
         "expected_action": "clarify",
-        "allowed_rule_ids": ["A22-ALIGN-MEASURE"],
+        # W26 (Spec3008 §13): câu này yêu cầu TƯỜNG MINH cộng `monthly_sold`
+        # qua ba đợt thu. Trước W26 hệ để template trả lời rồi mới bị alignment
+        # chặn (`A22-ALIGN-*`) — tức chặn SAU khi một con số đã tồn tại. Nay
+        # tính chất "proxy của một cửa sổ chưa xác nhận" nằm trong catalog, nên
+        # phép cộng bị từ chối NGAY ở khâu lập kế hoạch với lý do nói về đại
+        # lượng ("cộng qua các đợt thu sẽ tính trùng cùng một lượt bán") thay vì
+        # về sự lệch giữa câu hỏi và câu trả lời.
+        #
+        # Hai bảo đảm của ca này KHÔNG đổi: không bao giờ `A-ALLOW`, và không
+        # bao giờ thay bằng `listing_count`. `expected_action` vẫn là `clarify`
+        # vì vẫn còn một câu hỏi kế bên trả lời được (trung vị).
+        "allowed_rule_ids": ["A22-ALIGN-MEASURE", "A19-AGGREGATION"],
         "forbidden_rule_ids": ["A-ALLOW"],
         "forbidden_analytical_kind": "listing_count",
         "expected_semantic_refs": ["measure.monthly_sold", "entity.listing"],

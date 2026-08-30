@@ -35,7 +35,11 @@ import re
 from dataclasses import dataclass
 from typing import Literal, TypedDict, get_args
 
-from gladiators.domain.catalog import CATALOG
+from gladiators.domain.catalog import (
+    CATALOG,
+    LABEL_REF_BY_UNIT,
+    refusal_for_aggregation,
+)
 from gladiators.domain.metrics import approved_exclusion_predicates, METRICS
 from gladiators.domain.qualifiers import QUALIFIERS
 from gladiators.domain.relations import (
@@ -317,7 +321,7 @@ def _plan_relations(
 
 
 
-def _field(ref: str, name: str | None = None) -> OutputField:
+def _field(ref: str, name: str | None = None, source: str | None = None) -> OutputField:
     """Name a projected column the way the compiler and templates already do.
 
     Dimensions and entities carry their physical column name -- ``entity.shop``
@@ -331,7 +335,23 @@ def _field(ref: str, name: str | None = None) -> OutputField:
     if name is None:
         name = ref.split(".")[-1]
         if obj.kind in {"dimension", "entity"} and obj.physical:
-            name = obj.physical[0].rsplit(".", 1)[1]
+            # W25-R1: đơn vị phân tích chiếu NHÃN của nó, không chiếu khoá.
+            # ``entity.shop.physical[0]`` là ``shop_id``; in nó ra là in một
+            # định danh nội bộ cho người dùng đọc.
+            #
+            # Nhưng CHỈ khi cột nhãn có thật trên bảng nguồn của plan — cùng
+            # luật với ``compiler._label_column_on``. ``product_snapshot_metrics``
+            # có ``shop_id`` mà không có ``shop_name``; đổi tên chiếu ở đây mà
+            # compiler không mang được cột sang là hai nửa của một luật lệch
+            # nhau, và SQL sinh ra tham chiếu một cột chưa định nghĩa.
+            label_ref = LABEL_REF_BY_UNIT.get(ref)
+            label = CATALOG[label_ref] if label_ref else None
+            if label is not None and source:
+                prefix = source + "."
+                label = label if any(
+                    column.startswith(prefix) for column in label.physical
+                ) else None
+            name = (label or obj).physical[0].rsplit(".", 1)[1]
     return OutputField(
         name=name,
         type=_TYPE_BY_CATALOG_TYPE.get(obj.type, "string"),
@@ -388,6 +408,10 @@ def _choose_aggregation(
         # Không ghi decline ở đây: caller ghi `aggregation_not_certified` ngay
         # khi hàm này trả None, và ghi hai lần trên cùng một đường làm hai lối
         # từ chối KHÁC NHAU trông giống nhau trong trace.
+        # W26-R1 sinh LỜI GIẢI THÍCH ở workflow qua ``refusal_for_aggregation``,
+        # không ở đây: chỗ này chỉ quyết định có phép nào dùng được không, và
+        # ghi decline hai lần trên cùng một đường làm hai lối từ chối KHÁC NHAU
+        # trông giống nhau trong trace.
         return requested if requested in allowed else None
     # Không nêu phép tính: giữ nguyên đường mặc định hôm nay, để plan_id của 58
     # plan đang bị khoá không đổi.
@@ -557,6 +581,19 @@ def synthesize(
     counted_unit = CATALOG[measure_ref].counts_unit
     share = _share_definition(measure_ref)
     needed = {measure_ref, *dimensions, *(p.field_ref for p in extra)}
+    # GIỚI HẠN ĐÃ BIẾT của W25, ghi ra thay vì để người sau tự phát hiện:
+    # nhãn chỉ chiếu được khi nó có cột trên CHÍNH bảng nguồn của plan.
+    # ``product_snapshot_metrics.csv`` có ``shop_id`` mà không có ``shop_name``,
+    # nên plan sinh từ nó vẫn chiếu khoá. Ba lối đã thử và vì sao bỏ:
+    #   * ép nhãn thành một ref plan phải phủ ⇒ bộ chọn quan hệ thêm cạnh
+    #     ``has_sales_metric`` và plan ra INVALID ("grain Join không khớp",
+    #     "fanout thiếu dedupe") — đổi một chỗ rò lấy một plan không chạy được;
+    #   * thêm ``shop_name`` vào artifact snapshot_metrics ⇒ đổi
+    #     ``dataset_version`` của bộ đóng băng, tức phá một bất biến;
+    #   * bật W25-R2 (validator chặn định danh nội bộ) ⇒ biến một câu hỏi TRẢ
+    #     LỜI ĐƯỢC thành một lời từ chối.
+    # Nên W25 đóng chỗ rò ở mọi plan sinh từ ``products_clean.csv`` (gồm ca
+    # h0038 mà nó tồn tại để đóng) và KHÔNG đóng ở nhánh snapshot_metrics.
     if counted_unit:
         needed.discard(measure_ref)  # counted, not scanned
     if share is not None:
@@ -577,7 +614,7 @@ def synthesize(
         return None
 
     # --- output contract ----------------------------------------------------
-    fields: list[OutputField] = [_field(ref) for ref in dimensions]
+    fields: list[OutputField] = [_field(ref, source=source) for ref in dimensions]
     if not dimensions and ranking:
         # A listing-level ranking has to name the thing it ranked.
         fields.append(_field("dim.product_name", "product_name"))

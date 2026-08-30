@@ -65,6 +65,37 @@ def extract_countries(text: str, normalized: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(found))
 
 
+def _value_is_name_shaped(text: str, value: str) -> bool:
+    """LUẬT W28-B — CHÍNH GIÁ TRỊ được trích phải có hình dạng tên riêng.
+
+    Kiểm cả câu là quá thô: "Trung bình mỗi sản phẩm tại **Indonesia** … so với
+    **Việt Nam**" có token viết hoa, nên một guard mức-câu vẫn cho qua và bộ
+    trích vẫn dựng entity ``"tai"`` từ một mệnh đề chung. Điều luật đòi là span
+    SINH RA entity phải mang hình dạng đó.
+
+    Dùng chính lattice của W16 nên câu hỏi "token này viết hoa giữa câu chưa?"
+    được trả lời ở đúng một chỗ — trước W16 mỗi consumer tự quét lại câu gốc
+    bằng một regex riêng, và hai bản của một luật là cách chúng lệch nhau.
+    """
+    from gladiators.planner.spans import fold, tokenize
+
+    wanted = fold(value).split()
+    if not wanted:
+        return False
+    tokens = tokenize(text)
+    words = [token.normalized for token in tokens]
+    for start in range(len(words) - len(wanted) + 1):
+        if words[start:start + len(wanted)] != wanted:
+            continue
+        window = tokens[start:start + len(wanted)]
+        if any(
+            token.name_shaped or (token.numeric and len(token.normalized) >= 8)
+            for token in window
+        ):
+            return True
+    return False
+
+
 def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
     entities: list[ExtractedEntity] = []
     occupied: list[tuple[int, int]] = []
@@ -129,6 +160,14 @@ def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
         # category share -- handing back a shortlist of a different brand.
         r"(?:luot ban cua)\s+(.+?)(?=\s+(?:o|tai|cua shop|thi truong)\b|\s+(?:giam|tang|thay doi)\b)",
     )
+    # LUẬT W28-B (Spec3008 §15.2) — entity chỉ được trích từ một span mà ledger
+    # đánh dấu `quoted`, `capitalized` (giữa câu) hoặc `entity_id`.
+    #
+    # Đo được: "Doanh số thay đổi thế nào?" nhận `A-ENTITY-NOT-FOUND` *"Không
+    # tìm thấy listing nào khớp phần mô tả sản phẩm"* — hệ dựng một entity từ
+    # một mệnh đề CHUNG rồi không tìm được nó. Không span hình-dạng-tên nào ⇒
+    # KHÔNG entity ⇒ câu rơi về clarify thiếu measure/scope mà nó đáng nhận,
+    # thay vì một lời từ chối nói về một sản phẩm người dùng chưa hề nêu.
     if not any(item.kind in {"listing_key", "item_id", "name"} for item in entities):
         for pattern in patterns:
             match = re.search(pattern, normalized)
@@ -140,7 +179,10 @@ def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
                 r"tertinggi|terendah|co|có)\b",
                 value,
             ))
-            if value and not generic_question and not re.fullmatch(r"\d+", value):
+            if (
+                value and not generic_question and not re.fullmatch(r"\d+", value)
+                and _value_is_name_shaped(text, value)
+            ):
                 entities.append(ExtractedEntity("name", value, value, "low"))
                 break
     if not any(item.kind in {"listing_key", "item_id", "name"} for item in entities):
@@ -169,6 +211,7 @@ def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
             and title_like
             and not any(term in candidate for term in question_terms)
             and not re.search(r"\d{6,}", candidate)
+            and _value_is_name_shaped(text, candidate)
         ):
             entities.append(ExtractedEntity("name", candidate, candidate, "low"))
 

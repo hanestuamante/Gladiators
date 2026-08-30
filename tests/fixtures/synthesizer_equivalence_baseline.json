@@ -59,84 +59,7 @@
             "op": "eq",
             "parameter": "date",
             "value": "2026-07-03"
-          }
-        ],
-        "relation": null,
-        "source": null,
-        "aggregation": null,
-        "group_by": [],
-        "rank_by": null,
-        "descending": true,
-        "limit": null,
-        "input_grain": "listing_snapshot",
-        "output_grain": "listing_snapshot",
-        "units": [],
-        "expected_schema": [
-          {
-            "name": "monthly_sold",
-            "type": "number",
-            "semantic_ref": "measure.monthly_sold"
-          }
-        ],
-        "expected_cardinality": "<=snapshot_rows",
-        "original_cardinality": null,
-        "dedupe_policy": null,
-        "invariants": [],
-        "evidence_emission": {
-          "enabled": false,
-          "metric_ref": null,
-          "caveat_refs": []
-        },
-        "cost_estimate": 1,
-        "risk_estimate": 0
-      },
-      {
-        "node_id": "n3",
-        "op": "Join",
-        "inputs": [
-          "n2"
-        ],
-        "refs": [
-          "dim.shop_name"
-        ],
-        "predicates": [],
-        "relation": "belongs_to",
-        "source": null,
-        "aggregation": null,
-        "group_by": [],
-        "rank_by": null,
-        "descending": true,
-        "limit": null,
-        "input_grain": "listing_snapshot",
-        "output_grain": "listing_snapshot",
-        "units": [],
-        "expected_schema": [
-          {
-            "name": "monthly_sold",
-            "type": "number",
-            "semantic_ref": "measure.monthly_sold"
-          }
-        ],
-        "expected_cardinality": "<=snapshot_rows",
-        "original_cardinality": null,
-        "dedupe_policy": null,
-        "invariants": [],
-        "evidence_emission": {
-          "enabled": false,
-          "metric_ref": null,
-          "caveat_refs": []
-        },
-        "cost_estimate": 1,
-        "risk_estimate": 0
-      },
-      {
-        "node_id": "nf2",
-        "op": "Filter",
-        "inputs": [
-          "n3"
-        ],
-        "refs": [],
-        "predicates": [
+          },
           {
             "ref": "dim.shop_name",
             "op": "eq",
@@ -172,9 +95,48 @@
         },
         "cost_estimate": 1,
         "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Project",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "measure.monthly_sold"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
       }
     ],
-    "output_node": "nf2",
+    "output_node": "n5",
     "requested_output_shape": [
       {
         "name": "monthly_sold",
@@ -522,7 +484,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -577,7 +539,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -623,7 +585,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -649,7 +611,7 @@
     "output_node": "n4",
     "requested_output_shape": [
       {
-        "name": "shop_id",
+        "name": "shop_name",
         "type": "string",
         "semantic_ref": "entity.shop"
       },
@@ -8186,7 +8148,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8241,7 +8203,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8285,7 +8247,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8331,7 +8293,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8373,7 +8335,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8399,7 +8361,7 @@
     "output_node": "n5",
     "requested_output_shape": [
       {
-        "name": "shop_id",
+        "name": "shop_name",
         "type": "string",
         "semantic_ref": "entity.shop"
       },
@@ -8448,7 +8410,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8503,7 +8465,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8547,7 +8509,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8593,7 +8555,7 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
@@ -8619,7 +8581,7 @@
     "output_node": "n4",
     "requested_output_shape": [
       {
-        "name": "shop_id",
+        "name": "shop_name",
         "type": "string",
         "semantic_ref": "entity.shop"
       },
@@ -8837,6 +8799,168 @@
         "name": "discounted_listing_rate",
         "type": "number",
         "semantic_ref": "derived.discounted_listing_rate"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  },
+  "semantic_linking:sl37": {
+    "plan_id": "synth:measure.price:median:nogroup:none:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "measure.price"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "price",
+            "type": "number",
+            "semantic_ref": "measure.price"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          },
+          {
+            "ref": "dim.item_id",
+            "op": "eq",
+            "parameter": "p0",
+            "value": "2260506115"
+          },
+          {
+            "ref": "measure.price",
+            "op": "lt",
+            "parameter": "price_sentinel",
+            "value": 999999999
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "price",
+            "type": "number",
+            "semantic_ref": "measure.price"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Project",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "measure.price"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "price",
+            "type": "number",
+            "semantic_ref": "measure.price"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n5",
+    "requested_output_shape": [
+      {
+        "name": "price",
+        "type": "number",
+        "semantic_ref": "measure.price"
       }
     ],
     "budget": {

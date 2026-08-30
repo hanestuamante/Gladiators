@@ -12,7 +12,7 @@ from typing import Callable
 import sqlglot
 from sqlglot import exp
 
-from gladiators.domain.catalog import CATALOG, counting_column
+from gladiators.domain.catalog import CATALOG, LABEL_REF_BY_UNIT, counting_column
 from gladiators.domain.metrics import approved_exclusion_predicates
 from gladiators.domain.relations import RELATIONS
 from gladiators.domain.tables import VIEW_NAMES
@@ -79,6 +79,22 @@ def _column_for(ref: str, preferred_source: str | None = None) -> str:
     if counting:
         return counting
     raise CompilationError(f"Semantic ref chưa có physical mapping: {ref}")
+
+
+def _label_column_on(label_ref: str, source: str | None) -> str | None:
+    """Cột của ``label_ref`` NẾU nó nằm trên chính ``source``, ngược lại ``None``.
+
+    Khác ``_column_for``: hàm kia lùi về ``physical[0]`` khi không khớp source,
+    và với nhãn thì cái lùi đó tạo ra một tham chiếu tới cột của một bảng KHÁC.
+    """
+    obj = CATALOG.get(label_ref)
+    if obj is None or not source:
+        return None
+    prefix = source + "."
+    for physical in obj.physical:
+        if physical.startswith(prefix):
+            return physical[len(prefix):]
+    return None
 
 
 def _predicate_expression(
@@ -523,6 +539,23 @@ def _compile_node(
             return _compile_share(node, inputs[0], source, params, share)
         base = inputs[0].subquery(f"q_{node.node_id}")
         groups = [_column_for(ref, source) for ref in node.group_by]
+        # W25-R1: gom nhóm theo KHOÁ, chiếu ra NHÃN. ``entity.shop`` gom theo
+        # ``shop_id`` (đúng — nó là khoá, và hai shop có thể trùng tên) nhưng
+        # câu trả lời phải in tên. Thêm cột nhãn vào GROUP BY thay vì gom theo
+        # nó: nhãn phụ thuộc hàm vào khoá nên nhóm không đổi, còn gom theo nhãn
+        # sẽ gộp hai shop trùng tên thành một.
+        for ref in node.group_by:
+            label_ref = LABEL_REF_BY_UNIT.get(ref)
+            if label_ref is None:
+                continue
+            # Cột nhãn phải có THẬT trên bảng nguồn của node này.
+            # ``product_snapshot_metrics.csv`` có ``shop_id`` nhưng không có
+            # ``shop_name``; thêm nó vô điều kiện sinh ra một GROUP BY tham
+            # chiếu cột không tồn tại. Không có cột ⇒ giữ nguyên khoá, và
+            # đường join cũ vẫn mang tên shop như trước.
+            label_column = _label_column_on(label_ref, source)
+            if label_column and label_column not in groups:
+                groups.append(label_column)
         selections: list[exp.Expression] = [exp.column(column) for column in groups]
         for ref in node.refs:
             column = _column_for(ref, source)

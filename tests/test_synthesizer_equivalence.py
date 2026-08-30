@@ -95,7 +95,15 @@ def test_existing_plans_are_unchanged(key):
 # số sai. Ca này cross-market nên A16-CROSS-CURRENCY chặn trước khi thực thi ⇒
 # hành vi runtime KHÔNG đổi, chỉ plan đổi.
 INTENTIONALLY_LOST = {
-    "dr2607:tc29": "mean không được chứng nhận cho measure.discount_percent",
+    # dr2607:tc29 ĐÃ RỜI danh sách này ở W26 (Spec3008 §13). Plan của nó mất vì
+    # `mean` không được chứng nhận cho `measure.discount_percent` — nhưng đó là
+    # hệ quả của một bảng `valid_aggregations` gán tay giống hệt nhau cho mọi
+    # measure, không phải một tính chất của đại lượng. W26 khai
+    # `discount_percent` là `snapshot_stock`: cộng giá qua các listing vô nghĩa,
+    # còn TRUNG BÌNH thì có nghĩa. Plan quay lại — "câu trước đây None mà nay có
+    # plan là mở rộng hợp lệ". Runtime VẪN từ chối tc29, nay bằng
+    # `A22-ALIGN-COUNTRY`: trở ngại thật của nó là câu hỏi trải hai thị trường,
+    # không phải phép trung bình.
     # W8.3: cụm "voucher" trần là HAI khái niệm (structured 0/474 trên ID so
     # với nhãn hiển thị 210/474). Plan cũ của sáu câu này tồn tại nhờ alias
     # chọn THẦM nghĩa structured — đúng phép chọn hộ mà W8.3 đóng. Runtime cả
@@ -131,13 +139,10 @@ def test_an_intentionally_lost_plan_is_lost_for_the_reason_it_declares():
         assert synthesize(
             PARSER.parse(question, "vi", country), country, decline=codes,
         ) is None, key
-        if key == "dr2607:tc29":
-            assert "aggregation_not_certified" in codes, (key, reason, codes)
-        else:
-            # Sáu ca voucher: mất binding vì ambiguity — synthesizer thấy câu
-            # không còn measure/điều kiện voucher, và decline vì lý do CẤU TRÚC
-            # (measure_count/unbound), không phải aggregation.
-            assert codes, (key, reason)
+        # Sáu ca voucher: mất binding vì ambiguity — synthesizer thấy câu không
+        # còn measure/điều kiện voucher, và decline vì lý do CẤU TRÚC
+        # (measure_count/unbound), không phải aggregation.
+        assert codes, (key, reason)
 
 
 def test_baseline_still_describes_the_same_corpus():

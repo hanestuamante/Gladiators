@@ -37,7 +37,16 @@ def test_the_case_the_gateway_used_to_skip_now_answers(runtime):
 def test_a_branch_that_never_ran_says_so_with_a_reason(runtime):
     """Bất biến W12 vẫn phải đúng cho MỌI nhánh không chạy, trên một câu vẫn bị
     từ chối — nếu không, lần chặn tiếp theo lại vô hình như trước W12."""
-    response = runtime.run("Giá trung bình tại Việt Nam ngày 03/07 là bao nhiêu?")
+    # W26 (Spec3008 §13): "Giá trung bình" KHÔNG còn bị từ chối —
+    # `measure.price` khai `snapshot_stock`, và trung bình giá là một đại
+    # lượng đọc được (đối chiếu pandas: 242351.2844 trên 668 listing vn ngày
+    # 03/07). Câu neo đổi sang ĐIỂM ĐÁNH GIÁ, một đại lượng `ordinal`: trung
+    # bình của một thang thứ bậc không phải một điểm đánh giá, nên nó vẫn
+    # phải bị từ chối. Thứ test này bảo vệ — không thay thầm mean bằng
+    # median — không đổi; chỉ đại lượng mang tính chất đó mới đổi.
+    response = runtime.run(
+        "Điểm đánh giá trung bình tại Việt Nam ngày 03/07 là bao nhiêu?",
+    )
     assert response.gate.action == "abstain"
     assert response.gate.rule_id == "A19-AGGREGATION"
     attempts = {item["branch"]: item for item in response.planning["attempts"]}

@@ -230,6 +230,16 @@ class AliasIndex:
             matches.append(AliasMatch(tuple(refs), surface, len(refs) > 1))
         return matches
 
+    def surfaces(self) -> frozenset[str]:
+        """Mọi TỪ ĐƠN xuất hiện trong một alias đã biết.
+
+        W17-R1 cần nó để trả lời "token này đã là một alias chưa?" trước khi thử
+        dạng số ít — fallback chỉ được chạy khi khớp thẳng đã thất bại.
+        """
+        return frozenset(
+            word for surface in self._by_surface for word in surface.split()
+        )
+
     def collisions(self) -> dict[str, tuple[str, ...]]:
         """Surfaces that bind more than one ref, i.e. need an ambiguity fixture."""
         return {

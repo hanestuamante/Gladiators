@@ -91,6 +91,9 @@ _CARDS: tuple[TopicCard, ...] = (
         # claimed these would make every grouped question look cross-topic.
         owner_refs=(
             "dim.country", "dim.date", "dim.brand", "dim.product_name", "dim.shop_name",
+            # W24: mã listing là một khoá ĐỊNH DANH phổ quát — cùng lớp với tên
+            # sản phẩm và tên shop, không thuộc một domain nào.
+            "dim.item_id",
             # Counting the distinct instances of a unit is universal, not a
             # domain concern: if T5 owned shop_count then "bao nhiêu shop bán
             # thương hiệu X" would read as a cross-topic question.

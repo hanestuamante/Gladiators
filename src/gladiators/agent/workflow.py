@@ -27,6 +27,7 @@ from gladiators.planner.open_planner import (
     OpenPlannerError,
     _synthesis_beats_template,
 )
+from gladiators.domain.catalog import refusal_for_aggregation
 from gladiators.planner.shadow import ShadowObserver
 from gladiators.planner.synthesizer import (
     has_unbound_condition_marker,
@@ -85,6 +86,30 @@ _METRIC_LABELS = {
     "median_monthly_sold_proxy": "lượt bán proxy trung vị",
     "monthly_sold_proxy": "lượt bán proxy",
 }
+
+
+def _alternative_for(request) -> str | None:
+    """Phép tổng hợp CÓ chứng nhận gần nhất, diễn đạt bằng lời.
+
+    Chỉ trả một câu khi thật sự có đường khác; không có thì ``None`` và lời từ
+    chối giữ nguyên là ``abstain`` — gợi ý một phương án không tồn tại tệ hơn
+    không gợi ý gì.
+    """
+    from gladiators.domain.catalog import CATALOG
+
+    _LABEL = {"median": "trung vị", "mean": "trung bình", "sum": "tổng",
+              "min": "nhỏ nhất", "max": "lớn nhất", "count": "đếm"}
+    for item in request.requested_measures:
+        if not item.ref or item.ref not in CATALOG:
+            continue
+        allowed = [a for a in CATALOG[item.ref].valid_aggregations if a in _LABEL]
+        if allowed:
+            return (
+                "Có thể hỏi cùng chỉ số đó với "
+                + " hoặc ".join(_LABEL[a] for a in allowed[:2])
+                + "."
+            )
+    return None
 
 
 def _ref_label(ref: str) -> str:
@@ -1340,8 +1365,17 @@ class AgentRuntime:
                                     "branch": "synthesizer", "tried": False,
                                     "declined": ["beats_template"],
                                 })
+                            # W26-R1: câu hỏi nêu TƯỜNG MINH bất kỳ phép tổng
+                            # hợp nào — không riêng `mean`. Điều kiện cũ chỉ bắt
+                            # mean, nên "Tổng monthly sold … trong 3 ngày" rơi
+                            # xuống nhánh dưới và nhận một lời từ chối nói về
+                            # TEMPLATE ("mẫu không diễn đạt được điều kiện")
+                            # trong khi trở ngại thật là CẤM CỘNG một proxy cửa
+                            # sổ qua nhiều đợt thu. `requested_aggregation` là
+                            # trường W5.1 dựng ra đúng cho câu hỏi này.
                             explicit_aggregate = (
-                                "mean_requested" in candidate.assumptions
+                                candidate.requested_aggregation is not None
+                                or "mean_requested" in candidate.assumptions
                                 or "mean" in candidate.analytical_operators
                             )
                             if (
@@ -1352,9 +1386,25 @@ class AgentRuntime:
                                 # fallback template — template sẽ bỏ aggregate
                                 # trong im lặng, và trả median cho một câu hỏi
                                 # mean là đúng lớp sai lớp này tồn tại để chặn.
+                                # W26-R1: nói về ĐẠI LƯỢNG, không về bảng. Lý do
+                                # có kiểu tồn tại thì dùng nó; không thì giữ câu
+                                # tổng quát cũ.
+                                _typed = next(
+                                    (
+                                        message for item in candidate.requested_measures
+                                        if item.ref
+                                        and (message := refusal_for_aggregation(
+                                            item.ref, candidate.requested_aggregation or "",
+                                        ))
+                                    ),
+                                    None,
+                                )
                                 raise AnalyticalPlanError(
-                                    "Câu hỏi nêu một phép tổng hợp mà catalog "
-                                    "chưa chứng nhận cho chỉ số này.",
+                                    _typed or "Câu hỏi nêu một phép tổng hợp mà "
+                                    "catalog chưa chứng nhận cho chỉ số này.",
+                                    answerable_alternative=_alternative_for(
+                                        candidate,
+                                    ),
                                     rule_id=rule_for_declines(decline_codes),
                                     decline_codes=tuple(decline_codes),
                                     attempts=tuple(branch_attempts),
@@ -1398,10 +1448,16 @@ class AgentRuntime:
                             # hoa nhìn từ ngoài giống hệt một plan không join,
                             # nên nó phải hiện trong trace.
                             synthesis_relations = getattr(result, "relations", ())
+                    # Độ phức tạp là thuộc tính của CÂU HỎI, không phải của bộ
+                    # sinh plan. `analytical_kind` mang tiền tố "synthesized:"
+                    # khi synthesizer thắng template, nên so bằng chuỗi trần sẽ
+                    # đổi mức phức tạp của cùng một câu hỏi chỉ vì nhánh khác —
+                    # và mức phức tạp quyết định ai phải review.
+                    _bare_kind = str(analytical_kind).removeprefix("synthesized:")
                     complexity_level = (
                         classify_complexity(analytical_request)
                         if request.intent == "open_analytical"
-                        else "L3" if analytical_kind == "top_shop_by_listing_count" else "L2"
+                        else "L3" if _bare_kind == "top_shop_by_listing_count" else "L2"
                     )
                     # W7.1: nhánh nào ĐÃ CHỌN plan thì nhánh đó cấp xuất xứ.
                     # Không suy ngược bằng prefix của plan_id và không đọc từ
@@ -1559,7 +1615,18 @@ class AgentRuntime:
                     # aggregation_not_certified phải ra A19-AGGREGATION chứ không
                     # tan vào A19-PLAN cùng 20 nguyên nhân khác.
                     rule = getattr(exc, "rule_id", None) or "A19-PLAN"
-                    decision = GateDecision(action="abstain", rule_id=rule, reason=str(exc))
+                    # W26-R1: một phép tổng hợp bị từ chối MÀ CÓ phương án thay
+                    # thế là `clarify`, không phải `abstain`. "Trung bình của một
+                    # thang thứ bậc không phải một điểm đánh giá — có thể hỏi
+                    # trung vị" mô tả một câu hỏi kế bên TRẢ LỜI ĐƯỢC; abstain
+                    # nói với người dùng rằng không còn đường nào, và đó là sai
+                    # sự thật.
+                    alternative = getattr(exc, "answerable_alternative", None)
+                    decision = GateDecision(
+                        action="clarify" if alternative else "abstain",
+                        rule_id=rule, reason=str(exc),
+                        answerable_alternative=alternative,
+                    )
                     if planning_meta.get("mode") == "none":
                         planning_meta["mode"] = "blocked"
                     planning_meta.update(

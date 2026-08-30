@@ -126,7 +126,16 @@ def test_runtime_blocks_tc39_style_listing_count_substitution(tmp_path):
         "Tổng monthly sold của sản phẩm 26663401389 tại VN trong 3 ngày là bao nhiêu?"
     )
     assert response.gate.action != "allow"
-    assert response.request.slots.get("analytical_kind") != "listing_count" or response.gate.rule_id.startswith("A22")
+    # W26 (Spec3008 §13): phép thay thế measure trước đây bị chặn ở tầng
+    # ALIGNMENT — tức sau khi template đã dựng ra một con số. Nay tính chất
+    # "proxy của một cửa sổ chưa xác nhận" nằm trong catalog, nên phép cộng bị
+    # từ chối ngay ở khâu LẬP KẾ HOẠCH, trước khi con số nào tồn tại. Chặn sớm
+    # hơn và nói đúng nguyên nhân hơn; điều test này bảo vệ — không bao giờ trả
+    # listing_count thay cho monthly_sold — vẫn nguyên.
+    assert (
+        response.request.slots.get("analytical_kind") != "listing_count"
+        or response.gate.rule_id.startswith(("A22", "A19-AGGREGATION"))
+    )
 
 
 def test_macro_qualifier_is_not_silently_ignored(tmp_path):

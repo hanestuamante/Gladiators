@@ -19,6 +19,8 @@ from gladiators.domain.alias_index import (
 from gladiators.domain.catalog import CATALOG, CatalogObject, COUNT_METRIC_BY_SURFACE_REF
 from gladiators.domain.qualifiers import match as qualifier_match
 
+from .frames import frame_hits, resolve_frames, singularize_unmatched
+
 # Wordings that make the noun beside them the thing being counted rather than a
 # key to group by.
 _COUNTING_CUES = ("nhieu nhat", "terbanyak", "most", "bao nhieu", "nhieu san pham", "berapa")
@@ -454,6 +456,13 @@ class DeterministicSemanticParser:
         normalized = normalize(text)
         # W4.1: viết lại khung đếm TRƯỚC _link — alias khớp cụm dính liền.
         normalized, count_frame_normalised = _normalise_count_frame(normalized)
+        # W17-R1: số nhiều là fallback của alias. Chạy TRƯỚC _link và chỉ đổi
+        # token mà (a) chưa khớp alias nào và (b) dạng số ít CÓ khớp.
+        normalized, plural_folded = singularize_unmatched(
+            normalized,
+            language if language in ("vi", "id") else "en",
+            self.alias_index.surfaces(),
+        )
         self._pending_ambiguities: list[SemanticAmbiguity] = []
         measures = self._link(normalized, {"measure", "derived_metric"})
         dimension_text = normalized
@@ -587,6 +596,35 @@ class DeterministicSemanticParser:
         )
         filters.extend(comparison_filters)
 
+        # W16/W17: dựng ledger rồi phân giải khung TRƯỚC khi chốt measure/ranking.
+        # Ledger dựng trên câu GỐC — hình thái viết hoa/ngoặc kép chỉ còn ở đó.
+        _surfaces: list[tuple[str, str | None, str]] = []
+        for _item in list(measures) + list(dimensions):
+            if _item.surface_text:
+                _surfaces.append(("alias", _item.ref, _item.surface_text))
+        for _surface in qualifier_surfaces:
+            _surfaces.append(("qualifier", None, _surface))
+        for _predicate in filters:
+            if _predicate.field_ref not in ("dim.country", "dim.date"):
+                _surfaces.append(("value", _predicate.field_ref, str(_predicate.value_binding)))
+        ledger = _ledger_of(text, country=country, dates=dates, surfaces=tuple(_surfaces))
+        frames = resolve_frames(ledger, language if language in ("vi", "id") else "en")
+
+        # W24-R2: predicate định danh sinh TỪ LEDGER, không từ một regex thứ hai.
+        # Trước W24 catalog không phơi `item_id`, nên không plan nào lọc được về
+        # một listing cụ thể và `_has_unbound_qualifier` từ chối mọi câu nêu mã
+        # sản phẩm — đúng logic, nhưng cái nó bảo vệ là một khoảng trống lấp
+        # được. Mã KHÔNG khớp dòng nào vẫn đi qua entity resolution và nhận
+        # `A-ENTITY-NOT-FOUND` như trước (W24-R3).
+        if not any(f.field_ref == "dim.item_id" for f in filters):
+            for _bound in ledger.bound:
+                if _bound.producer == "entity_id":
+                    filters.append(AnalyticalPredicate(
+                        field_ref="dim.item_id", op="eq",
+                        value_binding=str(_bound.payload),
+                    ))
+                    break
+
         # W4.2 — đếm theo CẤU TRÚC, không theo cụm dính liền. Bốn điều kiện đều
         # bắt buộc: measures rỗng (câu "giá trung vị theo brand" không được biến
         # brand thành measure); đúng MỘT ứng viên (hai chiều thì chọn một là
@@ -619,6 +657,58 @@ class DeterministicSemanticParser:
                     + "; không chọn hộ một trong số đó."
                 )
 
+        # ── W17: khung lấp khe mà bảng cụm dính liền không với tới ──────────
+        #
+        # MỘT CHIỀU CÓ CHỦ ĐÍCH: chỉ bắn khi logic cũ KHÔNG ra gì. Nhờ vậy mọi ca
+        # đang xanh không thể đổi, và W17 chỉ có thể làm hệ hiểu THÊM — đúng
+        # ràng buộc fail-closed của Spec3008 §0.2.
+        frame_measure_ref: str | None = None
+        # "Không bind được measure nào" KHÁC "đã nhận ra một metric mà catalog
+        # không chứng nhận". Câu "Shop hiệu quả nhất tại VN" nêu một metric
+        # ungoverned; điền `derived.shop_count` vào đó là trả lời một câu hỏi
+        # KHÁC bằng một con số có thật — đúng lớp over_answer mà W17 không được
+        # phép tạo ra. Parser đã biết câu này phải clarify; đừng lấp khe đó.
+        _has_unresolved = any(item.unresolved for item in measures)
+        if not _has_unresolved and not any(item.ref for item in measures):
+            for frame in frames:
+                # SELECTOR bị loại có chủ đích: "thương hiệu NÀO có nhiều listing
+                # NHẤT" có hai khung, và chúng đóng hai vai KHÁC nhau — selector
+                # chọn CHIỀU GOM NHÓM (thương hiệu), superlative chọn THỨ ĐƯỢC
+                # XẾP HẠNG (listing). Lấy khung đầu tiên theo vị trí sẽ cho
+                # measure = brand_count, tức đếm brand thay vì đếm listing theo
+                # brand — một câu hỏi khác, trả lời trong im lặng.
+                if frame.marker.kind not in ("quantity", "superlative"):
+                    continue
+                if frame.resolution == "count_metric" and frame.argument_ref:
+                    # LUẬT W17-R2: quantity + đơn vị đếm ⇒ measure LÀ metric đếm
+                    # đó, và đơn vị RỜI KHỎI requested_dimensions.
+                    frame_measure_ref = COUNT_METRIC_BY_SURFACE_REF[frame.argument_ref]
+                    dimensions = [i for i in dimensions if i.ref != frame.argument_ref]
+                    break
+                if frame.resolution == "measure" and frame.argument_ref:
+                    frame_measure_ref = frame.argument_ref
+                    break
+            # Tính từ mang measure ("đắt nhất") khi câu không nêu chữ "giá".
+            if frame_measure_ref is None:
+                for frame in frames:
+                    if frame.marker.measure_hint:
+                        frame_measure_ref = frame.marker.measure_hint
+                        break
+        if frame_measure_ref:
+            measures = [SemanticBinding(
+                surface_text=frame_measure_ref.split(".", 1)[1].replace("_", " "),
+                ref=frame_measure_ref,
+            )]
+
+        # LUẬT W17-R4: selector + dimension ⇒ chiều gom nhóm.
+        for frame in frames:
+            if frame.marker.kind != "selector" or frame.resolution != "count_metric":
+                continue
+            if frame.argument_ref and not any(i.ref == frame.argument_ref for i in dimensions):
+                dimensions.append(SemanticBinding(
+                    surface_text=frame.marker_span.normalized, ref=frame.argument_ref,
+                ))
+
         descending = any(term in normalized for term in ("cao nhat", "nhieu nhat", "lon nhat", "highest", "tertinggi", "top"))
         ascending = any(term in normalized for term in ("thap nhat", "it nhat", "lowest", "terendah"))
         rank_ref = next((item.ref for item in measures if item.ref), None)
@@ -626,6 +716,17 @@ class DeterministicSemanticParser:
             order_by=rank_ref, direction="asc" if ascending else "desc",
             top_k=_requested_top_k(normalized),
         ) if rank_ref and (descending or ascending) else None
+        if ranking is None and rank_ref:
+            # LUẬT W17-R4 (nửa sau): superlative ⇒ ranking. Bảng `descending`/
+            # `ascending` khớp cụm DÍNH LIỀN nên "nhiều … nhất" (circumfix) và
+            # "đắt nhất" không bao giờ trúng — đó là d0033/d0034/d0036/h0035.
+            for frame in frames:
+                if frame.marker.kind == "superlative" and frame.marker.polarity:
+                    ranking = AnalyticalRanking(
+                        order_by=rank_ref, direction=frame.marker.polarity,
+                        top_k=_requested_top_k(normalized),
+                    )
+                    break
         # "Cửa hàng nào có nhiều SẢN PHẨM nhất" counts products per shop: the
         # counted noun is the unit, not a second grouping key. It only looked
         # like one because "sản phẩm" binds to dim.product_name while the
@@ -722,22 +823,12 @@ class DeterministicSemanticParser:
                 "Thiếu country cho metric tiền tệ; không được trộn VND và IDR."
                 if monetary else "Thiếu country để khóa scope VN hoặc ID."
             )
-        # W16: dựng ledger trên câu GỐC (không phải bản normalize) — hình thái
-        # viết hoa/ngoặc kép chỉ còn ở đó, và đó là thứ W18 dùng thay cho ngưỡng
-        # độ dài. Replay claim theo thứ tự §3.3: alias → qualifier → value.
-        _surfaces: list[tuple[str, str | None, str]] = []
-        for item in list(measures) + list(dimensions):
-            if item.surface_text:
-                _surfaces.append(("alias", item.ref, item.surface_text))
-        for surface in qualifier_surfaces:
-            _surfaces.append(("qualifier", None, surface))
-        for predicate in filters:
-            if predicate.field_ref not in ("dim.country", "dim.date"):
-                _surfaces.append(("value", predicate.field_ref, str(predicate.value_binding)))
-        ledger = _ledger_of(text, country=country, dates=dates, surfaces=tuple(_surfaces))
-
         return AnalyticalRequest(
-            binding_ledger=ledger.digest(),
+            binding_ledger={
+                **ledger.digest(),
+                "frame_hits": frame_hits(frames),
+                "plural_folded": plural_folded,
+            },
             unbound_spans=tuple(
                 (item.kind, item.span.normalized) for item in ledger.significant()
             ),

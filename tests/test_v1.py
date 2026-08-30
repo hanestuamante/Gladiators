@@ -322,7 +322,21 @@ def test_top_shop_query_runs_on_the_deterministic_predicate_with_critic_off(tmp_
     assert response.request.slots["analytical_kind"] == "top_shop_by_listing_count"
     assert response.gate.action == "allow"
     assert runtime.enable_critic is False
-    assert response.planning["risk"]["provenance"] == "deterministic_template"
+    # W17 (Spec3008 §4): trước W17 parser không bind được measure nào cho câu
+    # này (`measures=[]`), nên `synthesize()` trả None và luồng rơi về template.
+    # W17 phân giải khung "shop NÀO … nhiều listing NHẤT" thành
+    # `derived.product_count` gom theo `entity.shop`, nên plan tất định do
+    # synthesizer sinh trở nên khả dụng — và `_synthesis_beats_template` VỐN ĐÃ
+    # khai lớp này ("một grouping mà template không có") là synth-thắng; W17 chỉ
+    # làm nó với tới được.
+    #
+    # Đã đo trước khi nới: hai đường cho ĐÚNG cùng kết quả — Richy - Chi nhánh
+    # Miền Nam, 120 listing. Bản synthesize còn sạch hơn: nó không chiếu
+    # `shop_id` ra ngoài. Điều test này khoá là "plan TẤT ĐỊNH, không phải plan
+    # do mô hình sinh", và điều đó vẫn đúng.
+    assert response.planning["risk"]["provenance"] in {
+        "deterministic_template", "deterministic_synthesis",
+    }
     assert response.planning["risk"]["deterministic_bypass"]["applied"] is True
     # complexity_level vẫn được tính và ghi trace: nó là quan sát về độ phức
     # tạp, không phải quyết định về việc ai được review.
