@@ -169,6 +169,7 @@ class ContractDrivenGate:
         self, request: StructuredRequest, registry: IntentRegistry,
         capabilities: dict[str, object],
         entity_check: object | None = None,
+        uncollected: frozenset[str] | tuple[str, ...] = (),
     ) -> GateDecision:
         self.last_connectivity: dict[str, object] = {}
         self.last_value_probe: dict[str, object] = {}
@@ -177,6 +178,8 @@ class ContractDrivenGate:
         # reason; see the partial_unsupported block below.
         deferred: list[GateIssue] = []
         phases: list[int] = []
+
+        uncollected_artifacts = frozenset(uncollected or ())
 
         def add(
             rule_id: str, phase: int, action: str, reason: str,
@@ -316,6 +319,54 @@ class ContractDrivenGate:
                         "definition_threshold" if kind == "quantity_phrase"
                         else "group_dimension" if kind == "grain_term" else "metric"
                     ))
+
+        # ── W20 §7.3 — HAI luật, không phải một ────────────────────────────
+        # "ngoài cửa sổ" và "trong kỳ nhưng không có đợt thu" cần hai lời khuyên
+        # khác nhau: cái đầu không có đợt thu nào ở gần, cái sau thì các ngày
+        # LÂN CẬN có dữ liệu. KHÔNG chữ số trong message (W20-R2).
+        _dates = (request.analytical or {}).get("date_request") or {}
+        if _dates.get("out_of_window"):
+            add("A-SNAPSHOT-SCOPE", 3, "abstain",
+                "Dữ liệu nội bộ chỉ quan sát trong một cửa sổ ngắn; ngày được "
+                "hỏi nằm ngoài cửa sổ đó nên không có quan sát nào để trả lời. "
+                "Có thể hỏi lại trong phạm vi các đợt thu đã có.",
+                "scope", "date_out_of_range", fixable=False)
+        elif _dates.get("missing_snapshot"):
+            add("A-SNAPSHOT-GAP", 3, "abstain",
+                "Ngày được hỏi nằm trong kỳ thu thập nhưng không có đợt thu nào "
+                "rơi đúng vào ngày đó, nên không có quan sát để trả lời. Các "
+                "ngày liền kề có dữ liệu.",
+                "scope", "date_out_of_range", fixable=False)
+
+        # ── W31 §18.2 — "chưa thu" KHÁC "không bao giờ có" ─────────────────
+        # `A-MISSING-ADS` nói *sàn không cấp dữ liệu quảng cáo*;
+        # `A-ARTIFACT-NOT-COLLECTED` nói *lần thu này chưa lấy*. Lời khuyên khác
+        # nhau: một cái là "đừng hỏi nữa", cái kia là "thu thêm thì hỏi được".
+        # Kiểm ở GATE vì gate biết ref nào được yêu cầu và bản dữ liệu nào đang
+        # phục vụ — nó không cần plan. Guard ở compiler GIỮ NGUYÊN làm phòng
+        # tuyến thứ hai (nó bắt cả plan do LLM sinh).
+        if uncollected_artifacts:
+            from gladiators.domain.catalog import CATALOG
+
+            wanted = {
+                item.get("ref")
+                for key in ("requested_measures", "requested_dimensions")
+                for item in (request.analytical or {}).get(key, ())
+                if isinstance(item, dict) and item.get("ref")
+            }
+            blocked = sorted({
+                ref for ref in wanted
+                if ref in CATALOG and CATALOG[ref].physical and all(
+                    column.split(".csv")[0] + ".csv" in uncollected_artifacts
+                    for column in CATALOG[ref].physical
+                )
+            })
+            if blocked:
+                add("A-ARTIFACT-NOT-COLLECTED", 1, "abstain",
+                    "Chỉ số này có trong mô hình dữ liệu nhưng chưa được thu ở "
+                    "bản dữ liệu đang phục vụ, nên không có quan sát nào để trả "
+                    "lời.",
+                    "capability", "not_collected", fixable=False)
 
         route = classify_external_need(str(request.slots.get("raw_text", "")))
         if route.rule_id == "A16-CROSS-CURRENCY":

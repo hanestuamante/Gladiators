@@ -38,6 +38,7 @@ from gladiators.planner.synthesizer import (
 from gladiators.planner.validator import validate_plan
 from gladiators.planner.consensus import ConsensusError, NVersionResolver
 from gladiators.planner.compiler import CompilationError
+from gladiators.analytics.tools import SparseObservationError
 from gladiators.planner.executor import ExecutionFailure
 from gladiators.planner.risk import EscalationConfig, score_plan
 import duckdb
@@ -349,6 +350,15 @@ class AgentRuntime:
         dense = BGEIndex() if os.getenv("GLADIATORS_ENABLE_BGE") == "1" else None
         self.resolver = EntityResolver(self.repo.products, embeddings=dense)
         self.traces = TraceStore(trace_dir)
+
+    def _uncollected_artifacts(self) -> frozenset[str]:
+        """Artifact TUỲ CHỌN mà bản dữ liệu đang phục vụ chưa thu (W31)."""
+        from gladiators.domain.tables import OPTIONAL_ARTIFACT_NAMES
+
+        available = set(self.repo.available_artifacts())
+        return frozenset(
+            name for name in OPTIONAL_ARTIFACT_NAMES if name not in available
+        )
 
     def _capability_serves(self, capability_id: str, request: StructuredRequest) -> bool:
         """Does this capability's contract actually cover the request (§3.5)?
@@ -1238,7 +1248,10 @@ class AgentRuntime:
                     request.entity_text, self.resolver.resolve(request.entity_text),
                 )
         with timer.stage("gate"):
-            decision = self.gate.decide(request, self.registry, capabilities, entity_check) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
+            decision = self.gate.decide(
+                request, self.registry, capabilities, entity_check,
+                uncollected=self._uncollected_artifacts(),
+            ) if self.enable_gate else GateDecision(action="allow", rule_id="ABLATION-NO-GATE", reason="Gate disabled for ablation.")
         if (
             decision.action == "allow" and request.intent == "voucher_profile_rank"
             and not self.enable_voucher_profile
@@ -1690,6 +1703,21 @@ class AgentRuntime:
                             details = "; ".join(f"{issue.code}: {issue.message}" for issue in critique.issues)
                             raise AnalyticalPlanError(f"Plan Critic từ chối plan: {details}")
                     tool_plan = spec.tool_plan
+                except SparseObservationError as exc:
+                    # W29-R1: clarify + ô `observation_window`.
+                    decision = GateDecision(
+                        action="clarify", rule_id="A-SPARSE-OBSERVATION",
+                        reason=str(exc), clarification_slot="observation_window",
+                        answerable_alternative=(
+                            "Hệ thống trả lời được theo lần quan sát gần nhất "
+                            "của từng listing, và sẽ nêu rõ cửa sổ quan sát."
+                        ),
+                    )
+                    planning_meta.update(
+                        outcome="blocked", a19_rule="A-SPARSE-OBSERVATION",
+                        reason=str(exc),
+                        observation=exc.verdict.as_attrs() if exc.verdict else {},
+                    )
                 except AnalyticalPlanError as exc:
                     # W12.2: rule id đi theo exception, không hard-code — một
                     # aggregation_not_certified phải ra A19-AGGREGATION chứ không
@@ -1793,7 +1821,8 @@ class AgentRuntime:
             with timer.stage("execute"):
                 try:
                     dispatch(tool_plan, ctx)
-                except (ExecutionFailure, CompilationError, duckdb.Error) as exc:
+                except (ExecutionFailure, CompilationError, duckdb.Error,
+                        MemoryError, RecursionError) as exc:
                     # W13.3 · Fail-closed (bất biến #6): một plan không chạy được
                     # là một lời TỪ CHỐI, không phải một traceback. Bắt ba lớp CÓ
                     # KIỂU, không bắt Exception: nuốt mọi thứ biến một lỗi lập

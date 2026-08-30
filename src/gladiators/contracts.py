@@ -58,6 +58,10 @@ class IssueDetail(BaseModel):
     category: Literal[
         "capability", "entity", "grain", "fanout",
         "currency", "alignment", "security", "slot", "route",
+        # W20: phạm vi THỜI GIAN — ngày ngoài cửa sổ hoặc rơi vào một lỗ giữa
+        # hai đợt thu. Khác "slot" (thiếu thông tin người dùng cấp được) vì
+        # không thông tin nào tạo ra một đợt thu chưa từng chạy.
+        "scope",
     ]
     code: str
     semantic_refs: tuple[str, ...] = ()

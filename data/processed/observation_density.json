@@ -1,0 +1,450 @@
+{
+  "schema_version": "observation-density.v1",
+  "dataset_version": "27de9bff184f4f89",
+  "coverage_dense": 0.95,
+  "coverage_refuse": 0.5,
+  "columns": {
+    "products_clean.csv.rating_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.liked_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.ctime_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.price_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.price_original_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.price_before_promo_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.discount_percent_num": {
+      "mode": "point_in_time",
+      "overall_coverage": 0.908111,
+      "by_date": {
+        "2026-07-01": 0.922275,
+        "2026-07-02": 0.874126,
+        "2026-07-03": 0.929072
+      },
+      "by_country": {
+        "id": 0.876934,
+        "vn": 0.931214
+      }
+    },
+    "products_clean.csv.promotion_id_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.voucher_discount_num": {
+      "mode": "point_in_time",
+      "overall_coverage": 0.472912,
+      "by_date": {
+        "2026-07-01": 0.461611,
+        "2026-07-02": 0.451049,
+        "2026-07-03": 0.505254
+      },
+      "by_country": {
+        "id": 0.0,
+        "vn": 0.823345
+      }
+    },
+    "products_clean.csv.voucher_start_time_num": {
+      "mode": "point_in_time",
+      "overall_coverage": 0.472912,
+      "by_date": {
+        "2026-07-01": 0.461611,
+        "2026-07-02": 0.451049,
+        "2026-07-03": 0.505254
+      },
+      "by_country": {
+        "id": 0.0,
+        "vn": 0.823345
+      }
+    },
+    "products_clean.csv.voucher_end_time_num": {
+      "mode": "point_in_time",
+      "overall_coverage": 0.472912,
+      "by_date": {
+        "2026-07-01": 0.461611,
+        "2026-07-02": 0.451049,
+        "2026-07-03": 0.505254
+      },
+      "by_country": {
+        "id": 0.0,
+        "vn": 0.823345
+      }
+    },
+    "products_clean.csv.voucher_min_spend_num": {
+      "mode": "point_in_time",
+      "overall_coverage": 0.472912,
+      "by_date": {
+        "2026-07-01": 0.461611,
+        "2026-07-02": 0.451049,
+        "2026-07-03": 0.505254
+      },
+      "by_country": {
+        "id": 0.0,
+        "vn": 0.823345
+      }
+    },
+    "products_clean.csv.history_sold_value_num": {
+      "mode": "panel",
+      "overall_coverage": 0.979348,
+      "by_date": {
+        "2026-07-01": 0.975355,
+        "2026-07-02": 0.979895,
+        "2026-07-03": 0.982487
+      },
+      "by_country": {
+        "id": 0.9782,
+        "vn": 0.980198
+      }
+    },
+    "products_clean.csv.monthly_sold_value_num": {
+      "mode": "point_in_time",
+      "overall_coverage": 0.93924,
+      "by_date": {
+        "2026-07-01": 0.931754,
+        "2026-07-02": 0.941434,
+        "2026-07-03": 0.943958
+      },
+      "by_country": {
+        "id": 0.945148,
+        "vn": 0.934862
+      }
+    },
+    "products_clean.csv.rating_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.rating_count_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.brand_id_num": {
+      "mode": "panel",
+      "overall_coverage": 0.964083,
+      "by_date": {
+        "2026-07-01": 0.962085,
+        "2026-07-02": 0.965035,
+        "2026-07-03": 0.964974
+      },
+      "by_country": {
+        "id": 0.964135,
+        "vn": 0.964044
+      }
+    },
+    "products_clean.csv.catid_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.liked_count_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.images_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.seller_flag_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.seller_flag_hash_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.rating_count_detail_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.vouchers_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.global_catids_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "products_clean.csv.tier_variation_options_count": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "product_snapshot_metrics.csv.price_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "product_snapshot_metrics.csv.price_original_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "product_snapshot_metrics.csv.monthly_sold_value_num": {
+      "mode": "point_in_time",
+      "overall_coverage": 0.93924,
+      "by_date": {
+        "2026-07-01": 0.931754,
+        "2026-07-02": 0.941434,
+        "2026-07-03": 0.943958
+      },
+      "by_country": {
+        "id": 0.945148,
+        "vn": 0.934862
+      }
+    },
+    "product_snapshot_metrics.csv.history_sold_value_num": {
+      "mode": "panel",
+      "overall_coverage": 0.979348,
+      "by_date": {
+        "2026-07-01": 0.975355,
+        "2026-07-02": 0.979895,
+        "2026-07-03": 0.982487
+      },
+      "by_country": {
+        "id": 0.9782,
+        "vn": 0.980198
+      }
+    },
+    "product_snapshot_metrics.csv.rating_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "product_snapshot_metrics.csv.rating_count_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "product_snapshot_metrics.csv.liked_count_num": {
+      "mode": "panel",
+      "overall_coverage": 1.0,
+      "by_date": {
+        "2026-07-01": 1.0,
+        "2026-07-02": 1.0,
+        "2026-07-03": 1.0
+      },
+      "by_country": {
+        "id": 1.0,
+        "vn": 1.0
+      }
+    },
+    "product_snapshot_metrics.csv.voucher_discount_num": {
+      "mode": "point_in_time",
+      "overall_coverage": 0.472912,
+      "by_date": {
+        "2026-07-01": 0.461611,
+        "2026-07-02": 0.451049,
+        "2026-07-03": 0.505254
+      },
+      "by_country": {
+        "id": 0.0,
+        "vn": 0.823345
+      }
+    }
+  }
+}

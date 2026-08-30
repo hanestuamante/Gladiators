@@ -436,6 +436,17 @@ _DECREASE_MARKERS = ("giam manh", "giam sut", "sut giam", "sut", "tut", "lao doc
 _INCREASE_MARKERS = ("tang manh", "tang vot", "tang truong", "but pha", "naik",
                      "melonjak", "surge", "spike", "rose", "grew")
 
+# W21 §8.2 — CẤU TRÚC MẤT/ĐƯỢC cộng một cụm ĐỘ LỚN. `_DECREASE_MARKERS` là một
+# danh sách cụm, và một tiền đề sai phát biểu ngoài danh sách thì lọt: "Việt Nam
+# MẤT MỘT NỬA số listing" đi qua sạch sẽ và nhận `allow · 668`. Hai nguồn hợp
+# nhất thành một phép kiểm, không phải hai bảng.
+_LOSS_VERBS = ("mat", "kem", "hut", "bay", "boc hoi", "lose", "lost", "kehilangan")
+_GAIN_VERBS = ("them", "gain", "gained", "bertambah", "tang them")
+_MAGNITUDE: dict[str, float] = {
+    "mot nua": 0.5, "phan nua": 0.5, "nua": 0.5, "half": 0.5, "setengah": 0.5,
+    "mot phan ba": 1 / 3, "mot phan tu": 0.25, "gap doi": 2.0, "double": 2.0,
+}
+
 _NUMBER = re.compile(r"\d")
 
 
@@ -443,9 +454,26 @@ def _premise_direction(question: str) -> int | None:
     """+1 when the question asserts a rise, -1 a fall, None when it asserts neither."""
     decrease = any(marker in question for marker in _DECREASE_MARKERS)
     increase = any(marker in question for marker in _INCREASE_MARKERS)
+    if not decrease and not increase:
+        # W21: cấu trúc MẤT/ĐƯỢC + cụm độ lớn. Một động từ mất mát cạnh một cụm
+        # chỉ độ lớn LÀ một khẳng định về chiều, dù không cụm nào trong bảng
+        # trên xuất hiện.
+        magnitude = any(phrase in question for phrase in _MAGNITUDE)
+        if magnitude and any(verb in question for verb in _LOSS_VERBS):
+            return -1
+        if magnitude and any(verb in question for verb in _GAIN_VERBS):
+            return 1
     if decrease == increase:
         return None  # neither, or both -- nothing unambiguous to check
     return -1 if decrease else 1
+
+
+def premise_magnitude(question: str) -> float | None:
+    """Độ lớn mà tiền đề khai, nếu có (LUẬT W21-R3)."""
+    for phrase, value in _MAGNITUDE.items():
+        if phrase in question:
+            return value
+    return None
 
 
 def _observed_direction(evidence: list[Evidence]) -> int | None:
@@ -504,6 +532,20 @@ def check_question_alignment(
 
     stated = _premise_direction(question)
     observed = _observed_direction(evidence or [])
+    # LUẬT W21-R1 — nửa CÒN THIẾU. Kể cả khi chiều khớp bảng, phép kiểm vẫn
+    # không chạy được nếu plan chỉ phủ MỘT snapshot: `_observed_direction` trả
+    # None, điều kiện `stated is not None and observed is not None` sai, và
+    # không issue nào sinh ra. Sửa một nửa thì lớp lỗi mở lại ở cách diễn đạt kế
+    # tiếp — nên một tiền đề mà KHÔNG so được là một tiền đề phải TỪ CHỐI, chứ
+    # không bao giờ trả một con số một snapshot.
+    if stated is not None and observed is None:
+        issues.append(AlignmentIssue(
+            "premise_contradicted",
+            "Câu hỏi khẳng định một chiều biến động, nhưng phạm vi được trả lời "
+            "chỉ có một mốc quan sát nên không có gì để so.",
+            ("tăng" if stated > 0 else "giảm",),
+            ("một mốc",),
+        ))
     if stated is not None and observed is not None and stated != observed:
         issues.append(AlignmentIssue(
             "premise_contradicted",

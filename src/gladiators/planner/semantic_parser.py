@@ -186,6 +186,8 @@ class AnalyticalRequest(BaseModel):
     # nhất — đây là ĐƯỜNG để A22 và gate thấy được phần dư, thứ mà trước W16
     # không lớp nào phía sau trả lời được ("một ràng buộc có mặt trong câu hỏi
     # đã được biểu diễn hay đã bị bỏ rơi?").
+    # W20: năm ô của DateRequest, phẳng hoá để gate và A22 đọc được.
+    date_request: dict[str, Any] = Field(default_factory=dict)
     binding_ledger: dict[str, Any] = Field(default_factory=dict)
     unbound_spans: tuple[tuple[str, str], ...] = ()
 
@@ -500,9 +502,21 @@ class DeterministicSemanticParser:
                 (("forecast", "du bao", "ramalan"), "forecast"),
             ) if any(term in normalized for term in terms)
         )
-        dates = tuple(dict.fromkeys(extract_date_range(normalized)))
+        # W20 — ngày là hàm TOÀN PHẦN trên lịch của bản dữ liệu đang phục vụ.
+        from gladiators.domain.calendar import default_calendar
+        from .dates import parse_date_expressions
+
+        _calendar = default_calendar()
+        date_request = parse_date_expressions(normalized, _calendar)
+        dates = date_request.dates
         assumptions: list[str] = []
-        if not dates:
+        if date_request.clamped:
+            assumptions.append("date_window_clamped")
+        # LUẬT W20-R4: CÓ ngày được nêu thì KHÔNG BAO GIỜ mặc định đợt thu mới
+        # nhất. Assumption đó chỉ được thêm khi DateRequest rỗng ở CẢ NĂM ô —
+        # dòng code cũ (`if not dates`) là thứ đã sinh ra hai ca over_answer,
+        # vì một ngày ngoài cửa sổ cũng làm `dates` rỗng.
+        if not dates and date_request.is_empty():
             # W30-R2: đợt thu mới nhất đọc từ lịch của bản dữ liệu, không ghim.
             # W20-R2: assumption KHÔNG mang chữ số — verifier.scan_numbers quét
             # mọi số trong answer và đòi evidence hậu thuẫn, còn assumption đi
@@ -859,6 +873,7 @@ class DeterministicSemanticParser:
         ]
 
         return AnalyticalRequest(
+            date_request=date_request.as_dict(),
             binding_ledger={
                 **ledger.digest(),
                 "frame_hits": frame_hits(frames),

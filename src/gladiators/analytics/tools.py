@@ -18,6 +18,24 @@ from .similarity import (
 OPEN_RESULT_ROW_LIMIT = 10
 
 
+class SparseObservationError(RuntimeError):
+    """W29-R1 — phạm vi được hỏi quá thưa để phát biểu về nó.
+
+    ``clarify``, KHÔNG phải ``abstain``: câu hỏi TRẢ LỜI ĐƯỢC, chỉ là không ở
+    cái grain thời gian người dùng nêu. Lời từ chối phải đề nghị đúng cách đọc
+    thay thế — nói "không còn đường nào" là sai sự thật.
+    """
+
+    def __init__(self, verdict):
+        self.verdict = verdict
+        super().__init__(
+            "Chỉ số này được quan sát một lần cho mỗi listing chứ không phải mỗi "
+            "đợt thu, nên ở phạm vi được hỏi chỉ một phần rất nhỏ listing có "
+            "quan sát. Có thể trả lời theo lần quan sát gần nhất của từng "
+            "listing — bạn muốn cách đó không?",
+        )
+
+
 class _CachedExecution:
     """Kết quả dựng lại từ cache, đúng những trường phần sau đọc tới.
 
@@ -655,6 +673,33 @@ class AnalyticsTools:
         compiled = compile_plan(
             plan, available_sources=frozenset(self.repo.available_artifacts()),
         )
+        # ── W29 (S7.5) — cửa MẬT ĐỘ QUAN SÁT ────────────────────────────────
+        # Sau compile (cần plan hợp lệ để biết scope), TRƯỚC execute (phải chặn
+        # trước khi một con số tồn tại — con số đã tính rồi thì mọi lớp sau đều
+        # thấy nó hợp lệ).
+        from gladiators.analytics.density import DensityError, check as density_check
+
+        self.last_density = None
+        try:
+            _agg = next(
+                (node.aggregation for node in plan.nodes if node.op == "Aggregate"),
+                None,
+            )
+            _refs = tuple({ref for node in plan.nodes for ref in node.refs})
+            _dates = tuple(plan.time_scope or ())
+            _country = next(
+                (
+                    str(predicate.value) for node in plan.nodes
+                    for predicate in node.predicates
+                    if predicate.ref == "dim.country"
+                ),
+                None,
+            )
+            self.last_density = density_check(_refs, _dates, _country, _agg)
+        except DensityError:
+            raise
+        if self.last_density is not None and self.last_density.action == "clarify":
+            raise SparseObservationError(self.last_density)
         dataset_version = self.repo.dataset_version
         # A6.2: tra cache SAU compile và TRƯỚC execute. Khoá là plan_hash — mã
         # kế hoạch ĐÃ QUA VALIDATOR — cộng dataset_version, nên trúng cache không
