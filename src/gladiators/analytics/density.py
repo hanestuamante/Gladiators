@@ -112,20 +112,34 @@ def coverage_of(
 def check(
     refs: tuple[str, ...], dates: tuple[str, ...], country: str | None,
     aggregation: str | None, data_root: str = "data/processed",
+    filter_refs: tuple[str, ...] = (),
 ) -> DensityVerdict | None:
     """Kết luận cho một plan, hoặc ``None`` khi W29 không có gì để nói.
 
-    W29 CHỈ áp cho **tổng hợp** của measure ``point_in_time``. Áp cho ĐẾM sẽ tạo
-    ra đúng lớp lỗi "đếm thừa hưởng bộ lọc của đo"; áp cho ``panel`` sẽ chặn mọi
-    câu hỏi về giá.
+    W29 áp cho **tổng hợp** của measure ``point_in_time``. Áp nó cho ĐẾM của một
+    measure sẽ tạo ra đúng lớp lỗi "đếm thừa hưởng bộ lọc của đo" — một câu hỏi
+    *bao nhiêu listing* là câu hỏi về LISTING, không về việc chỉ số kia đo được
+    hay không, nên nó vẫn phải trả lời được.
+
+    NHƯNG một ĐẾM có **bộ lọc** đặt trên cột thưa là chuyện khác hẳn, và phân
+    biệt được bằng hành vi: *"bao nhiêu listing giảm giá trên 50% tại VN ngày
+    03/07"* trả **0** trên bộ 20 ngày, nơi ``discount_percent`` chỉ có 5 quan
+    sát trong 668 dòng của ngày đó — sự thật là 8, và cả gate, verifier lẫn A22
+    đều thấy số 0 hợp lệ. Ở đây bộ lọc KHÔNG chọn ra tập rỗng; nó chọn ra tập
+    *không quan sát được*, và hai thứ đó hiện ra giống hệt nhau. Vì vậy ref của
+    bộ lọc luôn được kiểm, bất kể phép tổng hợp là gì (LUẬT W29-R7).
     """
-    if aggregation in (None, "count", "share"):
-        return None
     from gladiators.domain.catalog import CATALOG
+
+    scope = tuple(filter_refs)
+    if aggregation not in (None, "count", "share"):
+        scope = tuple(dict.fromkeys(scope + tuple(refs)))
+    if not scope:
+        return None
 
     dense, refuse = thresholds(data_root)
     worst: DensityVerdict | None = None
-    for ref in refs:
+    for ref in scope:
         obj = CATALOG.get(ref)
         if obj is None or obj.kind not in {"measure", "derived_metric"}:
             continue

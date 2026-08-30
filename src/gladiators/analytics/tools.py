@@ -402,8 +402,12 @@ class AnalyticsTools:
         latest = snapshots.loc[
             snapshots.date.astype(str) == latest_date
         ].drop_duplicates("product_listing_key")
-        valid = latest.loc[latest.monthly_sold_value_num.notna()]
-        if valid.empty or latest.has_structured_voucher.nunique() < 2:
+        # KHÔNG đòi `monthly_sold` đo được mới cho chạy: đếm listing theo nhóm
+        # voucher là một câu hỏi về CỜ VOUCHER, không phải về lượt bán. Guard cũ
+        # bỏ cả phép đếm khi proxy không đo được — trên bộ 20 ngày `monthly_sold`
+        # chỉ quan sát một lần mỗi listing, nên nó im lặng trả rỗng cho một câu
+        # hỏi dữ liệu trả lời được. Cùng lớp "đếm thừa hưởng bộ lọc của đo".
+        if latest.has_structured_voucher.nunique() < 2:
             return []
         result = []
         # The count runs over the whole scope; the aggregates run over the rows
@@ -698,8 +702,17 @@ class AnalyticsTools:
             # Root của CHÍNH bản dữ liệu đang phục vụ. Mặc định 'data/processed'
             # sẽ đọc mật độ của MỘT BẢN KHÁC — và một cửa mật độ đọc nhầm bản là
             # một cửa không gác gì.
+            # W29-R7: ref trong bộ lọc đi RIÊNG — chúng được kiểm kể cả khi
+            # phép tổng hợp là `count`, vì một bộ lọc trên cột không quan sát
+            # được trả về tập rỗng trông y hệt một tập thật sự rỗng.
+            _filter_refs = tuple({
+                predicate.ref for node in plan.nodes
+                for predicate in node.predicates
+                if predicate.ref and predicate.ref != "dim.country"
+            })
             self.last_density = density_check(
                 _refs, _dates, _country, _agg, str(self.repo.root),
+                filter_refs=_filter_refs,
             )
         except DensityError:
             raise

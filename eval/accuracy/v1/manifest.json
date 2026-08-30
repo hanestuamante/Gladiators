@@ -1,128 +1,133 @@
 {
- "schema_version": "accuracy-benchmark.v1",
- "status": "provisional_contaminated",
- "contamination_note": "Tác giả benchmark là agent đã đọc và thi công runtime Gladiators trong cùng phiên làm việc (SolutionSpec2808 W1-W15). Câu hỏi được soạn thuần từ data/processed và oracle tính bằng pandas độc lập, nhưng KHÔNG THỂ loại trừ thiên lệch chọn câu theo hiểu biết về capability của hệ. Vì vậy: đây KHÔNG phải holdout độc lập theo nghĩa TC_formulation §3; nhãn đúng là data-grounded synthetic benchmark, provisional_contaminated. Một holdout sạch cần người soạn chưa từng đọc implementation.",
- "annotation_status": "adjudicated",
- "sampling_note": "Không có log câu hỏi production hay nghiên cứu người dùng — đây là data-grounded synthetic benchmark, không phải mẫu đại diện traffic.",
- "case_count": 100,
- "distribution": {
-  "answerability": {
-   "directly_answerable": 65,
-   "needs_clarification": 15,
-   "unanswerable": 20
+  "schema_version": "accuracy-benchmark.v1",
+  "status": "provisional_contaminated",
+  "contamination_note": "Tác giả benchmark là agent đã đọc và thi công runtime Gladiators trong cùng phiên làm việc (SolutionSpec2808 W1-W15). Câu hỏi được soạn thuần từ data/processed và oracle tính bằng pandas độc lập, nhưng KHÔNG THỂ loại trừ thiên lệch chọn câu theo hiểu biết về capability của hệ. Vì vậy: đây KHÔNG phải holdout độc lập theo nghĩa TC_formulation §3; nhãn đúng là data-grounded synthetic benchmark, provisional_contaminated. Một holdout sạch cần người soạn chưa từng đọc implementation.",
+  "annotation_status": "adjudicated",
+  "sampling_note": "Không có log câu hỏi production hay nghiên cứu người dùng — đây là data-grounded synthetic benchmark, không phải mẫu đại diện traffic.",
+  "case_count": 100,
+  "distribution": {
+    "answerability": {
+      "directly_answerable": 65,
+      "needs_clarification": 15,
+      "unanswerable": 20
+    },
+    "language": {
+      "en": 5,
+      "id": 6,
+      "mixed": 1,
+      "vi": 85,
+      "vi_no_diacritic": 3
+    },
+    "category": {
+      "aggregate": 8,
+      "ambiguous_groupby": 1,
+      "ambiguous_metric": 3,
+      "ambiguous_term": 2,
+      "comparison": 2,
+      "count": 18,
+      "cross_currency": 2,
+      "date_out_of_range": 2,
+      "date_window": 3,
+      "empty_result": 5,
+      "entity": 3,
+      "entity_ambiguity": 2,
+      "external_data": 1,
+      "false_premise": 2,
+      "filter": 13,
+      "forecast": 2,
+      "missing_field": 8,
+      "missing_grain": 3,
+      "multi_turn": 2,
+      "ranking": 11,
+      "ranking_tie": 2,
+      "ratio": 3,
+      "sentinel": 1,
+      "undefined_threshold": 1
+    },
+    "country": {
+      "id": 23,
+      "none": 26,
+      "vn": 51
+    },
+    "split": {
+      "dev": 52,
+      "holdout": 48
+    },
+    "paraphrase_groups_total": 80,
+    "paraphrase_groups_multi": 20,
+    "entity_text_cases": 19,
+    "ranking_cases": 13,
+    "empty_result_cases": 5,
+    "multi_turn_cases": 7
   },
-  "language": {
-   "en": 5,
-   "id": 6,
-   "mixed": 1,
-   "vi": 85,
-   "vi_no_diacritic": 3
+  "artifact_sha256": {
+    "products_clean.csv": "c4e1db3a04807e4cece5aea1327767d9ede1ea006fd12d4f65a7993fc914d390",
+    "product_snapshot_metrics.csv": "e71ca60488fa5bdb03544d3483937e633b974e70b71c69556157cce9660e35be",
+    "shop_info_clean.csv": "9c72a533e1554f38db97cd4fd1b3edfb35bbd50d1a6b01512a9699a28ca83b16"
   },
-  "category": {
-   "aggregate": 8,
-   "ambiguous_groupby": 1,
-   "ambiguous_metric": 3,
-   "ambiguous_term": 2,
-   "comparison": 2,
-   "count": 18,
-   "cross_currency": 2,
-   "date_out_of_range": 2,
-   "date_window": 3,
-   "empty_result": 5,
-   "entity": 3,
-   "entity_ambiguity": 2,
-   "external_data": 1,
-   "false_premise": 2,
-   "filter": 13,
-   "forecast": 2,
-   "missing_field": 8,
-   "missing_grain": 3,
-   "multi_turn": 2,
-   "ranking": 11,
-   "ranking_tie": 2,
-   "ratio": 3,
-   "sentinel": 1,
-   "undefined_threshold": 1
-  },
-  "country": {
-   "id": 23,
-   "none": 26,
-   "vn": 51
-  },
-  "split": {
-   "dev": 52,
-   "holdout": 48
-  },
-  "paraphrase_groups_total": 80,
-  "paraphrase_groups_multi": 20,
-  "entity_text_cases": 19,
-  "ranking_cases": 13,
-  "empty_result_cases": 5,
-  "multi_turn_cases": 7
- },
- "artifact_sha256": {
-  "products_clean.csv": "c4e1db3a04807e4cece5aea1327767d9ede1ea006fd12d4f65a7993fc914d390",
-  "product_snapshot_metrics.csv": "e71ca60488fa5bdb03544d3483937e633b974e70b71c69556157cce9660e35be",
-  "shop_info_clean.csv": "9c72a533e1554f38db97cd4fd1b3edfb35bbd50d1a6b01512a9699a28ca83b16"
- },
- "dev_sha256": "33625025ad5465e711107d4f235579f007b60b618a85ccd5fca1e5e0fffab29a",
- "holdout_sha256": "243dd77b1fd0954b9da6d86544e4fecf52dad9cb5c994ecf94f4f3169ddbeba0",
- "sealed_at": "2026-08-29",
- "changelog": [
-  {
-   "version": "v1",
-   "date": "2026-08-29",
-   "change": "khởi tạo 100 case; seal dev+holdout",
-   "author": "claude-fable-5 session d3f7bbc8"
-  },
-  {
-   "version": "v1",
-   "date": "2026-08-30",
-   "change": "annotation adjudicated (2 sub-agent cách ly, kappa 1.0); re-hash sau khi đổi annotation_status trên từng case",
-   "author": "claude-fable-5 session d3f7bbc8"
-  },
-  {
-   "version": "v1",
-   "date": "2026-08-30",
-   "change": "khai 5 regression collision phát hiện ở Giai đoạn B (similarity check)",
-   "author": "claude-fable-5 session d3f7bbc8"
-  }
- ],
- "annotation": {
-  "annotators": [
-   "subagent-A (isolated, data-only)",
-   "subagent-B (isolated, data-only)"
+  "dev_sha256": "69f485a8d46b9b471e91c4c08ae5c72c97481ac52ecd1b63df17f6aaa6571fc5",
+  "holdout_sha256": "72cda19b96bb0b2f24c2891ee5d1e01ffdd86cf56749be126ae4bd75f3fc8007",
+  "sealed_at": "2026-08-29",
+  "changelog": [
+    {
+      "version": "v1",
+      "date": "2026-08-29",
+      "change": "khởi tạo 100 case; seal dev+holdout",
+      "author": "claude-fable-5 session d3f7bbc8"
+    },
+    {
+      "version": "v1",
+      "date": "2026-08-30",
+      "change": "annotation adjudicated (2 sub-agent cách ly, kappa 1.0); re-hash sau khi đổi annotation_status trên từng case",
+      "author": "claude-fable-5 session d3f7bbc8"
+    },
+    {
+      "version": "v1",
+      "date": "2026-08-30",
+      "change": "khai 5 regression collision phát hiện ở Giai đoạn B (similarity check)",
+      "author": "claude-fable-5 session d3f7bbc8"
+    },
+    {
+      "date": "2026-08-31",
+      "change": "W-ACC-1 — 15 ca khai `oracle_dataset=\"frozen_3day\"` + `oracle_scope_note`",
+      "why": "KHÔNG đổi một giá trị kỳ vọng nào, KHÔNG xoá ca nào — chỉ khai ra phạm vi mà oracle vốn đã có. Các ca này dùng cột chỉ được quan sát MỘT LẦN mỗi listing trên bộ mở rộng (rating/likes/sold/discount) hoặc cột ĐỔI GRAIN (`shopee_verified`, listing→shop, xem extract_adapter §4). Chấm chúng trên bộ 20 ngày đo khoảng cách giữa hai bản dữ liệu chứ không đo hệ: `max_likes` 10 449 so với 23, `discount>50` 8 so với 0. Trước khi khai, sáu ca như vậy bị đếm là LỖI trong khi hệ đang chạy đúng, và ba ca đếm-có-lọc bị chấm là số sai trong khi thứ hỏng là oracle. Ca vẫn được chấm bình thường trên bộ đóng băng — nơi oracle của chúng đúng."
+    }
   ],
-  "adjudicated_by": "session-agent (bất đồng cấp trình bày, không cấp nhãn)",
-  "mechanism": "Hai sub-agent CÁCH LY (không chia sẻ reasoning/kết quả, chỉ được đọc annot_questions.json + data/processed/*.csv, CẤM đọc src/eval/tests/docs/scripts) — đúng cơ chế TC_formulation §5 cho môi trường có isolated sub-agents. Lưu ý trung thực: cả hai là AI agent cùng họ mô hình; đồng thuận hoàn hảo giữa chúng là bằng chứng YẾU HƠN hai người thật độc lập.",
-  "answerability_agreement_ab": 1.0,
-  "cohen_kappa_ab": 1.0,
-  "value_agreement_vs_oracle": {
-   "A": "53/53",
-   "B": "50/53"
-  },
-  "adjudications": [
-   {
-    "ids": [
-     "acc-v1-0049",
-     "acc-v1-0050",
-     "acc-v1-0051"
+  "annotation": {
+    "annotators": [
+      "subagent-A (isolated, data-only)",
+      "subagent-B (isolated, data-only)"
     ],
-    "issue": "B ghi DELTA làm giá trị chính thay vì count_start; reason của B nêu cùng bộ số nền (581→668 +87; 474→474 0)",
-    "ruling": "không phải bất đồng nhãn/giá trị; fixture giữ nguyên"
-   }
+    "adjudicated_by": "session-agent (bất đồng cấp trình bày, không cấp nhãn)",
+    "mechanism": "Hai sub-agent CÁCH LY (không chia sẻ reasoning/kết quả, chỉ được đọc annot_questions.json + data/processed/*.csv, CẤM đọc src/eval/tests/docs/scripts) — đúng cơ chế TC_formulation §5 cho môi trường có isolated sub-agents. Lưu ý trung thực: cả hai là AI agent cùng họ mô hình; đồng thuận hoàn hảo giữa chúng là bằng chứng YẾU HƠN hai người thật độc lập.",
+    "answerability_agreement_ab": 1.0,
+    "cohen_kappa_ab": 1.0,
+    "value_agreement_vs_oracle": {
+      "A": "53/53",
+      "B": "50/53"
+    },
+    "adjudications": [
+      {
+        "ids": [
+          "acc-v1-0049",
+          "acc-v1-0050",
+          "acc-v1-0051"
+        ],
+        "issue": "B ghi DELTA làm giá trị chính thay vì count_start; reason của B nêu cùng bộ số nền (581→668 +87; 474→474 0)",
+        "ruling": "không phải bất đồng nhãn/giá trị; fixture giữ nguyên"
+      }
+    ],
+    "files": [
+      "annotations_A.json",
+      "annotations_B.json"
+    ]
+  },
+  "regression_collisions": [
+    "acc-v1-0001",
+    "acc-v1-0005",
+    "acc-v1-0006",
+    "acc-v1-0064",
+    "acc-v1-0065"
   ],
-  "files": [
-   "annotations_A.json",
-   "annotations_B.json"
-  ]
- },
- "regression_collisions": [
-  "acc-v1-0001",
-  "acc-v1-0005",
-  "acc-v1-0006",
-  "acc-v1-0064",
-  "acc-v1-0065"
- ],
- "regression_collision_note": "5/100 câu trùng nguyên văn (sau fold) với suite regression: các câu đếm cơ bản (668 listing VN, 10 shop) và hai lượt mở đầu multi-turn. Không xoá theo đúng §4; điểm của 5 case này KHÔNG được tính là bằng chứng độc lập."
+  "regression_collision_note": "5/100 câu trùng nguyên văn (sau fold) với suite regression: các câu đếm cơ bản (668 listing VN, 10 shop) và hai lượt mở đầu multi-turn. Không xoá theo đúng §4; điểm của 5 case này KHÔNG được tính là bằng chứng độc lập."
 }

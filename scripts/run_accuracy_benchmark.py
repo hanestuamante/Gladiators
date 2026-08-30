@@ -408,6 +408,29 @@ def main() -> int:
     from gladiators.agent.workflow import AgentRuntime
 
     runtime = AgentRuntime(data_dir=args.data_dir) if args.data_dir else AgentRuntime()
+
+    # W-ACC-1 (Spec3008 §20.1) — một oracle chỉ mô tả BẢN DỮ LIỆU nó được tính
+    # trên đó. 11 ca dùng measure quan sát-một-lần (rating/likes/sold/discount)
+    # khai `oracle_dataset="frozen_3day"`; trên một bản khác, giá trị kỳ vọng
+    # của chúng nói về một tập quan sát KHÁC, nên chấm chúng ở đó là đo sai lệch
+    # giữa hai bộ dữ liệu chứ không đo hệ. Chúng được TÁCH RA và đếm riêng —
+    # không xoá (chúng vẫn là oracle hợp lệ của bộ đóng băng) và không im lặng
+    # bỏ qua (một phép kiểm biến mất không dấu vết là thứ §5 của CLAUDE.md cấm).
+    from gladiators.domain.calendar import load_calendar
+    _cal = load_calendar(args.data_dir) if args.data_dir else load_calendar()
+    active_dataset = "frozen_3day" if len(_cal.dates) == 3 else "extended"
+    out_of_scope = {
+        case["id"] for case in cases
+        if case.get("oracle_dataset") and case["oracle_dataset"] != active_dataset
+    }
+    if out_of_scope:
+        print(
+            f"[W-ACC-1] bản dữ liệu {active_dataset} ({len(_cal.dates)} đợt thu): "
+            f"{len(out_of_scope)} ca có oracle của bộ khác — tách khỏi mẫu số, "
+            "liệt kê ở khoá `oracle_out_of_scope` của report.",
+            file=sys.stderr,
+        )
+        cases = [case for case in cases if case["id"] not in out_of_scope]
     per_case_runs: dict[str, list[dict]] = defaultdict(list)
     crashes = 0
     latencies: list[float] = []
@@ -496,6 +519,8 @@ def main() -> int:
 
     report = {
         "schema_version": "accuracy-report.v1",
+        "active_dataset": active_dataset,
+        "oracle_out_of_scope": sorted(out_of_scope),
         "suite": f"eval/accuracy/v1/{args.split}.json",
         "suite_status": manifest["status"],
         "annotation_status": manifest["annotation_status"],
