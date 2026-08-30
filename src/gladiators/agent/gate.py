@@ -297,7 +297,17 @@ class ContractDrivenGate:
                 continue
             if kind in {"date_like", "proper_name"}:
                 continue          # W20 và W19 đã có lối riêng cho hai loại này
-            if kind in {"unknown_concept", "grain_term", "quantity_phrase"}:
+            # ĐO ĐƯỢC, không suy đoán: bật `A-UNBOUND-CONSTRAINT` cho cả
+            # `unknown_concept` và `quantity_phrase` đẩy `over_refusal_rate` từ
+            # 0.344 lên 0.594 trên bộ dev — đúng bẫy Spec3008 §21.11 ("đừng để
+            # nó thành cổng chặn mọi thứ"), và nghiệm thu W22 khai điều kiện
+            # "over_refusal_rate KHÔNG ĐƯỢC TĂNG" chính vì rủi ro này.
+            #
+            # `unknown_concept` là ĐÁY của phân loại phần dư: mọi từ nội dung
+            # chưa có alias rơi vào đó, gồm cả những từ hệ thừa sức bỏ qua. Chỉ
+            # `grain_term` là tín hiệu ĐỦ HẸP — nó nêu một grain mà dataset khai
+            # rõ là không có.
+            if kind == "grain_term":
                 add("A-UNBOUND-CONSTRAINT", 1, "clarify",
                     f'Chưa hiểu cụm "{span_text}" trong câu hỏi; '
                     "hãy diễn đạt lại phần đó hoặc nêu chỉ số cụ thể.",
