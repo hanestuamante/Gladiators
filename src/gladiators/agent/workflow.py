@@ -51,6 +51,8 @@ from .ledger import record_refusal
 from .conversation import (
     ConversationStore,
     apply_to_request,
+    is_refinement,
+    merge_pending,
     topics_of,
     update_from_response,
 )
@@ -1217,6 +1219,26 @@ class AgentRuntime:
         conversation_state = self.conversations.get(session_id)
         turn_topics = topics_of(request)
         request, inherited = apply_to_request(request, conversation_state, turn_topics)
+        # ── W27 §14.3 — hợp nhất MỘT CHIỀU ──────────────────────────────────
+        # Lượt này chỉ là một mệnh đề phạm vi (không measure, không khung định
+        # lượng) và lượt trước còn một request chưa phục vụ được ⇒ REFINEMENT:
+        # điền vào request cũ thay vì parse lại từ số 0 và mất measure.
+        #
+        # W27-R2: request đã hợp nhất vẫn đi ĐỦ mọi chặng. Bộ nhớ điền ô, không
+        # cấp phép.
+        resume_meta: dict | None = None
+        pending = getattr(conversation_state, "pending", None)
+        if pending is not None and is_refinement(request.analytical):
+            merged = merge_pending(dict(request.analytical or {}), pending)
+            request = request.model_copy(update={
+                "analytical": merged,
+                "intent": pending.analytical.get("intent") or request.intent,
+            })
+            resume_meta = {
+                "carried_from_turn": pending.turn,
+                "asked_slot": pending.asked_slot,
+                "rule_id": pending.rule_id,
+            }
         digest = request_digest(request)
         capabilities = {
             **self.repo.capability_profile(),
@@ -2244,9 +2266,14 @@ class AgentRuntime:
             self.conversations.put(update_from_response(
                 conversation_state, session_id, request, capabilities,
                 getattr(entity_check, "state", None), turn_topics,
+                gate_action=decision.action, gate_rule=decision.rule_id,
+                clarification_slot=decision.clarification_slot,
             ))
         if conversation_state is not None:
             planning_meta["conversation"] = inherited.as_dict(conversation_state)
+        if resume_meta is not None:
+            # W27-R3: ngữ cảnh kế thừa phải HIỂN THỊ và huỷ được.
+            planning_meta["conversation_resume"] = resume_meta
         plan_cache = getattr(tools, "last_plan_cache", None)
         if plan_cache:
             planning_meta.setdefault("plan_cache", plan_cache)

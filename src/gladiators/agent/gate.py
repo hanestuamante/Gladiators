@@ -311,14 +311,22 @@ class ContractDrivenGate:
             # `grain_term` là tín hiệu ĐỦ HẸP — nó nêu một grain mà dataset khai
             # rõ là không có.
             if kind == "grain_term":
-                add("A-UNBOUND-CONSTRAINT", 1, "clarify",
-                    f'Chưa hiểu cụm "{span_text}" trong câu hỏi; '
-                    "hãy diễn đạt lại phần đó hoặc nêu chỉ số cụ thể.",
-                    "slot", "unbound_constraint",
+                # HOÃN: "chưa hiểu cụm này" là lời từ chối MƠ HỒ NHẤT, nên nó
+                # chỉ được dùng khi KHÔNG luật nào nói được cụ thể hơn. Thêm
+                # thẳng vào `issues` là chen trước một chẩn đoán đang đúng —
+                # priority chính là thứ tự gọi `add`.
+                deferred.append(GateIssue(
+                    rule_id="A-UNBOUND-CONSTRAINT", phase=1, priority=2_000,
+                    action="clarify",
+                    reason=f'Chưa hiểu cụm "{span_text}" trong câu hỏi; '
+                           "hãy diễn đạt lại phần đó hoặc nêu chỉ số cụ thể.",
+                    detail=IssueDetail(category="slot", code="unbound_constraint"),
+                    fixable=True,
                     clarification_slot=(
                         "definition_threshold" if kind == "quantity_phrase"
                         else "group_dimension" if kind == "grain_term" else "metric"
-                    ))
+                    ),
+                ))
 
         # ── W20 §7.3 — HAI luật, không phải một ────────────────────────────
         # "ngoài cửa sổ" và "trong kỳ nhưng không có đợt thu" cần hai lời khuyên
@@ -381,7 +389,9 @@ class ContractDrivenGate:
                 ref in CATALOG and CATALOG[ref].unit == "local_currency"
                 for ref in refs
             ):
-                add("A16-CROSS-CURRENCY", 4, "clarify",
+                # Giữ NGUYÊN mã luật: §9.3 đòi đổi NHÓM LÝ DO. Đổi mã sẽ dịch
+                # mọi fixture đang khoá nó mà không câu hỏi nào đổi nghĩa.
+                add("A-CROSS-CURRENCY-SCOPE", 4, "clarify",
                     "Không cộng hoặc so sánh trực tiếp giá trị VND với IDR.",
                     "currency", "cross_currency_measure",
                     "Hãy hỏi riêng từng thị trường bằng đơn vị tiền địa phương.",
@@ -536,7 +546,7 @@ class ContractDrivenGate:
             # chạm cue `country`, nên `clarification_precision` không đổi; đổi
             # là NHÓM LÝ DO, tức `refusal_reason_accuracy`.
             if _asks_for_money(request):
-                add("A16-CROSS-CURRENCY", 4, "clarify",
+                add("A-CROSS-CURRENCY-SCOPE", 4, "clarify",
                     "Cần chọn thị trường VN hoặc ID để không cộng/so sánh trực "
                     "tiếp VND với IDR.",
                     "currency", "cross_currency",

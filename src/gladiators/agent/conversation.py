@@ -68,6 +68,23 @@ def _topics_for(refs: frozenset[str]) -> frozenset[str]:
 
 
 @dataclass(frozen=True)
+class PendingRequest:
+    """Một câu hỏi CHƯA PHỤC VỤ ĐƯỢC, giữ nguyên hình để lượt sau nối tiếp.
+
+    Trước W27 bộ nhớ mang **ô phạm vi**, không mang **request**. Lượt 2
+    ``"Tại Việt Nam."`` parse lại từ số 0, mất measure, và nhận ``A19-CAT``
+    *"Chưa xác định được chỉ số nào cần đo"* — người dùng vừa trả lời ĐÚNG câu
+    hỏi hệ vừa hỏi và bị hỏi lại một câu khác.
+    """
+
+    turn: int
+    normalized_question: str
+    analytical: dict[str, Any]
+    asked_slot: str | None = None
+    rule_id: str = ""
+
+
+@dataclass
 class ConversationState:
     session_id: str
     turn: int = 0
@@ -75,6 +92,8 @@ class ConversationState:
     origin: dict[str, int] = field(default_factory=dict)
     topic_signature: frozenset[str] = frozenset()
     touched_at: float = 0.0
+    # W27: câu hỏi chưa phục vụ được của lượt trước.
+    pending: PendingRequest | None = None
 
 
 @dataclass(frozen=True)
@@ -140,6 +159,52 @@ def _is_empty(value: Any) -> bool:
     return value is None or value == "" or value == () or value == [] or value == {}
 
 
+def is_refinement(analytical: dict[str, Any] | None) -> bool:
+    """Lượt này CHỈ là một mệnh đề phạm vi, không phải một câu hỏi mới.
+
+    Điều kiện HẸP và MỘT CHIỀU (W27-R1): không bind measure nào, và không có
+    khung định lượng nào phân giải được. Nới nó ra là để một câu hỏi mới thừa kế
+    measure của câu cũ — một câu hỏi khác đội lốt câu cũ.
+    """
+    if not analytical:
+        return False
+    if any(item.get("ref") for item in analytical.get("requested_measures", ())):
+        return False
+    hits = (analytical.get("binding_ledger") or {}).get("frame_hits") or {}
+    return not hits.get("quantity") and not hits.get("superlative")
+
+
+def merge_pending(analytical: dict[str, Any], pending: PendingRequest) -> dict[str, Any]:
+    """Điền request đang treo bằng những ô lượt này CUNG CẤP.
+
+    LUẬT W27-R1 — refinement chỉ được ĐIỀN, không được thay khái niệm. Nó không
+    được thêm measure vào một pending request; measure là thứ định danh câu hỏi.
+    """
+    merged = dict(pending.analytical)
+    fresh_filters = {
+        (f.get("field_ref"), f.get("op")): f
+        for f in analytical.get("filters", ()) or ()
+    }
+    kept = [
+        f for f in merged.get("filters", ()) or ()
+        if (f.get("field_ref"), f.get("op")) not in fresh_filters
+    ]
+    merged["filters"] = tuple(kept) + tuple(fresh_filters.values())
+    for key in ("time_scope", "requested_aggregation", "date_request"):
+        value = analytical.get(key)
+        if value:
+            merged[key] = value
+    # Mơ hồ của lượt trước là thứ refinement tồn tại để GỠ. Mang chúng sang là
+    # làm phép hợp nhất vô nghĩa: câu đã được trả lời vẫn bị chặn bằng chính lời
+    # hỏi lại mà người dùng vừa đáp.
+    merged["ambiguities"] = ()
+    merged["semantic_ambiguities"] = ()
+    merged["normalized_question"] = (
+        f"{pending.normalized_question} | {analytical.get('normalized_question','')}"
+    )
+    return merged
+
+
 def apply_to_request(
     request: Any, state: ConversationState | None, new_topics: frozenset[str],
 ) -> tuple[Any, Inheritance]:
@@ -183,6 +248,8 @@ def update_from_response(
     state: ConversationState | None, session_id: str, request: Any,
     capabilities: dict[str, Any], entity_state: str | None,
     new_topics: frozenset[str],
+    gate_action: str | None = None, gate_rule: str = "",
+    clarification_slot: str | None = None,
 ) -> ConversationState:
     """Ghi lại các ô ĐÃ XÁC LẬP CHẮC CHẮN của lượt này.
 
@@ -220,9 +287,27 @@ def update_from_response(
         confirmed["entity_text"], origin["entity_text"] = request.entity_text, turn
 
     signature = new_topics or (state.topic_signature if state else frozenset())
+
+    # W27: ghi `pending` khi lượt này CLARIFY, và cả khi ALLOW (W27-R5) — "Còn ở
+    # Indonesia thì sao?" là một refinement của một câu ĐÃ trả lời. Rủi ro một
+    # câu hỏi mới thừa kế measure cũ được chặn bằng chính W27-R1: refinement chỉ
+    # kích hoạt khi lượt mới KHÔNG có measure và KHÔNG có khung định lượng.
+    analytical = dict(getattr(request, "analytical", None) or {})
+    pending = state.pending if state else None
+    if gate_action in {"clarify", "allow"} and analytical.get("requested_measures"):
+        pending = PendingRequest(
+            turn=turn,
+            normalized_question=str(analytical.get("normalized_question", "")),
+            analytical=analytical,
+            asked_slot=clarification_slot,
+            rule_id=gate_rule,
+        )
+    elif gate_action == "abstain":
+        pending = None      # không còn gì để nối tiếp
+
     return ConversationState(
         session_id=session_id, turn=turn, confirmed=confirmed, origin=origin,
-        topic_signature=signature, touched_at=monotonic(),
+        topic_signature=signature, touched_at=monotonic(), pending=pending,
     )
 
 
