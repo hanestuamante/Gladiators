@@ -63,6 +63,14 @@ SOURCES: tuple[tuple[str, str, str], ...] = (
 def build(data_dir: Path = DATA) -> dict:
     values: dict[str, dict[str, dict[str, str]]] = {}
     ambiguous: dict[str, dict[str, dict[str, list[str]]]] = {}
+    # W19 — schema v3 thêm ``universe``: mọi giá trị của một chiều CÙNG danh
+    # sách thị trường nó xuất hiện. `ORION` có ở VN, không có ở ID; câu "ORION
+    # có bao nhiêu listing tại Indonesia" có đáp án **0** — một kết quả rỗng hợp
+    # lệ, không phải một câu không trả lời được. Trước v3 hệ chỉ so với
+    # ``values[ref][country]`` và trả `A-VALUE-NOT-FOUND`, tức phát biểu SAI về
+    # dataset, và `INV-EMPTY-RESULT-IS-VALID` mất hiệu lực đúng ở nơi nó cần
+    # nhất.
+    universe: dict[str, dict[str, dict[str, object]]] = {}
     for ref, artifact, column in SOURCES:
         frame = pd.read_csv(data_dir / artifact)
         if column not in frame.columns or "country_code" not in frame.columns:
@@ -89,10 +97,23 @@ def build(data_dir: Path = DATA) -> dict:
         values[ref] = per_country
         if per_country_ambiguous:
             ambiguous[ref] = per_country_ambiguous
+        # Gộp mọi thị trường. Bản gốc lấy từ thị trường ĐẦU TIÊN theo thứ tự
+        # sắp — W19-R1: literal đi lọc vẫn phải là bản gốc của dataset, và bản
+        # đã fold không bao giờ được dùng thay.
+        merged: dict[str, dict[str, object]] = {}
+        for country in sorted(per_country):
+            for folded, original in per_country[country].items():
+                entry = merged.setdefault(
+                    folded, {"original": original, "countries": []},
+                )
+                if country not in entry["countries"]:
+                    entry["countries"].append(country)
+        universe[ref] = dict(sorted(merged.items()))
     return {
         "schema_version": INDEX_SCHEMA_VERSION,
         "dataset_version": compute_dataset_version(data_dir),
         "values": values,
+        "universe": universe,
         "ambiguous": ambiguous,
     }
 

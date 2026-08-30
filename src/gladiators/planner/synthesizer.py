@@ -176,6 +176,10 @@ DeclineCode = Literal[
     "measure_count_not_one", "measure_not_in_catalog", "measure_not_answerable",
     "too_many_dimensions", "too_many_predicates", "aggregation_not_certified",
     "date_count_unsupported", "relation_plan_failed", "ranking_ref_mismatch",
+    # W18: giá trị bind ĐƯỢC nhưng plan không diễn đạt NỔI nó — bộ chọn quan hệ
+    # thêm một cạnh registry không khai. Tách khỏi `relation_plan_failed` (bộ
+    # chọn bỏ cuộc) vì hai nguyên nhân khác nhau phải đọc khác nhau trong trace.
+    "relation_grain_invalid",
     "filter_op_forbidden", "dedupe_policy_conflict",
 ]
 
@@ -202,6 +206,7 @@ DECLINE_RULE_PRIORITY: tuple[str, ...] = (
     "no_entity_for_artifact",
     "scope_ref_off_base",
     "relation_plan_failed",
+    "relation_grain_invalid",
     "too_many_dimensions",
     "too_many_predicates",
     "country_missing",
@@ -764,6 +769,21 @@ def synthesize(
         time_scope=(date,), output_node=cursor, requested_output_shape=output,
         nodes=tuple(nodes),
     )
+    # Một giá trị bind được KHÔNG có nghĩa là plan diễn đạt được nó. Khi ref của
+    # predicate không nằm trên bảng nguồn, bộ chọn quan hệ thêm một cạnh mà
+    # registry không khai — plan ra `grain_mismatch`/`fanout_risk` và chỉ nổ ở
+    # compiler. Chặn ở đây, và HẸP: chỉ ba mã về QUAN HỆ.
+    #
+    # Không chặn mọi mã: `wrong_filter` (invariant sentinel) đã tồn tại trên một
+    # số plan TRƯỚC work package này, và chặn nó ở đây là lấy đi một plan mà
+    # commit này không hề đụng tới.
+    from .validator import validate_plan
+
+    relation_issues = {"grain_mismatch", "fanout_risk", "wrong_join_path"}
+    verdict = validate_plan(plan)
+    if any(issue.code in relation_issues for issue in verdict.issues):
+        _decline(decline, "relation_grain_invalid")
+        return None
     return SynthesisResult(
         plan=plan, grammar_path=plan.plan_id, aggregation=aggregation,
         dimensions=tuple(dimensions), relations=relations,

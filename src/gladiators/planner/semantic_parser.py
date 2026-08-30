@@ -528,9 +528,22 @@ class DeterministicSemanticParser:
         # vòng qua analytics/tools.py.
         from gladiators.agent.value_probe import bind_values
 
+        # W16 §3.3 — thứ tự claim là một QUYẾT ĐỊNH: value binding chạy SAU
+        # alias/country/date. Dựng lattice ở đây với đúng những claim đó, rồi
+        # value binder chỉ nhìn phần CÒN DƯ. Không có bước này thì "Nấm" khớp
+        # bên trong "Việt Nam" và câu bị lọc theo một danh mục chưa ai nhắc tới.
+        ledger = _ledger_of(
+            text, country=country, dates=dates,
+            surfaces=tuple(
+                ("alias", item.ref, item.surface_text)
+                for item in list(measures) + list(dimensions) if item.surface_text
+            ),
+        )
+
         for value_ref, literal in bind_values(
             normalized, country,
             frozenset(item.ref for item in dimensions if item.ref),
+            ledger=ledger,
         ):
             filters.append(AnalyticalPredicate(
                 field_ref=value_ref, op="eq", value_binding=literal,
@@ -548,7 +561,9 @@ class DeterministicSemanticParser:
                 dim_ref = VALUE_DIMENSION_BY_UNIT.get(unit_binding.ref or "")
                 if dim_ref is None:
                     continue
-                named = bind_values(normalized, country, frozenset({dim_ref}))
+                named = bind_values(
+                    normalized, country, frozenset({dim_ref}), ledger=ledger,
+                )
                 if len(named) != 1:
                     continue
                 value_ref, literal = named[0]
@@ -823,6 +838,17 @@ class DeterministicSemanticParser:
                 "Thiếu country cho metric tiền tệ; không được trộn VND và IDR."
                 if monetary else "Thiếu country để khóa scope VN hoặc ID."
             )
+        # Hai lối bind giá trị (chiều được nêu tên, và đơn vị phân tích qua
+        # VALUE_DIMENSION_BY_UNIT) có thể cùng tìm ra một predicate. Trùng lặp
+        # không đổi kết quả SQL nhưng làm `planned_predicate_count` lệch, và
+        # W1.4 dùng đúng con số đó để phát hiện predicate rơi mất.
+        _seen: set[tuple[str, str, str]] = set()
+        filters = [
+            item for item in filters
+            if (key := (item.field_ref, item.op, str(item.value_binding))) not in _seen
+            and not _seen.add(key)
+        ]
+
         return AnalyticalRequest(
             binding_ledger={
                 **ledger.digest(),

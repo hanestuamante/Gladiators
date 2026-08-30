@@ -95,6 +95,17 @@ def test_existing_plans_are_unchanged(key):
 # số sai. Ca này cross-market nên A16-CROSS-CURRENCY chặn trước khi thực thi ⇒
 # hành vi runtime KHÔNG đổi, chỉ plan đổi.
 INTENTIONALLY_LOST = {
+    "dr2607:tc32": (
+        "W18 (Spec3008 §5): 'Shop mỹ phẩm Glad2Glow' nay bind được giá trị "
+        "`dim.brand = GLAD2GLOW`. Nhưng bind ĐƯỢC một giá trị không có nghĩa "
+        "plan DIỄN ĐẠT ĐƯỢC nó: ref của predicate không nằm trên bảng nguồn, "
+        "bộ chọn quan hệ thêm một cạnh registry không khai, và plan ra "
+        "`grain_mismatch` + `fanout_risk`. Trước khi có phép kiểm này, plan hỏng "
+        "vẫn ra khỏi synthesize, vào baseline, và chỉ nổ ở compiler dưới dạng "
+        "`A19-PLAN` — một lời từ chối nói về 'kế hoạch không chạy được' thay vì "
+        "về ràng buộc mà grammar không diễn đạt nổi. Runtime KHÔNG đổi: ca này "
+        "vẫn `abstain / A-MISSING-ADS`, đúng kỳ vọng của fixture."
+    ),
     # dr2607:tc29 ĐÃ RỜI danh sách này ở W26 (Spec3008 §13). Plan của nó mất vì
     # `mean` không được chứng nhận cho `measure.discount_percent` — nhưng đó là
     # hệ quả của một bảng `valid_aggregations` gán tay giống hệt nhau cho mọi

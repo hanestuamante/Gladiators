@@ -84,8 +84,12 @@ def test_every_bare_return_none_is_named_and_the_code_set_is_exact():
                 )
                 observed.append(literal)
 
-    assert len(observed) == len(set(observed)) == 20, (
-        f"20 lý do hiện tại phải không trùng, thấy {sorted(observed)}"
+    # 20 → 21 ở W18: `relation_grain_invalid` tách khỏi `relation_plan_failed`.
+    # Bộ chọn quan hệ BỎ CUỘC và bộ chọn quan hệ DỰNG RA MỘT CẠNH KHÔNG HỢP LỆ
+    # là hai nguyên nhân khác nhau, và gộp chúng vào một mã làm trace nói rằng
+    # chúng giống nhau.
+    assert len(observed) == len(set(observed)) == 21, (
+        f"21 lý do hiện tại phải không trùng, thấy {sorted(observed)}"
     )
     assert set(observed) == set(DECLINE_CODES), (
         "tập literal quan sát được phải BẰNG ĐÚNG tập DeclineCode — "
@@ -188,6 +192,21 @@ DELIBERATE_BASELINE_CHANGES = {
         "cũ. Đã đối chiếu với pandas trước khi thêm: mã 2260506115 tại vn ngày "
         "03/07 có giá 372537.0, và hệ trả đúng con số đó."
     ),
+    "dr2607:tc32": (
+        "W18 (Spec3008 §5): plan MẤT có chủ đích — 'Shop mỹ phẩm Glad2Glow' "
+        "bind được `dim.brand = GLAD2GLOW`, nhưng ref đó không nằm trên bảng "
+        "nguồn nên bộ chọn quan hệ thêm một cạnh registry không khai và plan ra "
+        "`grain_mismatch` + `fanout_risk`. Bộ sinh không được trả về một plan "
+        "nó tự biết là hỏng. Runtime KHÔNG đổi: vẫn `abstain / A-MISSING-ADS`, "
+        "đúng kỳ vọng fixture. Lý do đầy đủ ở INTENTIONALLY_LOST."
+    ),
+    "dr2607:tc08": (
+        "W18 + W25: câu nêu đích danh 'bánh quy Kinh Đô' nên `dim.brand` bind "
+        "được và plan hẹp lại từ 10 xuống 2 dòng — một điều kiện bị bỏ rơi làm "
+        "hệ trả một con số RỘNG HƠN câu hỏi. Cùng lúc `entity.shop` rời grouping "
+        "vì nó không còn là chiều gom nhóm. Runtime KHÔNG đổi: vẫn "
+        "`clarify / A-AMBIGUOUS`, đúng kỳ vọng fixture."
+    ),
     "dr2607:tc01": (
         "W1.2 (SolutionSpec2808 §2.4): 'tại shop Perfetti Van Melle Vietnam' "
         "trước đây thành group_by entity.shop — trả mọi shop. "
@@ -200,6 +219,40 @@ DELIBERATE_BASELINE_CHANGES = {
         "không đổi kết quả."
     ),
 }
+
+
+def _predicate_sets(plan):
+    return [
+        {tuple(sorted(pred.items())) for pred in node.get("predicates", [])}
+        for node in plan.get("nodes", [])
+    ]
+
+
+def _strip_predicates(node):
+    if isinstance(node, dict):
+        return {k: _strip_predicates(v) for k, v in node.items() if k != "predicates"}
+    if isinstance(node, list):
+        return [_strip_predicates(x) for x in node]
+    return node
+
+
+def _only_filters_added(current, committed) -> bool:
+    """True khi plan mới GIỐNG HỆT plan cũ, chỉ THÊM predicate — không bớt.
+
+    W18 bind được những giá trị mà câu hỏi NÊU ĐÍCH DANH (brand, tên shop) và
+    trước đây rơi mất. Kết quả là plan HẸP HƠN, đúng hướng: một điều kiện bị bỏ
+    rơi làm hệ trả một con số RỘNG HƠN câu hỏi, và không lớp nào phía sau phát
+    hiện được. Lớp này chỉ miễn khi diff nằm gọn trong việc THÊM predicate — bớt
+    một predicate là đi ngược, và vẫn phải đỏ.
+    """
+    if not isinstance(current, dict) or not isinstance(committed, dict):
+        return False
+    if _strip_predicates(current) != _strip_predicates(committed):
+        return False
+    new_sets, old_sets = _predicate_sets(current), _predicate_sets(committed)
+    return len(new_sets) == len(old_sets) and all(
+        old <= new for new, old in zip(new_sets, old_sets)
+    )
 
 
 def _strip_labels(node):
@@ -281,6 +334,24 @@ def test_the_equivalence_baseline_only_moves_where_a_work_package_declared_it():
     changed = {
         key for key in changed
         if not _only_labels_moved(current.get(key), committed.get(key))
+    }
+    # W18 (Spec3008 §5): giá trị mà câu hỏi nêu đích danh nay bind được, nên
+    # plan HẸP HƠN. Cùng khuôn hai lớp trên — lớp này cũng tự chứng minh, và nó
+    # chỉ miễn chiều THÊM predicate.
+    changed = {
+        key for key in changed
+        if not _only_filters_added(current.get(key), committed.get(key))
+    }
+    # Câu TRƯỚC ĐÂY không có plan mà NAY có là mở rộng hợp lệ — chính mục tiêu
+    # của W17/W24/W26, và ``test_synthesizer_equivalence`` đã khai nguyên tắc
+    # đó. Chiều ngược lại (mất plan) KHÔNG được miễn ở đây: nó phải đi qua
+    # ``INTENTIONALLY_LOST`` kèm lý do.
+    changed = {
+        key for key in changed
+        if not (
+            isinstance(current.get(key), dict)
+            and not isinstance(committed.get(key), dict)
+        )
     }
     # Đổi baseline phải là một thay đổi contract CÓ KHAI BÁO, kèm lý do — không
     # phải một file bị dịch trong im lặng. Danh sách chỉ nới đúng những khoá đã

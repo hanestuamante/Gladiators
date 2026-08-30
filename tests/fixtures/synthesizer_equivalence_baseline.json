@@ -61,10 +61,10 @@
             "value": "2026-07-03"
           },
           {
-            "ref": "dim.shop_name",
+            "ref": "dim.brand",
             "op": "eq",
             "parameter": "p0",
-            "value": "Perfetti Van Melle Vietnam"
+            "value": "Chupa Chups"
           }
         ],
         "relation": null,
@@ -219,6 +219,12 @@
             "op": "eq",
             "parameter": "date",
             "value": "2026-07-03"
+          },
+          {
+            "ref": "dim.brand",
+            "op": "eq",
+            "parameter": "p0",
+            "value": "ORION"
           }
         ],
         "relation": null,
@@ -460,7 +466,7 @@
     "subplan_count": 1
   },
   "dr2607:tc08": {
-    "plan_id": "synth:measure.monthly_sold:median:entity.shop:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -468,7 +474,6 @@
         "op": "Scan",
         "inputs": [],
         "refs": [
-          "entity.shop",
           "measure.monthly_sold"
         ],
         "predicates": [],
@@ -483,11 +488,6 @@
         "output_grain": "listing_snapshot",
         "units": [],
         "expected_schema": [
-          {
-            "name": "shop_name",
-            "type": "string",
-            "semantic_ref": "entity.shop"
-          },
           {
             "name": "monthly_sold",
             "type": "number",
@@ -525,6 +525,12 @@
             "op": "eq",
             "parameter": "date",
             "value": "2026-07-03"
+          },
+          {
+            "ref": "dim.brand",
+            "op": "eq",
+            "parameter": "p0",
+            "value": "Kinh Đô"
           }
         ],
         "relation": null,
@@ -538,11 +544,6 @@
         "output_grain": "listing_snapshot",
         "units": [],
         "expected_schema": [
-          {
-            "name": "shop_name",
-            "type": "string",
-            "semantic_ref": "entity.shop"
-          },
           {
             "name": "monthly_sold",
             "type": "number",
@@ -562,8 +563,8 @@
         "risk_estimate": 0
       },
       {
-        "node_id": "n4",
-        "op": "Aggregate",
+        "node_id": "n5",
+        "op": "Project",
         "inputs": [
           "n2"
         ],
@@ -573,22 +574,15 @@
         "predicates": [],
         "relation": null,
         "source": null,
-        "aggregation": "median",
-        "group_by": [
-          "entity.shop"
-        ],
+        "aggregation": null,
+        "group_by": [],
         "rank_by": null,
         "descending": true,
         "limit": null,
         "input_grain": "listing_snapshot",
-        "output_grain": "group",
+        "output_grain": "listing_snapshot",
         "units": [],
         "expected_schema": [
-          {
-            "name": "shop_name",
-            "type": "string",
-            "semantic_ref": "entity.shop"
-          },
           {
             "name": "monthly_sold",
             "type": "number",
@@ -608,13 +602,8 @@
         "risk_estimate": 0
       }
     ],
-    "output_node": "n4",
+    "output_node": "n5",
     "requested_output_shape": [
-      {
-        "name": "shop_name",
-        "type": "string",
-        "semantic_ref": "entity.shop"
-      },
       {
         "name": "monthly_sold",
         "type": "number",
@@ -801,7 +790,156 @@
   "dr2607:tc26": null,
   "dr2607:tc27": null,
   "dr2607:tc28": null,
-  "dr2607:tc29": null,
+  "dr2607:tc29": {
+    "plan_id": "synth:measure.discount_percent:mean:nogroup:none:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "measure.discount_percent"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "discount_percent",
+            "type": "number",
+            "semantic_ref": "measure.discount_percent"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "discount_percent",
+            "type": "number",
+            "semantic_ref": "measure.discount_percent"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n4",
+        "op": "Aggregate",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "measure.discount_percent"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": "mean",
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "country_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "discount_percent",
+            "type": "number",
+            "semantic_ref": "measure.discount_percent"
+          }
+        ],
+        "expected_cardinality": "1",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n4",
+    "requested_output_shape": [
+      {
+        "name": "discount_percent",
+        "type": "number",
+        "semantic_ref": "measure.discount_percent"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  },
   "dr2607:tc30": null,
   "dr2607:tc31": {
     "plan_id": "synth:measure.monthly_sold:median:dim.product_name:none:vn:2026-07-03",
@@ -976,8 +1114,11 @@
     "source_tier": "btc_dataset",
     "subplan_count": 1
   },
-  "dr2607:tc32": {
-    "plan_id": "synth:derived.estimated_recent_revenue:median:entity.shop:none:vn:2026-07-03",
+  "dr2607:tc32": null,
+  "dr2607:tc33": null,
+  "dr2607:tc34": null,
+  "dr2607:tc35": {
+    "plan_id": "synth:measure.monthly_sold:median:entity.shop:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -986,11 +1127,11 @@
         "inputs": [],
         "refs": [
           "entity.shop",
-          "derived.estimated_recent_revenue"
+          "measure.monthly_sold"
         ],
         "predicates": [],
         "relation": null,
-        "source": "product_snapshot_metrics.csv",
+        "source": "products_clean.csv",
         "aggregation": null,
         "group_by": [],
         "rank_by": null,
@@ -1001,14 +1142,14 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
           {
-            "name": "estimated_recent_revenue",
+            "name": "monthly_sold",
             "type": "number",
-            "semantic_ref": "derived.estimated_recent_revenue"
+            "semantic_ref": "measure.monthly_sold"
           }
         ],
         "expected_cardinality": "<=snapshot_rows",
@@ -1056,14 +1197,107 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
           {
-            "name": "estimated_recent_revenue",
+            "name": "monthly_sold",
             "type": "number",
-            "semantic_ref": "derived.estimated_recent_revenue"
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n3",
+        "op": "Join",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "dim.shop_official"
+        ],
+        "predicates": [],
+        "relation": "belongs_to",
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "nf2",
+        "op": "Filter",
+        "inputs": [
+          "n3"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.shop_official",
+            "op": "eq",
+            "parameter": "p0",
+            "value": true
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
           }
         ],
         "expected_cardinality": "<=snapshot_rows",
@@ -1082,10 +1316,10 @@
         "node_id": "n4",
         "op": "Aggregate",
         "inputs": [
-          "n2"
+          "nf2"
         ],
         "refs": [
-          "derived.estimated_recent_revenue"
+          "measure.monthly_sold"
         ],
         "predicates": [],
         "relation": null,
@@ -1102,14 +1336,14 @@
         "units": [],
         "expected_schema": [
           {
-            "name": "shop_id",
+            "name": "shop_name",
             "type": "string",
             "semantic_ref": "entity.shop"
           },
           {
-            "name": "estimated_recent_revenue",
+            "name": "monthly_sold",
             "type": "number",
-            "semantic_ref": "derived.estimated_recent_revenue"
+            "semantic_ref": "measure.monthly_sold"
           }
         ],
         "expected_cardinality": "<=snapshot_rows",
@@ -1128,14 +1362,14 @@
     "output_node": "n4",
     "requested_output_shape": [
       {
-        "name": "shop_id",
+        "name": "shop_name",
         "type": "string",
         "semantic_ref": "entity.shop"
       },
       {
-        "name": "estimated_recent_revenue",
+        "name": "monthly_sold",
         "type": "number",
-        "semantic_ref": "derived.estimated_recent_revenue"
+        "semantic_ref": "measure.monthly_sold"
       }
     ],
     "budget": {
@@ -1149,9 +1383,6 @@
     "source_tier": "btc_dataset",
     "subplan_count": 1
   },
-  "dr2607:tc33": null,
-  "dr2607:tc34": null,
-  "dr2607:tc35": null,
   "dr2607:tc36": {
     "plan_id": "synth:derived.estimated_recent_revenue:sum:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
@@ -2533,7 +2764,156 @@
   "questions:q33": null,
   "questions:q34": null,
   "questions:q35": null,
-  "questions:q36": null,
+  "questions:q36": {
+    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "measure.monthly_sold"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Project",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "measure.monthly_sold"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n5",
+    "requested_output_shape": [
+      {
+        "name": "monthly_sold",
+        "type": "number",
+        "semantic_ref": "measure.monthly_sold"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  },
   "questions:q37": null,
   "questions:q38": null,
   "questions:q39": {
@@ -3746,7 +4126,156 @@
   "questions:q54": null,
   "questions:q55": null,
   "questions:q56": null,
-  "questions:q57": null,
+  "questions:q57": {
+    "plan_id": "synth:measure.rating:median:nogroup:none:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "measure.rating"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "rating",
+            "type": "number",
+            "semantic_ref": "measure.rating"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "rating",
+            "type": "number",
+            "semantic_ref": "measure.rating"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Project",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "measure.rating"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "rating",
+            "type": "number",
+            "semantic_ref": "measure.rating"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n5",
+    "requested_output_shape": [
+      {
+        "name": "rating",
+        "type": "number",
+        "semantic_ref": "measure.rating"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  },
   "questions:q58": null,
   "questions:q59": null,
   "questions:q60": null,
@@ -4655,7 +5184,162 @@
   "questions_boundaries:bnd06": null,
   "questions_boundaries:bnd07": null,
   "questions_boundaries:bnd08": null,
-  "questions_boundaries:bnd09": null,
+  "questions_boundaries:bnd09": {
+    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "measure.monthly_sold"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          },
+          {
+            "ref": "dim.item_id",
+            "op": "eq",
+            "parameter": "p0",
+            "value": "1379527329"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Project",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "measure.monthly_sold"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "monthly_sold",
+            "type": "number",
+            "semantic_ref": "measure.monthly_sold"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n5",
+    "requested_output_shape": [
+      {
+        "name": "monthly_sold",
+        "type": "number",
+        "semantic_ref": "measure.monthly_sold"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  },
   "questions_counting:cnt01": {
     "plan_id": "synth:derived.shop_count:count:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
@@ -5106,10 +5790,652 @@
     "source_tier": "btc_dataset",
     "subplan_count": 1
   },
-  "questions_critic:cq01": null,
-  "questions_critic:cq02": null,
+  "questions_critic:cq01": {
+    "plan_id": "synth:derived.product_count:count:entity.shop:desc:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "entity.shop",
+          "entity.product_listing"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n4",
+        "op": "Aggregate",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "derived.product_count"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": "count",
+        "group_by": [
+          "entity.shop"
+        ],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "group",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Rank",
+        "inputs": [
+          "n4"
+        ],
+        "refs": [],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": "derived.product_count",
+        "descending": true,
+        "limit": 1,
+        "input_grain": "group",
+        "output_grain": "group",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=1",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n5",
+    "requested_output_shape": [
+      {
+        "name": "shop_name",
+        "type": "string",
+        "semantic_ref": "entity.shop"
+      },
+      {
+        "name": "listing_count",
+        "type": "number",
+        "semantic_ref": "derived.product_count"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  },
+  "questions_critic:cq02": {
+    "plan_id": "synth:derived.product_count:count:entity.shop:desc:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "entity.shop",
+          "entity.product_listing"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n4",
+        "op": "Aggregate",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "derived.product_count"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": "count",
+        "group_by": [
+          "entity.shop"
+        ],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "group",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Rank",
+        "inputs": [
+          "n4"
+        ],
+        "refs": [],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": "derived.product_count",
+        "descending": true,
+        "limit": 1,
+        "input_grain": "group",
+        "output_grain": "group",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=1",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n5",
+    "requested_output_shape": [
+      {
+        "name": "shop_name",
+        "type": "string",
+        "semantic_ref": "entity.shop"
+      },
+      {
+        "name": "listing_count",
+        "type": "number",
+        "semantic_ref": "derived.product_count"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  },
   "questions_critic:cq03": null,
-  "questions_critic:cq04": null,
+  "questions_critic:cq04": {
+    "plan_id": "synth:derived.product_count:count:entity.shop:desc:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "entity.shop",
+          "entity.product_listing"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n4",
+        "op": "Aggregate",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [
+          "derived.product_count"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": "count",
+        "group_by": [
+          "entity.shop"
+        ],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "group",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Rank",
+        "inputs": [
+          "n4"
+        ],
+        "refs": [],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": "derived.product_count",
+        "descending": true,
+        "limit": 1,
+        "input_grain": "group",
+        "output_grain": "group",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "shop_name",
+            "type": "string",
+            "semantic_ref": "entity.shop"
+          },
+          {
+            "name": "listing_count",
+            "type": "number",
+            "semantic_ref": "derived.product_count"
+          }
+        ],
+        "expected_cardinality": "<=1",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n5",
+    "requested_output_shape": [
+      {
+        "name": "shop_name",
+        "type": "string",
+        "semantic_ref": "entity.shop"
+      },
+      {
+        "name": "listing_count",
+        "type": "number",
+        "semantic_ref": "derived.product_count"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
+  },
   "questions_v2:v2q01": {
     "plan_id": "synth:derived.estimated_recent_revenue:median:nogroup:desc:vn:2026-07-03",
     "ir_version": "1.0",

@@ -17,6 +17,8 @@ KHÔNG tồn tại trong dữ liệu.
 """
 from __future__ import annotations
 
+import re
+
 import json
 import unicodedata
 from functools import lru_cache
@@ -33,7 +35,10 @@ VALUE_INDEX_PATH = Path(
 
 # W1.1: loader v2 phải TỪ CHỐI payload v1 — một chỉ mục v1 (list) nạp bằng loader
 # v2 (dict) sẽ đọc list thành iterable của ký tự và bind ra literal một chữ cái.
-INDEX_SCHEMA_VERSION = "value-index.v2"
+# W19: v3 thêm khối ``universe``. Loader v3 PHẢI từ chối payload v2 — luật W1.1
+# đã học một lần: loader v2 đọc payload v1 (list) thành iterable ký tự và bind
+# literal MỘT CHỮ CÁI. Cùng lớp lỗi lặp lại nếu v3 không kiểm ``schema_version``.
+INDEX_SCHEMA_VERSION = "value-index.v3"
 
 # Chỉ ba chiều này có chỉ mục; ref khác không dò được và phải đi lối cũ.
 INDEXED_REFS = frozenset({
@@ -80,6 +85,22 @@ def _index() -> dict[str, dict[str, dict[str, str]]]:
     phải bằng chứng rằng giá trị không tồn tại.
     """
     return _payload().get("values") or {}
+
+
+def _universe() -> dict[str, dict[str, dict]]:
+    """``ref -> {folded: {original, countries}}`` — W19 schema v3.
+
+    Giá trị CÓ trong dataset nhưng KHÔNG ở thị trường được hỏi là một trạng thái
+    thứ ba, khác hẳn "người dùng gõ một tên không có thật". Nhập hai thứ này làm
+    một tạo ra một lời từ chối NÓI SAI SỰ THẬT về dataset.
+    """
+    return _payload().get("universe") or {}
+
+
+def in_market(ref: str, folded_name: str, country: str) -> bool:
+    """Giá trị này có xuất hiện ở thị trường được hỏi không (W19)."""
+    entry = (_universe().get(ref) or {}).get(folded_name)
+    return bool(entry) and country in (entry.get("countries") or ())
 
 
 def _ambiguous() -> dict[str, dict[str, dict[str, list[str]]]]:
@@ -181,12 +202,121 @@ def missing_values(request) -> tuple[tuple[str, str], ...]:
     return tuple(missing)
 
 
-MIN_VALUE_LENGTH = 6
+# W18 — ``MIN_VALUE_LENGTH`` ĐÃ XOÁ.
+#
+# Nó sinh ra để chặn ``"gia"`` khớp trong ``"giá trị"``, và nó giải quyết đúng
+# vấn đề bằng một tham số KHÔNG PHÂN BIỆT ĐƯỢC *chuỗi ngắn ngẫu nhiên* với *tên
+# riêng ngắn*: `ORION` (5 ký tự) là một brand có thật và bị chặn cùng lúc.
+#
+# Thay bằng ba điều kiện CẤU TRÚC (Spec3008 §5.2). Điều kiện (1) là cái thay thế
+# đúng cho ngưỡng: alias binder chạy TRƯỚC value binder trên cùng một lattice,
+# nên ``gia`` trong ``gia tri`` đã bị tiêu thụ và không còn là span dư — nó chặn
+# ĐÚNG LỚP mà ngưỡng nhắm tới, và không chặn tên riêng ngắn.
+
+
+# Chiều mà giá trị CHỈ được bind khi câu đã NÊU TÊN chiều đó.
+#
+# Tên danh mục sàn là DANH TỪ CHUNG — chúng chính là từ chỉ loại hàng, nên chúng
+# xuất hiện khắp nơi trong mô tả sản phẩm và trong tiếng Việt thường ngày. Bốn
+# va chạm đo được trên chính bộ đề: ``Nấm``←"Nam" (trong "Việt Nam"),
+# ``Thang``←"tháng", ``Giấm``←"giảm", ``Cua``←"của". Brand và tên shop là DANH
+# TỪ RIÊNG và không có lớp va chạm đó — ``ORION``, ``Bibica``, ``Chupa Chups``
+# không trùng từ thường nào.
+#
+# Ngoài ra bind một giá trị danh mục ép plan đi qua quan hệ
+# ``in_platform_category``, và trên nhiều hình plan nó cho "Grain Join không
+# khớp relation registry" — tức đổi một chỗ lọc-âm-thầm lấy một plan không chạy.
+NAMED_ONLY_REFS = frozenset({"dim.platform_category_name"})
+
+
+def _diacritics_match(raw_span: str, folded_name: str) -> bool:
+    """Cụm trong câu có khớp giá trị KỂ CẢ DẤU không (không phân biệt hoa/thường)?
+
+    So bản đã fold của hai bên là so hai thứ đã bị xoá mất phần phân biệt nghĩa.
+    """
+    return _diacritic_key(raw_span) == _diacritic_key(_original_of(folded_name))
+
+
+def _diacritic_key(text: str) -> str:
+    """Chữ thường, BỎ dấu câu, GIỮ dấu thanh.
+
+    So nguyên văn không được: tên trong dữ liệu mang dấu câu của riêng nó
+    (``"Richy - Chi nhánh Miền Nam"``) còn câu hỏi thì không nhất thiết. Bỏ dấu
+    thanh cũng không được — đó chính là thứ phân biệt ``Giấm`` với ``giảm``.
+    """
+    return " ".join(re.sub(r"[^\w\s]", " ", text).casefold().split())
+
+
+_ORIGINAL_CACHE: dict[str, str] = {}
+
+
+def _original_of(folded_name: str) -> str:
+    """Bản gốc (còn dấu) của một khoá đã fold, tra qua ``universe``."""
+    if not _ORIGINAL_CACHE:
+        for entries in _universe().values():
+            for folded, entry in entries.items():
+                _ORIGINAL_CACHE.setdefault(folded, str(entry["original"]))
+    return _ORIGINAL_CACHE.get(folded_name, folded_name)
+
+
+def token_key(text: str) -> str:
+    """Chuỗi đã fold theo TOKEN, bỏ dấu câu — MỘT cách biểu diễn duy nhất.
+
+    Khoá chỉ mục giữ nguyên dấu câu của dữ liệu (``"richy - chi nhanh mien
+    nam"``) còn lattice sinh token không mang dấu câu, nên so trực tiếp hai bên
+    là so hai CÁCH BIỂU DIỄN KHÁC NHAU của cùng một chuỗi: tên shop không bao
+    giờ khớp phần dư, và span con ``"richy"`` của nó thì khớp — hệ lọc theo một
+    brand người dùng không nêu.
+    """
+    from gladiators.planner.spans import tokenize
+
+    return " ".join(t.normalized for t in tokenize(text) if not t.is_punct)
+
+
+def _all_function_words(folded_name: str) -> bool:
+    from gladiators.domain.function_words import is_function_word
+
+    parts = folded_name.split()
+    return bool(parts) and all(is_function_word(part) for part in parts)
+
+
+def free_spans(ledger) -> dict[str, str]:
+    """Cụm CÒN DƯ trên lattice — ứng viên giá trị của W18 (điều kiện 1).
+
+    Điều kiện 2 của spec là *hình dạng tên riêng **hoặc** khớp nguyên văn một
+    khoá chỉ mục*; vế thứ hai là cái cho phép ``bibica`` viết thường vẫn bind, và
+    phép khớp CHÍNH XÁC ở điều kiện 3 đã thi hành nó. Nên chỗ này chỉ còn lọc
+    theo "còn dư", và đó mới là điều kiện làm việc thật.
+
+    Ca đo được cho thấy vì sao "còn dư" là điều kiện QUYẾT ĐỊNH, không phải hình
+    dạng: ``"Giá trung vị tại Việt Nam"`` có ``Việt``/``Nam`` viết hoa, nên một
+    guard chỉ-hình-dạng cho qua, và ``Nấm`` (fold thành ``nam``) khớp bên trong
+    TÊN NƯỚC — câu bị lọc theo một danh mục người dùng chưa bao giờ nhắc tới.
+    Country binder đã claim span đó trước (thứ tự §3.3) nên nó không còn dư, và
+    lớp lỗi này đóng lại vì cấu trúc chứ không vì một heuristic.
+    """
+    # Một vùng TRONG NGOẶC KÉP là MỘT thực thể người dùng nêu, không phải một
+    # túi từ để nhặt. Đo được: `"Scora Phytobright Gentle Low pH Cleanser
+    # 100ml"` là tên một sản phẩm cụ thể, nhưng `SCORA` là một brand có thật nằm
+    # trong đó — bind nó nới câu hỏi từ MỘT listing thành CẢ BRAND, một con số
+    # rộng hơn câu hỏi và không lớp nào phía sau phát hiện được.
+    quoted = {token.index for token in ledger.tokens if token.quoted}
+    out: dict[str, str] = {}
+    for span in ledger.free_spans(max_len=6):
+        window = ledger.tokens[span.start:span.end]
+        if any(token.is_punct for token in window):
+            continue
+        covered = {token.index for token in window}
+        if quoted and (covered & quoted) and not quoted.issubset(covered):
+            continue    # nằm TRONG một vùng ngoặc kép mà không phủ hết nó
+        out.setdefault(span.normalized, " ".join(token.raw for token in window))
+    return out
 
 
 def bind_values(
     normalized_question: str, country: str | None,
     dimension_refs: frozenset[str] = frozenset(),
+    ledger=None,
 ) -> tuple[tuple[str, str], ...]:
     """Giá trị có thật xuất hiện nguyên văn trong câu — trả **BẢN GỐC** (W1.1).
 
@@ -202,34 +332,101 @@ def bind_values(
     index = _index()
     if not index or not country:
         return ()
-    folded = f" {_fold(normalized_question)} "
-    bound: list[tuple[str, str]] = []
+    # Một cách biểu diễn cho cả câu lẫn khoá chỉ mục (xem ``token_key``).
+    folded = f" {token_key(normalized_question)} "
+    candidates = free_spans(ledger) if ledger is not None else {}
+    universe = _universe()
+
+    # Gom span của MỌI ref trước, lọc cực đại sau. Lọc trong từng ref là chưa đủ:
+    # "Richy" là một brand THẬT và cũng là phần đầu của tên shop "Richy - Chi
+    # nhánh Miền Nam", nên mỗi ref tự thấy đúng một span cực đại của mình và cả
+    # hai cùng bind — câu bị lọc theo một brand người dùng không nêu.
+    per_ref: dict[str, list[tuple[int, int, str]]] = {}
+    originals: dict[tuple[str, str], str] = {}
     for ref, per_country in index.items():
-        # Chỉ bind giá trị cho chiều mà câu hỏi ĐÃ nêu tên. Không có điều kiện
-        # này, "giá TRUNG vị" khớp một danh mục tên "trung" và câu hỏi bị lọc
-        # theo một chiều người dùng chưa bao giờ nhắc tới — lọc âm thầm, đúng
-        # lớp lỗi tệ nhất của hệ này.
-        if ref not in dimension_refs:
+        if ledger is None and ref not in dimension_refs:
+            # Không có lattice (caller cũ) ⇒ giữ nguyên hành vi trước W18: chỉ
+            # bind cho chiều mà câu đã nêu tên.
             continue
-        mapping = per_country.get(country) or {}
+        if ref in NAMED_ONLY_REFS and ref not in dimension_refs:
+            continue
+        mapping = dict(per_country.get(country) or {})
+        # W19: giá trị CÓ trong dataset nhưng không ở thị trường được hỏi vẫn
+        # bind — đáp án là 0, một kết quả rỗng hợp lệ.
+        for name, entry in (universe.get(ref) or {}).items():
+            mapping.setdefault(name, entry["original"])
         spans: list[tuple[int, int, str]] = []
         for name in mapping:
-            if len(name) < MIN_VALUE_LENGTH:
+            key = token_key(name)
+            if not key:
                 continue
-            start = folded.find(f" {name} ")
+            if ledger is not None and key not in candidates:
+                continue
+            if ledger is not None and ref not in dimension_refs and not _diacritics_match(
+                candidates[key], name,
+            ):
+                # Fold bỏ dấu, và tiếng Việt phân biệt nghĩa BẰNG dấu: `tháng`
+                # fold thành `thang` và khớp danh mục **Thang**; `giảm` fold
+                # thành `giam` và khớp **Giấm**. Câu bị lọc theo một danh mục
+                # người dùng chưa bao giờ nhắc tới — cùng lớp với
+                # `"giá trị"`→`measure.price` ở CLAUDE.md §3.1.
+                #
+                # ``Token.raw`` của W16 còn giữ nguyên dấu, nên phép kiểm này
+                # làm được: khi câu KHÔNG nêu tên chiều, giá trị phải khớp cả
+                # dấu. Câu ĐÃ nêu tên chiều thì không cần — người dùng đã nói rõ
+                # họ đang lọc theo chiều nào.
+                continue
+            if _all_function_words(key):
+                # "của" fold thành "cua" và khớp danh mục "Cua"; "Nam" trong
+                # "Miền Nam" khớp "Nấm". Một cụm toàn từ chức năng KHÔNG BAO GIỜ
+                # là một giá trị người dùng nêu — nó lọt vào phần dư chỉ vì chưa
+                # binder nào cần nó.
+                continue
+            start = folded.find(f" {key} ")
             if start >= 0:
-                spans.append((start + 1, start + 1 + len(name), name))
-        # Bỏ span nằm trọn trong span khác dài hơn.
+                spans.append((start + 1, start + 1 + len(key), key))
+                originals[(ref, key)] = mapping[name]
+        if spans:
+            per_ref[ref] = spans
+
+    every_span = [span for spans in per_ref.values() for span in spans]
+
+    # W18-R1 — một span khớp ≥2 CHIỀU là một mơ hồ, không phải một lựa chọn.
+    # ``Glad2Glow`` vừa là brand vừa là tên shop; chọn hộ là lọc thầm theo chiều
+    # SAI. Khi câu đã NÊU TÊN một trong hai chiều thì người dùng đã tự phân
+    # giải — dùng chiều đó và bỏ chiều kia. Không chiều nào được nêu ⇒ bỏ cả
+    # hai, fail-closed.
+    by_key: dict[str, list[str]] = {}
+    for ref, spans in per_ref.items():
+        for _, _, key in spans:
+            by_key.setdefault(key, []).append(ref)
+    dropped: set[tuple[str, str]] = set()
+    for key, refs in by_key.items():
+        if len(refs) < 2:
+            continue
+        named = [ref for ref in refs if ref in dimension_refs]
+        winners = set(named) if len(named) == 1 else set()
+        for ref in refs:
+            if ref not in winners:
+                dropped.add((ref, key))
+
+    bound: list[tuple[str, str]] = []
+    for ref, spans in per_ref.items():
+        spans = [item for item in spans if (ref, item[2]) not in dropped]
+        if not spans:
+            continue
         maximal = [
             (start, end, name) for start, end, name in spans
             if not any(
-                (o_start <= start and end <= o_end) and (o_start, o_end) != (start, end)
-                for o_start, o_end, _ in spans
+                (o_start <= start and end <= o_end) and (o_end - o_start) > (end - start)
+                for o_start, o_end, _ in every_span
             )
         ]
         if len(maximal) != 1:
+            # W18-R2: hai span cực đại RỜI NHAU cùng chiều là một câu so sánh —
+            # W17-R5 xử lý. Ở đây giữ hành vi cũ: không chọn hộ một trong hai.
             continue
-        original = mapping.get(maximal[0][2])
+        original = originals.get((ref, maximal[0][2]))
         if original is not None:
             bound.append((ref, original))
     return tuple(bound)
