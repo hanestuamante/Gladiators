@@ -276,6 +276,65 @@ for name, (physical, unit, type_, traps, status) in _MEASURES.items():
     ))
 
 
+# ── Panel ngày cấp shop (artifact tuỳ chọn ``shop_stats_clean.csv``) ─────────
+#
+# Chín measure ``measure.shop_*`` ở trên đọc ``shop_info_clean.csv`` — MỘT ảnh
+# chụp, ngữ nghĩa ``static_latest``. Lần thu 07/2026 cho một panel 20 ngày, tức
+# một đại lượng KHÁC: "điểm shop hôm nay" và "điểm shop tại ngày d" trả lời hai
+# câu hỏi khác nhau. Đặt chung một ref sẽ khiến một câu hỏi theo thời gian được
+# trả bằng một con số tĩnh mà không ai thấy, nên chúng là ref RIÊNG, grain
+# riêng, alias riêng có chữ chỉ thời gian.
+#
+# Bản dữ liệu chưa thu panel này ⇒ artifact vắng ⇒ compiler chặn tại
+# ``available_sources`` và câu hỏi bị từ chối vì THIẾU DỮ LIỆU, không phải vì
+# không hiểu câu hỏi.
+_SHOP_PANEL: dict[str, tuple[str, str, str, tuple[str, ...]]] = {
+    "shop_daily_rating": ("rating_star_num", "rating_point", "number",
+                          ("điểm đánh giá shop theo ngày", "điểm shop từng ngày",
+                           "daily shop rating")),
+    "shop_daily_followers": ("follower_count_num", "followers", "number",
+                             ("người theo dõi shop theo ngày", "lượt theo dõi từng ngày",
+                              "daily followers")),
+    "shop_daily_items": ("item_count_num", "items", "number",
+                         ("số sản phẩm của shop theo ngày", "quy mô shop từng ngày",
+                          "daily item count")),
+    "shop_daily_response_rate": ("response_rate_num", "percent", "number",
+                                 ("tỷ lệ phản hồi theo ngày", "daily response rate")),
+    "shop_daily_response_time": ("response_time_num", "time", "number",
+                                 ("thời gian phản hồi theo ngày", "daily response time")),
+    "shop_daily_cancellation_rate": ("cancellation_rate_num", "percent", "number",
+                                     ("tỷ lệ huỷ đơn theo ngày", "daily cancellation rate")),
+    "shop_daily_rating_good": ("rating_good_num", "ratings", "number",
+                               ("số đánh giá tốt theo ngày", "daily good reviews")),
+    "shop_daily_rating_normal": ("rating_normal_num", "ratings", "number",
+                                 ("số đánh giá trung bình theo ngày", "daily neutral reviews")),
+    "shop_daily_rating_bad": ("rating_bad_num", "ratings", "number",
+                              ("số đánh giá xấu theo ngày", "daily bad reviews")),
+    "shop_daily_rating_total": ("rating_total_num", "ratings", "number",
+                                ("tổng số đánh giá của shop", "tổng lượt đánh giá shop",
+                                 "total shop ratings")),
+    "shop_daily_following": ("following_count_num", "accounts", "number",
+                             ("số tài khoản shop theo dõi", "shop following count")),
+}
+
+for name, (column, unit, type_, aliases) in _SHOP_PANEL.items():
+    _BASE_OBJECTS.append(_object(
+        f"measure.{name}", "measure",
+        (name.replace("_", " "),) + aliases,
+        (f"shop_stats_clean.csv.{column}",),
+        type=type_, unit=unit, grain="shop_snapshot",
+        aggregations=("median", "min", "max"),
+        filters=("eq", "lt", "lte", "gt", "gte"),
+        answerability="exposed_as_measure",
+        caveats=(
+            "Grain là (shop, ngày) — KHÔNG phải listing; đừng gộp với measure ở "
+            "cấp listing mà không đi qua relation.",
+            "Chỉ có ở bản dữ liệu đã thu shop_stats; bản cũ chỉ có ảnh chụp tĩnh "
+            "trong measure.shop_* tương ứng.",
+        ),
+    ))
+
+
 # §3.2: same rule as measures -- a derived metric with only its technical name
 # cannot be reached from a Vietnamese question, which is how a governed metric
 # ends up looking absent to the user.

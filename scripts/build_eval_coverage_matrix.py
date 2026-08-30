@@ -80,15 +80,47 @@ def build() -> dict:
             examples[key].append(case["id"])
 
     requirements: list[dict] = []
+    not_measured: list[dict] = []
+
+    # Ref/relation đọc một artifact TUỲ CHỌN mà bản dữ liệu đang phục vụ chưa
+    # thu. Không bộ đề nào chạm tới được, và đếm chúng là "thiếu" sẽ trộn hai
+    # thứ khác hẳn nhau: "đã có dữ liệu mà chưa ai viết ca kiểm" với "chưa có dữ
+    # liệu để mà kiểm". Tách ra thành ``not_measured`` — khai được, không tự
+    # chấm là đạt.
+    uncollected = _uncollected_artifacts()
+
+    def _needs_uncollected(axis: str, value: str) -> bool:
+        if not uncollected:
+            return False
+        if axis == "semantic_refs":
+            obj = CATALOG.get(value)
+            columns = obj.physical if obj else ()
+        elif axis == "relations":
+            relation = RELATIONS.get(value)
+            columns = (relation.source.replace(" + ", ","),) if relation else ()
+            return bool(columns) and all(
+                part.strip() in uncollected for part in columns[0].split(",")
+            )
+        else:
+            return False
+        return bool(columns) and all(
+            column.split(".csv")[0] + ".csv" in uncollected for column in columns
+        )
 
     def add(axis: str, value: str, minimum: int, mode: str = "positive") -> None:
         counter = adversarial if mode == "adversarial" else positive
         count = counter[(axis, value)]
-        requirements.append({
+        entry = {
             "axis": axis, "value": value, "mode": mode, "minimum": minimum,
             "observed": count, "satisfied": count >= minimum,
             "case_ids": examples[(axis, value)],
-        })
+        }
+        if not entry["satisfied"] and _needs_uncollected(axis, value):
+            entry["status"] = "not_measured"
+            entry["reason"] = "artifact tuỳ chọn chưa thu ở bản dữ liệu đang phục vụ"
+            not_measured.append(entry)
+            return
+        requirements.append(entry)
 
     for op in get_args(Op):
         add("ops", op, 3)
@@ -134,9 +166,23 @@ def build() -> dict:
             "missing": len(requirements) - satisfied,
             "coverage_ratio": round(satisfied / len(requirements), 6) if requirements else 0,
             "phase_4_5_acceptance_ready": satisfied == len(requirements),
+            "not_measured": len(not_measured),
         },
         "requirements": requirements,
+        # Cố ý là một danh sách RIÊNG, không phải một cờ trên requirement: đếm
+        # gộp vào là cách một khoảng trống biến mất khỏi mọi báo cáo.
+        "not_measured": not_measured,
     }
+
+
+def _uncollected_artifacts() -> frozenset[str]:
+    from gladiators.domain.bindings import default_binding_snapshot
+    from gladiators.domain.tables import OPTIONAL_ARTIFACTS
+
+    snapshot = default_binding_snapshot()
+    return frozenset(
+        name.value for name in OPTIONAL_ARTIFACTS if not snapshot.tables[name].columns
+    )
 
 
 def main() -> None:

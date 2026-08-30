@@ -129,10 +129,20 @@ def test_executor_rejects_non_compiler_or_external_sql(sql):
 def test_coverage_matrix_is_generated_from_executable_registries():
     matrix = build()
     assert matrix["source"]["ir_operators"] == 12
-    assert matrix["source"]["relation_edges"] == 10
+    # 11 sau khi thêm ``shop_observed_at`` (Shop → DateSnapshot trên panel ngày).
+    assert matrix["source"]["relation_edges"] == 11
     assert matrix["source"]["catalog_objects"] > 70
     assert matrix["summary"]["phase_4_5_acceptance_ready"] is True
     assert matrix["summary"]["missing"] == 0
+    # Năng lực đọc một artifact chưa thu KHÔNG được đếm là đạt, cũng không được
+    # đếm là thiếu — nó là một khoảng trống có nguyên nhân khác hẳn. Test khoá
+    # đúng chỗ đó: nó phải nằm ở ``not_measured`` và mang lý do đọc được.
+    assert matrix["summary"]["not_measured"] == len(matrix["not_measured"]) > 0
+    assert all(item["reason"] for item in matrix["not_measured"])
+    assert all(not item["satisfied"] for item in matrix["not_measured"])
+    assert {item["value"] for item in matrix["requirements"]}.isdisjoint(
+        {item["value"] for item in matrix["not_measured"]}
+    )
     assert any(
         item["axis"] == "ops" and item["value"] == "Filter" and item["observed"] >= 3
         for item in matrix["requirements"]

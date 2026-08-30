@@ -652,7 +652,9 @@ class AnalyticsTools:
 
         from gladiators.planner.plan_cache import PLAN_RESULT_CACHE, CachedResult
 
-        compiled = compile_plan(plan)
+        compiled = compile_plan(
+            plan, available_sources=frozenset(self.repo.available_artifacts()),
+        )
         dataset_version = self.repo.dataset_version
         # A6.2: tra cache SAU compile và TRƯỚC execute. Khoá là plan_hash — mã
         # kế hoạch ĐÃ QUA VALIDATOR — cộng dataset_version, nên trúng cache không

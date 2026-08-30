@@ -20,9 +20,16 @@ from __future__ import annotations
 import json
 import unicodedata
 from functools import lru_cache
+import os
 from pathlib import Path
 
-VALUE_INDEX_PATH = Path("artifacts/value_index.json")
+# Đường dẫn chỉ mục giá trị. Cho phép trỏ đi nơi khác để chạy được một BẢN DỮ
+# LIỆU khác mà không ghi đè chỉ mục của bản đang phát hành: hai bản có
+# dataset_version khác nhau, và ``assert_index_matches`` fail-closed khi lệch —
+# nên "dùng chung một file" tương đương "chỉ chạy được đúng một bản".
+VALUE_INDEX_PATH = Path(
+    os.environ.get("GLADIATORS_VALUE_INDEX") or "artifacts/value_index.json"
+)
 
 # W1.1: loader v2 phải TỪ CHỐI payload v1 — một chỉ mục v1 (list) nạp bằng loader
 # v2 (dict) sẽ đọc list thành iterable của ký tự và bind ra literal một chữ cái.

@@ -50,6 +50,12 @@ VERSIONED_ARTIFACTS: tuple[str, ...] = (
     "product_categories_clean.csv",
 )
 
+# Artifact góp vào danh tính CHỈ KHI có mặt. Bản chưa thu ``shop_stats`` băm ra
+# đúng version như trước khi khoá này tồn tại — thêm mà không dịch chuyển bản cũ.
+OPTIONAL_VERSIONED_ARTIFACTS: tuple[str, ...] = (
+    "shop_stats_clean.csv",
+)
+
 
 class DatasetVersionError(ValueError):
     """Bố cục version sai ⇒ hỏng ngay, không phục vụ một bản nửa vời."""
@@ -81,6 +87,12 @@ def compute_version_id(root: Path) -> str:
             raise DatasetVersionError(f"thiếu artifact bắt buộc: {name}")
         digest.update(name.encode("utf-8"))
         digest.update(_canonical_hash(path).encode("utf-8"))
+    for name in sorted(OPTIONAL_VERSIONED_ARTIFACTS):
+        path = root / name
+        if not path.exists():
+            continue
+        digest.update(name.encode("utf-8"))
+        digest.update(_canonical_hash(path).encode("utf-8"))
     return digest.hexdigest()[:16]
 
 
@@ -102,7 +114,9 @@ def write_manifest(
         # bản dữ liệu không tái lập được là một giai thoại.
         "raw_snapshot": raw_snapshot,
         "artifacts": {
-            name: _canonical_hash(root / name) for name in sorted(VERSIONED_ARTIFACTS)
+            name: _canonical_hash(root / name)
+            for name in sorted(VERSIONED_ARTIFACTS + OPTIONAL_VERSIONED_ARTIFACTS)
+            if (root / name).exists()
         },
         "notes": notes,
     }

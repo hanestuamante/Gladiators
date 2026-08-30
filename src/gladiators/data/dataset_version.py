@@ -26,6 +26,15 @@ VERSIONED_ARTIFACTS: tuple[str, ...] = (
     "product_transition_metrics.csv",
 )
 
+# Artifact góp vào version CHỈ KHI có mặt. ``shop_stats_clean.csv`` (panel ngày
+# cấp shop) chỉ có từ lần thu 07/2026 trở đi; băm nó vô điều kiện sẽ làm
+# ``27de9bff184f4f89`` không tính lại được, mà giá trị đó đã nằm trong trace,
+# plan cache key và evidence đã ghi. Băm có điều kiện giữ nguyên bản cũ và vẫn
+# không cho hai bản khác nhau trùng id.
+OPTIONAL_VERSIONED_ARTIFACTS: tuple[str, ...] = (
+    "shop_stats_clean.csv",
+)
+
 
 class DatasetVersionError(ValueError):
     """Chỉ mục/artifact lệch phiên bản dataset — thông tin SAI, không phải thiếu."""

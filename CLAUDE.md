@@ -114,8 +114,20 @@ cho câu hỏi về mức giảm giá. A22 sinh ra để lấp đúng khe đó.
 ## 4. Mô hình dữ liệu
 
 - Dataset đóng băng: **3 snapshot 01–03/07/2026**, 3.341 dòng, 1.157 listing, 20 shop, 2 market (vn/id).
+- **Bộ mới `raw_extra_data/` đã nối được** (30/08): 20 snapshot 01–21/07/2026,
+  22.695 dòng, 1.276 listing, cùng 20 shop. Ba ngày chồng lấn **tái lập đúng**
+  bộ đóng băng (listing khớp, giá khớp tới từng đồng). Nó **chưa** thay
+  `data/processed`; dựng bằng `extract_adapter.adapt_extract` → `run_pipeline`.
+  Mọi quyết định của bước nối ở `docs/qa/raw_extra_data_provenance.md` — đọc nó
+  trước khi đụng vào adapter.
+- **Artifact tuỳ chọn**: `shop_stats_clean.csv` (panel ngày cấp shop) chỉ có ở bộ
+  mới. Vắng mặt là trạng thái **được khai** (`domain/tables.py::OPTIONAL_ARTIFACTS`),
+  không phải lỗi; câu hỏi cần nó bị từ chối vì **thiếu dữ liệu**, không phải vì
+  không hiểu câu hỏi. `shop_info` giữ nguyên grain cũ — panel KHÔNG chảy vào nó.
 - Grain nhỏ nhất là **product listing** = `{country}:{shop_id}:{item_id}`. **Không có SKU.**
-- Catalog: **83 semantic object** (`domain/catalog.py`). Mọi câu hỏi phải rơi vào
+- Catalog: **99 semantic object** (`domain/catalog.py`), trong đó 11 measure
+  `measure.shop_daily_*` đọc panel shop và chỉ dùng được khi đã thu artifact tuỳ
+  chọn. Mọi câu hỏi phải rơi vào
   tập này hoặc bị từ chối. Đây là lý do bài toán hữu hạn hoá được.
 - `monthly_sold` là **proxy hiển thị của một cửa sổ chưa xác nhận** — cấm cộng qua
   các snapshot (tính trùng). `estimated_recent_revenue` là proxy ước tính, luôn
@@ -168,7 +180,7 @@ Trạng thái đo ngày **29/08/2026** tại `5224c23` (15/15 work package của
 Ablation SAU các khối mới: L0 ≡ L1 ≡ L2 vẫn trùng khít — "nút thắt là thiếu
 khối, không phải cổng gác" đứng vững ở coverage 0.85. Còn chờ NGƯỜI/provider
 (không code thay được): W9.4 bộ đề độc lập 60–100 câu cần hai người chú thích;
-W10.3 chờ xuất xứ `raw_extra_data` ghi vào docs/qa/; W14 giai đoạn B chờ data
+W14 giai đoạn B chờ data
 owner duyệt `price-repdigit-nine`; W9.6 đo BGK-20 bằng provider thật; sáu
 oracle topic gate chờ reviewer ký. Chú ý W9.1: khoá `coverage` cũ mang HAI
 nghĩa — số mới đọc `answerable_coverage`/`answer_rate_all`.

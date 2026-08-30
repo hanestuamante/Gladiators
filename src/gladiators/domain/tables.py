@@ -27,6 +27,18 @@ class ArtifactName(StrEnum):
     CATEGORY_PLATFORM = "category_platform_clean.csv"
     SNAPSHOT_METRICS = "product_snapshot_metrics.csv"
     TRANSITION_METRICS = "product_transition_metrics.csv"
+    SHOP_STATS = "shop_stats_clean.csv"
+
+
+# Artifact có thể VẮNG MẶT ở một bản dữ liệu mà bản đó vẫn hợp lệ.
+#
+# ``shop_stats`` (panel ngày cấp shop) chỉ tồn tại từ lần thu 01–21/07/2026 trở
+# đi; bản đóng băng 01–03/07 không có nó. Ba lựa chọn, và vì sao chọn cái này:
+# bắt buộc nó ⇒ một bản dữ liệu cũ ĐÚNG bị chấm là hỏng; nhét panel vào
+# ``shop_info`` ⇒ grain của chín measure ``static_latest`` đổi âm thầm; khai
+# tuỳ chọn ⇒ "chưa thu" là một trạng thái ĐỌC ĐƯỢC, và mọi năng lực dựa vào nó
+# từ chối có lý do thay vì nổ.
+OPTIONAL_ARTIFACTS: frozenset[ArtifactName] = frozenset({ArtifactName.SHOP_STATS})
 
 
 class TableRegistryError(ValueError):
@@ -160,6 +172,12 @@ TABLE_DECLARATIONS: tuple[TableDeclaration, ...] = (
          QualityCheckRef("transition_metrics.coverage_manifest", "coverage.validate_manifest")),
         partition_columns=("country_code", "date"),
     ),
+    TableDeclaration(
+        ArtifactName.SHOP_STATS, "shop_stats",
+        ("country_code", "shop_id", "date"),
+        (QualityCheckRef("shop_stats.coverage_manifest", "coverage.validate_manifest"),),
+        partition_columns=("country_code", "date"),
+    ),
 )
 
 DECLARATIONS_BY_NAME: dict[ArtifactName, TableDeclaration] = {
@@ -171,6 +189,15 @@ VIEW_NAMES: dict[str, str] = {
     declaration.name.value: declaration.view_name for declaration in TABLE_DECLARATIONS
 }
 ARTIFACT_NAMES: tuple[str, ...] = tuple(name.value for name in ArtifactName)
+
+# Artifact mà MỌI bản dữ liệu phải có. Consumer nào coi việc thiếu file là lỗi
+# thì đọc danh sách này, không đọc ``ARTIFACT_NAMES``.
+REQUIRED_ARTIFACT_NAMES: tuple[str, ...] = tuple(
+    name.value for name in ArtifactName if name not in OPTIONAL_ARTIFACTS
+)
+OPTIONAL_ARTIFACT_NAMES: tuple[str, ...] = tuple(
+    name.value for name in ArtifactName if name in OPTIONAL_ARTIFACTS
+)
 
 
 def artifact(value: str | ArtifactName) -> ArtifactName:
@@ -230,6 +257,9 @@ def build_table_registry(
         views[declaration.view_name] = declaration.name
 
     columns: dict[ArtifactName, list[TableColumnSpec]] = {name: [] for name in declared}
+    # Artifact tuỳ chọn vắng mặt ⇒ manifest không có entry nào cho nó. Đó là
+    # "chưa thu", không phải "khai thiếu"; phân biệt hai thứ đó là toàn bộ lý do
+    # OPTIONAL_ARTIFACTS tồn tại.
     seen: set[tuple[ArtifactName, str]] = set()
     for entry in entries:
         table = artifact(str(entry.get("table")))
@@ -251,7 +281,19 @@ def build_table_registry(
     registry: dict[ArtifactName, TableSpec] = {}
     for name, declaration in declared.items():
         if not columns[name]:
-            raise TableRegistryError(f"Artifact không có manifest entry nào: {name.value}")
+            if name not in OPTIONAL_ARTIFACTS:
+                raise TableRegistryError(f"Artifact không có manifest entry nào: {name.value}")
+            # Artifact tuỳ chọn CHƯA THU: vào registry với 0 cột. Bỏ hẳn nó khỏi
+            # registry sẽ khiến consumer phải tự hỏi "artifact này có tồn tại
+            # không" bằng KeyError — tức lại một danh sách artifact thứ hai,
+            # đúng thứ §E1 dựng registry để xoá. Có mặt-mà-rỗng nói được cả hai:
+            # nó được khai, và nó chưa có dữ liệu.
+            registry[name] = TableSpec(
+                name=name, view_name=declaration.view_name, storage="csv",
+                grain=declaration.grain, columns=(),
+                quality_checks=declaration.quality_checks,
+            )
+            continue
         for check in declaration.quality_checks:
             if check.severity == "hard" and check.handler_id not in handlers:
                 raise TableRegistryError(

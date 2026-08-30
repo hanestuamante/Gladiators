@@ -45,6 +45,20 @@ class ArtifactRepository:
             validate_artifacts(self.root)
         self._frames: dict[str, pd.DataFrame] = {}
 
+    def available_artifacts(self) -> tuple[str, ...]:
+        """Artifact THẬT SỰ có trong ảnh chụp này.
+
+        Bản dữ liệu cũ không có ``shop_stats_clean.csv``. Người gọi phải phân
+        biệt được "chưa thu" với "thu được và rỗng": cái đầu là thiếu thông tin
+        để kết luận, cái sau là một kết luận.
+        """
+        from gladiators.domain.tables import ARTIFACT_NAMES
+
+        return tuple(name for name in ARTIFACT_NAMES if (self.root / name).exists())
+
+    def has_artifact(self, name: str) -> bool:
+        return (self.root / name).exists()
+
     def read(self, name: str) -> pd.DataFrame:
         """Đọc một artifact, cache theo ĐỜI CỦA REPOSITORY.
 

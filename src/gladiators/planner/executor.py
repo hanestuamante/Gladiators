@@ -18,6 +18,9 @@ from .compiler import RANK_KEY_ALIAS, CompiledQuery, assert_read_only_sql
 ExecutionIssueCode = Literal[
     "schema_invalid", "cardinality_violation",
     "postcondition_failed", "result_cap_exceeded",
+    # Tách khỏi result_cap_exceeded: kết quả quá lớn và trung gian nở quá
+    # rộng là hai vấn đề khác nhau, và gộp mã sẽ làm chúng đọc như một.
+    "fanout_cap_exceeded",
 ]
 
 
@@ -60,10 +63,34 @@ class ExecutionResult:
     rank_tie_at_cut: bool = False
 
 
+def _declared_cardinality(expected: str | None) -> int | None:
+    """``"1"`` → 1, ``"<=50"`` → 50, thứ khác → ``None`` (không khai được cận)."""
+    if not expected:
+        return None
+    text = expected.strip()
+    if text.startswith("<="):
+        text = text[2:].strip()
+    try:
+        return int(text)
+    except ValueError:
+        return None
+
+
 class QueryExecutor:
-    def __init__(self, repository, *, memory_limit: str = "1GB", threads: int = 2, max_result_rows: int = 10_000):
+    # Bội số cho phép giữa số dòng trung gian rộng nhất và bảng lớn nhất của
+    # chính bản dữ liệu. Đây là một NGƯỠNG ĐƯỢC CHỌN, không phải một số đo: nó
+    # nói "một phép nối hợp lệ trong registry không nhân dữ liệu lên quá chừng
+    # này". Đặt theo dữ liệu chứ không theo hằng số tuyệt đối, vì một hằng số
+    # tuyệt đối sẽ lại đúng ở bộ 3 341 dòng và sai ở bộ 22 695 dòng — đúng cách
+    # guard cũ hỏng.
+    FANOUT_ALLOWANCE = 8
+
+    def __init__(self, repository, *, memory_limit: str = "1GB", threads: int = 2,
+                 max_result_rows: int = 10_000, max_intermediate_rows: int | None = None):
         self.repository = repository
         self.max_result_rows = max_result_rows
+        available = set(repository.available_artifacts())
+        self.available_artifacts = tuple(a for a in ARTIFACTS if a in available)
         self.connection = duckdb.connect(database=":memory:")
         self.connection.execute(f"SET memory_limit = '{memory_limit}'")
         self.connection.execute(f"SET threads = {int(threads)}")
@@ -73,41 +100,84 @@ class QueryExecutor:
         # View name đến từ TableRegistry, không suy từ tên file: một artifact đổi
         # tên file mà quên đổi view sẽ tạo view lạ thay vì fail.
         for artifact in ARTIFACTS:
+            # Artifact tuỳ chọn chưa thu ⇒ KHÔNG đăng ký view. Đăng ký một frame
+            # rỗng thay thế sẽ khiến mọi truy vấn lên nó trả "0 dòng" — tức
+            # "đo được và không có gì", đúng thứ CLAUDE.md §3.1 cấm.
+            if artifact not in available:
+                continue
             self.connection.register(VIEW_NAMES[artifact], repository.read(artifact))
         self.connection.execute("SET lock_configuration = true")
+        largest = max(
+            (len(repository.read(artifact)) for artifact in self.available_artifacts),
+            default=0,
+        )
+        self.max_intermediate_rows = (
+            max_intermediate_rows if max_intermediate_rows is not None
+            else max(largest * self.FANOUT_ALLOWANCE, max_result_rows)
+        )
 
     def settings(self) -> dict[str, object]:
         names = ("memory_limit", "threads", "enable_external_access", "autoload_known_extensions", "allow_community_extensions", "lock_configuration")
         return {name: self.connection.execute("SELECT current_setting(?)", [name]).fetchone()[0] for name in names}
 
-    def _estimated_rows(self, sql: str, parameters: tuple[object, ...]) -> int | None:
-        """Return a conservative plan-cardinality bound, or None if unavailable."""
+    def _estimated_rows(self, sql: str, parameters: tuple[object, ...]) -> tuple[int | None, int | None]:
+        """``(số dòng KẾT QUẢ ước tính, cardinality LỚN NHẤT ở node bất kỳ)``.
+
+        Trước đây hàm này trả đúng một số — max trên MỌI node — và
+        ``max_result_rows`` so với nó. Hai đại lượng đó khác nhau: với
+        "listing giá cao nhất tại VN", root ước tính 2 dòng còn ``PANDAS_SCAN``
+        ước tính 3 341. Trên bộ 3 341 dòng khoảng cách đó nằm dưới ngưỡng nên
+        guard chưa bao giờ bắn; trên bộ 22 695 dòng thì MỌI truy vấn bị chặn dù
+        trả về một dòng — tức một guard chưa từng được thử, đúng lúc dữ liệu lớn
+        lên mới lộ ra là nó đo nhầm thứ.
+
+        Trả cả hai để người gọi so từng cái với đúng giới hạn của nó, thay vì
+        gộp hai rủi ro khác nhau vào một con số.
+        """
         try:
             raw = self.connection.execute(
                 "EXPLAIN (FORMAT JSON) " + sql, parameters,
             ).fetchone()[-1]
             tree = json.loads(raw)
         except Exception:
-            return None
-        stack = [tree] if isinstance(tree, dict) else list(tree)
-        best: int | None = None
+            return None, None
+
+        def cardinality(node: dict) -> int | None:
+            card = (node.get("extra_info") or {}).get("Estimated Cardinality")
+            try:
+                return int(float(card)) if card is not None else None
+            except (TypeError, ValueError, OverflowError):
+                return None
+
+        root = tree if isinstance(tree, dict) else (tree[0] if tree else None)
+        if root is None:
+            return None, None
+        stack = [root]
+        widest: int | None = None
         while stack:
             node = stack.pop()
             if not isinstance(node, dict):
                 continue
-            card = (node.get("extra_info") or {}).get("Estimated Cardinality")
-            try:
-                parsed = int(float(card)) if card is not None else None
-            except (TypeError, ValueError, OverflowError):
-                parsed = None
+            parsed = cardinality(node)
             if parsed is not None:
-                best = parsed if best is None else max(best, parsed)
+                widest = parsed if widest is None else max(widest, parsed)
             stack.extend(node.get("children") or ())
-        return best
+        # Root không khai cardinality (vd. TOP_N) ⇒ lùi về ước tính rộng nhất.
+        # Không biết thì phải chọn phía thận trọng, chứ không phải bỏ kiểm.
+        return (cardinality(root) if cardinality(root) is not None else widest), widest
 
     def execute(self, query: CompiledQuery) -> ExecutionResult:
         assert_read_only_sql(query.sql)
-        estimated = self._estimated_rows(query.sql, query.parameters)
+        estimated, widest = self._estimated_rows(query.sql, query.parameters)
+        # Hợp đồng của chính plan (``expected_cardinality``) thắng ước tính của
+        # DuckDB khi nó khai được một cận: ước tính đó đo được là SAI cho
+        # aggregate không group_by — DuckDB trả cardinality đầu vào (22 695)
+        # cho một truy vấn trả về đúng 1 dòng. Cận do plan khai không phải lời
+        # hứa suông: postcondition kiểm lại nó SAU khi chạy, nên plan khai sai
+        # vẫn bị chặn, chỉ là chặn ở chỗ nói đúng nguyên nhân hơn.
+        declared = _declared_cardinality(query.expected_cardinality)
+        if declared is not None:
+            estimated = declared
         if estimated is not None and estimated > self.max_result_rows:
             raise ExecutionFailure(
                 ExecutionIssue(
@@ -118,6 +188,19 @@ class QueryExecutor:
                     },
                 ),
                 "Plan ước tính vượt giới hạn số dòng trước khi chạy.",
+            )
+        if widest is not None and widest > self.max_intermediate_rows:
+            raise ExecutionFailure(
+                ExecutionIssue(
+                    code="fanout_cap_exceeded",
+                    message_key="execution.estimated_intermediate_rows_exceeded",
+                    details={
+                        "estimate": widest,
+                        "max_intermediate_rows": self.max_intermediate_rows,
+                    },
+                ),
+                "Plan nở ra nhiều dòng trung gian hơn mức một phép nối hợp lệ "
+                "có thể tạo ra trên bản dữ liệu này.",
             )
         explain_rows = self.connection.execute("EXPLAIN " + query.sql, query.parameters).fetchall()
         explain = "\n".join(str(row[-1]) for row in explain_rows)

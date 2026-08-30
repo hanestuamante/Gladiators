@@ -28,10 +28,13 @@ def snapshot():
     return default_binding_snapshot()
 
 
-def test_ten_relations_split_four_join_six_inline():
-    assert len(RELATIONS) == 10
+def test_eleven_relations_split_four_join_seven_inline():
+    """+1 inline: ``shop_observed_at`` (Shop → DateSnapshot trên panel shop).
+    Inline vì ngày nằm ngay trên bảng panel — không có join nào phát sinh, nên
+    không có fanout mới nào để dedupe."""
+    assert len(RELATIONS) == 11
     assert len(JOIN_RELATIONS) == 4
-    assert len(INLINE_RELATIONS) == 6
+    assert len(INLINE_RELATIONS) == 7
     assert JOIN_RELATIONS == {
         "belongs_to", "in_platform_category", "in_shop_category", "has_sales_metric",
     }

@@ -21,9 +21,11 @@ from gladiators.domain.bindings import (
     load_coverage_manifest,
 )
 from gladiators.domain.tables import (
+    OPTIONAL_ARTIFACTS,
     ArtifactName,
     PhysicalColumnRef,
     QualityCheckRef,
+    TableColumnSpec,
     TableDeclaration,
     TableRegistryError,
     build_table_registry,
@@ -43,19 +45,28 @@ def snapshot():
 
 # --- shape đã đo được -----------------------------------------------------
 
-def test_registry_covers_seven_artifacts_and_219_columns(snapshot):
+def test_registry_covers_eight_artifacts_and_219_columns(snapshot):
+    """7 → 8 artifact: ``shop_stats_clean.csv`` (panel ngày cấp shop) được KHAI
+    ở registry nhưng bản dữ liệu đóng băng CHƯA THU nó, nên nó đóng góp 0 cột.
+    Đó chính là hình dạng cần khoá: có mặt trong registry (nên không ai phải giữ
+    một danh sách artifact thứ hai) và rỗng cột (nên không ai nhầm nó với một
+    bảng đã thu mà không có dòng nào)."""
     counts = snapshot.counts()
-    assert counts["tables"] == 7
+    assert counts["tables"] == 8
     assert counts["columns"] == 219
-    # 83 từ W11.2: derived.has_promo nay bind cột đã materialize
-    # has_displayed_discount thay vì suy lại từ discount tại query time.
-    assert counts["catalog_bindings"] == 83
+    # 83 từ W11.2 (derived.has_promo bind cột đã materialize
+    # has_displayed_discount thay vì suy lại từ discount tại query time) + 11
+    # binding của panel ngày cấp shop. Đếm ở đây là binding CATALOG KHAI, không
+    # phải binding đã resolve ra cột thật — 11 cái mới trỏ vào một artifact bản
+    # này chưa thu, và ``columns == 219`` bên trên chính là chỗ nói điều đó.
+    assert counts["catalog_bindings"] == 94
     assert set(snapshot.tables) == set(ArtifactName)
+    assert snapshot.tables[ArtifactName.SHOP_STATS].columns == ()
 
 
 def test_view_names_are_unique(snapshot):
     views = [spec.view_name for spec in snapshot.tables.values()]
-    assert len(views) == len(set(views)) == 7
+    assert len(views) == len(set(views)) == 8
 
 
 def test_coverage_artifacts_are_generated_not_declared_twice():
@@ -148,10 +159,35 @@ def test_physical_string_for_unknown_artifact_is_rejected():
 
 
 def test_every_catalog_binding_resolves_to_a_real_column(snapshot):
-    """§B.2 đo 0 lỗi / 82 mapping — test giữ con số đó là bất biến, không may mắn."""
+    """§B.2 đo 0 lỗi / 82 mapping — test giữ con số đó là bất biến, không may mắn.
+
+    Ngoại lệ DUY NHẤT được khai: binding trỏ vào một artifact TUỲ CHỌN mà bản dữ
+    liệu này chưa thu. "Chưa thu" không phải "khai sai" — nếu chặn nó ở đây thì
+    một năng lực mới chỉ khai được sau khi MỌI bản dữ liệu cũ được thu lại. Ngoại
+    lệ hẹp đúng bằng ``OPTIONAL_ARTIFACTS``: binding tới một artifact bắt buộc,
+    hoặc tới một artifact tuỳ chọn ĐÃ thu, vẫn phải resolve.
+    """
+    uncollected = {
+        name for name in OPTIONAL_ARTIFACTS if not snapshot.tables[name].columns
+    }
     for obj in snapshot.catalog.values():
         for binding in obj.physical_bindings:
+            if binding.table in uncollected:
+                continue
             assert snapshot.has_column(binding), f"{obj.ref} -> {binding}"
+
+
+def test_a_binding_to_a_collected_optional_artifact_still_must_resolve(snapshot):
+    """Ngoại lệ trên KHÔNG được nới thành 'artifact tuỳ chọn thì miễn kiểm'."""
+    from gladiators.domain.tables import TableSpec
+
+    tables = dict(snapshot.tables)
+    stats = tables[ArtifactName.SHOP_STATS]
+    tables[ArtifactName.SHOP_STATS] = dataclasses.replace(
+        stats, columns=(TableColumnSpec("mot_cot_khac", None, "identifier_only", None),),
+    )
+    with pytest.raises(BindingError, match="không tồn tại"):
+        bindings.validate_metadata_bindings(tables, snapshot.catalog)
 
 
 def test_binding_to_a_missing_column_fails_validation(snapshot):

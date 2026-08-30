@@ -37,7 +37,14 @@ DATASETS = {
     "category_list": "category_list.csv",
     "product_categories": "product_categories.csv",
     "category_platform": "category_platform.csv",
+    "shop_stats": "shop_stats.csv",
 }
+
+# Dataset có thể VẮNG MẶT mà input vẫn hợp lệ. ``shop_stats`` (panel ngày cấp
+# shop) chỉ có ở lần thu mới; bộ đóng băng 01–03/07 không có nó. Bắt buộc nó sẽ
+# khiến một input cũ ĐÚNG trông như hỏng, nên vắng mặt phải là một trạng thái
+# được khai, không phải một lỗi.
+OPTIONAL_DATASETS = frozenset({"shop_stats"})
 
 KEYS = {
     "products": ["country_code", "shop_id", "item_id", "date"],
@@ -45,6 +52,7 @@ KEYS = {
     "category_list": ["country_code", "shop_id", "shop_category_id", "date"],
     "product_categories": ["country_code", "shop_id", "item_id", "category_id", "date"],
     "category_platform": ["country_code", "category_id"],
+    "shop_stats": ["country_code", "shop_id", "date"],
 }
 
 NUMERIC_COLUMNS = {
@@ -61,11 +69,21 @@ NUMERIC_COLUMNS = {
     "category_list": ["shop_category_id", "total", "parent_shop_category_id", "category_type"],
     "product_categories": ["item_id", "category_slug", "category_id"],
     "category_platform": ["client", "category_id", "parent_category_id"],
+    "shop_stats": [
+        "rating_star", "follower_count", "item_count", "response_rate", "response_time",
+        "rating_good", "rating_normal", "rating_bad", "cancellation_rate",
+        "rating_total", "following_count",
+    ],
 }
 
 BOOLEAN_COLUMNS = {
     "products": ["is_ad", "is_sold_out", "shopee_verified"],
-    "shop_info": ["is_official_shop", "vacation"],
+    # ``is_shopee_verified``/``is_preferred_plus_seller`` chỉ có ở lần thu mới;
+    # cột vắng mặt được normalize bỏ qua nên khai thêm ở đây là additive.
+    "shop_info": ["is_official_shop", "vacation", "is_shopee_verified",
+                  "is_preferred_plus_seller"],
+    "shop_stats": ["vacation", "is_official_shop", "is_shopee_verified",
+                   "is_preferred_plus_seller"],
     "category_list": ["is_parent_category", "is_sub_category"],
     "category_platform": ["has_children"],
 }
@@ -203,7 +221,8 @@ def load_raw(input_dir: Path, issues: list[Issue]) -> tuple[dict[str, pd.DataFra
 
 def normalize(dataset: str, frame: pd.DataFrame, issues: list[Issue]) -> pd.DataFrame:
     if frame.empty:
-        add_issue(issues, "error", "DATASET_EMPTY", dataset, message="No input rows found")
+        if dataset not in OPTIONAL_DATASETS:
+            add_issue(issues, "error", "DATASET_EMPTY", dataset, message="No input rows found")
         return frame
     result = frame.copy()
 
@@ -491,6 +510,10 @@ def run_pipeline(input_dir: Path, output_dir: Path) -> dict[str, Any]:
     issues: list[Issue] = []
     raw, metadata = load_raw(input_dir, issues)
     tables = {name: normalize(name, frame, issues) for name, frame in raw.items()}
+    # Dataset tuỳ chọn vắng mặt bị loại khỏi bảng kết quả — ghi ra một file rỗng
+    # sẽ tạo một artifact trông như "đã đo và không có gì", khác hẳn "chưa thu".
+    tables = {name: frame for name, frame in tables.items()
+              if not (name in OPTIONAL_DATASETS and frame.empty)}
     check_relationships(tables, issues)
     tables["products"] = add_snapshot_checks(tables["products"], issues)
     snapshots, transitions = build_metrics(tables["products"], issues)

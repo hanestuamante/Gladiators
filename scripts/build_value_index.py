@@ -60,11 +60,11 @@ SOURCES: tuple[tuple[str, str, str], ...] = (
 # missing_values/named_but_absent không chấm nó là vắng mặt.
 
 
-def build() -> dict:
+def build(data_dir: Path = DATA) -> dict:
     values: dict[str, dict[str, dict[str, str]]] = {}
     ambiguous: dict[str, dict[str, dict[str, list[str]]]] = {}
     for ref, artifact, column in SOURCES:
-        frame = pd.read_csv(DATA / artifact)
+        frame = pd.read_csv(data_dir / artifact)
         if column not in frame.columns or "country_code" not in frame.columns:
             continue
         per_country: dict[str, dict[str, str]] = {}
@@ -91,7 +91,7 @@ def build() -> dict:
             ambiguous[ref] = per_country_ambiguous
     return {
         "schema_version": INDEX_SCHEMA_VERSION,
-        "dataset_version": compute_dataset_version(DATA),
+        "dataset_version": compute_dataset_version(data_dir),
         "values": values,
         "ambiguous": ambiguous,
     }
@@ -100,9 +100,14 @@ def build() -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default="artifacts/value_index.json")
+    # Bản dữ liệu nào thì dựng chỉ mục cho bản đó. Ghim cứng ``data/processed``
+    # khiến một bản mới không bao giờ chạy được: runtime kiểm dataset_version
+    # của chỉ mục khớp repository và fail-closed khi lệch — đúng thiết kế, nhưng
+    # chỉ có nghĩa nếu chỉ mục dựng được cho bản đang phục vụ.
+    parser.add_argument("--data-dir", default=str(DATA))
     args = parser.parse_args()
 
-    index = build()
+    index = build(Path(args.data_dir))
     out = ROOT / args.output
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -114,7 +119,7 @@ def main() -> None:
         # In TO chứ không nuốt: mỗi cặp ở đây là một câu hỏi mà hệ sẽ không lọc
         # được bằng tên, và người vận hành phải biết điều đó từ lúc dựng.
         "ambiguous": index["ambiguous"],
-        "output": str(out.relative_to(ROOT)),
+        "output": str(out.relative_to(ROOT)) if out.is_relative_to(ROOT) else str(out),
     }, ensure_ascii=False, indent=2))
 
 

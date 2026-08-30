@@ -2,9 +2,9 @@
 
 # Topic registry
 
-- topics hash: `716afa9b261d72ee`
+- topics hash: `f5af55287ff2dc67`
 - invariants hash: `b57c1e3ee6326156`
-- refs được sở hữu: 88
+- refs được sở hữu: 99
 
 | id | tên | kind | refs | relations | invariants |
 | --- | --- | --- | ---: | ---: | ---: |
@@ -22,3 +22,4 @@
 | [T6](T6.md) | CATALOG_STRUCTURE | domain | 6 | 2 | 2 |
 | [T7](T7.md) | CONTENT_VARIATION | domain | 4 | 2 | 1 |
 | [T8](T8.md) | SIMILARITY_COMPETITIVE | domain | 6 | 2 | 1 |
+| [T9](T9.md) | SHOP_DAILY_PANEL | domain | 11 | 1 | 1 |

@@ -94,6 +94,21 @@ _RELATION_SPECS = [
         ),
     ),
     RelationSpec(
+        # Shop quan sát theo NGÀY — chỉ có ở bản đã thu ``shop_stats``. Khác hẳn
+        # ``belongs_to``: cái kia gắn một ảnh chụp TĨNH của shop vào listing và
+        # nói rõ "không phải thuộc tính đồng thời từng ngày"; cái này LÀ thuộc
+        # tính từng ngày. Dùng nhầm chiều nào cũng ra một câu trả lời trôi chảy.
+        "shop_observed_at", "Shop", "DateSnapshot", "shop_stats_clean.csv",
+        (("date", "date"),), ("country_code", "shop_id", "date"),
+        "Một dòng là một shop-snapshot; số dòng không phải số shop.",
+        (12,), "N:1", "left_preserve:Shop", "shop_snapshot", "shop_snapshot",
+        "none", None, "per_snapshot",
+        "chỉ có ở bản dữ liệu đã thu shop_stats; bản cũ không có panel này", 1, 1,
+        # ``inline``: ngày nằm ngay trên chính bảng panel, không phải một join —
+        # cùng khuôn với ``observed_at`` ở listing.
+        RelationBinding("inline", (ArtifactName.SHOP_STATS,)),
+    ),
+    RelationSpec(
         "observed_at", "ProductListing", "DateSnapshot", "products_clean.csv",
         (("date", "date"),), ("country_code", "shop_id", "item_id", "date"),
         "Một dòng là một listing-snapshot; số dòng không phải số listing.",

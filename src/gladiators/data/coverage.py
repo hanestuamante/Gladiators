@@ -8,7 +8,7 @@ from typing import Literal, TypedDict
 import pandas as pd
 
 from gladiators.domain.catalog import CATALOG, physical_index
-from gladiators.domain.tables import ARTIFACT_NAMES
+from gladiators.domain.tables import ARTIFACT_NAMES, OPTIONAL_ARTIFACT_NAMES
 
 CoverageStatus = Literal[
     "exposed_as_dimension", "exposed_as_measure", "identifier_only", "provenance_only",
@@ -19,6 +19,23 @@ CoverageStatus = Literal[
 # §E1: danh sách artifact sống ở ``domain.tables``. Trước đây bốn consumer mỗi
 # cái giữ một bản; bốn bản trùng nhau là ngẫu nhiên, không phải bất biến.
 ARTIFACTS = ARTIFACT_NAMES
+OPTIONAL = frozenset(OPTIONAL_ARTIFACT_NAMES)
+
+
+def present_artifacts(root: Path) -> tuple[str, ...]:
+    """Artifact thật sự có mặt; artifact BẮT BUỘC mà vắng vẫn là lỗi.
+
+    Manifest mô tả header vật lý của CHÍNH bản dữ liệu này. Khai một artifact
+    tuỳ chọn chưa thu vào manifest sẽ dựng ra một schema không tồn tại, và mọi
+    kiểm drift sau đó so với một thứ tưởng tượng.
+    """
+    present: list[str] = []
+    for table in ARTIFACTS:
+        if (root / table).exists():
+            present.append(table)
+        elif table not in OPTIONAL:
+            raise FileNotFoundError(f"Thiếu artifact bắt buộc: {root / table}")
+    return tuple(present)
 
 PROVENANCE_COLUMNS = {"source_file", "source_row", "path_country_code", "path_dataset", "path_shop_id"}
 IDENTIFIER_COLUMNS = {
@@ -68,10 +85,8 @@ def _classify(table: str, column: str) -> ManifestEntry:
 def build_manifest(data_dir: str | Path) -> dict[str, object]:
     root = Path(data_dir)
     entries: list[ManifestEntry] = []
-    for table in ARTIFACTS:
+    for table in present_artifacts(root):
         path = root / table
-        if not path.exists():
-            raise FileNotFoundError(f"Thiếu artifact bắt buộc: {path}")
         for column in pd.read_csv(path, nrows=0).columns:
             entries.append(_classify(table, str(column)))
     return {"schema_version": "1.0", "review_status": "pending_dr1", "entries": entries}
@@ -86,7 +101,8 @@ def validate_manifest(data_dir: str | Path, manifest_path: str | Path | None = N
     if len(keys) != len(set(keys)):
         raise ValueError("Semantic coverage manifest có entry trùng table+column")
 
-    actual = {(table, str(column)) for table in ARTIFACTS for column in pd.read_csv(root / table, nrows=0).columns}
+    present = present_artifacts(root)
+    actual = {(table, str(column)) for table in present for column in pd.read_csv(root / table, nrows=0).columns}
     declared = set(keys)
     if actual != declared:
         missing = sorted(actual - declared)
@@ -104,7 +120,7 @@ def validate_manifest(data_dir: str | Path, manifest_path: str | Path | None = N
                 raise ValueError(f"Coverage entry thiếu catalog_ref hợp lệ: {entry}")
         elif ref is not None:
             raise ValueError(f"Status {status} không được tự expose catalog_ref: {entry}")
-    return {"artifacts": len(ARTIFACTS), "columns": len(entries)}
+    return {"artifacts": len(present), "columns": len(entries)}
 
 
 def write_manifest(data_dir: str | Path, output: str | Path | None = None) -> Path:

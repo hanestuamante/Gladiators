@@ -632,10 +632,31 @@ def assert_read_only_sql(sql: str) -> None:
     _assert_select_only(statements[0])
 
 
-def compile_plan(plan: LogicalQueryPlan) -> CompiledQuery:
+def compile_plan(
+    plan: LogicalQueryPlan,
+    *,
+    available_sources: frozenset[str] | None = None,
+) -> CompiledQuery:
+    """``available_sources`` = artifact THẬT SỰ có trong bản dữ liệu đang phục vụ.
+
+    Bỏ trống ⇒ không kiểm (giữ nguyên mọi caller cũ, kể cả test dựng plan trần).
+    Truyền vào ⇒ plan đọc một bảng chưa thu bị chặn TẠI ĐÂY, trước khi thành SQL.
+    Để nó đi tiếp thì DuckDB báo "table không tồn tại" — một lỗi hạ tầng, trong
+    khi sự thật là một giới hạn dữ liệu, và hai thứ đó phải nói khác nhau.
+    """
     verdict = validate_plan(plan)
     if not verdict.valid:
         raise CompilationError("Plan validation fail: " + "; ".join(issue.message for issue in verdict.issues))
+    if available_sources is not None:
+        missing = sorted({
+            node.source for node in plan.nodes
+            if node.source is not None and node.source not in available_sources
+        })
+        if missing:
+            raise CompilationError(
+                "Bản dữ liệu đang phục vụ chưa thu các bảng: " + ", ".join(missing)
+                + " — không phải lỗi truy vấn, mà là dữ liệu chưa có.",
+            )
     nodes = {node.node_id: node for node in plan.nodes}
     compiled: dict[str, exp.Query] = {}
     params: list[object] = []

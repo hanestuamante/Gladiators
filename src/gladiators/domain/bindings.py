@@ -27,6 +27,7 @@ from .tables import (
     ArtifactName,
     PhysicalColumnRef,
     TableSpec,
+    OPTIONAL_ARTIFACTS,
     build_table_registry,
 )
 
@@ -251,6 +252,13 @@ def _check_catalog(
             table = tables.get(binding.table)
             if table is None:
                 raise BindingError(f"{obj.ref}: bind tới artifact ngoài registry: {binding}")
+            if not table.columns and binding.table in OPTIONAL_ARTIFACTS:
+                # Artifact tuỳ chọn CHƯA THU: manifest không có cột nào của nó.
+                # "Chưa thu" khác "khai sai" — chặn ở đây sẽ khiến một bản dữ
+                # liệu cũ hợp lệ không dựng được registry, và khai năng lực mới
+                # thành ra phải chờ mọi bản cũ được thu lại.
+                by_physical[str(binding)] = obj.ref
+                continue
             if not table.has_column(binding.column):
                 raise BindingError(f"{obj.ref}: cột không tồn tại trong manifest: {binding}")
             key = str(binding)

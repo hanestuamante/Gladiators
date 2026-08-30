@@ -61,7 +61,7 @@ def test_metric_registry_covers_v2_metric_contract():
 
 
 def test_relation_registry_is_closed_and_fanout_safe():
-    assert len(RELATIONS) == 10
+    assert len(RELATIONS) == 11
     assert find_path("ProductListing", "Shop")[0].name == "belongs_to"
     assert find_path("ShopCategory", "PlatformCategory") is None
     shelf = RELATIONS["in_shop_category"]

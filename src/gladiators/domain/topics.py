@@ -173,6 +173,24 @@ _CARDS: tuple[TopicCard, ...] = (
         invariant_ids=("INV-DEDUPE-BEFORE-AGGREGATE",),
     ),
     TopicCard(
+        # Card RIÊNG, không nhập vào T5: T5 nói về shop "hiện tại" tại một ảnh
+        # chụp tĩnh, card này nói về shop THEO NGÀY. Gộp lại thì một câu hỏi về
+        # diễn biến có thể được trả bằng một con số tĩnh và ngược lại — và C3
+        # (trần 20 ref/topic) đã chặn đúng chỗ đó khi thử gộp.
+        id="T9", name="SHOP_DAILY_PANEL", kind="domain",
+        anchor_entities=("Shop",),
+        owner_refs=(
+            "measure.shop_daily_rating", "measure.shop_daily_followers",
+            "measure.shop_daily_items", "measure.shop_daily_response_rate",
+            "measure.shop_daily_response_time", "measure.shop_daily_cancellation_rate",
+            "measure.shop_daily_rating_good", "measure.shop_daily_rating_normal",
+            "measure.shop_daily_rating_bad", "measure.shop_daily_rating_total",
+            "measure.shop_daily_following",
+        ),
+        relation_paths=(_path("shop_by_date", "shop_observed_at", "Shop"),),
+        invariant_ids=("INV-SNAPSHOT-SCOPE",),
+    ),
+    TopicCard(
         id="T6", name="CATALOG_STRUCTURE", kind="domain",
         anchor_entities=("ProductListing", "PlatformCategory", "ShopCategory"),
         owner_refs=(

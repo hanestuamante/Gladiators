@@ -215,10 +215,48 @@ def test_corpus_routing_distribution_does_not_regress(router, parser, corpus):
     assert counts.get("overflow", 0) == 0, "router không bao giờ tự đặt overflow"
 
 
+def _topics_needing_uncollected_data() -> set[str]:
+    """Topic mà MỌI ref của nó đọc một artifact bản dữ liệu này chưa thu.
+
+    Không câu hỏi nào trong corpus chạm tới được, và đó không phải lỗi định
+    nghĩa: bộ đề viết cho dữ liệu đang có. Tính bằng metadata thay vì liệt kê
+    tay, để danh sách miễn trừ TỰ RỖNG đi ngay khi dữ liệu được thu — một
+    allowlist viết tay sẽ ở lại mãi và giấu đúng thứ test này đi tìm.
+    """
+    from gladiators.domain.bindings import default_binding_snapshot
+    from gladiators.domain.catalog import CATALOG
+    from gladiators.domain.tables import OPTIONAL_ARTIFACTS
+
+    snapshot = default_binding_snapshot()
+    uncollected = {
+        name.value for name in OPTIONAL_ARTIFACTS if not snapshot.tables[name].columns
+    }
+    if not uncollected:
+        return set()
+    blocked = set()
+    for card in topics.domains():
+        physical = [
+            column
+            for ref in card.all_refs()
+            if ref in CATALOG
+            for column in CATALOG[ref].physical
+        ]
+        if physical and all(col.split(".csv")[0] + ".csv" in uncollected for col in physical):
+            blocked.add(card.id)
+    return blocked
+
+
 def test_every_domain_topic_is_reachable_from_the_corpus(router, parser, corpus):
     """A topic no real question routes to is either dead or misdefined."""
     used: set[str] = set()
     for question in corpus:
         used.update(_route(router, parser, question).domain_topic_ids)
-    missing = sorted({c.id for c in topics.domains()} - used)
+    blocked = _topics_needing_uncollected_data()
+    missing = sorted({c.id for c in topics.domains()} - used - blocked)
     assert not missing, f"topic không câu hỏi nào chạm tới: {missing}"
+
+
+def test_the_uncollected_exemption_covers_exactly_the_shop_panel():
+    """Miễn trừ ở trên phải HẸP. Nó nới ra tới một topic đọc dữ liệu ĐÃ có là
+    lúc nó bắt đầu che một topic chết thật."""
+    assert _topics_needing_uncollected_data() == {"T9"}
