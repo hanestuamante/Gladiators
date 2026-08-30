@@ -624,6 +624,15 @@ class DeterministicSemanticParser:
                 _surfaces.append(("value", _predicate.field_ref, str(_predicate.value_binding)))
         ledger = _ledger_of(text, country=country, dates=dates, surfaces=tuple(_surfaces))
         frames = resolve_frames(ledger, language if language in ("vi", "id") else "en")
+        # Marker khung PHẢI được claim, nếu không "bao nhiêu" ở lại phần dư và
+        # W22 biến mọi câu hỏi số lượng thành `A-UNBOUND-CONSTRAINT` — đúng bẫy
+        # §21.11 của spec ("đừng để A-UNBOUND-CONSTRAINT thành cổng chặn mọi
+        # thứ"). Dựng lại lattice với marker đã nhận; frames không đổi vì chúng
+        # phân giải trên lattice TRƯỚC, và claim thêm chỉ làm phần dư nhỏ đi.
+        _surfaces = tuple(_surfaces) + tuple(
+            ("frame", None, frame.marker_span.normalized) for frame in frames
+        )
+        ledger = _ledger_of(text, country=country, dates=dates, surfaces=_surfaces)
 
         # W24-R2: predicate định danh sinh TỪ LEDGER, không từ một regex thứ hai.
         # Trước W24 catalog không phơi `item_id`, nên không plan nào lọc được về

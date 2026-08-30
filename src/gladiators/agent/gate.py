@@ -12,6 +12,10 @@ from gladiators.agent.value_probe import (
 from gladiators.planner.feasibility import connectivity_blockers
 from gladiators.planner.semantic_parser import AnalyticalRequest, classify_a19
 from gladiators.external.router import classify_external_need
+from gladiators.domain.absent_concepts import (
+    check_registry as check_absent_concepts,
+    match as absent_match,
+)
 from gladiators.domain.catalog import CATALOG
 
 
@@ -120,6 +124,31 @@ def select_issue(issues: list[GateIssue]) -> GateIssue:
     return min(issues, key=lambda item: (item.fixable, item.priority))
 
 
+# W22-R3: tập ĐÓNG các ô mà một `clarify` có thể hỏi. CÙNG tập với
+# ``scripts/run_accuracy_benchmark.py:SLOT_CUES`` — câu hỏi lại sinh TỪ Ô, không
+# phải từ việc chuỗi `reason` tình cờ chứa từ khoá nào, và đó là điều làm
+# `clarification_precision` đo được.
+CLARIFICATION_SLOTS = frozenset({
+    "country", "voucher_definition", "ranking_metric", "entity_disambiguation",
+    "definition_threshold", "group_dimension", "metric", "date_scope",
+    "observation_window",
+})
+
+
+def _asks_for_money(request) -> bool:
+    """Câu hỏi có đụng tới một measure đơn vị TIỀN không?"""
+    from gladiators.domain.catalog import CATALOG
+
+    refs = {
+        item.get("ref")
+        for item in (request.analytical or {}).get("requested_measures", ())
+        if isinstance(item, dict) and item.get("ref")
+    }
+    return any(
+        ref in CATALOG and CATALOG[ref].unit == "local_currency" for ref in refs
+    )
+
+
 class ContractDrivenGate:
     """Phase-based gate — ultimate solution §4.5.
 
@@ -153,12 +182,13 @@ class ContractDrivenGate:
             rule_id: str, phase: int, action: str, reason: str,
             category: str, code: str, alternative: str | None = None,
             refs: tuple[str, ...] = (), fixable: bool = True,
+            clarification_slot: str | None = None,
         ) -> None:
             issues.append(GateIssue(
                 rule_id=rule_id, phase=phase, priority=len(issues) + 1,
                 action=action, reason=reason, answerable_alternative=alternative,
                 detail=IssueDetail(category=category, code=code, semantic_refs=refs),
-                fixable=fixable,
+                fixable=fixable, clarification_slot=clarification_slot,
             ))
 
         def decide_from(fallback: GateDecision) -> GateDecision:
@@ -176,6 +206,7 @@ class ContractDrivenGate:
                 answerable_alternative=chosen.answerable_alternative,
                 issues=tuple(pool), selected_issue_id=chosen.rule_id,
                 evaluated_phases=tuple(sorted(set(phases))),
+                clarification_slot=chosen.clarification_slot,
             )
 
         # ---- phase 1: capability / out-of-scope / route --------------------
@@ -223,6 +254,59 @@ class ContractDrivenGate:
                 detail=IssueDetail(category="capability", code=f"unsupported_{missing}"),
                 fixable=False,
             ))
+        # ── W22 (Spec3008 §9.2) — lý do từ chối CHỌN TỪ LEDGER ──────────────
+        #
+        # Trước W22 một câu hỏi về NPS thiếu country nhận lời khuyên "hãy chọn
+        # thị trường" — một hành động KHÔNG THỂ làm cột NPS tồn tại. Lý do do
+        # THỨ TỰ LUẬT quyết định, không do thứ đã chặn.
+        unbound = tuple(
+            (str(kind), str(text))
+            for kind, text in (
+                (request.analytical or {}).get("unbound_spans") or ()
+            )
+        )
+        # Ghép các span dư LIỀN KỀ trước khi tra: "nhân viên" tới đây thành hai
+        # token rời, và một registry khớp cụm mà chỉ được đưa từng từ thì không
+        # bao giờ khớp cụm nào.
+        texts = [text for _, text in unbound]
+        for size in range(len(texts), 1, -1):
+            hit = None
+            for start in range(len(texts) - size + 1):
+                window = " ".join(texts[start:start + size])
+                if absent_match(window) is not None:
+                    hit = (unbound[start][0], window)
+                    break
+            if hit is not None:
+                unbound = (hit,) + tuple(
+                    item for item in unbound if item[1] not in hit[1].split()
+                )
+                break
+        for kind, span_text in unbound:
+            concept = absent_match(span_text)
+            if concept is not None:
+                message = CAPABILITY_MESSAGES.get(concept.capability_key or "")
+                add(
+                    f"A-MISSING-{(concept.capability_key or concept.concept_id).upper()}",
+                    1, "abstain",
+                    " ".join((message["missing"], message["coverage"],
+                              message["answerable"])) if message else concept.reason,
+                    "capability", concept.refusal_class,
+                    message["alternative"] if message else None,
+                    fixable=False,
+                )
+                continue
+            if kind in {"date_like", "proper_name"}:
+                continue          # W20 và W19 đã có lối riêng cho hai loại này
+            if kind in {"unknown_concept", "grain_term", "quantity_phrase"}:
+                add("A-UNBOUND-CONSTRAINT", 1, "clarify",
+                    f'Chưa hiểu cụm "{span_text}" trong câu hỏi; '
+                    "hãy diễn đạt lại phần đó hoặc nêu chỉ số cụ thể.",
+                    "slot", "unbound_constraint",
+                    clarification_slot=(
+                        "definition_threshold" if kind == "quantity_phrase"
+                        else "group_dimension" if kind == "grain_term" else "metric"
+                    ))
+
         route = classify_external_need(str(request.slots.get("raw_text", "")))
         if route.rule_id == "A16-CROSS-CURRENCY":
             add(route.rule_id, 1, "clarify", route.reason, "currency", "cross_currency",
@@ -384,9 +468,22 @@ class ContractDrivenGate:
         # ---- phase 4: currency ---------------------------------------------
         phases.append(4)
         if request.intent == "analytical_query" and not request.country:
-            add("A-CROSS-CURRENCY-SCOPE", 4, "clarify",
-                "Cần chọn thị trường VN hoặc ID để không cộng/so sánh trực tiếp VND với IDR.",
-                "currency", "missing_market_scope")
+            # §9.3 — luật này từng bắn cho MỌI câu không có country, kể cả câu
+            # đếm thuần không đụng tới tiền. Nên một câu hỏi về NPS nhận được
+            # "hãy chọn thị trường để không cộng VND với IDR" — một lý do nói về
+            # một vấn đề KHÔNG TỒN TẠI trong câu. Cả hai vẫn `clarify` và vẫn
+            # chạm cue `country`, nên `clarification_precision` không đổi; đổi
+            # là NHÓM LÝ DO, tức `refusal_reason_accuracy`.
+            if _asks_for_money(request):
+                add("A16-CROSS-CURRENCY", 4, "clarify",
+                    "Cần chọn thị trường VN hoặc ID để không cộng/so sánh trực "
+                    "tiếp VND với IDR.",
+                    "currency", "cross_currency",
+                    clarification_slot="country")
+            else:
+                add("A-MISSING-SLOT", 4, "clarify",
+                    "Câu hỏi chưa nêu thị trường; hãy chọn VN hoặc ID.",
+                    "slot", "missing_scope", clarification_slot="country")
         # ---- phase 6: missing slot -----------------------------------------
         # Last on purpose (§4.5): a missing country slot must not mask an
         # out-of-scope, rolling-window or fanout issue found in an earlier phase.
@@ -412,3 +509,9 @@ class ContractDrivenGate:
                 reason="Internal path khả dụng; `sources.live_search.enabled` đang OFF nên chỉ trả phần nội bộ kèm limitation."))
         return decide_from(GateDecision(
             action="allow", rule_id="A-ALLOW", reason="Contract và slot đáp ứng yêu cầu."))
+
+
+# W22-R1: registry khái niệm vắng mặt fail ở IMPORT. Gọi ở đây vì nó cần
+# `CAPABILITY_MESSAGES` của chính module này — gõ sai một khoá phải nổ lúc nạp,
+# không đợi tới lúc một câu hỏi chạm vào.
+check_absent_concepts()

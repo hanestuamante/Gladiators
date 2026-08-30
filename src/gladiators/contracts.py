@@ -76,12 +76,18 @@ class GateIssue(BaseModel):
     # obstacle. A missing country is a fact about the question; a product code
     # that does not exist is a fact about the data, and no rephrasing fixes it.
     fixable: bool = True
+    # W22-R3: ô mà issue này hỏi, nếu nó là một clarify.
+    clarification_slot: str | None = None
 
 
 class GateDecision(BaseModel):
     action: Literal["allow", "clarify", "abstain"]
     rule_id: str
     reason: str
+    # W22-R3: ô mà câu hỏi lại đang hỏi. Câu hỏi lại sinh TỪ Ô, không phải từ
+    # việc chuỗi `reason` tình cờ chứa từ khoá nào — đó là điều làm
+    # `clarification_precision` đo được thay vì đoán được.
+    clarification_slot: str | None = None
     answerable_alternative: str | None = None
     # §4.5: a phase collects every issue before one is selected, so the trace
     # shows what else was wrong rather than only the first rule that fired.
