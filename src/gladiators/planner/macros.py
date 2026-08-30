@@ -1,6 +1,11 @@
 """Certified macro registry cho ba intent V1 — V2 mục 7.10."""
 from __future__ import annotations
 
+# W30: cận số dòng và cửa sổ ngày khai bằng KÝ HIỆU trên lịch snapshot, không
+# bằng con số/ngày của một bản dữ liệu. Ghim cứng thì hằng số đúng trên bộ dữ
+# liệu có mặt lúc viết và sai lặng lẽ trên bộ kế tiếp.
+from gladiators.domain.calendar import full_window, latest_snapshot
+
 import hashlib
 from collections import Counter
 from dataclasses import dataclass
@@ -65,7 +70,7 @@ def _sales_decline() -> CertifiedMacro:
         OutputField(name="days_since_previous", type="integer"),
     )
     plan = LogicalQueryPlan(
-        plan_id="macro:sales_decline:1.0", time_scope=("2026-07-01", "2026-07-02", "2026-07-03"),
+        plan_id="macro:sales_decline:1.0", time_scope=full_window(),
         output_node="n3", requested_output_shape=output,
         nodes=(
             PlanNode(node_id="n1", op="ResolveValue", refs=("entity.product_listing",),
@@ -112,13 +117,13 @@ def _promotion_effectiveness() -> CertifiedMacro:
         OutputField(name="group_metrics", type="number", semantic_ref="derived.descriptive_gap_vs_baseline"),
     )
     plan = LogicalQueryPlan(
-        plan_id="macro:promotion_effectiveness:1.0", time_scope=("2026-07-03",),
+        plan_id="macro:promotion_effectiveness:1.0", time_scope=(latest_snapshot(),),
         output_node="n3", requested_output_shape=output,
         nodes=(
             PlanNode(node_id="n1", op="Scan", source="product_snapshot_metrics.csv",
                      refs=("derived.has_structured_voucher", "measure.monthly_sold"),
                      input_grain="listing_snapshot", output_grain="listing_snapshot",
-                     expected_schema=output, expected_cardinality="<=1157"),
+                     expected_schema=output, expected_cardinality="<=listings"),
             PlanNode(node_id="n2", op="Filter", inputs=("n1",),
                      predicates=(Predicate(ref="dim.country", op="eq", parameter="country", value="<bound>"),),
                      input_grain="listing_snapshot", output_grain="listing_snapshot",
@@ -159,14 +164,14 @@ def _voucher_profile_rank() -> CertifiedMacro:
         OutputField(name="voucher_profile_score", type="number"),
     )
     plan = LogicalQueryPlan(
-        plan_id="macro:voucher_profile_rank:1.0", time_scope=("2026-07-03",),
+        plan_id="macro:voucher_profile_rank:1.0", time_scope=(latest_snapshot(),),
         output_node="n3", requested_output_shape=output,
         nodes=(
             PlanNode(node_id="n1", op="Scan", source="product_snapshot_metrics.csv",
                      refs=("derived.has_structured_voucher", "measure.monthly_sold",
                            "measure.voucher_discount", "measure.price"),
                      input_grain="listing_snapshot", output_grain="listing_snapshot",
-                     expected_schema=output, expected_cardinality="<=1157"),
+                     expected_schema=output, expected_cardinality="<=listings"),
             PlanNode(node_id="n2", op="Filter", inputs=("n1",),
                      predicates=(Predicate(ref="dim.country", op="eq", parameter="country", value="<bound>"),),
                      input_grain="listing_snapshot", output_grain="listing_snapshot",
@@ -199,7 +204,7 @@ def _descriptive_fixture_macro(
     output = (OutputField(name="descriptive_result", type="number"),)
     plan = LogicalQueryPlan(
         plan_id=f"macro:{name}:1.0",
-        time_scope=("2026-07-01", "2026-07-02", "2026-07-03"),
+        time_scope=full_window(),
         output_node="n1",
         requested_output_shape=output,
         nodes=(

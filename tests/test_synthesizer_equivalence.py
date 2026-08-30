@@ -22,6 +22,18 @@ tên. VALUE_DIMENSION_BY_UNIT bind tên shop thành predicate
 ``dim.shop_name = 'Perfetti Van Melle Vietnam'`` và bỏ grouping — "listing CỦA
 shop X" không còn bị đọc thành "listing THEO TỪNG shop".
 
+Mục thứ tư cập nhật có chủ đích ở W30 (Spec3008 §17, LUẬT W30-R5) — **52 plan**:
+``expected_cardinality`` trước đây là một CON SỐ của một bản dữ liệu
+(``"<=3341"``, ``"<=1157"``, ``"<=2046"``); nay nó là một KÝ HIỆU trên lịch
+snapshot (``"<=snapshot_rows"``, ``"<=listings"``). Đã chứng minh trước khi sửa
+fixture: so 52 plan sau khi bỏ đúng hai khoá ``expected_cardinality`` /
+``original_cardinality``, **0 plan khác nhau ở bất kỳ chỗ nào khác** — cùng
+node, cùng op, cùng predicate, cùng grain, cùng plan_id. Đây là đổi hợp đồng có
+chủ đích, không phải một golden bị ép xanh: cận cũ **đúng** trên bộ 3 ngày và
+**sai lặng lẽ** trên bộ 20 ngày, và nó sai theo kiểu fail-closed nên nguyên nhân
+bị nói sai ("plan sai hợp đồng") thay vì nói đúng ("cận viết cho một bản dữ liệu
+khác").
+
 Câu trước đây ``None`` mà nay có plan là **mở rộng hợp lệ** — đó chính là mục
 tiêu của WP. Chiều ngược lại thì không: một plan biến mất hoặc đổi hình nghĩa là
 WP đã lấy đi năng lực đang có, và test này bắt đúng chiều đó.

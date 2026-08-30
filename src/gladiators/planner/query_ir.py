@@ -17,7 +17,11 @@ from .predicate_ops import ExecutablePredicateOp as PredicateOp  # noqa: E402
 Aggregation = Literal["count", "sum", "mean", "median", "min", "max", "share"]
 # §4.3: one grammar, shared by the model, the planner prompt and the validator
 # feedback, so a plan is never rejected against a rule the prompt never stated.
-CARDINALITY_GRAMMAR = r"^(<=)?\d+$"
+# W30-R3: cận số dòng nhận thêm KÝ HIỆU trên lịch snapshot. Tập ký hiệu là
+# ĐÓNG và viết ra ở đây — nới thành một chuỗi tự do sẽ cho LLM planner khai một
+# cận không ai phân giải được, tức một cận không tồn tại.
+CARDINALITY_SYMBOLS = ("snapshot_rows", "listings", "snapshots")
+CARDINALITY_GRAMMAR = r"^(<=)?(\d+|" + "|".join(CARDINALITY_SYMBOLS) + r")$"
 _CARDINALITY = re.compile(CARDINALITY_GRAMMAR)
 
 # Words models reach for instead of a bound. "single" has an exact meaning; the

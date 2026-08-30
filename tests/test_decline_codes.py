@@ -189,6 +189,22 @@ DELIBERATE_BASELINE_CHANGES = {
 }
 
 
+def _strip_cardinality(node):
+    if isinstance(node, dict):
+        return {k: _strip_cardinality(v) for k, v in node.items()
+                if k not in ("expected_cardinality", "original_cardinality")}
+    if isinstance(node, list):
+        return [_strip_cardinality(x) for x in node]
+    return node
+
+
+def _only_cardinality_moved(current, committed) -> bool:
+    """True khi hai plan giống hệt nhau sau khi bỏ đúng hai khoá cardinality."""
+    if not isinstance(current, dict) or not isinstance(committed, dict):
+        return False
+    return _strip_cardinality(current) == _strip_cardinality(committed)
+
+
 def test_the_equivalence_baseline_only_moves_where_a_work_package_declared_it():
     """§13.6 dòng cuối: baseline chỉ được dịch ở khoá đã khai báo lý do.
 
@@ -211,6 +227,16 @@ def test_the_equivalence_baseline_only_moves_where_a_work_package_declared_it():
     changed = {
         key for key in set(current) | set(committed)
         if current.get(key) != committed.get(key)
+    }
+    # W30 (Spec3008 §17, LUẬT W30-R5) dịch ``expected_cardinality`` của 52 plan
+    # từ một CON SỐ của một bản dữ liệu sang một KÝ HIỆU trên lịch snapshot.
+    # Khai nó thành một LỚP thay vì 52 dòng giống hệt nhau — nhưng lớp đó phải
+    # tự CHỨNG MINH: một khoá chỉ được miễn khi diff của nó nằm gọn trong hai
+    # khoá cardinality. Khai bằng tên mà không kiểm là mở một cửa cho mọi thay
+    # đổi khác đi kèm.
+    changed = {
+        key for key in changed
+        if not _only_cardinality_moved(current.get(key), committed.get(key))
     }
     # Đổi baseline phải là một thay đổi contract CÓ KHAI BÁO, kèm lý do — không
     # phải một file bị dịch trong im lặng. Danh sách chỉ nới đúng những khoá đã

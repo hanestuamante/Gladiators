@@ -8,7 +8,6 @@ from pydantic import BaseModel, ConfigDict
 
 from gladiators.domain.catalog import CATALOG
 from gladiators.domain.invariant_handlers import (
-    GOVERNED_DATES,
     InvariantContext,
     InvariantViolation,
     enforce_invariants,
@@ -34,10 +33,15 @@ def plan_rule_id(issues: tuple[PlanIssue, ...] | list[PlanIssue]) -> str:
         if issue.code in RULE_ID_BY_ISSUE:
             return RULE_ID_BY_ISSUE[issue.code]
     return DEFAULT_PLAN_RULE_ID
-# §E3: ba snapshot được quản trị sống ở ``domain.invariant_handlers`` cùng rule
-# thi hành chúng (INV-SNAPSHOT-SCOPE). Giữ một set thứ hai ở đây là cách hai
-# danh sách ngày lệch nhau khi dataset đổi.
-ALLOWED_DATES = frozenset(GOVERNED_DATES)
+# §E3: snapshot được quản trị sống ở ``domain.invariant_handlers`` cùng rule thi
+# hành chúng (INV-SNAPSHOT-SCOPE). Giữ một set thứ hai ở đây là cách hai danh
+# sách ngày lệch nhau khi dataset đổi — W30 làm nó thành một HÀM vì danh sách
+# giờ đọc từ bản dữ liệu, và một `frozenset` tính lúc import sẽ đóng băng lịch
+# của bản dữ liệu có mặt lúc process khởi động.
+def allowed_dates() -> frozenset[str]:
+    from gladiators.domain.invariant_handlers import governed_dates
+
+    return frozenset(governed_dates())
 
 
 class PlanIssue(BaseModel):

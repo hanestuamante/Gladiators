@@ -96,6 +96,13 @@ def compute_version_id(root: Path) -> str:
     return digest.hexdigest()[:16]
 
 
+def _calendar_block(root: Path) -> dict:
+    from gladiators.domain.calendar import load_calendar
+
+    load_calendar.cache_clear()
+    return load_calendar(root).as_dict()
+
+
 def write_manifest(
     root: Path, *, raw_snapshot: str | None = None,
     built_by: str | None = None, notes: str = "",
@@ -113,6 +120,10 @@ def write_manifest(
         # Bản raw nào sinh ra bản này. Thiếu nó thì không tái lập được, và một
         # bản dữ liệu không tái lập được là một giai thoại.
         "raw_snapshot": raw_snapshot,
+        # W30: lịch snapshot đi CÙNG bản dữ liệu. Đọc lại từ artifact mỗi lần
+        # khởi động thì mỗi tiến trình tự trả lời "bản này quan sát ngày nào" —
+        # và hai câu trả lời khác nhau cho cùng một bản là cách chúng lệch nhau.
+        "calendar": _calendar_block(root),
         "artifacts": {
             name: _canonical_hash(root / name)
             for name in sorted(VERSIONED_ARTIFACTS + OPTIONAL_VERSIONED_ARTIFACTS)

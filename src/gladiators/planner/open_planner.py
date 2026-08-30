@@ -61,7 +61,17 @@ class OpenPlannerResult:
     branch_attempts: tuple = ()
 
 
-LATEST_SNAPSHOT = "2026-07-03"
+def latest_snapshot() -> str:
+    """Đợt thu mới nhất của bản dữ liệu đang phục vụ (W30-R2)."""
+    from gladiators.domain.calendar import default_calendar
+
+    return default_calendar().last()
+
+
+def __getattr__(name: str):
+    if name == "LATEST_SNAPSHOT":
+        return latest_snapshot()
+    raise AttributeError(name)
 
 # Vòng R nới lát cắt lên gấp đôi, đúng một lần (A5-R1). Gấp đôi chứ không mở
 # toàn bộ 86 ref: nới hết là bỏ hẳn việc cắt ngữ cảnh, và mất luôn tín hiệu cho
@@ -113,7 +123,7 @@ def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
     if request.time_scope and len(set(request.time_scope.dates)) == 2:
         return True
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
-    if len(dates) == 1 and dates[0] != LATEST_SNAPSHOT:
+    if len(dates) == 1 and dates[0] != latest_snapshot():
         return True
     # Counting any unit other than the listing has no template at all, so the
     # alternative here is not a wrong number but an A19 refusal for a question

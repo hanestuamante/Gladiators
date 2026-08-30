@@ -26,6 +26,11 @@ compiler and executor.
 """
 from __future__ import annotations
 
+# W30: cận số dòng và cửa sổ ngày khai bằng KÝ HIỆU trên lịch snapshot, không
+# bằng con số/ngày của một bản dữ liệu. Ghim cứng thì hằng số đúng trên bộ dữ
+# liệu có mặt lúc viết và sai lặng lẽ trên bộ kế tiếp.
+from gladiators.domain.calendar import full_window, latest_snapshot
+
 import re
 from dataclasses import dataclass
 from typing import Literal, TypedDict, get_args
@@ -456,11 +461,11 @@ def _synthesize_two_endpoint(
     nodes = (
         PlanNode(node_id="n1", op="Scan", source=source, refs=scan_refs,
                  input_grain="listing_snapshot", output_grain="listing_snapshot",
-                 expected_schema=intermediate, expected_cardinality="<=3341"),
+                 expected_schema=intermediate, expected_cardinality="<=snapshot_rows"),
         PlanNode(node_id="n2", op="Filter", inputs=("n1",),
                  predicates=tuple(predicates),
                  input_grain="listing_snapshot", output_grain="listing_snapshot",
-                 expected_schema=intermediate, expected_cardinality="<=3341"),
+                 expected_schema=intermediate, expected_cardinality="<=snapshot_rows"),
         PlanNode(node_id="n4", op="Aggregate", inputs=("n2",),
                  refs=(measure_ref,), group_by=("dim.date",),
                  aggregation=aggregation, input_grain="listing_snapshot",
@@ -634,12 +639,12 @@ def synthesize(
         PlanNode(
             node_id="n1", op="Scan", source=source, refs=scan_refs,
             input_grain="listing_snapshot", output_grain="listing_snapshot",
-            expected_schema=output, expected_cardinality="<=3341",
+            expected_schema=output, expected_cardinality="<=snapshot_rows",
         ),
         PlanNode(
             node_id="n2", op="Filter", inputs=("n1",), predicates=tuple(predicates),
             input_grain="listing_snapshot", output_grain="listing_snapshot",
-            expected_schema=output, expected_cardinality="<=3341",
+            expected_schema=output, expected_cardinality="<=snapshot_rows",
         ),
     ]
     cursor = "n2"
@@ -650,7 +655,7 @@ def synthesize(
             node_id=node_id, op="Join", inputs=(cursor,), relation=name,
             refs=plan_edges.refs_by_edge[name],
             input_grain="listing_snapshot", output_grain="listing_snapshot",
-            expected_schema=output, expected_cardinality="<=3341",
+            expected_schema=output, expected_cardinality="<=snapshot_rows",
         ))
         cursor = node_id
 
@@ -668,7 +673,7 @@ def synthesize(
             node_id="nd", op="Dedupe", inputs=(cursor,),
             dedupe_policy=fanout[0].dedupe_strategy,
             input_grain="listing_snapshot", output_grain="listing_snapshot",
-            expected_schema=output, expected_cardinality="<=3341",
+            expected_schema=output, expected_cardinality="<=snapshot_rows",
         ))
         cursor = "nd"
 
@@ -677,7 +682,7 @@ def synthesize(
             node_id="nf2", op="Filter", inputs=(cursor,),
             predicates=tuple(remote_predicates),
             input_grain="listing_snapshot", output_grain="listing_snapshot",
-            expected_schema=output, expected_cardinality="<=3341",
+            expected_schema=output, expected_cardinality="<=snapshot_rows",
         ))
         cursor = "nf2"
 
@@ -689,7 +694,7 @@ def synthesize(
             input_grain="listing_snapshot",
             output_grain="group" if dimensions else "country_snapshot",
             expected_schema=output,
-            expected_cardinality="<=3341" if dimensions else "1",
+            expected_cardinality="<=snapshot_rows" if dimensions else "1",
         ))
         cursor, grain = "n4", "group" if dimensions else "country_snapshot"
 
@@ -705,7 +710,7 @@ def synthesize(
         nodes.append(PlanNode(
             node_id="n5", op="Project", inputs=(cursor,), refs=scan_refs,
             input_grain=grain, output_grain=grain, expected_schema=output,
-            expected_cardinality="<=3341",
+            expected_cardinality="<=snapshot_rows",
         ))
         cursor = "n5"
 

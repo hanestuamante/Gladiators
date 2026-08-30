@@ -63,13 +63,36 @@ class ExecutionResult:
     rank_tie_at_cut: bool = False
 
 
+# W30-R3: cận số dòng khai bằng KÝ HIỆU trên lịch, không bằng một con số của
+# một bản dữ liệu. ``"<=3341"`` đúng trên bộ 3 ngày và sai trên bộ 20 ngày —
+# nhưng nó sai theo kiểu fail-closed, nên nguyên nhân bị nói sai ("plan sai hợp
+# đồng") thay vì nói đúng ("cận viết cho một bản dữ liệu khác").
+CARDINALITY_SYMBOLS = ("snapshot_rows", "listings", "snapshots")
+
+
+def _symbol_value(symbol: str) -> int | None:
+    from gladiators.domain.calendar import default_calendar
+
+    calendar = default_calendar()
+    return {
+        "snapshot_rows": calendar.row_count,
+        "listings": calendar.listing_count,
+        "snapshots": len(calendar.dates),
+    }.get(symbol)
+
+
 def _declared_cardinality(expected: str | None) -> int | None:
-    """``"1"`` → 1, ``"<=50"`` → 50, thứ khác → ``None`` (không khai được cận)."""
+    """``"1"`` → 1, ``"<=50"`` → 50, ``"<=snapshot_rows"`` → theo lịch.
+
+    Thứ khác → ``None`` (không khai được cận, lùi về ước tính của DuckDB).
+    """
     if not expected:
         return None
     text = expected.strip()
     if text.startswith("<="):
         text = text[2:].strip()
+    if text in CARDINALITY_SYMBOLS:
+        return _symbol_value(text)
     try:
         return int(text)
     except ValueError:
@@ -250,7 +273,19 @@ class QueryExecutor:
             )
         bound = query.expected_cardinality
         exact = not bound.startswith("<=")
-        limit = int(bound.removeprefix("<="))
+        # MỘT bộ phân giải cận, không hai: chỗ này từng tự gọi ``int()`` và nó
+        # nổ ngay khi cận mang ký hiệu lịch (W30-R3). Hai bản của một luật là
+        # cách chúng lệch nhau — đây là lần lệch thứ nhất, bắt được vì nó nổ
+        # thay vì âm thầm chấp nhận.
+        limit = _declared_cardinality(bound)
+        if limit is None:
+            raise ExecutionFailure(
+                ExecutionIssue(
+                    code="schema_invalid", message_key="execution.schema_invalid",
+                    details={"expected_cardinality": bound},
+                ),
+                "expected_cardinality của plan không phân giải được thành một cận.",
+            )
         if (len(frame) != limit) if exact else (len(frame) > limit):
             raise ExecutionFailure(
                 ExecutionIssue(

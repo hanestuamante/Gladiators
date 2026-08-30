@@ -24,7 +24,28 @@ from .invariants import INVARIANTS, InvariantSpec, InvariantStage, Severity
 
 # Sentinel giá: 999999999 không phải giá cao nhất, nó là "không có giá".
 PRICE_SENTINEL = 999_999_999
-GOVERNED_DATES = ("2026-07-01", "2026-07-02", "2026-07-03")
+
+
+def governed_dates() -> tuple[str, ...]:
+    """Những ngày bản dữ liệu đang phục vụ THẬT SỰ quan sát (W30).
+
+    Trước W30 đây là một tuple ba phần tử viết tay. Nó đúng trên bộ đóng băng,
+    nên không phép kiểm nào bắt được rằng nó mô tả MỘT bản dữ liệu chứ không mô
+    tả một bất biến. ``INV-SNAPSHOT-SCOPE`` không đổi nghĩa — nó vẫn nói "chỉ
+    được dùng ngày đã thu"; chỉ là danh sách ngày không còn viết tay.
+    """
+    from .calendar import default_calendar
+
+    return default_calendar().dates
+
+
+def __getattr__(name: str):
+    # PEP 562: giữ ``from … import GOVERNED_DATES`` chạy được, nhưng hoãn việc
+    # đọc bản dữ liệu tới lúc consumer thật sự cần — module này nằm trên đường
+    # import của gần như mọi thứ.
+    if name == "GOVERNED_DATES":
+        return governed_dates()
+    raise AttributeError(name)
 
 
 class InvariantDispatchError(ValueError):
@@ -222,7 +243,7 @@ class _SnapshotScope(_Handler):
             scope = tuple(getattr(context.plan, "time_scope", ()) or ())
         elif context.request is not None:
             scope = tuple(getattr(context.request, "date_range", ()) or ())
-        outside = sorted(set(scope) - set(GOVERNED_DATES))
+        outside = sorted(set(scope) - set(governed_dates()))
         if outside:
             return (self.violation(spec, context, dates=outside),)
         return ()

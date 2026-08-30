@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from gladiators.planner.query_ir import CARDINALITY_GRAMMAR, OutputField, PlanNode
+from gladiators.planner.query_ir import CARDINALITY_GRAMMAR, CARDINALITY_SYMBOLS, OutputField, PlanNode
 
 OUTPUT = (OutputField(name="price", type="number", semantic_ref="measure.price"),)
 BASE = dict(
@@ -21,7 +21,11 @@ def _node(cardinality: str, **extra) -> PlanNode:
 def test_grammar_constant_is_exported_for_prompt_and_validator():
     # §4.3: the prompt and the validator must state the same rule, so a plan is
     # never rejected against something the model was never told.
-    assert CARDINALITY_GRAMMAR == r"^(<=)?\d+$"
+    # W30-R3: ngữ pháp nhận thêm KÝ HIỆU trên lịch snapshot. Tập ký hiệu là
+    # ĐÓNG — nới thành chuỗi tự do sẽ cho LLM planner khai một cận không ai phân
+    # giải được, tức một cận không tồn tại.
+    assert CARDINALITY_GRAMMAR == r"^(<=)?(\d+|snapshot_rows|listings|snapshots)$"
+    assert CARDINALITY_SYMBOLS == ("snapshot_rows", "listings", "snapshots")
 
 
 @pytest.mark.parametrize("value", ["1", "5", "<=1", "<=10", "3341"])

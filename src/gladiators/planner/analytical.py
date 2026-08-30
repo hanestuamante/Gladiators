@@ -5,6 +5,11 @@ Các template này dành cho L0–L2 phổ biến, không gọi LLM. Câu ngoài
 """
 from __future__ import annotations
 
+# W30: cận số dòng và cửa sổ ngày khai bằng KÝ HIỆU trên lịch snapshot, không
+# bằng con số/ngày của một bản dữ liệu. Ghim cứng thì hằng số đúng trên bộ dữ
+# liệu có mặt lúc viết và sai lặng lẽ trên bộ kế tiếp.
+from gladiators.domain.calendar import full_window, latest_snapshot
+
 from gladiators.domain.metrics import approved_exclusion_predicates
 from .query_ir import LogicalQueryPlan, OutputField, PlanNode, Predicate
 from .semantic_parser import AnalyticalRequest
@@ -76,14 +81,14 @@ def _price_change_by_date(kind: str, country: str) -> LogicalQueryPlan:
     )
     return LogicalQueryPlan(
         plan_id=f"open:price_change_by_date:{country}:1.0",
-        time_scope=("2026-07-01", "2026-07-02", "2026-07-03"),
+        time_scope=full_window(),
         output_node="n3", requested_output_shape=output,
         nodes=(
             PlanNode(
                 node_id="n1", op="Scan", source="product_snapshot_metrics.csv",
                 refs=("dim.date", "measure.price"), input_grain="listing_snapshot",
                 output_grain="listing_snapshot", expected_schema=output,
-                expected_cardinality="<=3341",
+                expected_cardinality="<=snapshot_rows",
             ),
             PlanNode(
                 node_id="n2", op="Filter", inputs=("n1",), predicates=(
@@ -92,7 +97,7 @@ def _price_change_by_date(kind: str, country: str) -> LogicalQueryPlan:
                     *(Predicate(ref=ref, op=op, parameter="price_sentinel", value=value)
                       for ref, op, value in approved_exclusion_predicates("measure.price")),
                 ), input_grain="listing_snapshot", output_grain="listing_snapshot",
-                expected_schema=output, expected_cardinality="<=2046",
+                expected_schema=output, expected_cardinality="<=snapshot_rows",
             ),
             PlanNode(
                 node_id="n3", op="Aggregate", inputs=("n2",), refs=("measure.price",),
@@ -115,7 +120,7 @@ def _highest_revenue_day(kind: str, country: str) -> LogicalQueryPlan:
     )
     return LogicalQueryPlan(
         plan_id=f"analytical:highest_revenue_day:{country}:1.0",
-        time_scope=("2026-07-01", "2026-07-02", "2026-07-03"),
+        time_scope=full_window(),
         output_node="n4",
         requested_output_shape=output,
         nodes=(
@@ -123,13 +128,13 @@ def _highest_revenue_day(kind: str, country: str) -> LogicalQueryPlan:
                 node_id="n1", op="Scan", source="product_snapshot_metrics.csv",
                 refs=("dim.date", "derived.estimated_recent_revenue"),
                 input_grain="listing_snapshot", output_grain="listing_snapshot",
-                expected_schema=output, expected_cardinality="<=3341",
+                expected_schema=output, expected_cardinality="<=snapshot_rows",
             ),
             PlanNode(
                 node_id="n2", op="Filter", inputs=("n1",),
                 predicates=(Predicate(ref="dim.country", op="eq", parameter="country", value=country),),
                 input_grain="listing_snapshot", output_grain="listing_snapshot",
-                expected_schema=output, expected_cardinality="<=2046",
+                expected_schema=output, expected_cardinality="<=snapshot_rows",
             ),
             PlanNode(
                 node_id="n3", op="Aggregate", inputs=("n2",),
@@ -151,19 +156,19 @@ def _highest_revenue_day(kind: str, country: str) -> LogicalQueryPlan:
 def _listing_count(kind: str, country: str) -> LogicalQueryPlan:
     output = (OutputField(name="listing_count", type="integer", semantic_ref="derived.product_count"),)
     return LogicalQueryPlan(
-        plan_id=f"analytical:{kind}:{country}:1.0", time_scope=("2026-07-03",),
+        plan_id=f"analytical:{kind}:{country}:1.0", time_scope=(latest_snapshot(),),
         output_node="n3", requested_output_shape=output,
         nodes=(
             PlanNode(
                 node_id="n1", op="Scan", source="products_clean.csv",
                 refs=("entity.product_listing",), input_grain="listing_snapshot",
-                output_grain="listing_snapshot", expected_schema=output, expected_cardinality="<=3341",
+                output_grain="listing_snapshot", expected_schema=output, expected_cardinality="<=snapshot_rows",
             ),
             PlanNode(
                 node_id="n2", op="Filter", inputs=("n1",),
                 predicates=(
                     Predicate(ref="dim.country", op="eq", parameter="country", value=country),
-                    Predicate(ref="dim.date", op="eq", parameter="date", value="2026-07-03"),
+                    Predicate(ref="dim.date", op="eq", parameter="date", value=latest_snapshot()),
                 ),
                 input_grain="listing_snapshot", output_grain="listing_snapshot",
                 expected_schema=output, expected_cardinality="<=682",
@@ -187,7 +192,7 @@ def _highest_listing(kind: str, country: str) -> LogicalQueryPlan:
     )
     predicates = [
         Predicate(ref="dim.country", op="eq", parameter="country", value=country),
-        Predicate(ref="dim.date", op="eq", parameter="date", value="2026-07-03"),
+        Predicate(ref="dim.date", op="eq", parameter="date", value=latest_snapshot()),
         Predicate(ref=metric_ref, op="gte", parameter="metric_floor", value=0),
     ]
     # W14.2: gắn theo METRIC_REF, không theo kind — cùng một luật cho
@@ -195,13 +200,13 @@ def _highest_listing(kind: str, country: str) -> LogicalQueryPlan:
     for ref, op, value in approved_exclusion_predicates(metric_ref):
         predicates.append(Predicate(ref=ref, op=op, parameter="price_sentinel", value=value))
     return LogicalQueryPlan(
-        plan_id=f"analytical:{kind}:{country}:1.0", time_scope=("2026-07-03",),
+        plan_id=f"analytical:{kind}:{country}:1.0", time_scope=(latest_snapshot(),),
         output_node="n4", requested_output_shape=output,
         nodes=(
             PlanNode(
                 node_id="n1", op="Scan", source="products_clean.csv",
                 refs=("dim.product_name", metric_ref), input_grain="listing_snapshot",
-                output_grain="listing_snapshot", expected_schema=output, expected_cardinality="<=3341",
+                output_grain="listing_snapshot", expected_schema=output, expected_cardinality="<=snapshot_rows",
             ),
             PlanNode(
                 node_id="n2", op="Filter", inputs=("n1",), predicates=tuple(predicates),
@@ -230,19 +235,19 @@ def _top_shop_by_listing_count(kind: str, country: str) -> LogicalQueryPlan:
         OutputField(name="listing_count", type="integer", semantic_ref="derived.product_count"),
     )
     return LogicalQueryPlan(
-        plan_id=f"analytical:{kind}:{country}:1.0", time_scope=("2026-07-03",),
+        plan_id=f"analytical:{kind}:{country}:1.0", time_scope=(latest_snapshot(),),
         output_node="n5", requested_output_shape=output,
         nodes=(
             PlanNode(
                 node_id="n1", op="Scan", source="products_clean.csv",
                 refs=("entity.shop", "entity.product_listing"), input_grain="listing_snapshot",
-                output_grain="listing_snapshot", expected_schema=output, expected_cardinality="<=3341",
+                output_grain="listing_snapshot", expected_schema=output, expected_cardinality="<=snapshot_rows",
             ),
             PlanNode(
                 node_id="n2", op="Filter", inputs=("n1",),
                 predicates=(
                     Predicate(ref="dim.country", op="eq", parameter="country", value=country),
-                    Predicate(ref="dim.date", op="eq", parameter="date", value="2026-07-03"),
+                    Predicate(ref="dim.date", op="eq", parameter="date", value=latest_snapshot()),
                 ),
                 input_grain="listing_snapshot", output_grain="listing_snapshot",
                 expected_schema=output, expected_cardinality="<=682",
