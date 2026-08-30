@@ -27,6 +27,58 @@ _DATE_ISO = re.compile(r"2026-07-0[1-3]")
 _DATE_DAY_MONTH = re.compile(r"(?<![0-9])0?([123])\s*/\s*0?7(?![0-9])")
 
 
+def _ledger_of(
+    text: str,
+    *,
+    country: str | None,
+    dates: tuple[str, ...],
+    surfaces: tuple[tuple[str, str | None, str], ...],
+) -> "BindingLedger":
+    """Dựng ledger bằng cách REPLAY claim của từng binder, theo thứ tự W16 §3.3.
+
+    Thứ tự là một QUYẾT ĐỊNH, không phải mặc định thuật toán: value binding chạy
+    sau alias là điều làm việc xoá ``MIN_VALUE_LENGTH`` an toàn — ``gia`` trong
+    ``gia tri`` đã bị alias tiêu thụ và không còn là span dư.
+    """
+    from .spans import LedgerBuilder, fold
+
+    builder = LedgerBuilder(text)
+    # 2. entity_id — chuỗi ≥8 chữ số
+    for token in builder.tokens:
+        if token.numeric and len(token.normalized) >= 8:
+            builder.claim(token.index, token.index + 1, "entity_id", payload=token.normalized)
+    # 3. date — token số thuộc một cụm ngày đã phân giải
+    if dates:
+        for token in builder.tokens:
+            if token.numeric and len(token.normalized) <= 4:
+                builder.claim(token.index, token.index + 1, "date", payload=dates)
+    # 4. country
+    if country:
+        for surface in _COUNTRY_SURFACES.get(country, ()):  # noqa: SIM118
+            pos = builder.find_free(fold(surface))
+            if pos:
+                builder.claim(*pos, "country", ref="dim.country", payload=country)
+    # 5-7. alias / qualifier / value — theo đúng thứ tự caller truyền vào
+    for producer, ref, surface in surfaces:
+        pos = builder.find_free(fold(surface))
+        if pos:
+            builder.claim(*pos, producer, ref=ref, payload=surface)
+    # 9. number — số còn lại
+    for token in builder.tokens:
+        if token.numeric:
+            builder.claim(token.index, token.index + 1, "number", payload=token.normalized)
+    return builder.build()
+
+
+# Cách gọi một thị trường trong ba ngôn ngữ. Country binder của parser suy country
+# từ ngoài (workflow truyền vào), nên ledger phải tự tìm span tương ứng để token
+# tên nước không bị chấm là ``unknown_concept``.
+_COUNTRY_SURFACES: dict[str, tuple[str, ...]] = {
+    "vn": ("việt nam", "viet nam", "vietnam", "vn"),
+    "id": ("indonesia", "indo", "id"),
+}
+
+
 def extract_date_range(normalized: str) -> list[str]:
     """Return ``[start, end]`` for the snapshot dates named in a normalised text.
 
@@ -127,6 +179,13 @@ class AnalyticalRequest(BaseModel):
     # collision đều fail-closed qua classify_a19, không chỉ voucher. Field
     # `ambiguities` chuỗi cũ giữ đọc một release cho tương thích payload.
     semantic_ambiguities: tuple[SemanticAmbiguity, ...] = ()
+    # W16: bản model hoá được của BindingLedger. Mặc định rỗng ⇒ payload cũ vẫn
+    # validate. `unbound_spans` giữ phẳng vì RequestDigest và trace đọc nó nhiều
+    # nhất — đây là ĐƯỜNG để A22 và gate thấy được phần dư, thứ mà trước W16
+    # không lớp nào phía sau trả lời được ("một ràng buộc có mặt trong câu hỏi
+    # đã được biểu diễn hay đã bị bỏ rơi?").
+    binding_ledger: dict[str, Any] = Field(default_factory=dict)
+    unbound_spans: tuple[tuple[str, str], ...] = ()
 
 
 
@@ -435,8 +494,16 @@ class DeterministicSemanticParser:
         dates = tuple(dict.fromkeys(extract_date_range(normalized)))
         assumptions: list[str] = []
         if not dates:
-            dates = ("2026-07-03",)
-            assumptions.append("Mặc định snapshot mới nhất 2026-07-03 cho aggregate cross-sectional.")
+            # W30-R2: đợt thu mới nhất đọc từ lịch của bản dữ liệu, không ghim.
+            # W20-R2: assumption KHÔNG mang chữ số — verifier.scan_numbers quét
+            # mọi số trong answer và đòi evidence hậu thuẫn, còn assumption đi
+            # kèm câu abstain thì không có evidence nào.
+            from gladiators.domain.calendar import latest_snapshot
+
+            dates = (latest_snapshot(),)
+            assumptions.append(
+                "Mặc định đợt thu mới nhất cho aggregate cross-sectional.",
+            )
         filters = []
         if country:
             filters.append(AnalyticalPredicate(field_ref="dim.country", op="eq", value_binding=country))
@@ -655,7 +722,25 @@ class DeterministicSemanticParser:
                 "Thiếu country cho metric tiền tệ; không được trộn VND và IDR."
                 if monetary else "Thiếu country để khóa scope VN hoặc ID."
             )
+        # W16: dựng ledger trên câu GỐC (không phải bản normalize) — hình thái
+        # viết hoa/ngoặc kép chỉ còn ở đó, và đó là thứ W18 dùng thay cho ngưỡng
+        # độ dài. Replay claim theo thứ tự §3.3: alias → qualifier → value.
+        _surfaces: list[tuple[str, str | None, str]] = []
+        for item in list(measures) + list(dimensions):
+            if item.surface_text:
+                _surfaces.append(("alias", item.ref, item.surface_text))
+        for surface in qualifier_surfaces:
+            _surfaces.append(("qualifier", None, surface))
+        for predicate in filters:
+            if predicate.field_ref not in ("dim.country", "dim.date"):
+                _surfaces.append(("value", predicate.field_ref, str(predicate.value_binding)))
+        ledger = _ledger_of(text, country=country, dates=dates, surfaces=tuple(_surfaces))
+
         return AnalyticalRequest(
+            binding_ledger=ledger.digest(),
+            unbound_spans=tuple(
+                (item.kind, item.span.normalized) for item in ledger.significant()
+            ),
             normalized_question=normalized,
             language=language if language in {"vi", "id"} else "unknown",
             requested_measures=tuple(measures), requested_dimensions=tuple(dimensions),
