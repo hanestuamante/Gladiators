@@ -470,6 +470,22 @@ def register_term_proposer(proposer) -> None:
     _TERM_PROPOSER = proposer
 
 
+# Vùng trong ngoặc kép, lấy từ câu GỐC. `normalize` xoá mọi ký tự ngoài
+# `[a-z0-9\s:/._-]`, nên dấu ngoặc KHÔNG còn trong chuỗi đã normalize — tìm nó
+# ở đó là tìm một thứ đã bị xoá.
+_QUOTED_RAW = re.compile(r'["\u201c]([^"\u201d]+)["\u201d]')
+
+
+def _without_quoted_regions(normalized: str, raw: str) -> str:
+    """``normalized`` sau khi trừ đi phần nằm trong ngoặc kép của ``raw``."""
+    out = normalized
+    for inner in _QUOTED_RAW.findall(raw):
+        folded = normalize(inner)
+        if folded:
+            out = out.replace(folded, " ")
+    return out
+
+
 def _contiguous_residuals(ledger) -> tuple[str, ...]:
     """Cụm token dư LIỀN KỀ, dài trước — đầu vào cho vòng phân giải W32.
 
@@ -691,7 +707,24 @@ class DeterministicSemanticParser:
                 ]
         qualifier_refs: set[str] = set()
         qualifier_surfaces: list[str] = []
-        for matched in qualifier_match(normalized):
+        # LUẬT W18-R6 — chữ TRONG NGOẶC KÉP là một TÊN, không phải một điều kiện.
+        #
+        # Đo được: shop `"Bánh Kẹo Hải Hà - Chính hãng"` có cụm "chính hãng"
+        # nằm trong CHÍNH TÊN NÓ, và binder đọc cụm đó thành qualifier
+        # `dim.shop_official = True`. Plan thành "shop tên X **và** là official
+        # shop", lọc ra 0 dòng, rồi trả `allow` kèm câu *"không có dòng nào thoả
+        # điều kiện"* — trong khi shop đó có 12 listing hôm ấy.
+        #
+        # Đây là kết cục TỆ HƠN một lời từ chối: số 0 trông như một sự thật về
+        # dữ liệu, và mọi lớp kiểm phía sau đều thấy nó hợp lệ (bộ lọc có chạy,
+        # evidence có thật, verifier khớp). Cùng shop nhưng tên không chứa cụm
+        # đó thì không sinh filter thừa — nên khác biệt nằm ở TÊN, không ở câu
+        # hỏi.
+        #
+        # W18 đã lập luật loại vùng trong ngoặc cho *value binder*; qualifier
+        # chưa được che. Một lattice, hai bộ đọc, và bản vá chỉ áp cho một.
+        qualifier_text = _without_quoted_regions(normalized, text)
+        for matched in qualifier_match(qualifier_text):
             # W8.3: op/value đến từ hợp đồng CÓ KIỂU của qualifier — cờ nhãn
             # voucher là "vouchers_count gte 1", không phải "eq True".
             filters.append(AnalyticalPredicate(

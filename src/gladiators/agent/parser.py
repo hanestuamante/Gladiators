@@ -152,6 +152,13 @@ class MultilingualIntentParser:
         text = strip_presentation_quotes(text)
         n = normalize_text(text)
         quoted = re.findall(r'["“](.*?)["”]', text)
+        # Câu có nêu một ĐỊNH DANH listing không — quét CẢ CÂU, không quét
+        # riêng phần trong ngoặc: `strip_presentation_quotes` chạy trước dòng
+        # này và bỏ ngoặc ở một số dạng câu, nên `quoted` đôi khi rỗng dù câu
+        # có nêu mã. Mã listing tự nó đã không mơ hồ; nó không cần ngoặc.
+        names_a_listing_key = bool(
+            re.search(r"(?:vn|id):\d{6,12}:\d{6,14}", text, re.IGNORECASE),
+        )
         language = "id" if any(x in n for x in ("produk", "penjualan", "mirip", "promosi")) else "vi"
         route = classify_external_need(text)
         countries = extract_countries(text, n)
@@ -408,8 +415,30 @@ class MultilingualIntentParser:
             x in n for x in ("nhieu listing nhat", "nhieu san pham nhat", "most listings", "listing terbanyak")
         ):
             intent = "analytical_query"
-        elif quoted or any(x in n for x in ("doanh so", "sales decline", "bien dong ban", "tinh hinh ban", "cek penjualan", "analisis penjualan")) or (
-            "luot ban" in n and any(x in n for x in ("giam", "tang", "thay doi"))
+        elif (
+            # NGOẶC KÉP KHÔNG PHẢI MỘT Ý ĐỊNH. Nhánh này từng nhận `quoted` trần,
+            # nên MỌI câu có tên trong ngoặc đều thành phân tích biến động doanh
+            # số — kể cả khi nó hỏi chuyện khác hẳn. Đo được, cùng một tên shop
+            # trong ngoặc:
+            #
+            #   "Liệt kê sản phẩm của shop X"     → sales_decline → A-ENTITY-NOT-FOUND
+            #   "Giá trung bình của shop X"       → sales_decline → A-ENTITY-NOT-FOUND
+            #   "Khoảng tứ phân vị giá shop X"    → sales_decline → A-ENTITY-NOT-FOUND
+            #
+            # Và lời từ chối nói *"không tìm thấy LISTING nào khớp"* trong khi
+            # `expected_entity_types` đã trả `('shop',)` và `dim.shop_name` đã
+            # bind đúng — ba câu khác nhau, một nguyên nhân, và nguyên nhân đó
+            # nằm ở tầng định tuyến chứ không ở tầng phân giải.
+            #
+            # Thứ ĐƯỢC giữ: một **listing key** trong ngoặc. Nó định danh đúng
+            # một listing, tức đúng grain mà macro biến động doanh số làm việc
+            # trên đó — `Kiểm tra lượt bán "id:1112776376:46456356622"` vẫn phải
+            # vào đây. Một TÊN trong ngoặc thì không: nó có thể là shop, brand,
+            # hay sản phẩm, và đoán bừa là chọn hộ người dùng một grain.
+            (names_a_listing_key and "luot ban" in n)
+            or any(x in n for x in ("doanh so", "sales decline", "bien dong ban",
+                                 "tinh hinh ban", "cek penjualan", "analisis penjualan"))
+            or ("luot ban" in n and any(x in n for x in ("giam", "tang", "thay doi")))
         ):
             intent = "sales_decline"
         else:
