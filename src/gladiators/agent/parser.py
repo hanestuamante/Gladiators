@@ -356,7 +356,15 @@ class MultilingualIntentParser:
         elif any(x in n for x in ("voucher", "khuyen mai", "promotion", "promosi", "promo")) and not ("voucher" in n and re.search(
             # Chỉ chuyển hướng khi câu ĐẾM MỘT ĐƠN VỊ VÀ nói về VOUCHER — đếm
             # theo khuyến mãi/promotion (tc30) vẫn thuộc macro như trước W8.3.
-            r"(?:bao nhieu|so luong|berapa|how many)\s+(?:listing|san pham|mat hang|shop|item|produk)",
+            # "voucher" nằm trong danh sách này vì "bao nhiêu VOUCHER" là một câu
+            # ĐẾM, y hệt "bao nhiêu listing" — chú thích W8.3 ngay dưới đã nói
+            # đúng nguyên tắc, chỉ thiếu chính đơn vị mà cả nhánh nói về. Hệ quả
+            # đo được: "Shop X có bao nhiêu voucher ngày 03/07" rơi vào macro
+            # promo hai-nhóm rồi trả `A-NO-EVIDENCE` — một lời từ chối nói SAI
+            # trở ngại, vì mơ hồ CÓ được ghi đúng ở tầng dưới ("voucher có cấu
+            # trúc" so với "nhãn voucher") mà không lớp nào dùng tới nó.
+            r"(?:bao nhieu|so luong|berapa|how many)\s+"
+            r"(?:listing|san pham|mat hang|hang hoa|shop|item|produk|voucher|ma voucher|ma giam gia)",
             n,
         )):
             # W8.3: câu ĐẾM có từ voucher không phải câu promo hai-nhóm — nó đi
@@ -371,8 +379,22 @@ class MultilingualIntentParser:
         ) and any(x in n for x in ("ngay", "date", "tanggal")):
             intent = "analytical_query"
         elif any(x in n for x in ("bao nhieu", "how many", "berapa")) and any(
-            x in n for x in ("listing", "san pham", "product", "produk")
+            # CHỈ thêm đơn vị mà lỗi quan sát được đòi hỏi. Bản đầu của tôi
+            # thêm cả `shop`/`thuong hieu`/`brand`, và nó đổi định tuyến của
+            # "Có bao nhiêu shop ở Việt Nam?" — một câu vốn đi `open_analytical`
+            # và trả lời đúng — nên hai test hợp đồng của intent arbiter đỏ.
+            # Sửa một lỗi bằng cách đổi đường của những câu KHÔNG hỏng là mở
+            # rộng phạm vi, không phải sửa lỗi.
+            x in n for x in ("listing", "san pham", "mat hang", "hang hoa",
+                             "product", "produk", "voucher")
         ):
+            # Danh sách đơn vị đếm phải ĐỦ, vì nhánh `quoted` phía dưới bắt mọi
+            # câu có ngoặc kép và biến nó thành `sales_decline`. Đo được:
+            # *Shop "Richy - Chi nhánh Miền Nam" có bao nhiêu voucher ngày
+            # 03/07* rơi vào sales_decline rồi trả `A-ENTITY-NOT-FOUND` *"không
+            # tìm thấy LISTING nào khớp"* — trong khi tầng ngữ nghĩa đã bind
+            # đúng `dim.shop_name` và `expected_entity_types` đã trả `('shop',)`.
+            # Lời từ chối nói về một loại thực thể mà không lớp nào đang tìm.
             intent = "analytical_query"
         elif any(x in n for x in ("cao nhat", "dat nhat", "highest", "tertinggi")) and any(
             x in n for x in ("gia", "price", "harga")
