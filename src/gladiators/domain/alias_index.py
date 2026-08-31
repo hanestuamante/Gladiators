@@ -65,6 +65,13 @@ _COMPOUND_TRAPS: tuple[tuple[str, str], ...] = (
     ("danh gia", "gia"),     # "đánh giá" = to assess, not price
     ("giam gia", "gia"),     # "giảm giá" = discount, not price
     ("khuyen mai", "mai"),
+    # "quốc gia" = country, không phải measure giá. Đo được: "shop nào có ít mặt
+    # hàng nhất ngày 21/7. QUỐC GIA VN" xếp shop theo GIÁ TRUNG VỊ thay vì theo
+    # số mặt hàng, còn cùng câu viết "tại VN" thì đúng. `dim.country` CÓ alias
+    # "quốc gia", nhưng `_link` chạy hai lượt — measure trước, dimension sau —
+    # nên ở lượt measure cụm đó bị lọc khỏi tập ứng viên và không còn gì che cho
+    # "gia". Luật dài-nhất không cứu được vì nó chỉ so trong tập ĐÃ lọc.
+    ("quoc gia", "gia"),
 )
 
 

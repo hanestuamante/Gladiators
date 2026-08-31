@@ -114,7 +114,7 @@ def coverage_of(
 def check(
     refs: tuple[str, ...], dates: tuple[str, ...], country: str | None,
     aggregation: str | None, data_root: str | None = None,
-    filter_refs: tuple[str, ...] = (),
+    filter_refs: tuple[str, ...] = (), rank_refs: tuple[str, ...] = (),
 ) -> DensityVerdict | None:
     """Kết luận cho một plan, hoặc ``None`` khi W29 không có gì để nói.
 
@@ -133,9 +133,22 @@ def check(
     """
     from gladiators.domain.catalog import CATALOG
 
-    scope = tuple(filter_refs)
+    # LUẬT W29-R8 — CỰC TRỊ CŨNG LÀ MỘT PHÁT BIỂU VỀ PHẠM VI.
+    #
+    # `check` cũ chỉ gác phép TỔNG HỢP, nên một plan xếp hạng (`aggregation`
+    # là None, chỉ có `rank_by`) đi thẳng qua. Đo được: *"Sản phẩm nào được
+    # discount nhiều nhất ngày 3/7 tại VN?"* trả về đúng tên một sản phẩm —
+    # nhưng ngày đó chỉ có **5 quan sát discount trên 668 listing**, và câu trả
+    # lời không mang một lời cảnh báo nào.
+    #
+    # "Nhiều nhất trong 5 dòng" và "nhiều nhất trong 668 dòng" là hai phát biểu
+    # khác nhau, và cái sau là cái người dùng nghe thấy. Một cực trị trên 0,7%
+    # phạm vi sai lệch y hệt một trung vị trên 0,7% phạm vi — thậm chí khó thấy
+    # hơn, vì nó trả về một CÁI TÊN có thật thay vì một con số lạ.
+    scope = tuple(filter_refs) + tuple(rank_refs)
     if aggregation not in (None, "count", "share"):
         scope = tuple(dict.fromkeys(scope + tuple(refs)))
+    scope = tuple(dict.fromkeys(scope))
     if not scope:
         return None
 

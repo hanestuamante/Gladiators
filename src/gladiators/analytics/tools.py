@@ -721,9 +721,12 @@ class AnalyticsTools:
                 for predicate in node.predicates
                 if predicate.ref and predicate.ref != "dim.country"
             })
+            _rank_refs = tuple({
+                node.rank_by for node in plan.nodes if getattr(node, "rank_by", None)
+            })
             self.last_density = density_check(
                 _refs, _dates, _country, _agg, str(self.repo.root),
-                filter_refs=_filter_refs,
+                filter_refs=_filter_refs, rank_refs=_rank_refs,
             )
         except DensityError:
             raise
