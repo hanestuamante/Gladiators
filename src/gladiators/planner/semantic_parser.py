@@ -191,6 +191,12 @@ class AnalyticalRequest(BaseModel):
     date_request: dict[str, Any] = Field(default_factory=dict)
     binding_ledger: dict[str, Any] = Field(default_factory=dict)
     unbound_spans: tuple[tuple[str, str], ...] = ()
+    # W32: số đo của vòng ánh xạ LLM. Rỗng mang HAI nghĩa khác nhau và chúng
+    # phải phân biệt được: không có proposer (`llm_terms_called=False`) khác hẳn
+    # có proposer nhưng model trả null (`called=True, accepted=0`). Thiếu khoá
+    # này thì "đã đo" và "đã chạy" trông giống nhau — đúng lỗi WP-A11 đã mắc,
+    # nơi một nhánh chết vẫn trông như một nhánh hoà (CLAUDE.md §5.1).
+    llm_terms: dict[str, Any] = Field(default_factory=dict)
 
 
 
@@ -1198,6 +1204,7 @@ class DeterministicSemanticParser:
         ]
 
         return AnalyticalRequest(
+            llm_terms=term_resolution.as_attrs() if term_resolution else {},
             date_request=date_request.as_dict(),
             binding_ledger={
                 **ledger.digest(),

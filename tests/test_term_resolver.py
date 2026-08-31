@@ -71,3 +71,26 @@ def test_loi_llm_khong_thoat_ra_ngoai():
 
 def test_hu_tu_khong_nam_trong_kind_duoc_hoi():
     assert "function_word" not in RESOLVABLE_KINDS
+
+
+def test_so_do_phan_biet_duoc_ba_trang_thai():
+    """Rỗng mang hai nghĩa; nếu chúng trông giống nhau thì nhánh này không đo được.
+
+    WP-A11 đã mắc đúng lỗi đó: một nhánh chết trả `no_change` cho mọi câu và
+    tám test cô lập đều xanh, vì không khoá nào đếm số lần nó thật sự bắn.
+    """
+    from gladiators.planner.semantic_parser import DeterministicSemanticParser
+
+    khong = DeterministicSemanticParser().parse("gian buôn nào ở VN", "vi", "vn")
+    assert khong.llm_terms == {}                      # chưa từng hỏi
+
+    rong = DeterministicSemanticParser(
+        term_proposer=lambda payload: {"mapping": {}},
+    ).parse("gian buôn nào ở VN", "vi", "vn")
+    assert rong.llm_terms["llm_terms_called"] is True  # đã hỏi, model không biết
+    assert rong.llm_terms["llm_terms_accepted"] == 0
+
+    trung = DeterministicSemanticParser(
+        term_proposer=lambda payload: {"mapping": {"gian buôn": "entity.shop"}},
+    ).parse("có bao nhiêu gian buôn ở VN", "vi", "vn")
+    assert trung.llm_terms["llm_terms_map"] == {"gian buôn": "entity.shop"}
