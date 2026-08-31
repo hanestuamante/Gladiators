@@ -284,7 +284,13 @@ def _claim_value_is_displayed(claim: ResponseClaim) -> bool:
             )
         return False
     value = _normalize_unicode_punctuation(str(claim.value))
-    return any(variant in text for variant in _date_variants(value))
+    if any(variant in text for variant in _date_variants(value)):
+        return True
+    # Câu trả lời liệt kê CẮT NGẮN tên dài, nên chuỗi đầy đủ không xuất hiện
+    # nguyên vẹn trong câu của chính nó. Một tiền tố đủ dài vẫn định danh được
+    # giá trị — 12 ký tự là ngưỡng chọn, đủ dài để không trùng nhau tình cờ
+    # giữa các tên sản phẩm trong cùng một bảng kết quả.
+    return len(value) >= 12 and value[:12] in text
 
 
 def _claim_binding_gaps(
@@ -474,11 +480,37 @@ def verify_numeric_claims(
     # it was not even checking the date, just its first four digits. Date scope
     # is checked by A22-ALIGN-DATE, which compares whole dates against the digest.
     metric_text = _ISO_DATE_LITERAL.sub(" ", metric_text)
+    # Một CHUỖI chép nguyên văn từ evidence không phải một phát biểu số, dù bên
+    # trong nó có chữ số. Tên sản phẩm thật mang số ở khắp nơi — "Combo 2 chai",
+    # "(Túi: 475g)", "700ml" — nên một câu trả lời LIỆT KÊ luôn bị verifier chấm
+    # là bịa vài con số.
+    #
+    # Đo được: liệt kê 108 sản phẩm của một shop trả `A-VERIFICATION-FINAL` với
+    # `unsupported = [2.0, 2.0, 400.0, 20.0]`, trong khi mọi con số đó nằm
+    # trong chính các tên mà evidence cung cấp. Cùng shop nhưng chỉ 12 sản phẩm
+    # thì lọt, vì tên ngắn tình cờ không có số — tức phép kiểm phụ thuộc vào
+    # TÊN HÀNG, không vào tính đúng đắn.
+    #
+    # Xoá TRƯỚC khi quét, và chỉ xoá chuỗi đủ dài (≥4 ký tự) để không vô tình
+    # che một con số đứng một mình.
+    for item in evidence:
+        if isinstance(item.value, str) and len(item.value) >= 4:
+            metric_text = metric_text.replace(item.value, " ")
     metric_text = _normalize_thousands_grouping(metric_text)
     claimed_tokens = scan_number_tokens(metric_text)
     claimed = [value for value, _ in claimed_tokens]
     allowed = [float(e.value) for e in evidence if isinstance(e.value, (int, float)) and not isinstance(e.value, bool)]
     for item in evidence:
+        # Chuỗi từ evidence — tên sản phẩm, tên shop — mang chữ số ở khắp nơi
+        # ("Combo 2 chai", "(Túi: 475g)", "700ml"). Chúng KHÔNG phải phát biểu
+        # số; chúng là một phần của một cái tên mà chính hệ lấy từ dữ liệu.
+        #
+        # Xoá nguyên chuỗi khỏi vùng quét là không đủ: câu trả lời liệt kê CẮT
+        # NGẮN tên khi dài, nên phép thay thế chính xác trượt. Nên thay vì xoá,
+        # ta NHẬN các số bên trong tên vào tập cho phép — hẹp hơn và không phụ
+        # thuộc vào việc tên có bị cắt hay không.
+        if isinstance(item.value, str):
+            allowed.extend(value for value, _ in scan_number_tokens(item.value))
         for key in ("result_count", "returned_rows", "row_limit"):
             value = item.attrs.get(key)
             if isinstance(value, (int, float)) and not isinstance(value, bool):

@@ -88,8 +88,8 @@ def test_every_bare_return_none_is_named_and_the_code_set_is_exact():
     # Bộ chọn quan hệ BỎ CUỘC và bộ chọn quan hệ DỰNG RA MỘT CẠNH KHÔNG HỢP LỆ
     # là hai nguyên nhân khác nhau, và gộp chúng vào một mã làm trace nói rằng
     # chúng giống nhau.
-    assert len(observed) == len(set(observed)) == 21, (
-        f"21 lý do hiện tại phải không trùng, thấy {sorted(observed)}"
+    assert len(observed) == len(set(observed)) == 23, (
+        f"23 lý do hiện tại phải không trùng, thấy {sorted(observed)}"
     )
     assert set(observed) == set(DECLINE_CODES), (
         "tập literal quan sát được phải BẰNG ĐÚNG tập DeclineCode — "

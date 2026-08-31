@@ -1024,9 +1024,27 @@ class AgentRuntime:
         segments = [part.strip() for part in re.split(r"(?<=[.!?])\s+|\n+", answer) if part.strip()]
         claims: list[ResponseClaim] = []
         for item in evidence:
-            segment = next((part for part in segments if f"[{item.evidence_id}]" in part), None)
-            if segment is None:
+            index = next(
+                (i for i, part in enumerate(segments)
+                 if f"[{item.evidence_id}]" in part),
+                None,
+            )
+            if index is None:
                 continue
+            segment = segments[index]
+            # Bộ tách cắt theo dấu câu, và TÊN SẢN PHẨM THẬT có dấu chấm trong
+            # nó ("[ TẶNG QUÀ ĐƠN TỪ 129K] Thùng bánh mì…"). Khi đó tên rơi vào
+            # đoạn TRƯỚC còn trích dẫn ở lại đoạn sau, nên claim mang một giá
+            # trị mà chính câu của nó không chứa — `value_not_in_claim_text` —
+            # và cả câu trả lời liệt kê bị bỏ bằng A-VERIFICATION-FINAL.
+            #
+            # Nới sang đoạn liền trước KHI VÀ CHỈ KHI giá trị nằm ở đó. Không
+            # nới vô điều kiện: một claim gộp thêm chữ nó không nói tới sẽ làm
+            # phép kiểm ranh giới claim mất nghĩa.
+            if isinstance(item.value, str) and item.value not in segment and index > 0:
+                joined = f"{segments[index - 1]} {segment}"
+                if item.value in joined:
+                    segment = joined
             unit = item.unit
             if isinstance(item.value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", item.value):
                 claim_type = "date"

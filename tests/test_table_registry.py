@@ -63,7 +63,11 @@ def test_registry_covers_eight_artifacts_and_219_columns(snapshot):
     # catalog KHÔNG có object nào phơi cột này, nên không plan nào lọc được về
     # một listing cụ thể), và `dim.shop_name` thêm cột trên bảng listing để
     # W25 chiếu được TÊN shop thay vì `shop_id`.
-    assert counts["catalog_bindings"] == 96
+    # 96 → 97: `measure.price_before_promo` khai
+    # `products_clean.csv.price_before_promo_num`. Cột ĐÃ có trong dữ liệu và
+    # phủ 100%; trước đây không semantic object nào phơi nó, nên "giá trước
+    # khuyến mãi" không bind được gì và rơi vào A-NO-EVIDENCE.
+    assert counts["catalog_bindings"] == 97
     assert set(snapshot.tables) == set(ArtifactName)
     assert snapshot.tables[ArtifactName.SHOP_STATS].columns == ()
 

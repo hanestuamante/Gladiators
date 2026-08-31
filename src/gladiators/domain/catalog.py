@@ -222,6 +222,8 @@ _BASE_OBJECTS = [
 _MEASURE_ALIASES: dict[str, tuple[str, ...]] = {
     "price": ("giá", "giá bán", "harga"),
     "price_original": ("giá gốc", "giá niêm yết", "original price", "harga asli"),
+    "price_before_promo": ("giá trước khuyến mãi", "giá trước giảm", "giá chưa giảm",
+                           "price before promo", "harga sebelum promo"),
     # "giảm giá" is the everyday phrasing and was not an alias at all, so
     # longest-match only caught the "giá" nested inside it: the discount concept
     # disappeared and measure.price was bound to a question about discounts.
@@ -269,6 +271,11 @@ _MEASURE_ALIASES: dict[str, tuple[str, ...]] = {
 _MEASURES: dict[str, tuple[tuple[str, ...], str, str, tuple[int, ...], Answerability]] = {
     "price": (("products_clean.csv.price_num", "product_snapshot_metrics.csv.price_num"), "local_currency", "number", (5,), "exposed_as_measure"),
     "price_original": (("products_clean.csv.price_original_num", "product_snapshot_metrics.csv.price_original_num"), "local_currency", "number", (1, 5), "exposed_as_measure"),
+    # Cột `price_before_promo_num` CÓ THẬT và phủ 100% ở cả hai bản dữ liệu,
+    # nhưng chưa từng được khai làm semantic object — nên "giá trước khuyến mãi
+    # của sản phẩm X" không bind được gì và rơi vào A-NO-EVIDENCE. Cùng đơn vị,
+    # cùng bẫy sentinel 999999999 với `price`/`price_original`.
+    "price_before_promo": (("products_clean.csv.price_before_promo_num",), "local_currency", "number", (1, 5), "exposed_as_measure"),
     "discount_percent": (("products_clean.csv.discount_percent_num",), "percent", "number", (), "exposed_as_measure"),
     "monthly_sold": (("products_clean.csv.monthly_sold_value_num", "product_snapshot_metrics.csv.monthly_sold_value_num"), "units_recent_window", "number", (4,), "proxy_only"),
     "history_sold": (("products_clean.csv.history_sold_value_num", "product_snapshot_metrics.csv.history_sold_value_num"), "units_cumulative", "number", (4,), "proxy_only"),
@@ -327,6 +334,7 @@ ADDITIVITY_BY_MEASURE: dict[str, str] = {
     # thì có nghĩa — "giá trung bình của listing tại VN" là một đại lượng đọc
     # được. W26-R2: nới đúng phần chứng minh được.
     "price": "snapshot_stock", "price_original": "snapshot_stock",
+    "price_before_promo": "snapshot_stock",
     "price_before_promo": "snapshot_stock", "discount_percent": "snapshot_stock",
     "monthly_sold": "proxy_window", "history_sold": "proxy_window",
 }
@@ -363,7 +371,7 @@ def refusal_for_aggregation(measure_ref: str, aggregation: str) -> str | None:
 
 for name, (physical, unit, type_, traps, status) in _MEASURES.items():
     caveats = ["Dùng đúng grain và scope theo metric/relation registry."]
-    if name in {"price", "price_original"}:
+    if name in {"price", "price_original", "price_before_promo"}:
         caveats.append("Loại sentinel 999999999 bằng filter < 999999999 trước aggregate hoặc rank.")
     if name in {"monthly_sold", "history_sold"}:
         caveats.append("Đây là proxy hiển thị của sàn, không phải dữ liệu đơn hàng đã kiểm chứng.")

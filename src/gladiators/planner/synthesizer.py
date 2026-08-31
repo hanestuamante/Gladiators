@@ -193,6 +193,10 @@ RELATION_EDGE_BUDGET = 3
 # dĩ và trace thu hẹp được ĐÚNG 0 — mọi bảng chẩn đoán đều là kết quả của một
 # phiên đọc code bằng tay, tức ảnh chụp chứ không phải cơ chế.
 DeclineCode = Literal[
+    # Hai lối từ chối thêm ở W-QUERY: cả hai đóng một SỐ 0 GIẢ, tức một câu trả
+    # lời `allow` mang con số của một câu hỏi khác.
+    "contradictory_equality",
+    "multi_entity_comparison",
     "scope_ref_off_base", "no_entity_for_artifact", "relation_path_not_single_edge",
     "relation_left_source_mismatch", "relation_budget_exceeded", "temporal_validity",
     "no_certified_aggregation", "country_missing", "unbound_qualifier",
@@ -212,6 +216,11 @@ DECLINE_CODES: frozenset[str] = frozenset(get_args(DeclineCode))
 # nhánh: khi một lượt decline mang nhiều mã (vd. no_certified_aggregation rồi
 # aggregation_not_certified), mã đứng trước trong tuple này quyết định rule.
 DECLINE_RULE_PRIORITY: tuple[str, ...] = (
+    # Đứng TRƯỚC mọi lý do khác: khi câu hỏi tự mâu thuẫn hoặc nêu hai thực thể,
+    # mọi lý do phía sau đều là hệ quả, và nói ra hệ quả thay vì nguyên nhân là
+    # đúng thứ `refusal_reason_accuracy` đo.
+    "contradictory_equality",
+    "multi_entity_comparison",
     "aggregation_not_certified",
     "no_certified_aggregation",
     "measure_not_answerable",
@@ -241,6 +250,12 @@ DECLINE_RULE_BY_CODE: dict[str, str] = {
     code: ("A19-AGGREGATION" if code == "aggregation_not_certified" else "A19-PLAN")
     for code in DECLINE_CODES
 }
+# Hai lối từ chối của W-QUERY nói về THỰC THỂ, không về kế hoạch: câu hỏi nêu
+# hai giá trị cho cùng một chiều, hoặc so sánh hai thực thể mà ngữ pháp phát
+# hành chưa diễn đạt được. `A22-ALIGN-ENTITY` nói đúng trở ngại; `A19-PLAN`
+# chung chung sẽ khiến người dùng diễn đạt lại và nhận đúng lời từ chối cũ.
+DECLINE_RULE_BY_CODE["contradictory_equality"] = "A22-ALIGN-ENTITY"
+DECLINE_RULE_BY_CODE["multi_entity_comparison"] = "A22-ALIGN-ENTITY"
 
 
 class PlanningAttempt(TypedDict):
@@ -556,6 +571,51 @@ def synthesize(
         return None  # country is mandatory; cross-market needs the decomposer
     if _has_unbound_qualifier(request):
         _decline(decline, "unbound_qualifier")
+        return None
+    # HAI GIÁ TRỊ `eq` TRÊN CÙNG MỘT CHIỀU LÀ MỘT MÂU THUẪN, KHÔNG PHẢI MỘT BỘ LỌC.
+    #
+    # "Giá trung bình của shop A **so với** shop B" bind hai predicate
+    # `dim.shop_name eq A` và `dim.shop_name eq B`, rồi AND chúng lại. Không
+    # dòng nào vừa thuộc A vừa thuộc B, nên plan chạy sạch sẽ và trả về 0 dòng —
+    # và hệ nói `allow` kèm *"không có dòng nào thoả điều kiện"*.
+    #
+    # Đó là một SỐ 0 GIẢ: nó trông như một sự thật về dữ liệu (hai shop này
+    # không có sản phẩm chung) trong khi sự thật là câu hỏi đã bị dịch sai. Mọi
+    # lớp sau đều thấy hợp lệ — bộ lọc có chạy, evidence có thật, verifier khớp.
+    #
+    # Ngữ pháp phát hành chưa có phép so sánh nhiều thực thể, nên lối đúng là
+    # TỪ CHỐI và nói ra điều đó, chứ không phải trả một con số của một câu hỏi
+    # khác.
+    _by_ref: dict[str, set] = {}
+    for predicate in request.filters:
+        if predicate.op == "eq":
+            _by_ref.setdefault(predicate.field_ref, set()).add(
+                str(predicate.value_binding),
+            )
+    if any(len(values) > 1 for values in _by_ref.values()):
+        _decline(decline, "contradictory_equality")
+        return None
+    # SO SÁNH HAI THỰC THỂ chưa có trong ngữ pháp phát hành, và nó KHÔNG tự lộ
+    # ra thành hai predicate. "Giá TB của shop A **so với** shop B" chỉ bind
+    # được MỘT tên; chữ của tên còn lại nằm lại trong câu và bị đọc thành điều
+    # kiện — ở ca đo được, "Nestlé **Chính hãng**" sinh ra
+    # `dim.shop_official = True`, và Richy không phải official shop, nên plan
+    # trả 0 dòng rồi hệ nói `allow` kèm "không có dòng nào thoả điều kiện".
+    #
+    # Lại là một SỐ 0 GIẢ, và lần này nguy hơn: nó trông như một sự thật về hai
+    # shop, trong khi thứ hỏng là câu hỏi đã bị dịch thành một câu khác. Có cụm
+    # so sánh + có một bộ lọc giá trị ⇒ TỪ CHỐI, để A22 nói đúng trở ngại.
+    _comparison_cue = any(
+        cue in request.normalized_question
+        for cue in ("so voi", "so sanh", "doi chieu", "hay shop", "hay cua hang",
+                    "versus", " vs ", "compared to", "dibandingkan")
+    )
+    if _comparison_cue and any(
+        predicate.field_ref not in ("dim.country", "dim.date")
+        and isinstance(predicate.value_binding, str)
+        for predicate in request.filters
+    ):
+        _decline(decline, "multi_entity_comparison")
         return None
 
     measures = _bound_refs(request.requested_measures)

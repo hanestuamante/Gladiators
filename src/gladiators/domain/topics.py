@@ -111,7 +111,8 @@ _CARDS: tuple[TopicCard, ...] = (
         id="T1", name="PRICING_DISCOUNT", kind="domain",
         anchor_entities=("ProductListing",),
         owner_refs=(
-            "measure.price", "measure.price_original", "measure.discount_percent",
+            "measure.price", "measure.price_original", "measure.price_before_promo",
+            "measure.discount_percent",
             "derived.discount_bucket", "derived.price_change", "derived.price_change_pct",
             "derived.discount_point_change", "derived.median_discount_ratio",
         ),

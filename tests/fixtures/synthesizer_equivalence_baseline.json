@@ -10299,5 +10299,174 @@
     ],
     "source_tier": "btc_dataset",
     "subplan_count": 1
+  },
+  "semantic_linking:sl38": {
+    "plan_id": "synth:measure.price_before_promo:median:nogroup:desc:vn:2026-07-03",
+    "ir_version": "1.0",
+    "nodes": [
+      {
+        "node_id": "n1",
+        "op": "Scan",
+        "inputs": [],
+        "refs": [
+          "measure.price_before_promo",
+          "dim.product_name"
+        ],
+        "predicates": [],
+        "relation": null,
+        "source": "products_clean.csv",
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "product_name",
+            "type": "string",
+            "semantic_ref": "dim.product_name"
+          },
+          {
+            "name": "price_before_promo",
+            "type": "number",
+            "semantic_ref": "measure.price_before_promo"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n2",
+        "op": "Filter",
+        "inputs": [
+          "n1"
+        ],
+        "refs": [],
+        "predicates": [
+          {
+            "ref": "dim.country",
+            "op": "eq",
+            "parameter": "country",
+            "value": "vn"
+          },
+          {
+            "ref": "dim.date",
+            "op": "eq",
+            "parameter": "date",
+            "value": "2026-07-03"
+          }
+        ],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": null,
+        "descending": true,
+        "limit": null,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "product_name",
+            "type": "string",
+            "semantic_ref": "dim.product_name"
+          },
+          {
+            "name": "price_before_promo",
+            "type": "number",
+            "semantic_ref": "measure.price_before_promo"
+          }
+        ],
+        "expected_cardinality": "<=snapshot_rows",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      },
+      {
+        "node_id": "n5",
+        "op": "Rank",
+        "inputs": [
+          "n2"
+        ],
+        "refs": [],
+        "predicates": [],
+        "relation": null,
+        "source": null,
+        "aggregation": null,
+        "group_by": [],
+        "rank_by": "measure.price_before_promo",
+        "descending": true,
+        "limit": 1,
+        "input_grain": "listing_snapshot",
+        "output_grain": "listing_snapshot",
+        "units": [],
+        "expected_schema": [
+          {
+            "name": "product_name",
+            "type": "string",
+            "semantic_ref": "dim.product_name"
+          },
+          {
+            "name": "price_before_promo",
+            "type": "number",
+            "semantic_ref": "measure.price_before_promo"
+          }
+        ],
+        "expected_cardinality": "<=1",
+        "original_cardinality": null,
+        "dedupe_policy": null,
+        "invariants": [],
+        "evidence_emission": {
+          "enabled": false,
+          "metric_ref": null,
+          "caveat_refs": []
+        },
+        "cost_estimate": 1,
+        "risk_estimate": 0
+      }
+    ],
+    "output_node": "n5",
+    "requested_output_shape": [
+      {
+        "name": "product_name",
+        "type": "string",
+        "semantic_ref": "dim.product_name"
+      },
+      {
+        "name": "price_before_promo",
+        "type": "number",
+        "semantic_ref": "measure.price_before_promo"
+      }
+    ],
+    "budget": {
+      "max_nodes": 12,
+      "max_depth": 6,
+      "max_subplans": 4
+    },
+    "time_scope": [
+      "2026-07-03"
+    ],
+    "source_tier": "btc_dataset",
+    "subplan_count": 1
   }
 }

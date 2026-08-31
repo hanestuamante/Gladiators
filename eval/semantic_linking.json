@@ -740,5 +740,22 @@
         "dim.date"
       ]
     }
+  },
+  {
+    "id": "sl38",
+    "question": "Giá trước khuyến mãi cao nhất tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.price_before_promo"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.price_before_promo"
+      ]
+    }
   }
 ]

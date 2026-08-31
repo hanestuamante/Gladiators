@@ -360,7 +360,18 @@ class MultilingualIntentParser:
             # V2 §2.8: "shop nào có chiến lược voucher hiệu quả nhất" — L4 descriptive
             # ranking theo voucher_profile_rank_v1, KHÔNG phải câu promo hai-nhóm.
             intent = "voucher_profile_rank"
-        elif any(x in n for x in ("voucher", "khuyen mai", "promotion", "promosi", "promo")) and not ("voucher" in n and re.search(
+        elif any(x in n for x in ("voucher", "khuyen mai", "promotion", "promosi", "promo")) and (
+            # "giá trước KHUYẾN MÃI" là tên một CỘT GIÁ, không phải một câu hỏi
+            # về khuyến mãi. Cụm "khuyen mai" nằm trong chính tên measure, và
+            # nhánh này đọc nó thành ý định promo rồi đẩy câu vào macro hai
+            # nhóm — `mode=certified_macro`, rồi `A-NO-EVIDENCE`, trong khi
+            # synthesize dựng plan cho nó không một lời phàn nàn.
+            #
+            # Cùng lớp với `("gia tri", "gia")` ở `_COMPOUND_TRAPS`: một cụm dài
+            # có nghĩa riêng, và cụm ngắn bên trong nó không được nói thay.
+            "gia truoc khuyen mai" not in n
+            and "gia truoc giam" not in n
+        ) and not ("voucher" in n and re.search(
             # Chỉ chuyển hướng khi câu ĐẾM MỘT ĐƠN VỊ VÀ nói về VOUCHER — đếm
             # theo khuyến mãi/promotion (tc30) vẫn thuộc macro như trước W8.3.
             # "voucher" nằm trong danh sách này vì "bao nhiêu VOUCHER" là một câu
