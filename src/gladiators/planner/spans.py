@@ -342,17 +342,33 @@ class LedgerBuilder:
         self._bound.append(bound)
         return bound
 
-    def find_free(self, surface_normalized: str) -> tuple[int, int] | None:
-        """Vị trí token đầu tiên khớp NGUYÊN CỤM ``surface`` và còn tự do."""
+    def find_free(
+        self, surface_normalized: str, avoid: frozenset[int] = frozenset(),
+    ) -> tuple[int, int] | None:
+        """Vị trí token đầu tiên khớp NGUYÊN CỤM ``surface`` và còn tự do.
+
+        ``avoid`` là các chỉ số token KHÔNG được nhận — dùng cho vùng trong
+        ngoặc kép. Ưu tiên vị trí ngoài vùng cấm, và chỉ lùi về vị trí trong
+        vùng cấm khi không còn lựa chọn nào khác: bỏ hẳn thì một câu chỉ nêu tên
+        nước bên trong tên riêng sẽ mất luôn thị trường, và mất một ràng buộc
+        tệ hơn là gán nó vào chỗ hơi lệch.
+        """
         want = surface_normalized.split()
         if not want:
             return None
         size = len(want)
+        fallback: tuple[int, int] | None = None
         for i in range(len(self.tokens) - size + 1):
             window = self.tokens[i:i + size]
-            if [t.normalized for t in window] == want and self.is_free(i, i + size):
-                return i, i + size
-        return None
+            if [t.normalized for t in window] != want:
+                continue
+            if not self.is_free(i, i + size):
+                continue
+            if any(index in avoid for index in range(i, i + size)):
+                fallback = fallback or (i, i + size)
+                continue
+            return i, i + size
+        return fallback
 
     def build(self) -> BindingLedger:
         bound = tuple(sorted(self._bound, key=lambda b: b.span.start))

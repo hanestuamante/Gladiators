@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -22,6 +23,9 @@ class AskRequest(BaseModel):
     # Nó chỉ ĐỀ XUẤT: ref trả về được kiểm lại trên chính danh sách đã gửi, nên
     # một ref bịa không thể tới plan.
     llm_terms: bool = False
+    # Bẻ câu bằng LLM. Tách khỏi `llm_terms` vì hai thứ khác nhau: cái kia
+    # ánh xạ CHỮ, cái này bẻ CÂU. Bật một cái không kéo theo cái kia.
+    llm_plan: bool = False
 
 
 app = FastAPI(title="Gladiators V2", version="2.0.0-alpha")
@@ -178,6 +182,31 @@ def ask(request: AskRequest) -> AgentResponse:
         previous = _sp._TERM_PROPOSER
         register_term_proposer(runtime.llm_client)
     try:
+        if request.llm_plan and runtime.llm_client is not None:
+            # Câu con chạy với cờ bẻ câu TẮT — `run_split` gọi thẳng
+            # `runtime.run`, không quay lại đây, nên không có đệ quy.
+            from gladiators.planner.question_split import run_split
+
+            split = run_split(runtime, request.text, runtime.llm_client)
+            if split.steps or split.failed:
+                return JSONResponse({
+                    "mode": "llm_plan",
+                    "question": request.text,
+                    "combine": split.combine,
+                    "conclusion": split.conclusion,
+                    "declined": split.declined,
+                    "failed": split.failed,
+                    "telemetry": split.as_attrs(),
+                    "steps": [
+                        {"question": step.question, "action": step.action,
+                         "rule_id": step.rule_id, "value": step.value,
+                         "unit": step.unit, "evidence_id": step.evidence_id,
+                         "answer": step.answer}
+                        for step in split.steps
+                    ],
+                })
+            # Không bẻ được, hoặc model nói "câu đã đủ đơn giản": đi tiếp đường
+            # thường thay vì trả về một lời từ chối mà đường thường không có.
         return runtime.run(request.text, session_id=request.session_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail={"code": "AGENT_RUNTIME_ERROR", "type": type(exc).__name__}) from exc

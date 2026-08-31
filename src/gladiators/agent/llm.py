@@ -93,6 +93,7 @@ class LLMClient(Protocol):
     def judge(self, answer: str, rubric: str) -> dict: ...
     def critique_plan(self, question: str, plan: dict) -> dict: ...
     def resolve_terms(self, payload: dict) -> dict: ...
+    def decompose(self, payload: dict) -> dict: ...
     def plan_analytical(self, payload: dict) -> dict: ...
     def plan_analytical_alternate(self, payload: dict) -> dict: ...
     def adjudicate_plans(self, payload: dict) -> dict: ...
@@ -117,6 +118,11 @@ class FakeLLMClient:
 
     def resolve_terms(self, payload: dict) -> dict:
         return {"mapping": {}}
+
+    def decompose(self, payload: dict) -> dict:
+        # Không bẻ gì. Bẻ câu là một suy đoán, và một client tất định thì
+        # không suy đoán — nó trả về đúng "tôi không đề xuất gì".
+        return {"steps": [], "combine": None}
 
     def plan_analytical(self, payload: dict) -> dict:
         raise NotImplementedError("Fake client không tự sinh analytical plan.")
@@ -548,6 +554,45 @@ class GroqLLMClient:
             "Payload: " + json.dumps(payload, ensure_ascii=False)
         )
         return json.loads(self._chat(prompt, "term_resolution", TermMapping, role="parse"))
+
+    def decompose(self, payload: dict) -> dict:
+        """Bẻ câu hỏi thành các CÂU HỎI CON, và chọn MỘT toán tử gộp.
+
+        Ranh giới giống hệt `resolve_terms`: model đề xuất, `question_split`
+        kiểm lại trên tập đóng. Nó không thấy dữ liệu và không tính gì — mọi
+        con số ở câu trả lời cuối đến từ evidence của các bước, mà mỗi bước
+        lại đi qua đủ gate/plan/verifier như một câu hỏi bình thường.
+        """
+        from pydantic import BaseModel, ConfigDict
+
+        class Split(BaseModel):
+            model_config = ConfigDict(extra="forbid")
+            steps: list[str]
+            combine: str | None
+
+        prompt = (
+            "Bạn bẻ một câu hỏi phân tích thương mại điện tử thành các CÂU HỎI "
+            "CON đơn giản hơn. Mỗi câu con sẽ được chạy lại qua một hệ thống "
+            "chỉ trả lời được dạng: MỘT chỉ số, của MỘT đối tượng, trong MỘT "
+            "ngày, ở MỘT thị trường.\n"
+            "Ràng buộc:\n"
+            "1. Mỗi câu con phải TỰ ĐỦ NGHĨA — nêu lại tên shop/sản phẩm, ngày "
+            "(dd/mm), và thị trường. Không dùng 'shop đó', 'ngày ấy'.\n"
+            "2. `combine` phải là MỘT trong `combine_ops`. argmax/argmin để tìm "
+            "cái lớn nhất/nhỏ nhất qua các bước; sum để cộng; compare để so hai "
+            "đối tượng; list để kể lại từng bước.\n"
+            "3. Tối đa `max_steps` bước. Không bẻ nếu câu đã đủ đơn giản — khi "
+            "đó trả `steps` rỗng.\n"
+            "4. KHÔNG tự trả lời, KHÔNG đoán số. Chỉ viết câu hỏi.\n"
+            "Ví dụ:\n"
+            "  hỏi: ngày nào shop X có doanh thu cao nhất tại VN\n"
+            "  steps: [Doanh thu ước tính của shop X tại VN ngày 01/07 là bao "
+            "nhiêu?, Doanh thu ước tính của shop X tại VN ngày 02/07 là bao "
+            "nhiêu?, ...]\n"
+            "  combine: argmax\n"
+            "Payload: " + json.dumps(payload, ensure_ascii=False)
+        )
+        return json.loads(self._chat(prompt, "question_split", Split, role="parse"))
 
     def plan_analytical(self, payload: dict) -> dict:
         from gladiators.planner.query_ir import LogicalQueryPlan
