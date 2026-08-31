@@ -1028,10 +1028,30 @@ class DeterministicSemanticParser:
         # phải đã bind một chiều CÓ cột vật lý để gom nhóm. Thiếu một trong ba
         # thì giữ nguyên hành vi cũ.
         if not frame_measure_ref and not any(item.ref for item in measures):
+            # Cụm nêu ý LIỆT KÊ. Danh sách này từng chỉ có "liệt kê" và các
+            # biến thể của nó, nên cùng một yêu cầu nói khác đi là trượt: đo
+            # được trên cùng một shop và cùng một ngày, "Liệt kê sản phẩm của X"
+            # → allow ra tên, còn "Tên của các sản phẩm mà cửa hàng X có" và
+            # "X có những sản phẩm nào" → A19-CAT "chưa xác định được chỉ số".
+            # Người dùng hỏi một việc, hệ trả lời ba kiểu, hai trong ba là từ
+            # chối oan.
+            #
+            # ĐÃ THỬ và bỏ: suy ra ý liệt kê từ CẤU TRÚC ("có chiều mang tên,
+            # không measure, không phép tổng hợp ⇒ hỏi các giá trị"). Nó bắn
+            # trên ba câu chỉ NHẮC TỚI một chiều mang tên chứ không hỏi nó —
+            # "Shopee verified theo product tại VN", "URL sản phẩm tại VN",
+            # "Shop nào có chiến lược voucher hiệu quả nhất VN?" — và biến ba
+            # lời từ chối đúng thành ba bảng liệt kê. Sự có mặt của một chiều
+            # không phải một yêu cầu về nó; chỉ cụm người dùng viết ra mới là.
             listing_cue = any(
                 cue in normalized
                 for cue in ("liet ke", "danh sach", "ke ten", "cho toi xem",
-                            "cho xem", "list ra", "show me", "daftar")
+                            "cho xem", "list ra", "show me", "daftar",
+                            # Cùng một yêu cầu, cách nói khác. "nhung " là dấu
+                            # số nhiều tiếng Việt và đã được dùng đúng nghĩa đó
+                            # ở `_PLURAL_MARKERS`.
+                            "nhung ", "ten cua", "ten cac", "ten san pham",
+                            "ten cac san pham", "apa saja", "nama produk")
             )
             groupable = [
                 item for item in dimensions
