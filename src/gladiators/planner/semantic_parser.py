@@ -535,7 +535,25 @@ def _contiguous_residuals(ledger) -> tuple[str, ...]:
     # model trả `null` — đúng một cách thận trọng, vì cụm đó không có dấu thì
     # thật sự mơ hồ trong tiếng Việt. Ledger giữ cả hai dạng, nên không có lý do
     # nào để vứt dạng đọc được đi.
-    out = [" ".join(item.span.raw for item in group) for group in groups]
+    # Cắt HƯ TỪ ở hai đầu. Ledger phân loại theo `is_function_word`, và bảng đó
+    # không phủ hết — "vào", "của", "trong" rơi vào `unknown_concept` rồi bị gộp
+    # vào cụm liền kề. Đo được: hỏi LLM `"nhãn hàng vào"` thay vì `"nhãn hàng"`,
+    # và model trả null cho một cụm không phải tiếng Việt tự nhiên. Nó làm đúng;
+    # câu hỏi mới là câu hỏi tồi.
+    trim = {
+        "vao", "cua", "trong", "tai", "o", "cho", "voi", "va", "la", "co",
+        "theo", "tu", "den", "ngay", "thang", "nam", "so", "muc", "bao",
+        "nhieu", "duoc", "bi", "ra", "len", "xuong",
+    }
+    out: list[str] = []
+    for group in groups:
+        items = list(group)
+        while items and normalize(items[0].span.raw) in trim:
+            items.pop(0)
+        while items and normalize(items[-1].span.raw) in trim:
+            items.pop()
+        if items:
+            out.append(" ".join(item.span.raw for item in items))
     return tuple(dict.fromkeys(out))
 
 

@@ -535,6 +535,14 @@ class GroqLLMClient:
             "2. Cụm nào không chắc chắn ứng với ref nào thì trả null — trả null "
             "là câu trả lời ĐÚNG, còn đoán bừa thì không.\n"
             "3. Mỗi cụm trong `spans` xuất hiện đúng một lần trong `mapping`.\n"
+            "Ví dụ ánh xạ ĐÚNG (các cụm này đã có trong catalog, cho bạn thấy "
+            "mức tương đương cần có):\n"
+            "  \"mặt hàng\" -> entity.product_listing\n"
+            "  \"cửa hàng\" -> entity.shop\n"
+            "  \"thương hiệu\" -> entity.brand\n"
+            "  \"giá\" -> measure.price\n"
+            "Đồng nghĩa và biến thể vùng miền vẫn tính là cùng nghĩa. Chỉ trả "
+            "null khi KHÔNG ref nào diễn đạt được khái niệm đó.\n"
             "Payload: " + json.dumps(payload, ensure_ascii=False)
         )
         return json.loads(self._chat(prompt, "term_resolution", TermMapping, role="parse"))
