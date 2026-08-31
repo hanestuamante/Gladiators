@@ -698,7 +698,16 @@ class DeterministicSemanticParser:
         # (xem docstring của nó, ca "Bánh Kẹo Hải Hà - Chính hãng" ra SỐ 0 GIẢ)
         # nhưng bộ ghép alias chính thì chưa. Dùng lại chính hàm đó thay vì viết
         # luật thứ hai — hai bản của một luật là cách chúng lệch nhau.
-        linkable = _without_quoted_regions(normalized, text)
+        # Ngoài vùng trong ngoặc, trừ luôn những TÊN CÓ THẬT xuất hiện nguyên
+        # văn: người dùng thường không gõ ngoặc, và câu con do LLM bẻ ra thì
+        # gần như không bao giờ. `literal_value_spans` chỉ nhận cụm ≥2 token và
+        # chỉ khi cụm đó là một giá trị có thật trong chỉ mục — nên đây là một
+        # sự thật về DỮ LIỆU, không phải một phỏng đoán về câu chữ.
+        from gladiators.agent.value_probe import literal_value_spans
+
+        linkable = _without_quoted_regions(
+            normalized, text, literal_value_spans(normalized, country),
+        )
         measures = self._link(linkable, {"measure", "derived_metric"})
         dimension_text = linkable
         for measure in measures:

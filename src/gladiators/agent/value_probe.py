@@ -354,6 +354,45 @@ def free_spans(ledger) -> dict[str, str]:
     return out
 
 
+
+def literal_value_spans(normalized_question: str, country: str | None) -> tuple[str, ...]:
+    """Giá trị NHIỀU TỪ có thật trong chỉ mục, xuất hiện NGUYÊN VĂN trong câu.
+
+    Dấu ngoặc kép là người dùng nói "đọc nguyên văn". Nhưng người dùng thường
+    không gõ ngoặc, và LLM bẻ câu thì gần như không bao giờ gõ — nên một tên
+    riêng trần bị bộ ghép alias xé nhỏ y hệt như trước khi có luật ngoặc kép.
+
+    Đo được trên 10 ca phân tích: câu "Số sản phẩm của shop Bibica Official
+    Store tại VN ngày 21/07" (không ngoặc) → `A22-ALIGN-ENTITY`, vì "Official"
+    bị claim thành ``dim.shop_official`` và cụm ba token không còn dư để value
+    binder khớp. Cùng câu đó CÓ ngoặc thì ra 92 đúng. Tỷ lệ đúng không được phụ
+    thuộc vào dấu câu người dùng gõ.
+
+    Nên luật rộng ra đúng một bước, và nó có CĂN CỨ DỮ LIỆU chứ không phải một
+    heuristic: một chuỗi khớp nguyên văn MỘT GIÁ TRỊ CÓ THẬT trong chỉ mục là
+    một tên riêng. Chỉ nhận cụm ≥2 token — giá trị một từ ("shop", "Nam") trùng
+    từ vựng quá dễ, và đó chính là lớp lỗi mà chỉ mục không giúp phân giải được.
+    """
+    index = _index()
+    if not index or not country:
+        return ()
+    folded = f" {token_key(normalized_question)} "
+    universe = _universe()
+    found: set[str] = set()
+    for ref, per_country in index.items():
+        names = dict(per_country.get(country) or {})
+        for name, entry in (universe.get(ref) or {}).items():
+            names.setdefault(name, entry["original"])
+        for name in names:
+            key = token_key(name)
+            if key.count(" ") < 1:            # một từ ⇒ không đủ để gọi là tên
+                continue
+            if f" {key} " in folded:
+                found.add(key)
+    # Cụm DÀI trước: "bibica official store" phải được trừ trước "official store"
+    # nếu cả hai cùng có thật, nếu không phần còn lại là một mảnh vô nghĩa.
+    return tuple(sorted(found, key=len, reverse=True))
+
 def bind_values(
     normalized_question: str, country: str | None,
     dimension_refs: frozenset[str] = frozenset(),

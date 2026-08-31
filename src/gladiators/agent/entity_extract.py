@@ -96,6 +96,40 @@ def _value_is_name_shaped(text: str, value: str) -> bool:
     return False
 
 
+
+# Cụm chỉ LOẠI đối tượng, không phải một phần của tên. Chính các pattern ở trên
+# đã coi "cua shop" là RANH GIỚI (nó nằm trong lookahead), nên cắt nó khi nó rơi
+# vào đầu span là nhất quán với chính chúng, không phải một luật mới.
+_UNIT_PREFIXES = (
+    "cua shop", "cua cua hang", "cua thuong hieu", "cua nhan hang",
+    "shop", "cua hang", "thuong hieu", "nhan hang", "toko", "cua",
+)
+
+
+def _without_unit_prefix(value: str) -> str:
+    """Bỏ cụm chỉ loại đối tượng ở ĐẦU một tên trích được.
+
+    Đo được: câu "Có bao nhiêu sản phẩm của shop Bibica Official Store ở VN
+    ngày 21/7" (không ngoặc kép) trích ra ``"cua shop bibica official store"``.
+    Plan bind ĐÚNG ``dim.shop_name = "Bibica Official Store"``, nhưng A22 so
+    `entity_text` với thứ plan đã bind, thấy hai chuỗi khác nhau, và kết luận
+    "entity trong câu hỏi không được bind vào plan" — một lời từ chối nói về
+    một khoảng cách do chính bộ trích tạo ra. Cùng câu đó CÓ ngoặc kép thì
+    trích đúng ``"Bibica Official Store"`` và trả 92.
+
+    Cắt lặp: "của cửa hàng" đứng trước "shop" trong vài cách nói.
+    """
+    out = value.strip()
+    changed = True
+    while changed:
+        changed = False
+        for prefix in _UNIT_PREFIXES:
+            if out.lower().startswith(prefix + " "):
+                out = out[len(prefix) + 1:].strip()
+                changed = True
+                break
+    return out or value
+
 def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
     entities: list[ExtractedEntity] = []
     occupied: list[tuple[int, int]] = []
@@ -173,7 +207,7 @@ def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
             match = re.search(pattern, normalized)
             if not match:
                 continue
-            value = match.group(1).strip(" .,:;-")
+            value = _without_unit_prefix(match.group(1).strip(" .,:;-"))
             generic_question = bool(re.match(
                 r"^(?:nao|gi|mana|which|apa|di|dengan|yang|nhat|ini|this|"
                 r"tertinggi|terendah|co|có)\b",

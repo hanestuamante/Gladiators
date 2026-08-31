@@ -213,11 +213,26 @@ def check_plan_alignment(
             ))
 
         if digest.entity_refs:
+            # So KHÔNG phân biệt hoa thường. Bộ trích entity trả về chuỗi đã
+            # chuẩn hoá khi tên KHÔNG nằm trong ngoặc kép, còn plan bind giá trị
+            # GỐC lấy từ chỉ mục — nên cùng một shop cho ra hai chuỗi khác nhau
+            # chỉ ở chữ hoa, và phép so nguyên văn kết luận "entity không được
+            # bind vào plan".
+            #
+            # Đo được: "Có bao nhiêu sản phẩm của shop Bibica Official Store ở
+            # VN ngày 21/7" (không ngoặc) → clarify, dù plan bind ĐÚNG
+            # `dim.shop_name = "Bibica Official Store"`. Cùng câu có ngoặc kép
+            # → 92. Người dùng phải gõ đúng dấu câu mới được trả lời, và đó
+            # không phải một tính chất của câu hỏi.
+            #
+            # Nới chỗ này KHÔNG nới lớp kiểm: A22 vẫn đòi plan thật sự bind
+            # entity đã hỏi. Nó chỉ thôi coi chữ hoa là một khác biệt về nghĩa.
+            entity_keys = tuple(str(ref).casefold() for ref in digest.entity_refs)
             binds_entity = any(
                 node.op == "ResolveValue"
                 or any(
-                    str(predicate.value) in entity_ref
-                    for predicate in node.predicates for entity_ref in digest.entity_refs
+                    str(predicate.value).casefold() in entity_ref
+                    for predicate in node.predicates for entity_ref in entity_keys
                 )
                 for node in plan.nodes
             )
