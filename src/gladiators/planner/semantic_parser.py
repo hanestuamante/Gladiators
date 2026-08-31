@@ -617,6 +617,20 @@ class DeterministicSemanticParser:
                 (("recursive", "de quy", "lap den khi"), "recursive"),
                 (("udf", "ham tu do", "cong thuc tuy y"), "free_expression"),
                 (("forecast", "du bao", "ramalan"), "forecast"),
+                # Thống kê phân tán: catalog chỉ chứng nhận
+                # median/mean/min/max/count/sum/share, KHÔNG có tứ phân vị, độ
+                # lệch chuẩn hay phương sai. Trước khi khai ở đây, câu hỏi IQR
+                # rơi vào đường chiếu và ĐỔ RA MỘT DANH SÁCH GIÁ — người dùng
+                # hỏi một con số phân tán, nhận về 108 con số, và không câu nào
+                # nói rằng IQR đã không được tính.
+                #
+                # Đo được (Richy, VN, 21/07): IQR thật là 139 500; hệ trả
+                # `price=1000` rồi `price=12000`… — tức giá từng listing. Trả
+                # lời một câu hỏi KHÁC trong im lặng, đúng lớp lỗi A22 sinh ra
+                # để chặn, chỉ khác là nó lọt vì không ai khai phép tính này.
+                (("tu phan vi", "tu phan vij", "iqr", "phan vi", "percentile",
+                  "do lech chuan", "phuong sai", "standard deviation",
+                  "variance", "quartile"), "dispersion_statistic"),
             ) if any(term in normalized for term in terms)
         )
         # W20 — ngày là hàm TOÀN PHẦN trên lịch của bản dữ liệu đang phục vụ.
