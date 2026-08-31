@@ -97,6 +97,7 @@ def resolve_terms(
     proposer: TermProposer | Callable[[dict], dict] | None,
     *,
     language: str = "vi",
+    question: str = "",
 ) -> TermResolution:
     """Ánh xạ ``spans`` vào ref hợp lệ. Không có proposer ⇒ không làm gì.
 
@@ -111,6 +112,15 @@ def resolve_terms(
         return TermResolution(asked=tuple(spans))
 
     payload = {
+        # CẢ CÂU, không chỉ các cụm đã tách. Bộ tách cắt theo phần dư của
+        # lattice, và nó cắt cụt: "điểm sao" gửi đi thành "Điểm", "số lượt tim"
+        # thành "lượt" — model nhận một mảnh không đủ nghĩa rồi trả null, và nó
+        # làm đúng. Câu đầy đủ cho nó ngữ cảnh mà bộ tách không có cách nào
+        # truyền lại được.
+        #
+        # Hợp đồng RA không đổi: model vẫn chỉ được chọn ref trong `vocabulary`,
+        # và mọi ref vẫn bị kiểm lại bên dưới. Chỉ ĐẦU VÀO rộng ra.
+        "question": question or " ".join(spans),
         "spans": list(spans),
         "language": language,
         # Danh sách ĐÓNG. Prompt nói rõ chỉ được chọn trong đây; phép kiểm bên
@@ -130,11 +140,40 @@ def resolve_terms(
     if not isinstance(mapping, dict):
         return TermResolution(asked=tuple(spans), called=True, failed="shape")
 
+    # Cụm chỉ PHÉP TÍNH, không phải chỉ số. Đưa cả câu cho model thì nó cũng ánh
+    # xạ luôn "trung vị" → `derived.median_monthly_sold`, và request có HAI
+    # measure ⇒ `measure_count_not_one` ⇒ A19-PLAN. Bốn câu đo được hỏng đúng
+    # vì lý do này trong khi cụm chính đã map ĐÚNG ("Tiền hàng" → measure.price,
+    # "Chiết khấu" → measure.discount_percent).
+    #
+    # Phép tính đã có đường riêng (`_detect_requested_aggregation`) và nó chạy
+    # tất định; để LLM nói thêm một lần nữa là để hai bộ máy cùng trả lời một
+    # câu hỏi rồi chồng lên nhau.
+    aggregation_words = {
+        "trung vi", "trung binh", "binh quan", "tong", "tong cong", "median",
+        "mean", "average", "sum", "total", "cao nhat", "thap nhat", "lon nhat",
+        "nho nhat", "max", "min", "toi da", "toi thieu",
+    }
+
+    def _is_aggregation_phrase(phrase: str) -> bool:
+        import unicodedata
+
+        folded = "".join(
+            c for c in unicodedata.normalize("NFD", phrase.lower())
+            if unicodedata.category(c) != "Mn"
+        ).replace("đ", "d").strip()
+        return folded in aggregation_words
+
     accepted: dict[str, str] = {}
     rejected: dict[str, str] = {}
     for span, ref in mapping.items():
-        if not isinstance(span, str) or span not in spans:
-            continue                              # cụm không hỏi thì không nhận
+        if isinstance(span, str) and _is_aggregation_phrase(span):
+            continue
+        if not isinstance(span, str) or not span.strip():
+            continue
+        # KHÔNG còn đòi cụm phải nằm trong `spans`: model nay đọc cả câu và tự
+        # chỉ ra cụm nào mang khái niệm. Ràng buộc thật vẫn nguyên và nó nằm ở
+        # dòng dưới — ref phải có trong danh sách đã gửi.
         if ref is None or ref == "":
             continue                              # "không biết" là câu trả lời hợp lệ
         if isinstance(ref, str) and ref in allowed:

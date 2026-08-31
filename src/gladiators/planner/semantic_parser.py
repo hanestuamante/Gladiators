@@ -861,7 +861,7 @@ class DeterministicSemanticParser:
                 term_resolution = resolve_llm_terms(
                     residual_spans,
                     frozenset({"entity", "dimension", "measure", "derived_metric"}),
-                    self.term_proposer, language=language,
+                    self.term_proposer, language=language, question=text,
                 )
                 for span, ref in term_resolution.accepted.items():
                     obj = CATALOG.get(ref)
