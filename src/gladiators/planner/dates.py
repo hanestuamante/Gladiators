@@ -90,10 +90,22 @@ def _candidates(normalized: str, calendar: SnapshotCalendar) -> list[str]:
     """Mọi ngày phân tích được từ câu, ở dạng ISO. Không lọc theo lịch."""
     default_year = int(calendar.first()[:4])
     out: list[str] = []
-    for year, month, day in _ISO.findall(normalized):
+    # Ngày ISO được ĐỌC TRƯỚC rồi XOÁ khỏi văn bản. Không xoá, ``_DMY`` khớp
+    # tiếp cụm ``07-03`` nằm BÊN TRONG ``2026-07-03`` và đọc nó theo thứ tự
+    # ngày-tháng thành ``2026-03-07`` — một ngày ngoài cửa sổ. Hệ quả không phải
+    # một ô thừa vô hại: cùng một câu vừa có ngày HỢP LỆ vừa có ngày NGOÀI CỬA
+    # SỔ, và gate chọn cái sau. "How many listings are there in Indonesia on
+    # 2026-07-03?" bị từ chối bằng A-SNAPSHOT-SCOPE cho một ngày có thật trong
+    # dữ liệu. Lookbehind ``(?<![0-9])`` không chặn được vì ký tự đứng trước
+    # ``07`` là dấu gạch, không phải chữ số.
+    remainder = normalized
+    for match in _ISO.finditer(normalized):
+        year, month, day = match.groups()
         iso = _iso(int(year), int(month), int(day))
         if iso:
             out.append(iso)
+        remainder = remainder.replace(match.group(0), " " * len(match.group(0)), 1)
+    normalized = remainder
     for day, month, year in _DMY.findall(normalized):
         iso = _iso(int(year) if year else default_year, int(month), int(day))
         if iso:

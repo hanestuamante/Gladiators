@@ -826,8 +826,25 @@ class DeterministicSemanticParser:
         if count_frame_normalised:
             # Khoá đếm (§0.3 ô 4): nhánh viết lại phải đếm được số lần nó bắn.
             assumptions = (*assumptions, "count_frame_normalised")
+        # ``tổng số listing`` là một phép ĐẾM, không phải phép cộng — và khung
+        # ngữ pháp đã phân giải đúng như vậy (``quantity`` bám vào một đơn vị
+        # phân tích). Nhưng ``_detect_requested_aggregation`` đọc CHUỖI TRẦN,
+        # nơi cue ``"tong "`` nằm gọn trong ``"tong so"``, nên nó khai `sum` cho
+        # một chỉ số mà catalog không chứng nhận `sum`, và câu bị hỏi lại bằng
+        # A19-AGGREGATION. Hai bộ máy cùng đọc một cụm và ra hai kết luận; cái
+        # đọc được CẤU TRÚC thắng cái đọc chuỗi.
+        _count_refs = frozenset(COUNT_METRIC_BY_SURFACE_REF.values())
+        counts_an_entity = any(
+            frame.marker.kind == "quantity"
+            and (frame.resolution == "count_metric" or frame.argument_ref in _count_refs)
+            for frame in frames
+        )
+        aggregation_text = (
+            normalized.replace("tong so", " ") if counts_an_entity else normalized
+        )
         requested_aggregation, aggregation_ambiguity = _detect_requested_aggregation(
-            normalized, has_ranking_subject=_names_a_ranking_subject(normalized),
+            aggregation_text,
+            has_ranking_subject=_names_a_ranking_subject(normalized),
             asks_for_a_number=any(
                 term in normalized for term in _SCALAR_INTERROGATIVE
             ),

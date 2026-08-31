@@ -139,10 +139,25 @@ PLURAL_SUFFIXES: dict[str, tuple[str, ...]] = {
 
 
 def singularize(word: str, language: str) -> str | None:
-    """Dạng số ít của ``word``, hoặc ``None`` nếu không nhận ra hậu tố nào."""
-    for suffix in PLURAL_SUFFIXES.get(language, ()):
-        if len(word) > len(suffix) + 2 and word.endswith(suffix):
-            return word[: -len(suffix)]
+    """Dạng số ít của ``word``, hoặc ``None`` nếu không nhận ra hậu tố nào.
+
+    Ngôn ngữ được nêu tra TRƯỚC, rồi tới các ngôn ngữ còn lại. Lý do giống hệt
+    ``_find_markers``: nhãn ngôn ngữ được gán bằng bốn từ, và
+    ``"How many listings are there in Indonesia on 2026-07-03?"`` không chứa từ
+    nào trong đó nên bị gán ``vi`` — mà ``PLURAL_SUFFIXES["vi"]`` rỗng, nên
+    ``listings`` không bao giờ rút về ``listing``, không measure nào bind, và
+    một câu trả lời được thành một lời hỏi lại.
+
+    Nới ra ở đây AN TOÀN THEO CẤU TRÚC, không phải theo may rủi: người gọi
+    (``singularize_unmatched``) chỉ chấp nhận kết quả khi dạng số ít **là một
+    alias đã biết**. Thử thêm hậu tố của ngôn ngữ khác vì thế không thể bịa ra
+    một từ — nó chỉ có thể tìm thấy một từ vốn đã nằm trong catalog.
+    """
+    ordered = (language, *(lang for lang in PLURAL_SUFFIXES if lang != language))
+    for lang in ordered:
+        for suffix in PLURAL_SUFFIXES.get(lang, ()):
+            if len(word) > len(suffix) + 2 and word.endswith(suffix):
+                return word[: -len(suffix)]
     if "-" in word:                      # tiếng Indonesia: "toko-toko" → "toko"
         head, _, tail = word.partition("-")
         if head and head == tail:
