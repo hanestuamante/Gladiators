@@ -436,6 +436,10 @@ _DECREASE_MARKERS = ("giam manh", "giam sut", "sut giam", "sut", "tut", "lao doc
 _INCREASE_MARKERS = ("tang manh", "tang vot", "tang truong", "but pha", "naik",
                      "melonjak", "surge", "spike", "rose", "grew")
 
+# Intent mà CHÍNH NÓ đo chiều biến động. Gọi một trong số này là yêu cầu hệ tính
+# ra chiều, không phải khai một chiều rồi nhờ xác nhận.
+_CHANGE_ANALYSIS_INTENTS = frozenset({"sales_decline", "price_change_by_date"})
+
 # W21 §8.2 — CẤU TRÚC MẤT/ĐƯỢC cộng một cụm ĐỘ LỚN. `_DECREASE_MARKERS` là một
 # danh sách cụm, và một tiền đề sai phát biểu ngoài danh sách thì lọt: "Việt Nam
 # MẤT MỘT NỬA số listing" đi qua sạch sẽ và nhận `allow · 668`. Hai nguồn hợp
@@ -530,7 +534,22 @@ def check_question_alignment(
                 ("scalar_answer",),
             ))
 
-    stated = _premise_direction(question)
+    # Người dùng GỌI TÊN phép phân tích biến động thì chữ chỉ chiều là TÊN BÁO
+    # CÁO, không phải một khẳng định cần bác. ``Sales decline "SCORA …"`` không
+    # nói "sản phẩm này đã giảm"; nó nói "chạy phân tích biến động cho sản phẩm
+    # này" — và macro đó tồn tại đúng để TRẢ LỜI chiều, kể cả khi câu trả lời là
+    # "không đổi". Không tách hai thứ đó thì mọi lần gọi macro bằng tên của nó
+    # đều bị chấm là tiền đề sai, và q11 rơi từ `allow` xuống `A22-ALIGN-PREMISE`
+    # với một lý do còn không đúng sự thật ("chỉ có một mốc quan sát" trong khi
+    # evidence mang hai ngày).
+    #
+    # Phạm vi HẸP: chỉ miễn cho intent mà bản thân nó ĐO chiều biến động. Một
+    # câu hỏi thường khẳng định chiều rồi được trả bằng một con số một mốc vẫn
+    # bị chặn y như trước — đó mới là lớp lỗi W21 nhắm tới.
+    stated = (
+        None if digest.intent in _CHANGE_ANALYSIS_INTENTS
+        else _premise_direction(question)
+    )
     observed = _observed_direction(evidence or [])
     # LUẬT W21-R1 — nửa CÒN THIẾU. Kể cả khi chiều khớp bảng, phép kiểm vẫn
     # không chạy được nếu plan chỉ phủ MỘT snapshot: `_observed_direction` trả
