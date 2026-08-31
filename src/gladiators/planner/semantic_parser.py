@@ -262,9 +262,47 @@ _COMPARISON: tuple[tuple[str, str], ...] = (
 )
 _PERCENT_MARKERS = ("%", "phan tram", "phần trăm", "persen")
 
+# Đơn vị TIỀN TỆ nêu tường minh trong câu, và bậc số đi kèm. Chú thích ở
+# ``_comparison_predicates`` từ chối "trên 50" cạnh một measure tiền tệ vì câu
+# đó không nói 50 GÌ — lý do đúng, nhưng nó chặn luôn cả câu ĐÃ NÓI: "giá trên
+# 5 triệu đồng" nêu cả bậc ("triệu") lẫn đơn vị ("đồng"). Chỉ nhận khi câu mang
+# CẢ HAI; thiếu một trong hai thì vẫn bỏ qua, vì đoán bậc là đoán một câu hỏi
+# khác (5 triệu, 5 nghìn và 5 đồng là ba ngưỡng cách nhau sáu bậc).
+_CURRENCY_MARKERS: dict[str, tuple[str, ...]] = {
+    "vn": ("dong", "đồng", "vnd", "vnđ"),
+    "id": ("rupiah", "idr", "rp"),
+}
+_MAGNITUDE_WORDS: tuple[tuple[str, int], ...] = (
+    ("ty", 1_000_000_000), ("tỷ", 1_000_000_000), ("tỉ", 1_000_000_000),
+    ("trieu", 1_000_000), ("triệu", 1_000_000), ("juta", 1_000_000),
+    ("nghin", 1_000), ("nghìn", 1_000), ("ngan", 1_000), ("ngàn", 1_000),
+    ("ribu", 1_000),
+)
+
+
+def _currency_threshold(literal: str, raw_question: str, country: str | None) -> float | None:
+    """Ngưỡng tiền tệ mà câu NÊU RÕ, hoặc ``None``.
+
+    Đọc từ câu GỐC: normalizer bỏ dấu, nên "đồng" và "dong" phải cùng tra được.
+    Cửa sổ sau con số cố ý ngắn — đơn vị tiền phải đứng CẠNH số, không phải ở
+    đâu đó trong câu.
+    """
+    lowered = raw_question.lower()
+    anchor = lowered.find(literal.split(".")[0])
+    if anchor < 0:
+        return None
+    window = lowered[anchor: anchor + len(literal) + 24]
+    markers = _CURRENCY_MARKERS.get(country or "", ())
+    if not markers or not any(marker in window for marker in markers):
+        return None
+    for word, scale in _MAGNITUDE_WORDS:
+        if word in window:
+            return float(literal) * scale
+    return None
+
 
 def _comparison_predicates(
-    measures: list, normalized: str, raw_question: str,
+    measures: list, normalized: str, raw_question: str, country: str | None = None,
 ) -> tuple[list, list]:
     """``(measures còn lại, predicate mới)`` — cả BỐN điều kiện đều bắt buộc.
 
@@ -307,6 +345,16 @@ def _comparison_predicates(
         # một số mang dấu %/phần trăm được áp; "trên 50" trần cạnh một measure
         # tiền tệ là một câu hỏi KHÁC (50 gì? VND? nghìn? phần trăm?) và guard
         # một chiều thì bỏ qua đúng hơn đoán.
+        if obj.unit == "local_currency":
+            scaled = _currency_threshold(literal, raw_question, country)
+            if scaled is None:
+                continue
+            predicates.append(AnalyticalPredicate(
+                field_ref=item.ref, op=op,
+                value_binding=int(scaled) if float(scaled).is_integer() else scaled,
+            ))
+            kept = [entry for entry in kept if entry is not item]
+            continue
         if obj.unit != "percent":
             continue
         raw_folded = raw_question.lower()
@@ -621,7 +669,7 @@ class DeterministicSemanticParser:
         # W11.1: chạy SAU _link (measure đã bind) và TRƯỚC khi chốt
         # requested_measures/ranking.
         measures, comparison_filters = _comparison_predicates(
-            measures, normalized, text,
+            measures, normalized, text, country,
         )
         filters.extend(comparison_filters)
 
