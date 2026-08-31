@@ -67,7 +67,7 @@ pre{overflow:auto;white-space:pre-wrap;font-size:11.5px}
 <p>Gõ câu hỏi — sơ đồ diễn lại đúng dữ liệu thật trả về từ <code>/ask</code>: parser, gate, tool, evidence, và guardrail chống-hallucination (bộ kiểm số, cổng từ ngữ, fallback). Câu analytical còn hiện <b>Planner path</b>: risk score → critic/N-version. Xem trang form đơn giản tại <a href="/">/</a>.</p>
 </header>
 
-<section class="card"><form id="ask"><textarea id="question" maxlength="4000" autofocus placeholder="Ví dụ: Voucher ở VN có hiệu quả không?"></textarea><button id="submit">Chạy</button></form>
+<section class="card"><form id="ask"><textarea id="question" maxlength="4000" autofocus placeholder="Ví dụ: Voucher ở VN có hiệu quả không?"></textarea><button id="submit">Chạy</button><label id="llmwrap" title="LLM chỉ ĐỀ XUẤT ánh xạ cho cụm mà bộ phân giải tất định bỏ lại; ref trả về được kiểm lại trên catalog, nên một ref bịa không thể tới plan."><input type="checkbox" id="llmterms"> Bật LLM ánh xạ từ vựng</label></form>
 <div class="examples" id="examples">
 <span class="chip">Ngày nào doanh thu cao nhất tại VN?</span>
 <span class="chip">Có bao nhiêu listing tại VN?</span>
@@ -145,7 +145,8 @@ async function run(text){
 
   let data,res;
   try{
-    res=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    const llm=document.querySelector('#llmterms').checked;
+    res=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,llm_terms:llm})});
     data=await res.json();
   }catch(err){
     setNode('parser','danger','fetch lỗi: '+esc(err.message));return;

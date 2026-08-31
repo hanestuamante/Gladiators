@@ -17,6 +17,11 @@ class AskRequest(BaseModel):
     # thoại là thứ caller phải chọn dùng, không phải thứ bật sẵn cho mọi lời gọi.
     session_id: str | None = Field(default=None, max_length=128)
     reset: bool = False
+    # W32 — bật tầng LLM ánh xạ CHỮ cho đúng lời gọi này. Mặc định TẮT, vì đo
+    # được nó chỉ đúng ~4/6 và KHÔNG ổn định (lặp cùng input ra hai kết quả).
+    # Nó chỉ ĐỀ XUẤT: ref trả về được kiểm lại trên chính danh sách đã gửi, nên
+    # một ref bịa không thể tới plan.
+    llm_terms: bool = False
 
 
 app = FastAPI(title="Gladiators V2", version="2.0.0-alpha")
@@ -160,7 +165,22 @@ def reset_session(session_id: str) -> dict[str, bool]:
 def ask(request: AskRequest) -> AgentResponse:
     if request.reset and request.session_id:
         runtime.conversations.reset(request.session_id)
+    # Bật quanh MỘT lời gọi rồi trả lại nguyên trạng. Registry là biến module,
+    # nên đây là trạng thái dùng chung: đúng cho một demo một người, KHÔNG đúng
+    # cho nhiều người hỏi song song. Ghi rõ ở đây thay vì để người sau tự phát
+    # hiện bằng một câu trả lời lẫn cờ của người khác.
+    from gladiators.planner.semantic_parser import register_term_proposer
+
+    previous = None
+    if request.llm_terms and runtime.llm_client is not None:
+        from gladiators.planner import semantic_parser as _sp
+
+        previous = _sp._TERM_PROPOSER
+        register_term_proposer(runtime.llm_client)
     try:
         return runtime.run(request.text, session_id=request.session_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail={"code": "AGENT_RUNTIME_ERROR", "type": type(exc).__name__}) from exc
+    finally:
+        if request.llm_terms and runtime.llm_client is not None:
+            register_term_proposer(previous)
