@@ -248,14 +248,25 @@ def _literal_verified(predicate, country: str) -> bool:
     giá trị không phải chuỗi; hoặc literal đúng BẰNG bản gốc trong chỉ mục —
     ``brand = 'bibica'`` trả 0 dòng vì dữ liệu ghi ``Bibica``, và cờ này là cách
     số 0 đó phân biệt được với một zero-row thật.
+
+    Thị trường được hỏi tra TRƯỚC, rồi mới lùi về mọi thị trường. Thứ đang được
+    chứng minh là CÁCH VIẾT, không phải sự có mặt: ``brand='ORION'`` viết đúng
+    như dữ liệu ghi, nên số 0 của nó ở Indonesia là một zero-row thật — ORION
+    có bán ở Việt Nam. Khoá phép kiểm theo country biến "không bán ở đây" thành
+    "viết sai tên", và một câu trả lời đúng thành một lời từ chối.
     """
-    from gladiators.agent.value_probe import INDEXED_REFS, _fold, original_of
+    from gladiators.agent.value_probe import (
+        INDEXED_REFS, _fold, original_anywhere, original_of,
+    )
 
     if predicate.ref not in INDEXED_REFS:
         return True
     if not isinstance(predicate.value, str):
         return True
-    return original_of(predicate.ref, country, _fold(predicate.value)) == predicate.value
+    folded = _fold(predicate.value)
+    if original_of(predicate.ref, country, folded) == predicate.value:
+        return True
+    return original_anywhere(predicate.ref, folded) == predicate.value
 
 
 class AnalyticsTools:
@@ -806,8 +817,24 @@ class AnalyticsTools:
         )
         if result.frame.empty:
             observed_date = str(plan.time_scope[-1]) if plan.time_scope else "unknown"
+            # Tên chỉ số KHÔNG được đổi theo giá trị của nó. Một plan đếm listing
+            # trả 0 vẫn là ``listing_count``; gọi nó ``result_count`` làm câu trả
+            # lời rỗng mất khả năng khớp với câu hỏi đã sinh ra nó — đo được:
+            # "ORION có bao nhiêu listing tại Indonesia" trả đúng số 0 nhưng bị
+            # chấm sai vì evidence không mang chỉ số nào tên là ``listing_count``.
+            # Plan KHÔNG đếm (vd. lọc theo rating) vẫn giữ ``result_count``: ở đó
+            # số 0 nói "không dòng nào", không nói "đếm được 0".
+            counts_listings = any(
+                ref == "derived.product_count"
+                for node in plan.nodes for ref in node.refs
+            )
+            empty_metric, empty_unit = (
+                ("listing_count", "listings") if counts_listings
+                else ("result_count", "rows")
+            )
             return [Evidence(
-                evidence_id=self.evidence_id(), metric="result_count", value=0, unit="rows",
+                evidence_id=self.evidence_id(), metric=empty_metric, value=0,
+                unit=empty_unit,
                 source_tier="btc_dataset",
                 source_locator=SourceLocator(kind="internal", value="compiled_semantic_plan"),
                 source_path="result.row_count", dataset_version=dataset_version,

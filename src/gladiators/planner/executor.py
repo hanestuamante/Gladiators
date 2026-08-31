@@ -81,22 +81,37 @@ def _symbol_value(symbol: str) -> int | None:
     }.get(symbol)
 
 
-def _declared_cardinality(expected: str | None) -> int | None:
-    """``"1"`` → 1, ``"<=50"`` → 50, ``"<=snapshot_rows"`` → theo lịch.
+def _declared_cardinality(expected: str | None) -> tuple[int | None, bool]:
+    """``"1"`` → ``(1, False)``, ``"<=snapshot_rows"`` → ``(22695, True)``.
 
-    Thứ khác → ``None`` (không khai được cận, lùi về ước tính của DuckDB).
+    Trả kèm cờ **cận theo cỡ dữ liệu**. Hai loại cận này khác nhau về chất và
+    trước đây bị trộn làm một:
+
+    * cận SỐ (``1``, ``<=50``) nói *truy vấn này trả về nhiều nhất chừng ấy
+      dòng* — một phát biểu về hình dạng KẾT QUẢ;
+    * cận KÝ HIỆU (``snapshot_rows``, ``listing_count``) nói *nhiều nhất là
+      toàn bộ dữ liệu* — một phát biểu về cỡ BẢN DỮ LIỆU, tức không hứa gì về
+      kết quả.
+
+    Trộn hai thứ làm cửa ``max_result_rows`` bắn theo cỡ dataset: câu "bao nhiêu
+    listing của thương hiệu Bibica tại VN ngày 03/07" khai ``<=snapshot_rows``,
+    ăn 3 341 trên bộ cũ (lọt) và 22 695 trên bộ 20 ngày (chặn) — trong khi kết
+    quả thật là 4 113 dòng ở cả hai. Cửa đổi phán quyết vì DỮ LIỆU to ra, không
+    vì truy vấn xấu đi, và lời từ chối nói sai nguyên nhân.
+
+    Thứ khác → ``(None, False)`` (không khai được cận, lùi về ước tính DuckDB).
     """
     if not expected:
-        return None
+        return None, False
     text = expected.strip()
     if text.startswith("<="):
         text = text[2:].strip()
     if text in CARDINALITY_SYMBOLS:
-        return _symbol_value(text)
+        return _symbol_value(text), True
     try:
-        return int(text)
+        return int(text), False
     except ValueError:
-        return None
+        return None, False
 
 
 class QueryExecutor:
@@ -198,9 +213,15 @@ class QueryExecutor:
         # cho một truy vấn trả về đúng 1 dòng. Cận do plan khai không phải lời
         # hứa suông: postcondition kiểm lại nó SAU khi chạy, nên plan khai sai
         # vẫn bị chặn, chỉ là chặn ở chỗ nói đúng nguyên nhân hơn.
-        declared = _declared_cardinality(query.expected_cardinality)
+        declared, dataset_scale = _declared_cardinality(query.expected_cardinality)
         if declared is not None:
-            estimated = declared
+            # Cận theo cỡ DỮ LIỆU không nói gì về kết quả, nên nó chỉ được dùng
+            # cho cửa trung gian; cửa kết quả giữ ước tính của DuckDB, thứ thật
+            # sự nói về số dòng trả ra.
+            if dataset_scale:
+                widest = declared if widest is None else max(widest, declared)
+            else:
+                estimated = declared
         if estimated is not None and estimated > self.max_result_rows:
             raise ExecutionFailure(
                 ExecutionIssue(
@@ -277,7 +298,7 @@ class QueryExecutor:
         # nổ ngay khi cận mang ký hiệu lịch (W30-R3). Hai bản của một luật là
         # cách chúng lệch nhau — đây là lần lệch thứ nhất, bắt được vì nó nổ
         # thay vì âm thầm chấp nhận.
-        limit = _declared_cardinality(bound)
+        limit, _ = _declared_cardinality(bound)
         if limit is None:
             raise ExecutionFailure(
                 ExecutionIssue(

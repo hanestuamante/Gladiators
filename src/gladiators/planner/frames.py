@@ -198,10 +198,23 @@ def _find_markers(ledger: BindingLedger, language: str) -> list[tuple[FrameMarke
     """Marker xuất hiện trên lattice, DÀI TRƯỚC để cụm dài không bị cụm ngắn ăn."""
     found: list[tuple[FrameMarker, Span]] = []
     taken: set[int] = set()
+    # MỌI ngôn ngữ, không lọc theo ``language`` — cùng quyết định đã ghi ở
+    # ``function_words.is_function_word`` (tra hợp của cả ba) và ở
+    # ``_ALL_INTENSIFIERS`` ngay trong file này. Lọc ở đây là chỗ duy nhất còn
+    # tin vào nhãn ngôn ngữ, và nhãn đó được gán bằng BỐN TỪ
+    # (``produk``/``penjualan``/``mirip``/``promosi``, parser.py:155).
+    #
+    # Đo được: ``"Berapa jumlah listing di Indonesia pada 03/07?"`` không chứa
+    # từ nào trong bốn từ đó ⇒ nhãn ``vi`` ⇒ chỉ marker tiếng Việt được quét ⇒
+    # KHÔNG khung nào khớp ⇒ không measure nào bind ⇒ plan rơi về đợt thu gần
+    # nhất và A22 bắt lệch ngày. Câu tiếng Việt cùng nghĩa thì trả lời được.
+    # Một khung đếm là quan hệ ngữ pháp; nó không ngừng là quan hệ đó vì bộ
+    # đoán ngôn ngữ đoán trượt.
+    #
+    # ``language`` vẫn là tham số vì nó còn dùng ở chỗ khác của module.
     candidates = [
         (marker, surface)
         for marker in ALL_MARKERS
-        if marker.language in ("*", language)
         for surface in marker.surfaces
     ]
     candidates.sort(key=lambda pair: -len(pair[1].split()))

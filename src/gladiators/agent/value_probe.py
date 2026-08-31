@@ -137,6 +137,22 @@ def original_of(ref: str, country: str, folded: str) -> str | None:
     return (_index().get(ref, {}).get(country) or {}).get(folded)
 
 
+def original_anywhere(ref: str, folded: str) -> str | None:
+    """Bản nguyên văn ở BẤT KỲ thị trường nào, hoặc ``None``.
+
+    Dùng cho phép kiểm *cách viết*, không phải phép kiểm *có mặt*. Hai câu hỏi
+    này bị trộn làm một và đó là chỗ hỏng: cờ ``filter_bindings`` sinh ra để bắt
+    ``brand='bibica'`` khi dữ liệu ghi ``Bibica`` — một lỗi CHÍNH TẢ, và chính
+    tả thì không đổi theo thị trường. Khoá nó theo country làm
+    ``brand='ORION'`` ở Indonesia bị chấm là "chưa chứng minh được", nên số 0
+    đúng của nó bị vứt đi cùng lời từ chối.
+    """
+    for values in (_index().get(ref) or {}).values():
+        if values and folded in values:
+            return values[folded]
+    return None
+
+
 
 def assert_index_matches(repository_dataset_version: str) -> None:
     """Preflight lúc dựng runtime (§2.5): chỉ mục LỆCH thì phải nổ, THIẾU thì thôi.
@@ -193,11 +209,36 @@ def missing_values(request) -> tuple[tuple[str, str], ...]:
         value = predicate.value_binding
         if ref not in INDEXED_REFS or not isinstance(value, str) or not value.strip():
             continue
-        known = index.get(ref, {}).get(country)
+        by_country = index.get(ref, {})
+        known = by_country.get(country)
         if known is None:
             continue
         folded_value = _fold(value)
-        if folded_value not in known and not is_ambiguous(ref, country, folded_value):
+        if folded_value in known or is_ambiguous(ref, country, folded_value):
+            continue
+        # "Không có Ở THỊ TRƯỜNG NÀY" KHÁC "không phải một giá trị có thật", và
+        # trộn hai thứ đó biến một câu trả lời đúng thành một lời từ chối.
+        #
+        # `ORION` là một brand có thật, chỉ là nó không bán ở Indonesia. Câu hỏi
+        # "ORION có bao nhiêu listing tại Indonesia" có một câu trả lời đúng,
+        # kiểm được, và hữu ích: **không có listing nào**. Hợp đồng đó đã tồn
+        # tại — ``test_a_verified_zero_row_is_still_a_result``: *literal đã
+        # verified + zero-row ⇒ allow*. Nhưng vòng dò này chặn TRƯỚC khi plan
+        # kịp chạy, nên nhánh zero-row không bao giờ tới lượt.
+        #
+        # Phân biệt đúng là: giá trị có xuất hiện ở BẤT KỲ thị trường nào không?
+        #
+        # * có  ⇒ nó là một giá trị hợp lệ của chiều; bộ lọc thị trường chọn ra
+        #         tập rỗng, và tập rỗng đó là KẾT QUẢ (đếm bằng 0);
+        # * không ⇒ người dùng nêu một thứ dữ liệu không có khái niệm — có thể
+        #         là gõ sai — và ở đó từ chối vẫn là hành vi đúng, vì hệ không
+        #         chứng minh được nó là một brand để mà nói "0".
+        elsewhere = any(
+            folded_value in values
+            for market, values in by_country.items()
+            if market != country and values
+        )
+        if not elsewhere:
             missing.append((ref, value))
     return tuple(missing)
 
@@ -481,10 +522,22 @@ def named_but_absent(
                 if not _looks_like_a_proper_name(candidate, raw_question):
                     continue
                 ambiguous_keys = _ambiguous().get(ref, {}).get(country) or {}
-                if not any(candidate in name for name in known) and not any(
+                if any(candidate in name for name in known) or any(
                     candidate in name for name in ambiguous_keys
                 ):
-                    absent.append((ref, candidate))
+                    break
+                # Cùng phân biệt với ``missing_values``: một tên có mặt ở thị
+                # trường KHÁC là một giá trị có thật của chiều, nên đếm nó ở thị
+                # trường này ra 0 — và 0 là câu trả lời, không phải lời từ chối.
+                # Chỉ khi tên không xuất hiện ở đâu cả thì hệ mới không chứng
+                # minh được nó là một brand để mà nói "không có listing nào".
+                if any(
+                    any(candidate in name for name in values)
+                    for market, values in (index.get(ref) or {}).items()
+                    if market != country and values
+                ):
+                    break
+                absent.append((ref, candidate))
                 break
     return tuple(dict.fromkeys(absent))
 

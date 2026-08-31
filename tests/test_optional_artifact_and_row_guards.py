@@ -21,7 +21,9 @@ from gladiators.domain.tables import (
 )
 from gladiators.planner.analytical import build_analytical_plan
 from gladiators.planner.compiler import CompilationError, compile_plan
+from gladiators.domain.calendar import load_calendar
 from gladiators.planner.executor import ExecutionFailure, QueryExecutor, _declared_cardinality
+from conftest import DATA_DIR
 
 
 @pytest.fixture(scope="module")
@@ -139,9 +141,19 @@ def test_a_plan_that_blows_up_intermediates_is_refused(repo):
         tiny.close()
 
 
+SNAPSHOT_ROWS = load_calendar(DATA_DIR).row_count
+
+
 @pytest.mark.parametrize(("declared", "expected"), [
-    ("1", 1), ("<=50", 50), ("<= 3341", 3341), ("2", 2),
-    ("", None), (None, None), ("nhiều", None), ("<=abc", None),
+    ("1", (1, False)), ("<=50", (50, False)), ("<= 3341", (3341, False)),
+    ("2", (2, False)),
+    ("", (None, False)), (None, (None, False)), ("nhiều", (None, False)),
+    ("<=abc", (None, False)),
+    # Cận KÝ HIỆU mang cờ True: nó nói về cỡ BẢN DỮ LIỆU, không về cỡ kết quả.
+    # Thiếu phân biệt này, cửa `max_result_rows` bắn theo số dòng của dataset —
+    # cùng một truy vấn lọt trên bộ 3 ngày và bị chặn trên bộ 20 ngày dù kết quả
+    # y hệt 4 113 dòng ở cả hai.
+    ("<=snapshot_rows", (SNAPSHOT_ROWS, True)),
 ])
 def test_declared_cardinality_parsing(declared, expected):
     assert _declared_cardinality(declared) == expected
