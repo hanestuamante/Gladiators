@@ -377,6 +377,15 @@ for name, (physical, unit, type_, traps, status) in _MEASURES.items():
         caveats.append("Đây là proxy hiển thị của sàn, không phải dữ liệu đơn hàng đã kiểm chứng.")
     if name == "variation_options_count":
         caveats.append("Số option hiển thị không phải số SKU.")
+    if name == "shop_items":
+        # Không cùng tập với `derived.product_count`, và chênh lệch là THẬT:
+        # Bibica Official Store khai 95, bộ dữ liệu thu được 92. Một con số
+        # không nói rõ nó đếm gì thì người đọc mặc định nó đếm thứ mọi con số
+        # khác trong cùng câu trả lời đang đếm.
+        caveats.append(
+            "Số hàng SHOP TỰ KHAI trên sàn, không phải số listing bộ dữ liệu "
+            "này thu được — hai con số thường lệch nhau.",
+        )
     _BASE_OBJECTS.append(_object(
         f"measure.{name}", "measure",
         (name.replace("_", " "),) + _MEASURE_ALIASES.get(name, ()), physical,
@@ -499,7 +508,21 @@ _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
     "discount_bucket": ("nhóm mức giảm giá", "khoảng giảm giá", "discount bucket"),
     "median_monthly_sold": ("lượt bán trung vị", "median monthly sold"),
     "median_estimated_recent_revenue": ("doanh thu ước tính trung vị", "median estimated revenue"),
+    # "số sản phẩm của shop" cố ý CÓ Ở CẢ HAI ref, và va nhau là điểm chính.
+    #
+    # Đo được trên cùng một shop, cùng một ngày: "số sản phẩm của shop Bibica
+    # Official Store ngày 21/7" trả 95, còn "có bao nhiêu sản phẩm của shop
+    # Bibica Official Store ngày 21/7" trả 92. Hai con số nói về HAI TẬP HỢP
+    # khác nhau — 95 là số hàng shop tự khai trên sàn (`shop_info.item_count`),
+    # 92 là số listing bộ dữ liệu này thật sự thu được — và cách nói quyết định
+    # ngầm người hỏi nhận cái nào. Không ai đọc câu trả lời biết được điều đó.
+    #
+    # Cả hai cách đọc đều hợp lý, nên chọn hộ là trả lời một câu hỏi khác trong
+    # im lặng. Đưa cụm vào cả hai ref biến nó thành `alias_collision`, và cơ chế
+    # đó đã fail-closed sẵn: câu rơi về clarify nêu ra cả hai. Muốn số nào thì
+    # nói tên nó — "quy mô shop" cho số shop khai, "số listing" cho số thu được.
     "product_count": ("số listing", "số sản phẩm", "bao nhiêu listing", "bao nhiêu sản phẩm",
+                      "số sản phẩm của shop",
                       "listing count", "how many listing", "jumlah produk", "berapa listing",
                       "berapa produk"),
     "shop_count": ("số shop", "số cửa hàng", "bao nhiêu shop", "bao nhiêu cửa hàng",

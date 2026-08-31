@@ -75,7 +75,17 @@ def test_find_in_prefers_the_longest_alias(index):
 # SemanticAmbiguity và câu fail-closed A-ANALYTICAL-AMBIGUITY. Va chạm voucher
 # là CÓ CHỦ ĐÍCH (hai khái niệm, cấm chọn thầm — cấm cả thêm vào
 # PREFERRED_REF_BY_SURFACE); mọi va chạm khác vẫn phải có ưu tiên tường minh.
-DELIBERATE_COLLISIONS = {"co voucher", "voucher", "has voucher"}
+# Surface CỐ Ý mơ hồ: chúng phải fail-closed, và có ưu tiên cho chúng là chọn
+# hộ người dùng giữa hai câu hỏi khác nhau.
+#
+# `so san pham cua shop` thêm vào ngày 01/09: đo được trên cùng một shop, cùng
+# một ngày, "số sản phẩm của shop Bibica Official Store" trả 95 còn "có bao
+# nhiêu sản phẩm của shop Bibica Official Store" trả 92. 95 là số hàng shop TỰ
+# KHAI trên sàn (`shop_info.item_count`), 92 là số listing bộ dữ liệu thu được
+# — hai tập hợp khác nhau, và cách nói quyết định ngầm người hỏi nhận cái nào.
+DELIBERATE_COLLISIONS = {
+    "co voucher", "voucher", "has voucher", "so san pham cua shop",
+}
 
 
 def test_preferred_ref_covers_every_ambiguous_surface(index):

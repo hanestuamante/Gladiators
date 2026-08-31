@@ -149,6 +149,49 @@ def _asks_for_money(request) -> bool:
     )
 
 
+
+def _collision_text(item: dict) -> str:
+    """Lời clarify phải NÊU RA các cách đọc, không chỉ báo là có nhiều cách.
+
+    "Cụm X có nhiều nghĩa; hãy nêu rõ" đúng nhưng vô dụng: người dùng không biết
+    phải nêu rõ thành cái gì, nên lượt sau họ gõ lại gần y hệt và nhận lại đúng
+    câu đó. Một lời từ chối không hành động được thì cũng chỉ là một ngõ cụt
+    lịch sự.
+
+    Tên hiển thị lấy từ chính alias đầu tiên của ref trong catalog — không có
+    bảng chữ thứ hai, nên không có chỗ để lời giải thích lệch khỏi thứ mà hệ
+    thật sự sẽ hiểu nếu người dùng gõ lại.
+    """
+    from gladiators.domain.catalog import CATALOG
+    from gladiators.planner.spans import fold as _fold
+
+    surface = item.get("surface")
+    readings = []
+    for ref in item.get("candidate_refs") or ():
+        obj = CATALOG.get(ref)
+        # Bỏ hai thứ người dùng KHÔNG gõ lại được: chính cụm đang mơ hồ (gõ lại
+        # nó thì rơi vào đúng lời từ chối này), và tên máy sinh từ ref
+        # ("shop items", "product count") — nó là định danh nội bộ, không phải
+        # cách một người nói. Còn lại mới là cách gọi hỏi lại được.
+        machine = ref.split(".", 1)[-1].replace("_", " ")
+        usable = [
+            name for name in (obj.aliases if obj is not None else ())
+            if name != machine and _fold(name) != _fold(str(surface))
+        ]
+        alias = usable[0] if usable else (machine if obj is not None else ref)
+        caveat = ""
+        if obj is not None and len(obj.caveats) > 1:
+            # caveat[0] là câu chung cho mọi measure; câu THỨ HAI mới là thứ
+            # phân biệt ref này với ref kia.
+            caveat = f" ({obj.caveats[1]})"
+        readings.append(f'"{alias}"{caveat}')
+    if not readings:
+        return f'Cụm "{surface}" có nhiều nghĩa; hãy nêu rõ.'
+    return (
+        f'Cụm "{surface}" có {len(readings)} cách hiểu: ' + " hoặc ".join(readings)
+        + ". Hãy hỏi lại bằng đúng một trong hai cách gọi đó."
+    )
+
 class ContractDrivenGate:
     """Phase-based gate — ultimate solution §4.5.
 
@@ -496,8 +539,7 @@ class ContractDrivenGate:
             )
             if collisions:
                 text = "; ".join(
-                    f'Cụm "{item.get("surface")}" có nhiều nghĩa; hãy nêu rõ.'
-                    if isinstance(item, dict) else str(item)
+                    _collision_text(item) if isinstance(item, dict) else str(item)
                     for item in collisions
                 )
                 add("A-ANALYTICAL-AMBIGUITY", 2, "clarify", text,

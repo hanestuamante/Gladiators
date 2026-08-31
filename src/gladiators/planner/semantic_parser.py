@@ -30,19 +30,37 @@ _DATE_ISO = re.compile(r"2026-07-0[1-3]")
 _DATE_DAY_MONTH = re.compile(r"(?<![0-9])0?([123])\s*/\s*0?7(?![0-9])")
 
 
-def _quoted_token_indices(builder) -> frozenset[int]:
-    """Chỉ số các token nằm trong ngoặc kép của câu hỏi.
+def _literal_token_indices(builder, country: str | None = None) -> frozenset[int]:
+    """Token thuộc một cụm phải ĐỌC NGUYÊN VĂN — trong ngoặc, hoặc là tên có thật.
 
-    Đọc lại từ `raw_question` của chính builder thay vì nhận từ ngoài: hai nguồn
-    cho cùng một sự thật là hai chỗ để chúng lệch nhau, và cái lệch ở đây im
-    lặng — nó chỉ hiện ra thành một bộ lọc biến mất.
+    Hai nguồn, cùng một nghĩa. Dấu ngoặc kép là người dùng NÓI ra rằng đây là
+    một tên; một cụm khớp nguyên văn giá trị trong chỉ mục thì là một tên dù
+    người dùng có nói hay không, và chỉ mục là sự thật về dữ liệu chứ không phải
+    một phỏng đoán về câu chữ.
+
+    Vì sao vế thứ hai cần có: câu "cửa hàng Mars Snacking VN ở VN ngày 21/7"
+    (không ngoặc) có hai lần "vn", và country binder claim lần ĐẦU — lần nằm
+    trong chính tên shop. Tên mất một token, không còn là cụm dư liền mạch, nên
+    `dim.shop_name` không bind được và plan chạy KHÔNG có bộ lọc shop. Cùng câu
+    đó CÓ ngoặc thì đúng, vì luật tránh trước đây chỉ áp cho vùng trong ngoặc.
+
+    Đọc `raw_question` của chính builder thay vì nhận từ ngoài: hai nguồn cho
+    cùng một sự thật là hai chỗ để chúng lệch nhau, và cái lệch ở đây im lặng —
+    nó chỉ hiện ra thành một bộ lọc biến mất.
     """
     from .spans import fold
 
     raw = getattr(builder, "raw_question", "") or ""
+    literals = [fold(inner) for inner in _QUOTED_RAW.findall(raw)]
+    if country:
+        # Import trễ: `agent/` phụ thuộc `planner/`, nên import ở đầu file tạo
+        # vòng qua analytics/tools.py.
+        from gladiators.agent.value_probe import literal_value_spans
+
+        literals.extend(literal_value_spans(fold(raw), country))
     inside: set[int] = set()
-    for inner in _QUOTED_RAW.findall(raw):
-        want = fold(inner).split()
+    for literal in literals:
+        want = literal.split()
         if not want:
             continue
         size = len(want)
@@ -76,7 +94,7 @@ def _ledger_of(
     # có bộ lọc shop. Ba trong bốn ca hỏng còn lại của lượt quét 20 shop đều
     # đúng hình dạng đó: "Mars Snacking VN", "Orion VN Official Store",
     # "Perfetti Van Melle Vietnam".
-    quoted = _quoted_token_indices(builder)
+    quoted = _literal_token_indices(builder, country)
     # 2. entity_id — chuỗi ≥8 chữ số
     for token in builder.tokens:
         if token.numeric and len(token.normalized) >= 8:

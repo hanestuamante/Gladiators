@@ -130,6 +130,39 @@ def _without_unit_prefix(value: str) -> str:
                 break
     return out or value
 
+
+def _grown_to_known_value(value: str, normalized: str) -> str:
+    """Nới tên đã trích ra thành TÊN ĐẦY ĐỦ nếu nó là phần đầu của một tên có thật.
+
+    Các pattern ở trên dừng span tại những mốc như tên nước, nên một tên riêng
+    CÓ CHỨA tên nước bị cắt cụt. Đo được: "Có bao nhiêu sản phẩm của shop Orion
+    VN Official Store ở VN ngày 21/7" trích ra ``"orion"``, trong khi plan bind
+    ĐÚNG ``dim.shop_name = "Orion VN Official Store"``. A22 đòi giá trị plan
+    bind phải nằm trong `entity_text`, mà chuỗi dài không nằm trong chuỗi ngắn —
+    nên câu bị từ chối vì một khoảng cách do chính bộ trích tạo ra.
+
+    Nới bằng CHỈ MỤC, không bằng suy đoán: chỉ nhận khi cụm dài hơn thật sự có
+    mặt nguyên văn trong câu VÀ là một giá trị có thật. Không có chỉ mục (hoặc
+    không biết thị trường) thì giữ nguyên hành vi cũ — thiếu chỉ mục là thiếu
+    thông tin để kết luận, không phải bằng chứng rằng tên đó sai.
+    """
+    if not value:
+        return value
+    try:
+        from gladiators.agent.value_probe import literal_value_spans
+    except Exception:                              # noqa: BLE001
+        return value
+    best = value
+    for country in ("vn", "id"):
+        for candidate in literal_value_spans(normalized, country):
+            if (
+                candidate.startswith(value)
+                and len(candidate) > len(best)
+                and candidate in normalized
+            ):
+                best = candidate
+    return best
+
 def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
     entities: list[ExtractedEntity] = []
     occupied: list[tuple[int, int]] = []
@@ -207,7 +240,9 @@ def extract_entities(text: str, normalized: str) -> tuple[ExtractedEntity, ...]:
             match = re.search(pattern, normalized)
             if not match:
                 continue
-            value = _without_unit_prefix(match.group(1).strip(" .,:;-"))
+            value = _grown_to_known_value(
+                _without_unit_prefix(match.group(1).strip(" .,:;-")), normalized,
+            )
             generic_question = bool(re.match(
                 r"^(?:nao|gi|mana|which|apa|di|dengan|yang|nhat|ini|this|"
                 r"tertinggi|terendah|co|có)\b",
