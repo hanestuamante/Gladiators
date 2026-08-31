@@ -122,12 +122,24 @@ def _object(
 _BASE_OBJECTS = [
     _object("entity.country", "entity", ("quốc gia", "country", "negara"), (), grain="country",
             counting_key="country_code"),
-    _object("entity.shop", "entity", ("shop", "cửa hàng", "toko"),
+    # "gian hàng" đã là một surface của shop ở `agent/entity_extract.py`; thiếu
+    # nó ở đây là hai danh sách cùng gọi một khái niệm mà lệch nhau — người dùng
+    # gõ từ hệ ĐÃ nhận ở tầng trích thực thể và bị hỏi lại ở tầng catalog.
+    _object("entity.shop", "entity", ("shop", "cửa hàng", "gian hàng", "toko"),
             tuple(f"{t}.shop_id" for t in ("products_clean.csv", "shop_info_clean.csv", "category_list_clean.csv", "product_categories_clean.csv", "product_snapshot_metrics.csv", "product_transition_metrics.csv")), grain="shop",
             counting_key="shop_id"),
     _object("entity.brand", "entity", ("thương hiệu", "brand", "merek"), (), grain="brand",
             counting_key="brand"),
-    _object("entity.product_listing", "entity", ("listing", "sản phẩm", "produk"), (), grain="listing",
+    # "mặt hàng"/"hàng hóa" đã nằm trong `_RANKING_SUBJECT` của semantic_parser
+    # và trong bảng intent của `agent/parser.py` — tức hệ VỐN coi chúng là cùng
+    # một khái niệm với "sản phẩm"; chỉ catalog là chỗ chưa khai. Đo được:
+    # "Ở Indonesia có bao nhiêu mặt hàng?" bị A19-CAT *"chưa xác định được chỉ
+    # số nào cần đo"* trong khi cùng câu với "sản phẩm" trả 482.
+    #
+    # KHÔNG thêm "nhãn hàng": nó không xuất hiện ở đâu trong repo, và bịa một
+    # cụm mới là mở lại đúng danh sách vô hạn mà W17 tồn tại để đóng.
+    _object("entity.product_listing", "entity",
+            ("listing", "sản phẩm", "mặt hàng", "hàng hóa", "produk"), (), grain="listing",
             counting_key="product_listing_key"),
     _object("entity.platform_category", "entity", ("danh mục sàn", "platform category"), (), grain="platform_category",
             counting_key="catid_num"),
