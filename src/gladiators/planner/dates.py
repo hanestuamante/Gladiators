@@ -29,6 +29,17 @@ _ISO = re.compile(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b")
 _DMY = re.compile(r"(?<![0-9])(\d{1,2})\s*[/-]\s*(\d{1,2})(?:\s*[/-]\s*(\d{4}))?(?![0-9])")
 _VI_DAY_MONTH = re.compile(r"ngay\s+(\d{1,2})\s+thang\s+(\d{1,2})")
 _ID_DAY = re.compile(r"tanggal\s+(\d{1,2})")
+# "ngày 3" — NGÀY TRẦN, không tháng. Lịch của bản dữ liệu nằm gọn trong MỘT
+# tháng, nên chỉ có đúng một ngày mang số đó và cụm này không mơ hồ.
+#
+# Thiếu nó, "ở indo có bao nhiêu mặt hàng vào ngày 3" không khớp mẫu nào, rơi về
+# đợt thu gần nhất và trả số của 21/07 — có khai phạm vi trong câu trả lời,
+# nhưng vẫn là trả lời một ngày KHÁC ngày được hỏi. Tiếng Indonesia đã có
+# `_ID_DAY` cho đúng dạng này từ trước; tiếng Việt thì chưa.
+#
+# Lookahead loại "ngày 3/7" và "ngày 03-07" — chúng đã do `_DMY` xử lý, và bắt
+# lại ở đây sẽ sinh ra một ngày thứ hai từ cùng một cụm.
+_VI_DAY = re.compile(r"ngay\s+(\d{1,2})(?!\s*[/-]\s*\d)(?![0-9])")
 
 # Khoảng CÓ TÊN. Giá trị là (offset_bắt_đầu, số_ngày) tính từ mốc đầu lịch, hoặc
 # một hàm đặc biệt xử lý ở dưới.
@@ -115,6 +126,10 @@ def _candidates(normalized: str, calendar: SnapshotCalendar) -> list[str]:
         if iso:
             out.append(iso)
     for day in _ID_DAY.findall(normalized):
+        iso = _iso(default_year, int(calendar.first()[5:7]), int(day))
+        if iso:
+            out.append(iso)
+    for day in _VI_DAY.findall(normalized):
         iso = _iso(default_year, int(calendar.first()[5:7]), int(day))
         if iso:
             out.append(iso)
