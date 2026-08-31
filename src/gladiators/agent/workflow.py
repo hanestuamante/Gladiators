@@ -851,9 +851,17 @@ class AgentRuntime:
                     # một điều SAI — SCORA không phải thương hiệu nhiều listing
                     # nhất — và số đúng đi kèm một phát biểu sai vẫn là một câu
                     # trả lời sai. Cực trị là thứ phải ĐƯỢC TÍNH mới được nói.
-                    ranked = bool((request.analytical or {}).get("ranking"))
+                    ranking_spec = (request.analytical or {}).get("ranking") or {}
+                    ranked = bool(ranking_spec)
+                    # Câu văn phải theo ĐÚNG chiều plan đã sắp. Nhánh sản phẩm
+                    # bên dưới đã làm vậy từ lâu, kèm ghi chú: một plan tăng dần
+                    # trả về cực TIỂU dưới một câu khẳng định nó là cực ĐẠI thì
+                    # câu trả lời mâu thuẫn với chính câu hỏi nó trả lời. Nhánh
+                    # nhãn thiếu phép kiểm đó, và "shop nào có ÍT mặt hàng nhất"
+                    # nhận về "Shop có NHIỀU listing nhất là …".
+                    most = "nhiều" if ranking_spec.get("direction", "desc") != "asc" else "ít"
                     result = (
-                        (f"{noun} có nhiều listing nhất là {item.value} "
+                        (f"{noun} có {most} listing nhất là {item.value} "
                          f"[{item.evidence_id}], với {count.value:g} listing "
                          f"[{count.evidence_id}].")
                         if ranked else

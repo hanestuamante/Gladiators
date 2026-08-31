@@ -68,6 +68,13 @@ FRAME_MARKERS: tuple[FrameMarker, ...] = (
     # --- superlative ------------------------------------------------------
     FrameMarker(("nhat", "dan dau", "hang dau"), "superlative", "vi", "suffix", "desc"),
     FrameMarker(("it nhat", "thap nhat"), "superlative", "vi", "suffix", "asc"),
+    # CIRCUMFIX: "ít MẶT HÀNG nhất" — hai mảnh cách nhau bởi chính đơn vị được
+    # đếm, nên surface liền "it nhat" không khớp và câu rơi về `desc` mặc định.
+    # Đo được: "shop nào có ÍT mặt hàng nhất" trả về shop NHIỀU listing nhất.
+    # `_find_markers` khớp theo cụm liền, nên mảnh đầu được khai riêng; mảnh
+    # "nhat" đứng sau vẫn do marker superlative desc nhận, và luật dài-trước
+    # cùng `taken` giữ cho hai marker không giẫm nhau.
+    FrameMarker(("it",), "superlative", "vi", "prefix", "asc"),
     FrameMarker(("terbanyak", "tertinggi", "paling"), "superlative", "id", "suffix", "desc"),
     FrameMarker(("terendah", "tersedikit"), "superlative", "id", "suffix", "asc"),
     FrameMarker(("most", "highest", "largest", "top", "leading"),
@@ -104,6 +111,19 @@ MEASURE_HINTS: tuple[FrameMarker, ...] = (
                 measure_hint="measure.price"),
     FrameMarker(("termurah",), "superlative", "id", "suffix", "asc",
                 measure_hint="measure.price"),
+    # CỤM ĐẦY ĐỦ "ban chay nhat", KHÔNG phải "ban chay" trần — và khác biệt đó
+    # là cả vấn đề, không phải một chi tiết:
+    #
+    #   "Sản phẩm nào BÁN CHẠY NHẤT"  → xác định: hàng đầu theo monthly_sold
+    #   "Bao nhiêu sản phẩm BÁN CHẠY" → MƠ HỒ: bán chạy là từ ngưỡng nào?
+    #
+    # Chú thích tay của bộ đề (`annotations_A.json`, acc-v1-0074) nói đúng điều
+    # thứ hai: *"'Bán chạy' không có ngưỡng định nghĩa — mỗi ngưỡng cho một số
+    # khác"*. Cực trị tự giải quyết ngưỡng; một bộ lọc trần thì không. Khai cụm
+    # trần ở đây sẽ biến một câu PHẢI hỏi lại thành một câu trả lời bừa.
+    FrameMarker(("ban chay nhat", "best selling", "terlaris"),
+                "superlative", "*", "suffix", "desc",
+                measure_hint="measure.monthly_sold"),
 )
 
 ALL_MARKERS: tuple[FrameMarker, ...] = FRAME_MARKERS + MEASURE_HINTS

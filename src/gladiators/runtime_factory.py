@@ -144,6 +144,24 @@ def create_runtime(provider: str | None = None) -> AgentRuntime:
     # (proposer/validator + chính sách trọng tài) và một phép đo chứng minh
     # nhánh LLM thắng, không phải hoà. SẼ CẢI THIỆN SAU.
     llm_parser_enabled = os.getenv("GLADIATORS_ENABLE_LLM_PARSER") == "1"
+
+    # W32 — tầng ánh xạ CHỮ, cờ RIÊNG với `GLADIATORS_ENABLE_LLM_PARSER`.
+    #
+    # Hai thứ khác nhau và không nên chung một công tắc: parser LLM ĐOÁN INTENT
+    # (đắt 438×, kém chính xác hơn, đã tắt), còn tầng này chỉ ánh xạ cụm chưa
+    # bind vào một danh sách ĐÓNG rồi để validator duyệt.
+    #
+    # Mặc định TẮT, và con số là lý do — đo trên `deepseek-v4-flash` 31/08, bộ
+    # dò tay 6 cụm: 4/6 đúng, và KHÔNG ổn định (lặp cùng một input 6 lần ra
+    # `entity.brand` 2 lần, `null` 4 lần, dù temperature=0 seed=0). Điểm sáng:
+    # trong mọi lần đo nó chưa từng trả một ref SAI — chỉ đúng hoặc null — nên
+    # rủi ro nó thêm vào là "vẫn từ chối", không phải "trả lời sai".
+    from gladiators.planner.semantic_parser import register_term_proposer
+
+    register_term_proposer(
+        llm if llm is not None and os.getenv("GLADIATORS_ENABLE_LLM_TERMS") == "1"
+        else None,
+    )
     return AgentRuntime(
         llm_client=llm, use_llm_parser=llm is not None and llm_parser_enabled,
         use_llm_generation=llm is not None,

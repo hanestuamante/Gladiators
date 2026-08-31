@@ -20,6 +20,7 @@ from gladiators.domain.catalog import CATALOG, CatalogObject, COUNT_METRIC_BY_SU
 from gladiators.domain.qualifiers import match as qualifier_match
 
 from .frames import frame_hits, resolve_frames, singularize_unmatched
+from .term_resolver import RESOLVABLE_KINDS, resolve_terms as resolve_llm_terms
 
 # Wordings that make the noun beside them the thing being counted rather than a
 # key to group by.
@@ -456,11 +457,63 @@ class CatalogSlicer:
         return tuple(selected)
 
 
+# Proposer dùng chung, ĐĂNG KÝ tường minh. `None` là mặc định và là cấu hình
+# đang phát hành: đường tất định trả lời phần lớn câu ở 56 ms, còn tầng LLM đo
+# được ~4/6 trên bộ dò tay và KHÔNG ổn định (2/6 khi lặp cùng một input), nên nó
+# chưa đủ tư cách làm mặc định. Xem ghi chú đo lường ở `term_resolver`.
+_TERM_PROPOSER = None
+
+
+def register_term_proposer(proposer) -> None:
+    """Bật/tắt tầng W32. Gọi với ``None`` để tắt."""
+    global _TERM_PROPOSER
+    _TERM_PROPOSER = proposer
+
+
+def _contiguous_residuals(ledger) -> tuple[str, ...]:
+    """Cụm token dư LIỀN KỀ, dài trước — đầu vào cho vòng phân giải W32.
+
+    Chỉ trả span CỰC ĐẠI — cùng luật W18 đã dùng cho cross-ref. Bản đầu gửi kèm
+    cả token lẻ ("cho LLM thêm lựa chọn"), và nó phản tác dụng, đo được:
+
+        gửi ["nhãn hàng"]                   → {"nhãn hàng": "entity.brand"}   ✓
+        gửi ["nhãn hàng", "nhãn", "hàng"]   → cả ba đều null                  ✗
+
+    Liệt kê các mảnh của một cụm bên cạnh chính cụm đó là ngầm hỏi "cụm này có
+    nên tách ra không", và một model thận trọng sẽ trả null cho tất cả thay vì
+    chọn bừa. Nó làm đúng; câu hỏi mới là câu hỏi tồi.
+    """
+    items = sorted(
+        (item for item in ledger.significant() if item.kind in RESOLVABLE_KINDS),
+        key=lambda item: item.span.start,
+    )
+    groups: list[list] = []
+    for item in items:
+        if groups and item.span.start == groups[-1][-1].span.end:
+            groups[-1].append(item)
+        else:
+            groups.append([item])
+    # Gửi chữ GỐC, không gửi bản đã bỏ dấu. Đo được: hỏi ``"nhan hang"`` thì
+    # model trả `null` — đúng một cách thận trọng, vì cụm đó không có dấu thì
+    # thật sự mơ hồ trong tiếng Việt. Ledger giữ cả hai dạng, nên không có lý do
+    # nào để vứt dạng đọc được đi.
+    out = [" ".join(item.span.raw for item in group) for group in groups]
+    return tuple(dict.fromkeys(out))
+
+
 class DeterministicSemanticParser:
     """Fallback P7 bảo thủ; không tạo physical column hoặc join."""
 
-    def __init__(self) -> None:
+    def __init__(self, term_proposer=None) -> None:
         self.alias_index = default_alias_index()
+        # Mặc định None ⇒ hành vi TỪNG BIT như trước. Tầng LLM là thứ caller phải
+        # chọn dùng, không phải thứ bật sẵn cho mọi lời gọi (cùng luật A3-R3).
+        #
+        # Lùi về proposer ĐÃ ĐĂNG KÝ khi caller không truyền: parser được dựng
+        # mới ở mỗi lượt gọi tại hai chỗ khác nhau, nên không có đường nào để
+        # truyền xuống mà không sửa cả hai. Biến module là chỗ duy nhất cả hai
+        # cùng đọc — cùng khuôn với `DEFAULT_DATA_DIR`.
+        self.term_proposer = term_proposer if term_proposer is not None else _TERM_PROPOSER
 
     @staticmethod
     def _contains_phrase(normalized: str, phrase: str) -> bool:
@@ -696,6 +749,52 @@ class DeterministicSemanticParser:
         )
         ledger = _ledger_of(text, country=country, dates=dates, surfaces=_surfaces)
 
+        # ── W32 — phân giải chữ bằng LLM, CHỈ khi binder tất định bỏ lại ──────
+        #
+        # Điều kiện bắn cố ý hẹp và đo được: không measure nào bind ĐƯỢC, và còn
+        # cụm dư mang nghĩa (`unknown_concept`/`grain_term`, không phải hư từ).
+        # Đường tất định trả lời được phần lớn câu ở 56 ms; tầng này chỉ tồn tại
+        # cho phần còn lại, nên nó KHÔNG được chạm vào đường đang chạy được.
+        #
+        # LLM chỉ ĐỀ XUẤT. `resolve_terms` kiểm ref trên chính danh sách vừa gửi
+        # rồi mới trả về, nên một ref bịa không thể tới đây.
+        term_resolution = None
+        if self.term_proposer is not None and not any(item.ref for item in measures):
+            # Gom token LIỀN KỀ thành cụm trước khi hỏi. Ledger trả về từng
+            # token một (`nhan`, `hang`), và hỏi LLM chữ "nhan" trần là hỏi một
+            # câu không ai trả lời được — nghĩa nằm ở CỤM. Chỉ nối những token
+            # thật sự cạnh nhau; hai cụm cách nhau bởi một hư từ vẫn là hai cụm.
+            residual_spans = _contiguous_residuals(ledger)
+            if residual_spans:
+                term_resolution = resolve_llm_terms(
+                    residual_spans,
+                    frozenset({"entity", "dimension", "measure", "derived_metric"}),
+                    self.term_proposer, language=language,
+                )
+                for span, ref in term_resolution.accepted.items():
+                    obj = CATALOG.get(ref)
+                    if obj is None:
+                        continue
+                    binding = SemanticBinding(surface_text=span, ref=ref)
+                    if obj.kind in {"measure", "derived_metric"}:
+                        measures.append(binding)
+                    else:
+                        dimensions.append(binding)
+                if term_resolution.accepted:
+                    # Khung phải phân giải LẠI: chúng bám vào lattice, và lattice
+                    # vừa có thêm span được claim. Không dựng lại thì "bao nhiêu"
+                    # vẫn trỏ vào một cụm chưa bind và measure mới nằm mồ côi.
+                    _surfaces = tuple(_surfaces) + tuple(
+                        ("alias", ref, span)
+                        for span, ref in term_resolution.accepted.items()
+                    )
+                    ledger = _ledger_of(
+                        text, country=country, dates=dates, surfaces=_surfaces,
+                    )
+                    frames = resolve_frames(
+                        ledger, language if language in ("vi", "id") else "en",
+                    )
+
         # W24-R2: predicate định danh sinh TỪ LEDGER, không từ một regex thứ hai.
         # Trước W24 catalog không phơi `item_id`, nên không plan nào lọc được về
         # một listing cụ thể và `_has_unbound_qualifier` từ chối mọi câu nêu mã
@@ -789,7 +888,9 @@ class DeterministicSemanticParser:
                     # chỉ bị gỡ ở dòng dưới), nên so với cả danh sách thì điều
                     # kiện luôn đúng và mọi câu cực trị đều bị hỏi lại. Selector
                     # là thứ chọn CHIỀU GOM NHÓM, nên nó mới là vế cần so.
-                    if frame.marker.kind == "superlative" and any(
+                    if frame.marker.kind == "superlative" and not any(
+                        other.marker.measure_hint for other in frames
+                    ) and any(
                         other.marker.kind == "selector"
                         and other.argument_ref == frame.argument_ref
                         for other in frames
