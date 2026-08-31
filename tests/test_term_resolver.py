@@ -94,3 +94,31 @@ def test_so_do_phan_biet_duoc_ba_trang_thai():
         term_proposer=lambda payload: {"mapping": {"gian buôn": "entity.shop"}},
     ).parse("có bao nhiêu gian buôn ở VN", "vi", "vn")
     assert trung.llm_terms["llm_terms_map"] == {"gian buôn": "entity.shop"}
+
+
+def test_anh_xa_ve_mot_cum_khac_khong_duoc_nhan():
+    """Over-answer đo được: hỏi vì "xí xổn", model trả lời về "bao nhiêu".
+
+    Nếu nhận, câu trở nên trả lời được trong khi cụm gây ra lượt hỏi vẫn chưa
+    hiểu — tức trả lời một câu hỏi KHÁC. Tắt LLM thì câu này `clarify`, nên
+    nhận nó là để tầng LLM làm hệ tệ đi.
+    """
+    out = resolve_terms(
+        ("xí xổn",), KINDS,
+        lambda payload: {"mapping": {
+            "bao nhiêu": "derived.product_count",
+            "VN": "entity.country",
+        }},
+        question="Cái xí xổn ở VN có bao nhiêu?",
+    )
+    assert out.accepted == {}
+
+
+def test_cum_dai_hon_cum_da_hoi_van_duoc_nhan():
+    """Trùng theo TOKEN, không theo chuỗi bằng nhau — bộ tách cắt cụt."""
+    out = resolve_terms(
+        ("lượt",), KINDS,
+        lambda payload: {"mapping": {"Số lượt tim": "measure.liked_count"}},
+        question="Số lượt tim của listing VN ngày 21/7",
+    )
+    assert out.accepted == {"Số lượt tim": "measure.liked_count"}

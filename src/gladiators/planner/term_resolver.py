@@ -164,10 +164,32 @@ def resolve_terms(
         ).replace("đ", "d").strip()
         return folded in aggregation_words
 
+    # Ánh xạ được nhận phải nói về CỤM ĐÃ HỎI. Đưa cả câu cho model thì nó cũng
+    # ánh xạ những cụm khác trong câu, và một trong số đó đủ để câu trở nên trả
+    # lời được TRONG KHI cụm gây ra lượt hỏi vẫn chưa hiểu.
+    #
+    # Đo được: "Cái xí xổn ở VN có bao nhiêu?" — hỏi vì "xí xổn" không bind
+    # được; model bỏ qua nó, map "bao nhiêu" → derived.product_count, và hệ trả
+    # "Có 672 listing" cho một câu hỏi về một thứ nó không hiểu. Tắt LLM thì
+    # câu này `clarify`. Đó là over-answer, và over_answer_rate phải giữ 0.0 ở
+    # MỌI mốc — nên luật này là điều kiện để tầng LLM được phép tồn tại.
+    #
+    # Trùng theo TOKEN, không theo chuỗi bằng nhau: bộ tách cắt cụt, nên cụm
+    # đúng thường DÀI HƠN cụm đã hỏi ("Điểm" → "Điểm sao", "lượt" → "Số lượt
+    # tim"). Đòi bằng nhau là dựng lại chính rào cản vừa gỡ.
+    asked_tokens = {
+        tok for span in spans for tok in span.lower().split() if tok
+    }
+
+    def _talks_about_asked(phrase: str) -> bool:
+        return bool(asked_tokens & {t for t in phrase.lower().split() if t})
+
     accepted: dict[str, str] = {}
     rejected: dict[str, str] = {}
     for span, ref in mapping.items():
         if isinstance(span, str) and _is_aggregation_phrase(span):
+            continue
+        if isinstance(span, str) and not _talks_about_asked(span):
             continue
         if not isinstance(span, str) or not span.strip():
             continue
