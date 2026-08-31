@@ -707,6 +707,7 @@ class DeterministicSemanticParser:
         # KHÁC bằng một con số có thật — đúng lớp over_answer mà W17 không được
         # phép tạo ra. Parser đã biết câu này phải clarify; đừng lấp khe đó.
         _has_unresolved = any(item.unresolved for item in measures)
+        self_counting_superlative = None
         if not _has_unresolved and not any(item.ref for item in measures):
             for frame in frames:
                 # SELECTOR bị loại có chủ đích: "thương hiệu NÀO có nhiều listing
@@ -718,6 +719,35 @@ class DeterministicSemanticParser:
                 if frame.marker.kind not in ("quantity", "superlative"):
                     continue
                 if frame.resolution == "count_metric" and frame.argument_ref:
+                    # LUẬT W17-R6 — ĐẾM CHÍNH NHÓM MÌNH KHÔNG PHẢI MỘT CỠ.
+                    #
+                    # "Shop nào LỚN NHẤT tại VN" không nêu tiêu chí nào. Khung
+                    # superlative bám vào `entity.shop`, và luật W17-R2 bên dưới
+                    # biến nó thành `derived.shop_count` — tức xếp hạng shop
+                    # theo SỐ SHOP. Mỗi nhóm bằng 1, nên hệ đi hết chặng rồi mới
+                    # abstain bằng A22-ALIGN-RANK-TIE, một lời từ chối nói sai
+                    # trở ngại: thứ thiếu không phải cách phá hoà, mà là câu hỏi
+                    # "lớn theo cái gì".
+                    #
+                    # Đây đúng là cạm bẫy đã ghi ở CLAUDE.md §3.1 — một grain bị
+                    # chọn ngầm là một câu hỏi khác bị trả lời ngầm. Khi đơn vị
+                    # được đếm TRÙNG với chiều gom nhóm, phép đếm không mang
+                    # thông tin, và câu đúng phải là HỎI LẠI.
+                    #
+                    # "Shop nào có nhiều LISTING nhất" không rơi vào đây: đơn vị
+                    # đếm (listing) khác chiều gom nhóm (shop).
+                    # So với đối số của khung SELECTOR, không với `dimensions`:
+                    # ở điểm này đơn vị được đếm VẪN CÒN trong `dimensions` (nó
+                    # chỉ bị gỡ ở dòng dưới), nên so với cả danh sách thì điều
+                    # kiện luôn đúng và mọi câu cực trị đều bị hỏi lại. Selector
+                    # là thứ chọn CHIỀU GOM NHÓM, nên nó mới là vế cần so.
+                    if frame.marker.kind == "superlative" and any(
+                        other.marker.kind == "selector"
+                        and other.argument_ref == frame.argument_ref
+                        for other in frames
+                    ):
+                        self_counting_superlative = frame
+                        break
                     # LUẬT W17-R2: quantity + đơn vị đếm ⇒ measure LÀ metric đếm
                     # đó, và đơn vị RỜI KHỎI requested_dimensions.
                     frame_measure_ref = COUNT_METRIC_BY_SURFACE_REF[frame.argument_ref]
@@ -810,6 +840,11 @@ class DeterministicSemanticParser:
             comparison = {"mode": "descriptive_group_comparison"}
             operators.append("compare")
         ambiguities = []
+        if self_counting_superlative is not None:
+            ambiguities.append(
+                "Câu hỏi nêu một cực trị nhưng chưa nói theo tiêu chí nào; "
+                "hãy nêu rõ đo bằng gì (ví dụ số listing, giá, hay điểm đánh giá)."
+            )
         semantic_ambiguities = tuple(dict.fromkeys(self._pending_ambiguities))
         for item in semantic_ambiguities:
             # Render lựa chọn từ MÔ TẢ catalog, không lộ ref nội bộ

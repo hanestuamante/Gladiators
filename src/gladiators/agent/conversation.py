@@ -181,9 +181,25 @@ def merge_pending(analytical: dict[str, Any], pending: PendingRequest) -> dict[s
     được thêm measure vào một pending request; measure là thứ định danh câu hỏi.
     """
     merged = dict(pending.analytical)
+    # Một ô ĐƯỢC MẶC ĐỊNH không phải một ô ĐƯỢC NÊU, và chỉ ô được nêu mới có
+    # quyền đè lên ô người dùng đã nêu ở lượt trước (LUẬT W27-R3).
+    #
+    # Đo được: lượt 1 hỏi "Có bao nhiêu listing ngày 03/07?", lượt 2 đáp
+    # "Tại Việt Nam." — một câu KHÔNG nhắc ngày nào. Nhưng parser điền
+    # `dim.date = LATEST_SNAPSHOT` cho mọi request, nên lượt 2 mang một filter
+    # ngày 21/07 "đầy đủ hình thức", và phép hợp nhất — vốn khoá theo
+    # (field_ref, op) và cho lượt mới thắng — vứt mất ngày 03/07 người dùng đã
+    # nêu. Digest vẫn ghi 03/07 (nó đọc `date_range` của request), plan chạy
+    # 21/07, và A22 bắt đúng độ lệch giữa hai thứ. Hệ trả lời một câu hỏi khác
+    # câu đã hỏi, và lớp duy nhất phát hiện được là lớp so ngày.
+    #
+    # Tín hiệu phân biệt đã có sẵn và không phải suy đoán: `date_request.dates`
+    # chỉ có phần tử khi câu THẬT SỰ nêu một ngày.
+    stated_a_date = bool((analytical.get("date_request") or {}).get("dates"))
     fresh_filters = {
         (f.get("field_ref"), f.get("op")): f
         for f in analytical.get("filters", ()) or ()
+        if not (f.get("field_ref") == "dim.date" and not stated_a_date)
     }
     kept = [
         f for f in merged.get("filters", ()) or ()
@@ -192,8 +208,16 @@ def merge_pending(analytical: dict[str, Any], pending: PendingRequest) -> dict[s
     merged["filters"] = tuple(kept) + tuple(fresh_filters.values())
     for key in ("time_scope", "requested_aggregation", "date_request"):
         value = analytical.get(key)
-        if value:
-            merged[key] = value
+        if not value:
+            continue
+        # Cùng luật W27-R3 ở ba khoá còn lại. `date_request` của lượt không nêu
+        # ngày vẫn là một dict CÓ NỘI DUNG (`{"dates": [], ...}`) nên nó truthy,
+        # và `time_scope` đã được điền sẵn bằng đợt thu gần nhất — hai giá trị
+        # "đầy đủ hình thức" mà rỗng nghĩa. Chặn ở filters mà không chặn ở đây
+        # thì ngày vẫn bị thay, chỉ ở một khoá khác.
+        if key in ("time_scope", "date_request") and not stated_a_date:
+            continue
+        merged[key] = value
     # Mơ hồ của lượt trước là thứ refinement tồn tại để GỠ. Mang chúng sang là
     # làm phép hợp nhất vô nghĩa: câu đã được trả lời vẫn bị chặn bằng chính lời
     # hỏi lại mà người dùng vừa đáp.
@@ -239,9 +263,47 @@ def apply_to_request(
         filled[slot] = state.confirmed[slot]
     if not filled:
         return request, Inheritance(expired=topic_changed, dropped=tuple(dropped))
+    if "date_range" in filled:
+        filled = carry_date_into_plan(request, filled)
     return request.model_copy(update=filled), Inheritance(
         slots=filled, expired=topic_changed, dropped=tuple(dropped),
     )
+
+
+def carry_date_into_plan(request: Any, filled: dict[str, Any]) -> dict[str, Any]:
+    """Ngày thừa kế phải vào CẢ hình dạng plan, không chỉ vào digest (W27-R4).
+
+    ``date_range`` là ô của *request*, còn thứ chạy ra SQL là ``analytical``
+    (``time_scope`` + filter ``dim.date``). Điền một nửa để lại hai nửa của cùng
+    một request nói hai ngày khác nhau: lượt 2 của "…ngày 03/07?" → "Trong số
+    đó, bao nhiêu listing thuộc thương hiệu Bibica?" có digest ghi 03/07 và plan
+    chạy 21/07, và lớp duy nhất thấy được là A22 — nó báo lệch ngày cho một câu
+    hỏi mà người dùng đã nêu ngày rõ ràng ở lượt trước.
+
+    Chỉ ghi đè khi lượt này KHÔNG tự nêu ngày (``date_request.dates`` rỗng) —
+    cùng luật W27-R3: một ô được MẶC ĐỊNH nhường chỗ cho ô được NÊU, còn một ô
+    lượt này thật sự nêu thì bộ nhớ không được đụng vào.
+    """
+    analytical = getattr(request, "analytical", None)
+    if not analytical:
+        return filled
+    if (analytical.get("date_request") or {}).get("dates"):
+        return filled
+    dates = tuple(dict.fromkeys(filled["date_range"]))
+    if not dates:
+        return filled
+    patched = dict(analytical)
+    scope = dict(patched.get("time_scope") or {})
+    scope["dates"] = list(dates)
+    scope.setdefault("mode", "single_snapshot" if len(dates) == 1 else "range")
+    patched["time_scope"] = scope
+    patched["filters"] = tuple(
+        {**f, "value_binding": dates[-1]}
+        if f.get("field_ref") == "dim.date" and f.get("op") == "eq"
+        else f
+        for f in patched.get("filters") or ()
+    )
+    return {**filled, "analytical": patched}
 
 
 def update_from_response(

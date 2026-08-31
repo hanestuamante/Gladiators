@@ -21,7 +21,9 @@ from gladiators.domain.invariant_handlers import (
 )
 from gladiators.planner.macros import default_macro_registry
 from gladiators.planner.analytical import AnalyticalPlanError, build_analytical_plan, infer_deterministic_template
-from gladiators.planner.semantic_parser import AnalyticalRequest, classify_complexity
+from gladiators.planner.semantic_parser import (
+    AnalyticalRequest, DeterministicSemanticParser, classify_complexity,
+)
 from gladiators.planner.open_planner import (
     OpenAnalyticalPlanner,
     OpenPlannerError,
@@ -51,6 +53,7 @@ from .ledger import record_refusal
 from .conversation import (
     ConversationStore,
     apply_to_request,
+    carry_date_into_plan,
     is_refinement,
     merge_pending,
     topics_of,
@@ -271,6 +274,21 @@ class _EmptyExecution:
     filter_bindings: tuple = ()
     executed_predicate_count: int = 0
     planned_predicate_count: int = 0
+
+
+def _binds_more_values(candidate: dict, current: dict) -> bool:
+    """Bản phân giải mới có bind thêm literal nào không (W27-R5).
+
+    Đếm filter MANG GIÁ TRỊ, không đếm số filter: một filter `dim.date` mặc định
+    cũng là một phần tử, nên so độ dài sẽ coi "nhiều ô rỗng hơn" là "hiểu nhiều
+    hơn" — đúng lớp lỗi mà cả W27 tồn tại để chặn.
+    """
+    def bound(analytical: dict) -> int:
+        return sum(
+            1 for f in (analytical or {}).get("filters") or ()
+            if f.get("value_binding") not in (None, "")
+        )
+    return bound(candidate) > bound(current)
 
 
 class AgentRuntime:
@@ -1254,6 +1272,32 @@ class AgentRuntime:
         conversation_state = self.conversations.get(session_id)
         turn_topics = topics_of(request)
         request, inherited = apply_to_request(request, conversation_state, turn_topics)
+        # W27-R5 — thừa kế THỊ TRƯỜNG phải kéo theo một lần PHÂN GIẢI LẠI.
+        #
+        # Value binder tra chỉ mục giá trị THEO THỊ TRƯỜNG, nên khi lượt này
+        # chưa có country thì nó không bind được literal nào: "Trong số đó, bao
+        # nhiêu listing thuộc thương hiệu Bibica?" ra một request KHÔNG có
+        # `dim.brand`. Bộ nhớ điền country ngay sau đó, nhưng `analytical` đã
+        # được dựng xong và mất brand — plan còn lại gom nhóm theo brand rồi trả
+        # đỉnh của nhóm nào đó (`AFC`, 5 listing) thay vì Bibica 96. Số đó qua
+        # được mọi lớp kiểm vì nó là một con số CÓ THẬT của một câu hỏi KHÁC.
+        #
+        # Phân giải lại đúng một lần, chỉ khi bộ nhớ vừa điền thị trường, và chỉ
+        # ghi đè khi lần phân giải mới bind được NHIỀU HƠN — bộ nhớ điền ô,
+        # không được làm nghèo đi câu người dùng vừa gõ.
+        if request.analytical and ("country" in inherited.slots or "countries" in inherited.slots):
+            rebound = DeterministicSemanticParser().parse(
+                user_text, request.language, request.country,
+            ).model_dump(mode="json")
+            if _binds_more_values(rebound, request.analytical):
+                # Ngày phải được áp LẠI sau khi bind: bản phân giải mới dựng lại
+                # `analytical` từ câu thô, nên nó mang ngày MẶC ĐỊNH và xoá mất
+                # ngày mà bộ nhớ vừa mang sang. Hai bản vá cùng đụng một trường;
+                # bản chạy sau phải là bản của bộ nhớ.
+                request = request.model_copy(update={"analytical": rebound})
+                request = request.model_copy(update=carry_date_into_plan(
+                    request, {"date_range": list(request.date_range or ())},
+                ))
         # ── W27 §14.3 — hợp nhất MỘT CHIỀU ──────────────────────────────────
         # Lượt này chỉ là một mệnh đề phạm vi (không measure, không khung định
         # lượng) và lượt trước còn một request chưa phục vụ được ⇒ REFINEMENT:
