@@ -806,17 +806,51 @@ class AgentRuntime:
                 scope_evidence = revenue
             elif not multi_row and "listing_count" in by_metric:
                 count = by_metric["listing_count"]
-                if "shop_name" in by_metric:
-                    shop = by_metric["shop_name"]
+                # NHÃN nào cũng phải được NÊU TÊN, không riêng shop. Nhánh này
+                # trước chỉ biết `shop_name`, nên "thương hiệu nào có nhiều
+                # listing nhất" trả về đúng con số mà KHÔNG nói tên thương hiệu —
+                # câu trả lời không trả lời câu hỏi. Hệ quả đo được: evidence
+                # `brand` không có claim nào trỏ tới, `claim_binding_gaps` ghi
+                # `missing_claim`, và cả câu bị bỏ bằng A-VERIFICATION-FINAL.
+                # Thêm một nhánh `elif "brand"` nữa là để lần sau lặp lại với
+                # danh mục; bảng dưới là chỗ DUY NHẤT khai quan hệ nhãn→danh từ.
+                label_nouns = (
+                    ("shop_name", "Shop"),
+                    ("brand", "Thương hiệu"),
+                    ("platform_category_name", "Danh mục"),
+                    ("shop_category_name", "Danh mục của shop"),
+                )
+                label = next(
+                    ((by_metric[metric], noun) for metric, noun in label_nouns
+                     if metric in by_metric),
+                    None,
+                )
+                if label is not None:
+                    item, noun = label
+                    # Chỉ nói "nhiều nhất" khi plan THẬT SỰ xếp hạng. Một câu
+                    # ĐẾM CÓ LỌC ("bao nhiêu listing của SCORA") trả đúng 48
+                    # nhưng nếu đóng khung bằng cực trị thì câu văn khẳng định
+                    # một điều SAI — SCORA không phải thương hiệu nhiều listing
+                    # nhất — và số đúng đi kèm một phát biểu sai vẫn là một câu
+                    # trả lời sai. Cực trị là thứ phải ĐƯỢC TÍNH mới được nói.
+                    ranked = bool((request.analytical or {}).get("ranking"))
                     result = (
-                        f"Shop có nhiều listing nhất là {shop.value} [{shop.evidence_id}], "
-                        f"với {count.value:g} listing [{count.evidence_id}]."
+                        (f"{noun} có nhiều listing nhất là {item.value} "
+                         f"[{item.evidence_id}], với {count.value:g} listing "
+                         f"[{count.evidence_id}].")
+                        if ranked else
+                        (f"{noun} {item.value} [{item.evidence_id}] có "
+                         f"{count.value:g} listing [{count.evidence_id}] "
+                         "trong phạm vi đã chọn.")
                     )
                     method = (
-                        "Lọc thị trường và snapshot, join Shop bằng country_code + shop_id, "
-                        "đếm distinct product_listing_key theo shop rồi xếp hạng giảm dần."
+                        "Lọc thị trường và snapshot, đếm distinct "
+                        "product_listing_key theo nhóm rồi xếp hạng giảm dần."
                     )
-                    limitation = "shop_info là latest/static enrichment; kết quả đếm ở cấp listing, không phải SKU."
+                    limitation = (
+                        "Kết quả đếm ở cấp listing, không phải SKU. Nhãn nhóm là "
+                        "enrichment latest/static, không đổi theo snapshot."
+                    )
                 else:
                     result = f"Có {count.value:g} listing [{count.evidence_id}] trong phạm vi đã chọn."
                     method = "Lọc đúng thị trường và snapshot, sau đó đếm distinct product_listing_key."
