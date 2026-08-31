@@ -194,6 +194,22 @@ def combine_results(
         total = sum(step.value for step in numeric)
         ids = ", ".join(step.evidence_id or "" for step in numeric)
         return f"tổng {total} trên {len(numeric)} bước [{ids}]", None
+    if combine == "compare":
+        # Bẻ câu KHÔNG được đi vòng qua cổng đã có. Đo được: "Giá trung vị ở VN
+        # so với Indonesia ngày 21/7" — đường thường trả
+        # `A-CROSS-CURRENCY-SCOPE` ("không so sánh trực tiếp VND với IDR"),
+        # nhưng bẻ thành hai câu một-thị-trường thì mỗi câu hợp lệ, và bước gộp
+        # đặt 145.220 VND cạnh 79.000 IDR như thể chúng so được. Cổng không sai;
+        # nó chỉ không còn được hỏi.
+        #
+        # Nên luật của cổng đó phải sống LẠI ở đây, tại đúng chỗ phép so được
+        # thực hiện. `list` không rơi vào luật này: nó kể lại, không so.
+        units = {step.unit for step in results if step.answered and step.unit}
+        if len(units) > 1:
+            return None, (
+                "các bước trả về đơn vị khác nhau (" + ", ".join(sorted(units))
+                + ") nên không so sánh trực tiếp được"
+            )
     if combine in ("compare", "list"):
         lines = []
         for step in results:

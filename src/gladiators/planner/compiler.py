@@ -631,6 +631,37 @@ def _compile_node(
                    expression=exp.column(key.right.column, table=right_alias))
             for key in binding.join_keys
         ]
+        # Hai phía đều mang cột ngày thì join PHẢI khớp ngày. Không có điều
+        # kiện này, một bảng chụp MỘT LẦN được gắn vào mọi ngày.
+        #
+        # Đo được: `shop_info_clean.csv` có đúng 20 dòng, một ngày duy nhất
+        # 21/07. Câu "số sản phẩm của shop Richy miền Nam ngày 01/07" lọc
+        # `products` theo 01/07 đúng, rồi LEFT JOIN shop_info chỉ trên
+        # (country_code, shop_id) — nên 122 dòng của ngày 01/07 đều nhặt về
+        # `item_count_num` của ngày 21/07 và hệ trả 305 cho MỌI ngày được hỏi.
+        # Panel thật (`shop_stats_clean.csv`) cho 298 / 300 / 305. Con số trả
+        # ra có evidence, đi qua verifier, và nói về một ngày khác ngày được
+        # hỏi — đúng lớp lỗi nguy hiểm nhất mà hệ này tồn tại để chống.
+        #
+        # Khớp ngày thay vì bỏ hẳn join: phía phải không có dòng cho ngày đó
+        # thì LEFT JOIN trả NULL, và "không quan sát được" là câu trả lời đúng
+        # — khác hẳn với việc điền một con số của ngày khác.
+        # MỌI nguồn bên trái phải mang ngày, không phải "một trong số đó": alias
+        # `l` là subquery của cả nhánh trái, và một cột chỉ có ở một nguồn thì
+        # không chắc còn tồn tại sau khi nhánh đó chiếu.
+        left_dates = {
+            _label_column_on("dim.date", source.value)
+            for source in binding.left_sources
+        }
+        left_date = left_dates.pop() if len(left_dates) == 1 else None
+        right_date = _label_column_on("dim.date", binding.right_source.value)
+        if left_date and right_date and not any(
+            key.right.column == right_date for key in binding.join_keys
+        ):
+            conditions.append(exp.EQ(
+                this=exp.column(left_date, table=left_alias),
+                expression=exp.column(right_date, table=right_alias),
+            ))
         on = conditions[0]
         for condition in conditions[1:]:
             on = exp.and_(on, condition)
