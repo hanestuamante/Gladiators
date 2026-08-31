@@ -104,10 +104,33 @@ class SynthesisError(ValueError):
     pass
 
 
+def _fold_for_guard(value: str) -> str:
+    """Dạng đã normalize của một literal, để so với `normalized_question`."""
+    from .semantic_parser import normalize
+
+    return normalize(value)
+
+
 def _has_unbound_qualifier(request: AnalyticalRequest) -> bool:
     """True when the question restricts something the request never bound."""
     text = f" {request.normalized_question} "
     bound = {predicate.field_ref for predicate in request.filters}
+
+    # Một cụm đã thành GIÁ TRỊ của một chiều thì không còn là chữ tự do. Tên
+    # shop "Bánh Kẹo Hải Hà - Chính hãng" chứa cụm "chính hãng"; nếu không xoá
+    # nó khỏi văn bản, guard này thấy một điều kiện "chưa bind" và từ chối cả
+    # câu — trong khi thứ nó thấy chỉ là một phần của cái TÊN mà request đã
+    # bind hẳn hoi thành `dim.shop_name`.
+    #
+    # Đo được: cùng một câu hỏi giá trung bình, shop tên có "Chính hãng" bị
+    # `A19-PLAN` còn shop tên không có thì trả lời bình thường — khác biệt nằm
+    # ở TÊN, không ở câu hỏi.
+    for predicate in request.filters:
+        literal = predicate.value_binding
+        if isinstance(literal, str) and len(literal) >= 4:
+            folded = _fold_for_guard(literal)
+            if folded and folded in text:
+                text = text.replace(folded, " ")
 
     # §A4.4: khớp một điều kiện thì XOÁ span đó khỏi văn bản còn lại. Không xoá
     # thì marker phủ định trần ("khong") vẫn bắn cho câu "shop KHÔNG CHÍNH HÃNG"

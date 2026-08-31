@@ -476,12 +476,34 @@ def register_term_proposer(proposer) -> None:
 _QUOTED_RAW = re.compile(r'["\u201c]([^"\u201d]+)["\u201d]')
 
 
-def _without_quoted_regions(normalized: str, raw: str) -> str:
-    """``normalized`` sau khi trừ đi phần nằm trong ngoặc kép của ``raw``."""
+def _without_quoted_regions(
+    normalized: str, raw: str, bound_values: tuple[str, ...] = (),
+) -> str:
+    """``normalized`` trừ đi phần trong ngoặc kép VÀ mọi literal đã bind.
+
+    Một cụm chỉ được CLAIM MỘT LẦN. Nếu nó đã thành giá trị của một chiều
+    (``dim.shop_name = "Bánh Kẹo Hải Hà - Chính hãng"``) thì nó không còn là
+    chữ tự do để một binder khác đọc tiếp.
+
+    Đo được, và cả hai dạng đều ra một số 0 GIẢ:
+
+      shop "Bánh Kẹo Hải Hà - Chính hãng"  (trong ngoặc)
+      shop Bánh Kẹo Hải Hà - Chính hãng    (không ngoặc)
+
+    Cụm "chính hãng" nằm trong CHÍNH TÊN SHOP, và qualifier binder đọc nó thành
+    ``dim.shop_official = True``. Plan thành "tên X **và** là official shop",
+    lọc ra 0 dòng, rồi trả `allow` kèm "không có dòng nào thoả điều kiện" —
+    trong khi shop đó có 12 listing hôm ấy. Vá riêng ngoặc kép chỉ đóng một nửa;
+    người dùng gõ tên trần thì nửa kia vẫn mở.
+    """
     out = normalized
     for inner in _QUOTED_RAW.findall(raw):
         folded = normalize(inner)
         if folded:
+            out = out.replace(folded, " ")
+    for literal in bound_values:
+        folded = normalize(str(literal))
+        if len(folded) >= 4:          # literal quá ngắn thì trừ đi là quá tay
             out = out.replace(folded, " ")
     return out
 
@@ -737,7 +759,12 @@ class DeterministicSemanticParser:
         #
         # W18 đã lập luật loại vùng trong ngoặc cho *value binder*; qualifier
         # chưa được che. Một lattice, hai bộ đọc, và bản vá chỉ áp cho một.
-        qualifier_text = _without_quoted_regions(normalized, text)
+        bound_literals = tuple(
+            str(predicate.value_binding) for predicate in filters
+            if predicate.field_ref not in ("dim.country", "dim.date")
+            and isinstance(predicate.value_binding, str)
+        )
+        qualifier_text = _without_quoted_regions(normalized, text, bound_literals)
         for matched in qualifier_match(qualifier_text):
             # W8.3: op/value đến từ hợp đồng CÓ KIỂU của qualifier — cờ nhãn
             # voucher là "vouchers_count gte 1", không phải "eq True".
@@ -958,6 +985,38 @@ class DeterministicSemanticParser:
                     if frame.marker.measure_hint:
                         frame_measure_ref = frame.marker.measure_hint
                         break
+        # ── LIỆT KÊ = ĐẾM GOM NHÓM theo chiều đã nêu ────────────────────────
+        #
+        # "Liệt kê các sản phẩm của shop X ngày 21/07" parse ra ĐÚNG mọi thứ trừ
+        # một measure: `dim.product_name` đã là chiều, shop/ngày/thị trường đã
+        # thành filter, `requested_output_shape` đã là `table`. Chỉ vì không có
+        # measure nào mà cả câu chết ở A19-CAT *"chưa xác định được chỉ số nào
+        # cần đo"* — một lời từ chối đúng chữ nhưng sai việc: người dùng không
+        # hỏi một chỉ số, họ hỏi các DÒNG.
+        #
+        # Không dựng hình dạng plan mới cho việc này. Một phép đếm gom nhóm
+        # theo `dim.product_name` TRẢ VỀ ĐÚNG các dòng đó, và nó đi qua nguyên
+        # đường tất định đã có — synthesize, validator, compiler, evidence,
+        # verifier — nên không có lớp kiểm nào bị bỏ qua. Cột đếm dư ra là cái
+        # giá phải trả, và nó rẻ hơn nhiều so với một nhánh IR thứ hai.
+        #
+        # Điều kiện HẸP: câu phải nêu ý liệt kê, phải chưa có measure nào, và
+        # phải đã bind một chiều CÓ cột vật lý để gom nhóm. Thiếu một trong ba
+        # thì giữ nguyên hành vi cũ.
+        if not frame_measure_ref and not any(item.ref for item in measures):
+            listing_cue = any(
+                cue in normalized
+                for cue in ("liet ke", "danh sach", "ke ten", "cho toi xem",
+                            "cho xem", "list ra", "show me", "daftar")
+            )
+            groupable = [
+                item for item in dimensions
+                if item.ref and item.ref not in ("dim.country", "dim.date")
+                and CATALOG.get(item.ref) is not None and CATALOG[item.ref].physical
+            ]
+            if listing_cue and groupable:
+                frame_measure_ref = "derived.product_count"
+
         if frame_measure_ref:
             measures = [SemanticBinding(
                 surface_text=frame_measure_ref.split(".", 1)[1].replace("_", " "),
