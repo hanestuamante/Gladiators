@@ -265,7 +265,24 @@ def _claim_value_matches(claimed: Any, actual: Any) -> bool:
 def _claim_value_is_displayed(claim: ResponseClaim) -> bool:
     text = _normalize_thousands_grouping(_normalize_unicode_punctuation(claim.text))
     if isinstance(claim.value, (int, float)) and not isinstance(claim.value, bool):
-        return any(_display_match(value, decimals, float(claim.value)) for value, decimals in scan_number_tokens(text))
+        tokens = scan_number_tokens(text)
+        target = float(claim.value)
+        if any(_display_match(value, decimals, target) for value, decimals in tokens):
+            return True
+        # Một giá trị ÂM được hiển thị bằng ĐỘ LỚN kèm từ chỉ chiều là cách viết
+        # tự nhiên và không mất thông tin: "giảm 7" nói đúng thứ mà −7 nói. Từ
+        # chỉ chiều phải CÓ MẶT — thiếu nó thì "7" là một con số trần và chiều
+        # đã biến mất khỏi câu trả lời, đúng lớp lỗi phải chặn.
+        if target < 0 and any(
+            word in text.lower()
+            for word in ("giam", "giảm", "sut", "sụt", "turun", "drop", "decline",
+                         "fell", "lower", "thap hon", "thấp hơn")
+        ):
+            return any(
+                _display_match(value, decimals, abs(target))
+                for value, decimals in tokens
+            )
+        return False
     value = _normalize_unicode_punctuation(str(claim.value))
     return any(variant in text for variant in _date_variants(value))
 
@@ -466,6 +483,27 @@ def verify_numeric_claims(
             value = item.attrs.get(key)
             if isinstance(value, (int, float)) and not isinstance(value, bool):
                 allowed.append(float(value))
+        # ĐỘ LỚN của một hiệu số là cách hiển thị hợp lệ của chính hiệu số đó,
+        # vì CHIỀU đã do câu chữ mang: "giảm 7" và "thay đổi −7" là một sự thật
+        # viết hai cách, không phải hai con số.
+        #
+        # Đo được: "Có bao nhiêu listing tại VN từ 08/07 đến 20/07?" tính đúng
+        # 668 → 661 và viết "giảm 7 listing", nhưng evidence mang −7, nên
+        # verifier chấm 7 là số không có evidence và bỏ CẢ câu trả lời đúng
+        # bằng A-VERIFICATION-FINAL.
+        #
+        # HẸP CÓ CHỦ ĐÍCH: chỉ áp cho evidence đã tự khai mình là một hiệu số
+        # (`derivation_op` hoặc tên chỉ số kết thúc bằng `_delta`/`_change`).
+        # Cho mọi giá trị âm được đọc theo trị tuyệt đối sẽ để một câu trả lời
+        # nói "tăng 7" đi qua trong khi dữ liệu nói giảm — tức mở đúng lớp lỗi
+        # mà lớp này tồn tại để chặn.
+        is_delta = bool(item.attrs.get("derivation_op")) or str(item.metric).endswith(
+            ("_delta", "_change"),
+        )
+        if is_delta and isinstance(item.value, (int, float)) and not isinstance(
+            item.value, bool,
+        ) and item.value < 0:
+            allowed.append(abs(float(item.value)))
 
     if tolerance is not None:
         # Escape hatch tương thích cũ: caller truyền tolerance thì dùng isclose legacy.
