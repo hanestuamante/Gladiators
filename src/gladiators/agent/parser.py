@@ -208,6 +208,51 @@ class MultilingualIntentParser:
                 external_purpose=route.purpose,
                 requested_variables=route.requested_variables,
             )
+        # Câu hỏi về CHÍNH BỘ DỮ LIỆU, không phải về hàng hoá trong đó.
+        #
+        # Macro `dataset_coverage` đã trả sẵn ngày đầu / ngày cuối / số đợt thu,
+        # nhưng cửa vào duy nhất của nó là nhánh "dự báo tháng N" ngay dưới —
+        # tức hệ chỉ nói ra lịch dữ liệu khi nó đang TỪ CHỐI một câu hỏi khác.
+        # Hỏi thẳng thì rơi vào đường analytical và nhận "Thiếu country để khóa
+        # scope VN hoặc ID", một đòi hỏi SAI: lịch đợt thu giống hệt nhau ở cả
+        # hai thị trường (đo được: 20 ngày 01–21/07 cho cả vn lẫn id), nên
+        # country không đổi câu trả lời. Hệ từ chối một thứ nó biết chắc chắn,
+        # và đó thường là câu đầu tiên người ta hỏi khi tìm hiểu dữ liệu.
+        #
+        # Điều kiện HAI VẾ, và vế thứ nhất là thứ giữ cho luật này hẹp: câu phải
+        # gọi tên chính bộ dữ liệu, VÀ phải hỏi về bề rộng thời gian. "Có bao
+        # nhiêu shop trong dữ liệu ở VN?" gọi tên dữ liệu nhưng hỏi về shop —
+        # nó đi đường analytical như cũ và vẫn trả 10.
+        names_the_dataset = any(
+            term in n for term in
+            ("du lieu", "dataset", "snapshot", "dot thu", "bo so lieu")
+        )
+        asks_time_extent = any(
+            term in n for term in (
+                "bao nhieu ngay", "bao nhieu snapshot", "bao nhieu dot",
+                "nhung ngay nao", "ngay nao den ngay nao", "tu ngay nao",
+                "khoang thoi gian", "pham vi thoi gian", "bao phu",
+                "gom nhung ngay", "co nhung ngay", "berapa hari",
+                "how many days",
+            )
+        )
+        if names_the_dataset and asks_time_extent:
+            return StructuredRequest(
+                intent="dataset_coverage",
+                country=countries[0] if countries else None,
+                countries=countries,
+                language=language,
+                slots={
+                    "raw_text": text,
+                    "sub_requests": (
+                        {"sub_id": "sr1", "text": "dataset date coverage",
+                         "capability": None, "answerable": True},
+                    ),
+                },
+                route_mode=route.mode,
+                external_purpose=route.purpose,
+                requested_variables=route.requested_variables,
+            )
         if "du bao" in n and re.search(r"\bthang\s+\d", n):
             return StructuredRequest(
                 intent="dataset_coverage",
