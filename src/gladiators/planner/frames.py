@@ -45,6 +45,19 @@ class FrameMarker:
     language: Literal["vi", "id", "en", "*"]
     attachment: Attachment
     polarity: Literal["desc", "asc"] | None = None
+    # CHIỀU CÓ CHẮC KHÔNG. `"nhất"` trần cho biết đây là một cực trị nhưng KHÔNG
+    # cho biết cực trị nào — chiều nằm ở tính từ đứng trước ("cao/nhiều/lớn" so
+    # với "thấp/ít/kém/bét/rẻ"). Khai `desc` cho nó là chọn hộ một trong hai.
+    #
+    # Đo được: *"shop nào có doanh thu KÉM NHẤT tại VN ngày 21/07"* trả về
+    # 337.000.000 (Nestlé Chính hãng) — đó là shop doanh thu CAO NHẤT. Đáp án
+    # thật là 4.056.000 (Richy - Chi nhánh Miền Nam). Câu hỏi thấp nhất được
+    # trả lời bằng cao nhất, im lặng, kèm evidence. Cùng câu viết `"thấp nhất"`
+    # hay `"lowest"` thì đúng, vì hai cụm đó có marker riêng.
+    #
+    # Registry vẫn ĐÒI mọi superlative khai polarity (nó là giá trị mặc định khi
+    # không có gì rõ hơn); cờ này nói cho tầng sau biết ĐỪNG TIN nó.
+    polarity_certain: bool = True
     measure_hint: str | None = None
     aggregation: str | None = None
 
@@ -66,7 +79,8 @@ FRAME_MARKERS: tuple[FrameMarker, ...] = (
     FrameMarker(("how many", "number of", "count of", "total number of"),
                 "quantity", "en", "prefix"),
     # --- superlative ------------------------------------------------------
-    FrameMarker(("nhat", "dan dau", "hang dau"), "superlative", "vi", "suffix", "desc"),
+    FrameMarker(("nhat", "dan dau", "hang dau"), "superlative", "vi", "suffix", "desc",
+                polarity_certain=False),
     FrameMarker(("it nhat", "thap nhat"), "superlative", "vi", "suffix", "asc"),
     # CIRCUMFIX: "ít MẶT HÀNG nhất" — hai mảnh cách nhau bởi chính đơn vị được
     # đếm, nên surface liền "it nhat" không khớp và câu rơi về `desc` mặc định.
@@ -75,6 +89,24 @@ FRAME_MARKERS: tuple[FrameMarker, ...] = (
     # "nhat" đứng sau vẫn do marker superlative desc nhận, và luật dài-trước
     # cùng `taken` giữ cho hai marker không giẫm nhau.
     FrameMarker(("it",), "superlative", "vi", "prefix", "asc"),
+    # VẾ ĐỐI XỨNG của circumfix trên. Trước đây chiều `desc` của "nhiều … nhất"
+    # đến từ chính marker `"nhất"` trần — mà marker đó nay khai
+    # `polarity_certain=False`, nên thiếu dòng này thì "shop nào có NHIỀU listing
+    # nhất" mất chiều và trả về shop đầu bảng thay vì shop nhiều nhất (đo được:
+    # Bibica 92 thay vì Richy - Chi nhánh Miền Nam).
+    #
+    # Chiều ở đây CHẮC: "nhiều"/"lớn" chỉ có một nghĩa xếp hạng.
+    #
+    # `"cao"` CỐ Ý không nằm đây. Nó fold trùng nửa sau của `"quảng cáo"`
+    # (`quang cao`), nên thêm nó biến câu *"Quảng cáo tạo bao nhiêu sales?"*
+    # thành một cực trị giảm dần — đo được ở `questions:q43`, plan đổi từ
+    # `none` sang `desc` top_k=1. Đúng lớp lỗi `"giá trị"`→`measure.price` mà
+    # CLAUDE.md §3.1 gọi là "ánh xạ chữ→ký hiệu là chỗ hỏng".
+    #
+    # Không mất gì: cụm dính liền `"cao nhất"` đã có trong bảng `descending`
+    # của `semantic_parser`, và circumfix `"cao … nhất"` không xuất hiện trong
+    # bộ đề. Nếu sau này cần, nó phải đi kèm một trap cho `"quảng cáo"`.
+    FrameMarker(("nhieu", "lon"), "superlative", "vi", "prefix", "desc"),
     FrameMarker(("terbanyak", "tertinggi", "paling"), "superlative", "id", "suffix", "desc"),
     FrameMarker(("terendah", "tersedikit"), "superlative", "id", "suffix", "asc"),
     FrameMarker(("most", "highest", "largest", "top", "leading"),

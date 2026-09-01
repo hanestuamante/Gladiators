@@ -1330,7 +1330,13 @@ class DeterministicSemanticParser:
             # `ascending` khớp cụm DÍNH LIỀN nên "nhiều … nhất" (circumfix) và
             # "đắt nhất" không bao giờ trúng — đó là d0033/d0034/d0036/h0035.
             for frame in frames:
-                if frame.marker.kind == "superlative" and frame.marker.polarity:
+                # `polarity_certain` — xem ghi chú ở `FrameMarker`. `"nhất"`
+                # trần rơi vào đây và nếu tin nó thì "kém nhất" ra cực đại.
+                if (
+                    frame.marker.kind == "superlative"
+                    and frame.marker.polarity
+                    and frame.marker.polarity_certain
+                ):
                     ranking = AnalyticalRanking(
                         order_by=rank_ref, direction=frame.marker.polarity,
                         top_k=_requested_top_k(normalized),
@@ -1502,6 +1508,13 @@ class DeterministicSemanticParser:
         # nhưng là một cụm ĐẾM, không phải một mức.
         if ranking is None and any(item.ref for item in measures):
             selector = re.search(r"(?<![a-z])(nao|which|mana)(?![a-z])", normalized)
+            # Cực trị mà KHÔNG rõ chiều: câu có "nhất" (hoặc tương đương) nhưng
+            # không marker nào chắc chiều. Trước đây nó im lặng thành `desc`.
+            unsure_extremum = any(
+                frame.marker.kind == "superlative"
+                and not frame.marker.polarity_certain
+                for frame in frames
+            )
             bare_degree = re.search(
                 r"(?<![a-z])(thap|cao|nhieu|it|lon|nho)(?![a-z])",
                 normalized.replace("bao nhieu", " "),
@@ -1511,11 +1524,55 @@ class DeterministicSemanticParser:
                 ("nhat", "highest", "lowest", "tertinggi", "terendah", "top",
                  "maximum", "minimum")
             )
-            if selector and bare_degree and not has_extremum:
-                ambiguities.append(
-                    f'Cụm "{bare_degree.group(1)}" chưa nói rõ theo tiêu chí '
-                    "nào — cao/thấp NHẤT, hay so với một ngưỡng?",
+            # LLM chỉ được hỏi ĐÚNG ở khoảng trống này: có measure, có cụm
+            # chọn-một, mà đường tất định không suy ra được ranking lẫn phép
+            # tổng hợp. Ngoài chỗ này nó không được gọi — đường tất định trả
+            # lời phần lớn câu, và tầng này chỉ tồn tại cho phần còn lại.
+            shape_resolution = None
+            # Điều kiện gọi LLM là một KHOẢNG TRỐNG CẤU TRÚC, không phải một
+            # danh sách cụm: câu chọn-một, đã bind measure, mà không suy ra
+            # được chiều xếp hạng. Dùng danh sách cụm ở đây thì chính tầng sinh
+            # ra để thay danh sách cụm lại phụ thuộc một danh sách cụm — đo
+            # được: "bét" không có trong bảng nên LLM không bao giờ được hỏi,
+            # dù nó trả lời đúng `argmin` khi được hỏi.
+            if selector and ranking is None and self.term_proposer is not None:
+                from .shape_resolver import (
+                    aggregation_of, ranking_direction, resolve_shape,
                 )
+
+                shape_resolution = resolve_shape(
+                    text,
+                    tuple(item.ref for item in measures if item.ref),
+                    self.term_proposer, language=language,
+                )
+                direction = ranking_direction(shape_resolution.shape)
+                if direction is not None:
+                    ranking = AnalyticalRanking(
+                        order_by=next(i.ref for i in measures if i.ref),
+                        direction=direction,
+                        top_k=_requested_top_k(normalized),
+                    )
+                elif aggregation_of(shape_resolution.shape) is not None:
+                    requested_aggregation = aggregation_of(shape_resolution.shape)
+
+            if (
+                selector
+                and (bare_degree and not has_extremum or unsure_extremum)
+                and ranking is None
+            ):
+                # Hai lối vào, hai lời khác nhau: cụm chỉ mức trần thiếu tiêu
+                # chí, hay cực trị không rõ chiều. Nói gộp thì người đọc không
+                # biết phải nêu rõ thành cái gì.
+                if bare_degree is not None:
+                    ambiguities.append(
+                        f'Cụm "{bare_degree.group(1)}" chưa nói rõ theo tiêu '
+                        "chí nào — cao/thấp NHẤT, hay so với một ngưỡng?",
+                    )
+                else:
+                    ambiguities.append(
+                        "Câu hỏi nêu một cực trị nhưng chưa rõ chiều nào — "
+                        "cao nhất hay thấp nhất?",
+                    )
 
         monetary = any(item.ref in {"measure.price", "derived.estimated_recent_revenue"} for item in measures)
         if not country:

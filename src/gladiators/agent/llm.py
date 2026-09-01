@@ -93,7 +93,12 @@ class LLMClient(Protocol):
     def judge(self, answer: str, rubric: str) -> dict: ...
     def critique_plan(self, question: str, plan: dict) -> dict: ...
     def resolve_terms(self, payload: dict) -> dict: ...
+    def propose_shape(self, payload: dict) -> dict:
+        # Không đề xuất gì. Một client tất định thì không suy đoán hình dạng.
+        return {"shape": None}
+
     def decompose(self, payload: dict) -> dict: ...
+    def propose_shape(self, payload: dict) -> dict: ...
     def plan_analytical(self, payload: dict) -> dict: ...
     def plan_analytical_alternate(self, payload: dict) -> dict: ...
     def adjudicate_plans(self, payload: dict) -> dict: ...
@@ -595,6 +600,42 @@ class GroqLLMClient:
             "Payload: " + json.dumps(payload, ensure_ascii=False)
         )
         return json.loads(self._chat(prompt, "question_split", Split, role="parse"))
+
+    def propose_shape(self, payload: dict) -> dict:
+        """Chọn MỘT hình dạng câu hỏi trong tập đóng `shapes`.
+
+        Ranh giới giống `resolve_terms`: model đề xuất, `shape_resolver` kiểm
+        lại trên tập đóng VÀ kiểm hình dạng đó có áp được vào measure đã bind
+        không. Nó không chọn ref, không tính số, không quyết định gate.
+        """
+        from pydantic import BaseModel, ConfigDict
+
+        class Shape(BaseModel):
+            model_config = ConfigDict(extra="forbid")
+            shape: str | None
+
+        prompt = (
+            "Câu hỏi phân tích dưới đây có HÌNH DẠNG nào? Chọn đúng MỘT giá trị "
+            "trong `shapes` — đó là danh sách ĐÓNG, không có giá trị nào khác "
+            "được chấp nhận.\n"
+            "Ý nghĩa:\n"
+            "  count    đếm số đối tượng\n"
+            "  argmax   cái LỚN NHẤT theo một đại lượng (cao nhất, nhiều nhất, top)\n"
+            "  argmin   cái NHỎ NHẤT theo một đại lượng (thấp nhất, ít nhất, kém nhất, bét)\n"
+            "  median   trung vị của một đại lượng\n"
+            "  mean     trung bình của một đại lượng\n"
+            "  share    tỷ lệ/phần trăm trên tổng\n"
+            "  list     liệt kê các đối tượng\n"
+            "  compare  so hai đối tượng với nhau\n"
+            "  lookup   tra một giá trị của MỘT đối tượng cụ thể\n"
+            "Ràng buộc:\n"
+            "1. Câu hỏi mơ hồ thật (không nói rõ theo tiêu chí nào, hoặc có thể "
+            "hiểu theo hơn một hình dạng) thì trả null. Trả null là câu trả lời "
+            "ĐÚNG; đoán bừa thì không.\n"
+            "2. Chỉ đọc câu hỏi. KHÔNG suy ra dữ liệu, KHÔNG đoán số.\n"
+            "Payload: " + json.dumps(payload, ensure_ascii=False)
+        )
+        return json.loads(self._chat(prompt, "question_shape", Shape, role="parse"))
 
     def plan_analytical(self, payload: dict) -> dict:
         from gladiators.planner.query_ir import LogicalQueryPlan
