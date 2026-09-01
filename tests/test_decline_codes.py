@@ -295,6 +295,33 @@ def _only_cardinality_moved(current, committed) -> bool:
     return _strip_cardinality(current) == _strip_cardinality(committed)
 
 
+
+def _only_declared_aggregation_moved(current, committed) -> bool:
+    """True khi hai plan chỉ khác ở Ô PHÉP TỔNG HỢP của ``plan_id``, và ô đó
+    chuyển từ một phép CÓ TÊN sang ``noagg``.
+
+    `plan_id` từng ghi phép mà `_choose_aggregation` ĐỀ XUẤT, chứ không phải
+    phép plan THỰC HIỆN. 36 plan (35 `median`, 1 `count`) khai một phép tổng
+    hợp trong khi chuỗi node của chúng KHÔNG có node Aggregate nào — nghĩa là
+    mọi thứ đọc plan_id (telemetry, khoá cache, người đọc trace) tin vào một
+    phép tính chưa bao giờ chạy, và hai plan khác nhau về cấu trúc dùng chung
+    một khoá.
+
+    Lớp này TỰ CHỨNG MINH như ba lớp trên: chỉ miễn khi đúng một ô đổi, và chỉ
+    theo chiều `<phép> → noagg`. Chiều ngược lại (bịa thêm một phép) vẫn đỏ.
+    """
+    if not isinstance(current, dict) or not isinstance(committed, dict):
+        return False
+    if {k for k in set(current) | set(committed)
+            if current.get(k) != committed.get(k)} != {"plan_id"}:
+        return False
+    new = str(current["plan_id"]).split(":")
+    old = str(committed["plan_id"]).split(":")
+    if len(new) != len(old) or new[2] != "noagg" or old[2] == "noagg":
+        return False
+    return new[:2] + new[3:] == old[:2] + old[3:]
+
+
 def test_the_equivalence_baseline_only_moves_where_a_work_package_declared_it():
     """§13.6 dòng cuối: baseline chỉ được dịch ở khoá đã khai báo lý do.
 
@@ -341,6 +368,14 @@ def test_the_equivalence_baseline_only_moves_where_a_work_package_declared_it():
     changed = {
         key for key in changed
         if not _only_filters_added(current.get(key), committed.get(key))
+    }
+    # `plan_id` thôi khai phép tổng hợp mà plan KHÔNG thực hiện. Cùng khuôn ba
+    # lớp trên: tự chứng minh, và chỉ theo chiều `<phép> → noagg`.
+    changed = {
+        key for key in changed
+        if not _only_declared_aggregation_moved(
+            current.get(key), committed.get(key),
+        )
     }
     # Câu TRƯỚC ĐÂY không có plan mà NAY có là mở rộng hợp lệ — chính mục tiêu
     # của W17/W24/W26, và ``test_synthesizer_equivalence`` đã khai nguyên tắc

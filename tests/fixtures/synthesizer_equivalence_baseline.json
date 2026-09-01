@@ -1,6 +1,6 @@
 {
   "dr2607:tc01": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -160,7 +160,7 @@
   "dr2607:tc04": null,
   "dr2607:tc05": null,
   "dr2607:tc06": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -316,7 +316,7 @@
     "subplan_count": 1
   },
   "dr2607:tc07": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -466,7 +466,7 @@
     "subplan_count": 1
   },
   "dr2607:tc08": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -636,7 +636,7 @@
   "dr2607:tc21": null,
   "dr2607:tc22": null,
   "dr2607:tc23": {
-    "plan_id": "synth:derived.has_structured_voucher:count:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:derived.has_structured_voucher:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -1539,7 +1539,7 @@
   "dr2607:tc40": null,
   "questions:q01": null,
   "questions:q02": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -1689,7 +1689,7 @@
     "subplan_count": 1
   },
   "questions:q03": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -1839,7 +1839,7 @@
     "subplan_count": 1
   },
   "questions:q04": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -1990,7 +1990,7 @@
   },
   "questions:q05": null,
   "questions:q06": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -2140,7 +2140,7 @@
     "subplan_count": 1
   },
   "questions:q07": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -2290,7 +2290,7 @@
     "subplan_count": 1
   },
   "questions:q08": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -2441,7 +2441,7 @@
   },
   "questions:q09": null,
   "questions:q10": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -2591,7 +2591,7 @@
     "subplan_count": 1
   },
   "questions:q11": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -2765,7 +2765,7 @@
   "questions:q34": null,
   "questions:q35": null,
   "questions:q36": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -2917,7 +2917,7 @@
   "questions:q37": null,
   "questions:q38": null,
   "questions:q39": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -3067,7 +3067,7 @@
     "subplan_count": 1
   },
   "questions:q40": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -3219,7 +3219,7 @@
   "questions:q41": null,
   "questions:q42": null,
   "questions:q43": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -3369,7 +3369,7 @@
     "subplan_count": 1
   },
   "questions:q44": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -3523,7 +3523,7 @@
   "questions:q47": null,
   "questions:q48": null,
   "questions:q49": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -3673,7 +3673,7 @@
     "subplan_count": 1
   },
   "questions:q50": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -3823,7 +3823,7 @@
     "subplan_count": 1
   },
   "questions:q51": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -3973,7 +3973,7 @@
     "subplan_count": 1
   },
   "questions:q52": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -4127,7 +4127,7 @@
   "questions:q55": null,
   "questions:q56": null,
   "questions:q57": {
-    "plan_id": "synth:measure.rating:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.rating:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -4282,7 +4282,7 @@
   "questions_a19:a19q01": null,
   "questions_a19:a19q02": null,
   "questions_a19:a19q03": {
-    "plan_id": "synth:measure.price:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.price:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -4873,7 +4873,7 @@
   "questions_ambiguity:amb03": null,
   "questions_ambiguity:amb04": null,
   "questions_boundaries:bnd01": {
-    "plan_id": "synth:measure.price:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.price:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -5030,7 +5030,7 @@
   },
   "questions_boundaries:bnd02": null,
   "questions_boundaries:bnd03": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -5185,7 +5185,7 @@
   "questions_boundaries:bnd07": null,
   "questions_boundaries:bnd08": null,
   "questions_boundaries:bnd09": {
-    "plan_id": "synth:measure.monthly_sold:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.monthly_sold:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -6437,7 +6437,7 @@
     "subplan_count": 1
   },
   "questions_v2:v2q01": {
-    "plan_id": "synth:derived.estimated_recent_revenue:median:nogroup:desc:vn:2026-07-03",
+    "plan_id": "synth:derived.estimated_recent_revenue:noagg:nogroup:desc:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -6606,7 +6606,7 @@
     "subplan_count": 1
   },
   "questions_v2:v2q02": {
-    "plan_id": "synth:derived.estimated_recent_revenue:median:nogroup:desc:vn:2026-07-03",
+    "plan_id": "synth:derived.estimated_recent_revenue:noagg:nogroup:desc:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -6775,7 +6775,7 @@
     "subplan_count": 1
   },
   "questions_v2:v2q03": {
-    "plan_id": "synth:derived.estimated_recent_revenue:median:nogroup:desc:vn:2026-07-03",
+    "plan_id": "synth:derived.estimated_recent_revenue:noagg:nogroup:desc:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -8118,7 +8118,7 @@
   "questions_v2:v2q10": null,
   "questions_v2:v2q11": null,
   "semantic_linking:sl01": {
-    "plan_id": "synth:measure.price_original:median:nogroup:desc:vn:2026-07-03",
+    "plan_id": "synth:measure.price_original:noagg:nogroup:desc:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -8460,7 +8460,7 @@
     "subplan_count": 1
   },
   "semantic_linking:sl03": {
-    "plan_id": "synth:measure.history_sold:median:nogroup:none:id:2026-07-03",
+    "plan_id": "synth:measure.history_sold:noagg:nogroup:none:id:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -8783,7 +8783,7 @@
     "subplan_count": 1
   },
   "semantic_linking:sl05": {
-    "plan_id": "synth:measure.voucher_min_spend:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.voucher_min_spend:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -8935,7 +8935,7 @@
   "semantic_linking:sl06": null,
   "semantic_linking:sl07": null,
   "semantic_linking:sl08": {
-    "plan_id": "synth:measure.liked_count:median:nogroup:desc:id:2026-07-03",
+    "plan_id": "synth:measure.liked_count:noagg:nogroup:desc:id:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -10139,7 +10139,7 @@
     "subplan_count": 1
   },
   "semantic_linking:sl37": {
-    "plan_id": "synth:measure.price:median:nogroup:none:vn:2026-07-03",
+    "plan_id": "synth:measure.price:noagg:nogroup:none:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {
@@ -10301,7 +10301,7 @@
     "subplan_count": 1
   },
   "semantic_linking:sl38": {
-    "plan_id": "synth:measure.price_before_promo:median:nogroup:desc:vn:2026-07-03",
+    "plan_id": "synth:measure.price_before_promo:noagg:nogroup:desc:vn:2026-07-03",
     "ir_version": "1.0",
     "nodes": [
       {

@@ -946,9 +946,27 @@ def synthesize(
         cursor = "n5"
 
     direction = ranking.direction if ranking else "none"
+    # PLAN PHẢI MÔ TẢ ĐÚNG CHÍNH NÓ. `aggregation` là phép mà `_choose_aggregation`
+    # ĐỀ XUẤT; nó chỉ được THỰC HIỆN khi có node Aggregate. Không có node đó mà
+    # plan_id vẫn ghi `median` thì mọi thứ đọc plan_id — telemetry, cache key,
+    # người đọc trace — tin vào một phép tính chưa bao giờ chạy.
+    #
+    # Đo được: "shop Richy o VN ban duoc doanh thu bao nhieu ngay 3/7" ra
+    # `plan_id=...:median:nogroup:...` nhưng chuỗi node là Scan→Filter→Join→
+    # Dedupe, và câu trả lời hiện HAI dòng thô (1.008.000 và 536.400) cho một
+    # câu hỏi "bao nhiêu". Trung vị của chúng là 772.200 — một con số plan tự
+    # nhận là đã tính mà không hề tính.
+    #
+    # Không tự thêm node Aggregate ở đây: câu không nêu phép tổng hợp nào
+    # ("bao nhiêu" là từ để hỏi lượng, không phải một phép), và chọn hộ giữa
+    # tổng / trung bình / trung vị là trả lời một câu hỏi khác. Việc đúng là
+    # plan NÓI THẬT, để A22 thấy hình dạng lệch và hỏi lại.
+    _declared_aggregation = aggregation if any(
+        node.op == "Aggregate" for node in nodes
+    ) else "noagg"
     plan = LogicalQueryPlan(
         plan_id=(
-            f"synth:{measure_ref}:{aggregation}:"
+            f"synth:{measure_ref}:{_declared_aggregation}:"
             # A1.5: thêm đoạn quan hệ. Không consumer nào parse `synth:` theo vị
             # trí (analytics/tools.py chỉ parse tiền tố `analytical:`), nên đây
             # là thay đổi additive.
@@ -974,7 +992,9 @@ def synthesize(
         _decline(decline, "relation_grain_invalid")
         return None
     return SynthesisResult(
-        plan=plan, grammar_path=plan.plan_id, aggregation=aggregation,
+        plan=plan, grammar_path=plan.plan_id,
+        # Cùng lý do: kết quả khai phép ĐÃ THỰC HIỆN, không khai phép đã đề xuất.
+        aggregation=aggregation if _declared_aggregation != "noagg" else None,
         dimensions=tuple(dimensions), relations=relations,
     )
 
