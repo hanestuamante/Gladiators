@@ -189,6 +189,29 @@ def ask(request: AskRequest) -> AgentResponse:
 
             split = run_split(runtime, request.text, runtime.llm_client)
             if split.steps or split.failed:
+                # CON SỐ CỦA BƯỚC GỘP PHẢI QUA VERIFIER.
+                #
+                # Bẻ câu rồi trả một chuỗi chữ là bỏ mất lớp kiểm cuối: mỗi số
+                # hạng có evidence, còn cái TỔNG thì không — nó sinh ra sau khi
+                # mọi bước đã qua verifier, nên không lớp nào chống lưng cho nó
+                # và một phép cộng sai đi thẳng ra ngoài.
+                #
+                # `run_split` nay dựng `Evidence` cho con số đó, với
+                # `parent_evidence_ids` trỏ về evidence từng bước. Chạy verifier
+                # ở đây khép kín vòng: mọi số trong `conclusion` phải khớp một
+                # evidence, y như đường thường.
+                from gladiators.agent.verifier import verify_numeric_claims
+
+                verification = verify_numeric_claims(
+                    split.conclusion or split.declined or "",
+                    list(split.evidence),
+                    # Câu hỏi con được IN LẠI nguyên văn trong lời kể của
+                    # `list`/`compare`, và chúng mang ngày tháng ("21/07").
+                    # Đó là chữ NGƯỜI DÙNG gõ, không phải một claim về dữ liệu —
+                    # đúng nghĩa `ignore_texts`. Không loại thì verifier chấm
+                    # "21" và "07" là số bịa và mọi lượt kể lại đều đỏ.
+                    ignore_texts=tuple(s.question for s in split.steps),
+                ) if (split.conclusion or split.declined) else {"passed": True}
                 return JSONResponse({
                     "mode": "llm_plan",
                     "question": request.text,
@@ -196,6 +219,16 @@ def ask(request: AskRequest) -> AgentResponse:
                     "conclusion": split.conclusion,
                     "declined": split.declined,
                     "failed": split.failed,
+                    "verification": {
+                        "passed": bool(verification.get("passed")),
+                        "unsupported": verification.get("unsupported", []),
+                    },
+                    "evidence": [
+                        {"evidence_id": item.evidence_id, "metric": item.metric,
+                         "value": item.value, "unit": item.unit,
+                         "parents": list(item.parent_evidence_ids)}
+                        for item in split.evidence
+                    ],
                     "telemetry": split.as_attrs(),
                     "steps": [
                         {"question": step.question, "action": step.action,

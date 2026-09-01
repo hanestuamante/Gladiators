@@ -84,6 +84,8 @@ class StepResult:
     value: float | int | str | None = None
     unit: str | None = None
     evidence_id: str | None = None
+    metric: str | None = None
+    dataset_version: str | None = None
 
     @property
     def answered(self) -> bool:
@@ -97,6 +99,11 @@ class Split:
     steps: tuple[StepResult, ...] = ()
     combine: str | None = None
     conclusion: str | None = None
+    # Evidence của CẢ LƯỢT: evidence của từng bước, cộng MỘT bản ghi cho con số
+    # do bước gộp tạo ra. Bẻ câu rồi trả về một chuỗi chữ là bỏ mất lớp kiểm
+    # cuối — con số sinh ra SAU verifier thì không gì chống lưng cho nó, và đó
+    # đúng là thứ hệ này tồn tại để chặn.
+    evidence: tuple[Any, ...] = ()
     called: bool = False
     failed: str | None = None
     declined: str | None = None
@@ -181,8 +188,8 @@ def combine_results(
     unanswered = [step for step in results if not step.answered]
     if combine in _REDUCING_OPS and unanswered:
         return None, (
-            f"{len(unanswered)}/{len(results)} bước con không trả lời được, "
-            "nên không rút được kết luận xuyên qua chúng"
+            "một số bước con không trả lời được, nên không rút được kết luận "
+            "xuyên qua chúng"
         )
     numeric = [
         step for step in results
@@ -218,17 +225,22 @@ def combine_results(
         # ngày là các tập rời nhau và vẫn cộng được (đo được: 92+22+73=187).
         spanned = _dates_spanned(step.question for step in results)
         if len(spanned) > 1:
+            # Không nêu ngày và không nêu số ngày bằng chữ số: lời từ chối
+            # không mang evidence, nên mọi chữ số trong nó đều bị verifier chấm
+            # là số bịa. Mô tả bằng LỜI (CLAUDE.md §3.1).
             return None, (
-                "các bước hỏi " + str(len(spanned)) + " ngày khác nhau ("
-                + ", ".join(sorted(spanned)[:4])
-                + (", ..." if len(spanned) > 4 else "")
-                + "), nên cộng lại là đếm trùng cùng một đối tượng qua nhiều "
-                "đợt thu. Hỏi 'mỗi ngày bao nhiêu' hoặc 'ngày nào nhiều nhất' "
-                "để có câu trả lời theo từng ngày."
+                "các bước hỏi nhiều ngày khác nhau, nên cộng lại là đếm trùng "
+                "cùng một đối tượng qua nhiều đợt thu. Hỏi 'mỗi ngày bao nhiêu' "
+                "hoặc 'ngày nào nhiều nhất' để có câu trả lời theo từng ngày."
             )
         total = sum(step.value for step in numeric)
         ids = ", ".join(step.evidence_id or "" for step in numeric)
-        return f"tổng {total} trên {len(numeric)} bước [{ids}]", None
+        # Số bước viết bằng CHỮ. `verifier.scan_numbers` quét mọi chữ số trong
+        # câu trả lời và đòi evidence hậu thuẫn; "trên 3 bước" bị chấm là một
+        # con số bịa vì không evidence nào mang giá trị 3. Đúng bẫy CLAUDE.md
+        # §3.1 — cùng lớp với "1.157 listing" trong `capability_messages` từng
+        # kéo eval từ 1.0 xuống 0.77.
+        return f"tổng {total} [{ids}]", None
     if combine == "compare":
         # Bẻ câu KHÔNG được đi vòng qua cổng đã có. Đo được: "Giá trung vị ở VN
         # so với Indonesia ngày 21/7" — đường thường trả
@@ -262,6 +274,31 @@ def combine_results(
                 "các bước trả về đơn vị khác nhau (" + ", ".join(sorted(units))
                 + ") nên không so sánh trực tiếp được"
             )
+    if combine == "compare":
+        # NÓI RA BÊN NÀO HƠN. Bản cũ chỉ liệt kê hai con số và để người đọc tự
+        # so — nhưng câu hỏi là "cái nào cao hơn", nên một danh sách không phải
+        # câu trả lời, nó là nguyên liệu của câu trả lời.
+        #
+        # Phép so là của PYTHON, trên hai giá trị đã có evidence và đã qua cửa
+        # đơn vị ở trên. LLM không so; nó chỉ nói rằng đây là một câu hỏi so
+        # sánh, và tập đóng `COMBINE_OPS` đã kiểm điều đó.
+        if len(numeric) == 2:
+            high, low = sorted(numeric, key=lambda step: step.value, reverse=True)
+            unit = f" {high.unit}" if high.unit else ""
+            if high.value == low.value:
+                verdict = (
+                    f"Hai bên BẰNG NHAU: {high.value}{unit} "
+                    f"[{high.evidence_id}] và [{low.evidence_id}]."
+                )
+            else:
+                verdict = (
+                    f"{high.question} — {high.value}{unit} [{high.evidence_id}] "
+                    f"CAO HƠN {low.question} — {low.value}{unit} "
+                    f"[{low.evidence_id}]."
+                )
+            return verdict, None
+        # Khác hai bên thì không phải một phép so đôi; kể lại như `list`.
+
     if combine in ("compare", "list"):
         lines = []
         for step in results:
@@ -297,6 +334,58 @@ def _dates_spanned(questions) -> set[str]:
         seen.update(request.out_of_window)
     return seen
 
+
+def composed_evidence(
+    results: tuple[StepResult, ...], combine: str, value: float | int,
+    unit: str | None,
+) -> Any:
+    """``Evidence`` cho con số do BƯỚC GỘP tạo ra.
+
+    ``parent_evidence_ids`` trỏ về evidence của từng bước, nên chuỗi truy vết
+    không đứt: mỗi số hạng vẫn về được tới dòng dữ liệu sinh ra nó, và con số
+    tổng hợp nói rõ nó được ghép từ những gì.
+
+    Không có bản ghi này thì cái tổng là một con số MỚI xuất hiện sau verifier —
+    mỗi số hạng có evidence, còn tổng thì không, và không lớp nào phát hiện được
+    một phép cộng sai.
+    """
+    import uuid
+
+    from gladiators.contracts import Evidence
+    from gladiators.external.contracts import SourceLocator
+
+    parents = tuple(
+        step.evidence_id for step in results
+        if step.answered and step.evidence_id
+    )
+    versions = {
+        step.dataset_version for step in results
+        if step.answered and step.dataset_version
+    }
+    if len(versions) != 1:
+        # Hai bản dữ liệu trong một lượt gộp là một câu trả lời về hai thế giới.
+        # Không dựng evidence; bước gộp mất lớp chống lưng và phải từ chối.
+        return None
+    metrics = {
+        step.metric for step in results if step.answered and step.metric
+    }
+    return Evidence(
+        evidence_id=f"ev:split:{uuid.uuid4().hex[:12]}",
+        source_tier="btc_dataset",
+        metric=f"{combine}_{'_'.join(sorted(metrics)) or 'value'}",
+        value=value,
+        unit=unit,
+        source_locator=SourceLocator(kind="internal", value="question_split"),
+        dataset_version=next(iter(versions)),
+        attrs={
+            "combine": combine,
+            "steps": len(results),
+            "answered_steps": sum(1 for step in results if step.answered),
+        },
+        parent_evidence_ids=parents,
+    )
+
+
 def run_split(
     runtime,
     question: str,
@@ -320,6 +409,7 @@ def run_split(
         return Split(called=proposer is not None, combine=combine)
 
     results: list[StepResult] = []
+    step_evidence: list[Any] = []
     for step in steps:
         try:
             response = runtime.run(step)
@@ -329,22 +419,53 @@ def run_split(
             results.append(StepResult(question=step, action="error",
                                       rule_id=type(exc).__name__))
             continue
-        value = unit = evidence_id = None
+        value = unit = evidence_id = metric = dataset_version = None
         if response.evidence:
             first = response.evidence[0]
             value, unit, evidence_id = first.value, first.unit, first.evidence_id
+            metric, dataset_version = first.metric, first.dataset_version
+            step_evidence.extend(response.evidence)
         results.append(StepResult(
             question=step,
             action=response.gate.action,
             rule_id=response.gate.rule_id,
             answer=response.answer,
             value=value, unit=unit, evidence_id=evidence_id,
+            metric=metric, dataset_version=dataset_version,
         ))
 
-    conclusion, declined = combine_results(tuple(results), combine or "list")
+    frozen = tuple(results)
+    conclusion, declined = combine_results(frozen, combine or "list")
+    evidence = list(step_evidence)
+    if declined is None and combine in ("sum", "argmax", "argmin"):
+        numeric = [
+            step for step in frozen
+            if step.answered and isinstance(step.value, (int, float))
+            and not isinstance(step.value, bool)
+        ]
+        if numeric:
+            if combine == "sum":
+                composed_value = sum(step.value for step in numeric)
+                composed_unit = next(
+                    (step.unit for step in numeric if step.unit), None,
+                )
+            else:
+                pick = (max if combine == "argmax" else min)(
+                    numeric, key=lambda step: step.value,
+                )
+                composed_value, composed_unit = pick.value, pick.unit
+            record = composed_evidence(frozen, combine, composed_value, composed_unit)
+            if record is None:
+                declined = (
+                    "các bước trả về từ nhiều bản dữ liệu khác nhau, không ghép "
+                    "thành một kết luận được"
+                )
+                conclusion = None
+            else:
+                evidence.append(record)
     return Split(
-        steps=tuple(results), combine=combine, called=True,
-        conclusion=conclusion, declined=declined,
+        steps=frozen, combine=combine, called=True,
+        conclusion=conclusion, declined=declined, evidence=tuple(evidence),
     )
 
 

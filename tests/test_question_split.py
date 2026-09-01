@@ -92,7 +92,11 @@ def test_argmax_tu_choi_khi_con_buoc_khong_tra_loi_duoc():
     )
     conclusion, declined = combine_results(results, "argmax")
     assert conclusion is None
-    assert declined is not None and "1/3" in declined
+    # Lời từ chối KHÔNG mang chữ số: nó không có evidence, nên mọi con số trong
+    # nó bị `verifier.scan_numbers` chấm là số bịa (CLAUDE.md §3.1 — cùng lớp
+    # với "1.157 listing" từng kéo eval từ 1.0 xuống 0.77).
+    assert declined is not None and "không trả lời được" in declined
+    assert not any(ch.isdigit() for ch in declined)
 
 
 def test_argmax_khong_dien_0_cho_buoc_rong():
@@ -180,3 +184,36 @@ def test_sum_van_cong_duoc_trong_cung_mot_ngay():
     conclusion, declined = combine_results(results, "sum")
     assert declined is None
     assert "187" in conclusion
+
+
+def test_compare_noi_ra_ben_nao_hon():
+    """Câu hỏi "cái nào cao hơn" cần một KẾT LUẬN, không phải một danh sách.
+
+    Bản đầu chỉ liệt kê hai con số và để người đọc tự so — nhưng một danh sách
+    là nguyên liệu của câu trả lời, không phải câu trả lời. Phép so là của
+    Python, trên hai giá trị đã có evidence và đã qua cửa đơn vị.
+    """
+    results = (
+        _step('Số listing của shop "Bibica Official Store" ngày 21/07?', 92),
+        _step('Số listing của shop "Kinh Do Official Store" ngày 21/07?', 22),
+    )
+    conclusion, declined = combine_results(results, "compare")
+    assert declined is None
+    assert "CAO HƠN" in conclusion
+    assert conclusion.index("92") < conclusion.index("CAO HƠN") < conclusion.index("22")
+
+
+def test_compare_bang_nhau_thi_noi_bang_nhau():
+    results = (_step("shop A", 50), _step("shop B", 50))
+    conclusion, declined = combine_results(results, "compare")
+    assert declined is None and "BẰNG NHAU" in conclusion
+
+
+def test_compare_khac_don_vi_thi_tu_choi():
+    """Cổng tiền tệ sống lại tại đúng chỗ phép so được thực hiện: bẻ câu KHÔNG
+    được đi vòng qua `A-CROSS-CURRENCY-SCOPE`."""
+    a = _step("Giá trung vị VN", 145220); a.unit = "VND"
+    b = _step("Giá trung vị ID", 79000); b.unit = "IDR"
+    conclusion, declined = combine_results((a, b), "compare")
+    assert conclusion is None
+    assert declined is not None and "đơn vị khác nhau" in declined
