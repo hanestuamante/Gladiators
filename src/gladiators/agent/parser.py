@@ -493,8 +493,32 @@ class MultilingualIntentParser:
             # hay sản phẩm, và đoán bừa là chọn hộ người dùng một grain.
             (names_a_listing_key and "luot ban" in n)
             or any(x in n for x in ("doanh so", "sales decline", "bien dong ban",
-                                 "tinh hinh ban", "cek penjualan", "analisis penjualan"))
+                                 "tinh hinh ban", "cek penjualan", "analisis penjualan",
+                                 "ban giam", "ban tang"))
             or ("luot ban" in n and any(x in n for x in ("giam", "tang", "thay doi")))
+            # TỪ VỰNG DOANH SỐ + ĐỘNG TỪ BIẾN ĐỘNG, không phụ thuộc dấu ngoặc.
+            #
+            # Luật cũ chỉ nhận những CỤM CỐ ĐỊNH, nên bảy câu của
+            # `eval/questions.json` rơi hết sang `open_analytical` dù chúng nói
+            # rõ ràng về biến động doanh số:
+            #   q02 "Kiểm tra lượt bán X"        q03 "Phân tích giảm sales của X"
+            #   q06 "Penjualan X menurun?"       q07 "So sánh sales snapshot của X"
+            #   q08 "Lượt bán gần đây của X"     q12 "Sản phẩm X bán giảm à?"
+            #   q52 "Biến động sales X"
+            #
+            # Điều kiện là HAI VẾ có chủ đích, và vế thứ nhất giữ nguyên thứ mà
+            # bản vá trước bảo vệ: ba câu từng bị ngoặc kép kéo nhầm vào đây
+            # ("Liệt kê sản phẩm của shop X", "Giá trung bình của shop X",
+            # "Khoảng tứ phân vị giá shop X") KHÔNG có từ vựng doanh số nào, nên
+            # chúng vẫn ở ngoài. Cái đổi là hệ thôi nhìn dấu câu và bắt đầu nhìn
+            # ĐỘNG TỪ.
+            or (
+                any(x in n for x in ("luot ban", "sales", "penjualan", "doanh so"))
+                and any(x in n for x in (
+                    "giam", "tang", "thay doi", "bien dong", "menurun", "naik",
+                    "decline", "gan day", "snapshot", "so sanh", "kiem tra", "cek",
+                ))
+            )
         ):
             intent = "sales_decline"
         else:

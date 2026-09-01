@@ -15,6 +15,65 @@ from pathlib import Path as _Path
 
 sys.path.insert(0, str(_Path(__file__).resolve().parents[1] / "src"))
 
+
+def _pin_dataset_early() -> str:
+    """Ghim bản dữ liệu TRƯỚC khi import gladiators, hoặc từ chối chạy.
+
+    Phải ở đây, không ở trong ``main()``: ``data.repository.DEFAULT_DATA_DIR``
+    đọc môi trường lúc NẠP MODULE. Đặt biến sau khi import thì nó không có tác
+    dụng gì, và lượt chạy im lặng dùng bản đang phục vụ — đúng cái bẫy file này
+    sinh ra để đóng. `tests/conftest.py` đã phải làm cùng một việc, cùng lý do.
+
+    Vì sao phải khai: cùng một mã nguồn, cùng ngày 01/09/2026, `questions_v2`
+    cho **0.455** trên bộ 20 ngày và **1.000** trên bộ 3 ngày. Chênh lệch đó
+    không phải năng lực đổi — nó là bộ đề đang mô tả một bản dữ liệu khác với
+    bản đang chạy. Trước khi ghim, 0.455 bị đọc thành "hệ kém đi", và nó che
+    một `over_answer_rate = 0.125` THẬT suốt một phiên.
+    """
+    import json as _json
+    import os as _os
+
+    argv = sys.argv[1:]
+
+    def _flag(name: str) -> str | None:
+        if name in argv:
+            index = argv.index(name)
+            return argv[index + 1] if index + 1 < len(argv) else None
+        for item in argv:
+            if item.startswith(name + "="):
+                return item.split("=", 1)[1]
+        return None
+
+    override = _flag("--data-dir")
+    if override:
+        _os.environ["GLADIATORS_DATA_DIR"] = override
+        return f"[dataset] ghi đè: {override}"
+
+    root = _Path(__file__).resolve().parents[1]
+    registry = _json.loads(
+        (root / "eval" / "suite_datasets.json").read_text(encoding="utf-8"),
+    )
+    name = _Path(_flag("--suite") or "eval/questions.json").name
+    root_name = registry["suites"].get(name)
+    if root_name is None:
+        raise SystemExit(
+            f"Bộ đề {name!r} chưa khai bản dữ liệu nó mô tả. Thêm vào "
+            "eval/suite_datasets.json — một phép kiểm không nói rõ nó nói về "
+            "cái gì thì không phải một phép kiểm.",
+        )
+    spec = registry["roots"][root_name]
+    data_dir = root / spec["data_dir"]
+    if not data_dir.exists():
+        raise SystemExit(f"Bản dữ liệu {data_dir} không tồn tại.")
+    _os.environ["GLADIATORS_DATA_DIR"] = str(data_dir)
+    index_path = root / spec["value_index"] if spec.get("value_index") else None
+    if index_path is not None and index_path.exists():
+        _os.environ["GLADIATORS_VALUE_INDEX"] = str(index_path)
+    return f"[dataset] {name} mô tả bản {root_name!r} → {data_dir}"
+
+
+_DATASET_BANNER = _pin_dataset_early()
+
 from gladiators.evalkit.metrics import compute_selective_metrics  # noqa: E402
 
 from gladiators.agent.llm import (
@@ -166,6 +225,13 @@ def evidence_correct(case, response, runtime) -> bool:
             for metric, value in expected.items()
         )
     metrics = [e.metric for e in response.evidence]
+    # Intent KHÔNG sinh evidence theo thiết kế: câu trả lời là một phát biểu về
+    # REGISTRY, không phải về dữ liệu, nên không có con số nào cần chống lưng
+    # (A7-R2). Đòi nó có evidence là đòi một thứ nó cố ý không tạo ra, và cả 8
+    # ca của `questions_schema` trượt vì luật chấm rơi thẳng xuống nhánh
+    # fail-closed cuối hàm.
+    if case["expected_intent"] in {"schema_relation_explain"}:
+        return response.evidence == []
     if case["expected_intent"] == "sales_decline":
         if set(metrics) != {"monthly_sold_delta", "days_since_previous"} or not response.resolved_listing_key:
             return False
@@ -351,12 +417,14 @@ def run_case(case, runtime):
     return response, {"scoreable": True, "intent_action": intent_action, "gate_rule": gate_rule, "entity": entity, "trajectory": trajectory, "evidence": evidence, "citation_recall": citation_recall, "citation_precision": citation_precision, "verifier": verifier, "mutation_detected": mutation_detected, "llm_path": llm_path, "passed": passed}
 
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--suite", default="eval/questions.json"); ap.add_argument("--runs", type=int, default=3); ap.add_argument("--output", default="eval/reports")
     ap.add_argument("--mode", choices=["direct", "gated", "full"], default="full"); ap.add_argument("--provider", choices=["offline", "gemini", "huggingface", "groq", "deepseek"], default="offline")
     ap.add_argument("--enable-critic", action="store_true", help="Bật escalation critic; offline dùng deterministic acceptance stub")
     ap.add_argument("--resume", action="store_true", help="Tiếp tục từ checkpoint.json trong output directory")
+    ap.add_argument("--data-dir", default=None, help="Ghi đè bản dữ liệu; mặc định lấy theo khai báo ở eval/suite_datasets.json")
     args = ap.parse_args(); cases = json.loads(Path(args.suite).read_text(encoding="utf-8"))
     # Một số bộ đề (p0_probes, dr2607) gói case trong {"cases": [...]} kèm
     # schema_version. Trước đây harness đọc thẳng và chết bằng TypeError ở tận
@@ -380,6 +448,7 @@ def main():
         "gemini": GeminiLLMClient, "huggingface": HuggingFaceLLMClient,
         "groq": GroqLLMClient, "deepseek": DeepSeekLLMClient,
     }
+    print(_DATASET_BANNER)
     llm = _CLIENTS[args.provider]() if args.provider in _CLIENTS else None
     if args.provider != "offline" and llm is None:
         raise SystemExit(f"Provider {args.provider} không dựng được client; từ chối chạy offline dưới nhãn đó.")

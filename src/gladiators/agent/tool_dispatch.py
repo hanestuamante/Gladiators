@@ -49,11 +49,27 @@ def tool(name: str) -> Callable[[ToolHandler], ToolHandler]:
     return decorator
 
 
-def _record(ctx: ToolContext, name: str, args: dict, evidence: list[Evidence]) -> None:
+def _record(
+    ctx: ToolContext, name: str, args: dict, evidence: list[Evidence],
+    *, produces_evidence: bool = True,
+) -> None:
+    """Ghi một lượt gọi tool.
+
+    ``produces_evidence=False`` cho tool KHÔNG sinh evidence theo thiết kế.
+    Luật cũ là ``"ok" if evidence else "empty"`` — một luật chung, và nó gán
+    ``empty`` cho ``explain_relation``, tool mà chính docstring của nó khai
+    *"KHÔNG sinh Evidence (A7-R2): đây không phải một tuyên bố về dữ liệu"*.
+
+    Hai trạng thái đó nghĩa khác hẳn nhau: ``empty`` là *truy vấn chạy xong,
+    không dòng nào khớp* — một sự thật về DỮ LIỆU; còn đây là *tool này không
+    trả dòng*, một sự thật về TOOL. Nhập chúng làm một khiến mọi lớp đọc phía
+    sau hiểu nhầm, và đo được: cả 8 ca của `eval/questions_schema.json` chấm
+    trượt vì `trajectory_correct` đòi mọi lượt gọi có `status == "ok"`.
+    """
     ctx.evidence.extend(evidence)
     ctx.calls.append(ToolCall(
         name=name, args=args,
-        status="ok" if evidence else "empty",
+        status="ok" if (evidence or not produces_evidence) else "empty",
         evidence_ids=[e.evidence_id for e in evidence],
     ))
 
@@ -234,4 +250,7 @@ def _explain_relation(ctx: ToolContext) -> None:
     left = entities[0]
     right = entities[1] if len(entities) > 1 else None
     ctx.request.slots["relation_explanation"] = explain(left, right)
-    _record(ctx, "explain_relation", {"entities": list(entities)}, [])
+    _record(
+        ctx, "explain_relation", {"entities": list(entities)}, [],
+        produces_evidence=False,
+    )
