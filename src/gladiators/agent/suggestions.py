@@ -87,7 +87,11 @@ def _question_for(ref: str, country: str, date: str) -> str | None:
     obj = CATALOG.get(ref)
     if obj is None:
         return None
-    market = "Việt Nam" if country == "vn" else "Indonesia"
+    # Tra bảng khai. Bản cũ gán "Indonesia" cho MỌI thị trường không phải vn —
+    # cùng hình dạng fail-open với `"VND" if country == "vn" else "IDR"`.
+    from gladiators.domain.markets import display_name_of
+
+    market = display_name_of(country)
     if ref in _QUALIFIER_SURFACE:
         # Dùng alias tiếng Việt của catalog, không dùng surface đã normalize:
         # surface bỏ dấu là dạng để KHỚP, không phải dạng để đọc.
@@ -117,7 +121,9 @@ def nearest_answerable(request, runtime) -> tuple[str, ...]:
     if not bound:
         return ()
 
-    country = request.country or "vn"
+    from gladiators.domain.markets import DEFAULT_MARKET
+
+    country = request.country or DEFAULT_MARKET
     date = "03/07"
     accepted: list[str] = []
     for ref in _candidates(bound)[:MAX_TRIALS]:

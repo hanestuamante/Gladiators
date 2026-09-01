@@ -59,6 +59,37 @@ SURFACES_BY_MARKET: dict[str, tuple[str, ...]] = {
 }
 
 
+# Tên hiển thị cho người đọc. Khai ở đây vì nó hỏng theo ĐÚNG hình dạng của lỗi
+# tiền tệ: `"Việt Nam" if country == "vn" else "Indonesia"` gán "Indonesia" cho
+# mọi thị trường không phải vn, im lặng.
+DISPLAY_NAME_BY_MARKET: dict[str, str] = {
+    "vn": "Việt Nam",
+    "id": "Indonesia",
+}
+
+
+# Từ chỉ ĐƠN VỊ TIỀN trong câu hỏi. Trước đây nằm ở
+# ``planner.semantic_parser._CURRENCY_MARKERS`` — tức từ vựng tiền tệ của một
+# thị trường sống tách khỏi mã tiền tệ của chính nó, ở hai file. Chuyển về đây
+# để thêm một thị trường là sửa MỘT khối.
+CURRENCY_MARKERS_BY_MARKET: dict[str, tuple[str, ...]] = {
+    "vn": ("dong", "đồng", "vnd", "vnđ"),
+    "id": ("rupiah", "idr", "rp"),
+}
+
+
+# Cách gọi TRÙNG một từ thường, nên gặp nó chưa đủ để kết luận câu đang nói về
+# thị trường. `"id"` là ví dụ duy nhất hiện có: nó cũng là chữ "id" trong "mã
+# id", "shop id", "promotion id". `entity_extract` giữ luật gỡ nhập nhằng; bảng
+# này chỉ nói CÁCH GỌI NÀO cần luật đó, để một thị trường mới có cùng vấn đề
+# được khai ra thay vì lặng lẽ nhận nhầm.
+AMBIGUOUS_SURFACES: frozenset[str] = frozenset({"id"})
+
+# Thị trường MẶC ĐỊNH khi câu hỏi không nêu. Khai tường minh vì `or "vn"` rải
+# rác là một lựa chọn ngầm: đổi thị trường chính thì phải tìm lại từng chỗ.
+DEFAULT_MARKET: str = "vn"
+
+
 class MarketDeclarationError(ValueError):
     """Một thị trường được khai mà thiếu phần đi kèm bắt buộc."""
 
@@ -79,6 +110,36 @@ def currency_of(market: str | None) -> str:
     return currency
 
 
+def display_name_of(market: str | None) -> str:
+    """Tên hiển thị của thị trường, hoặc NỔ. Cùng lý do với ``currency_of``."""
+    name = DISPLAY_NAME_BY_MARKET.get(str(market or ""))
+    if name is None:
+        raise MarketDeclarationError(
+            f"Thị trường {market!r} chưa khai tên hiển thị trong "
+            "domain/markets.DISPLAY_NAME_BY_MARKET.",
+        )
+    return name
+
+
+def surface_pattern(market: str) -> str:
+    """Regex khớp mọi cách gọi của một thị trường, dựng TỪ bảng khai.
+
+    Dùng cho ``entity_extract``: bản cũ viết cứng ``r"\b(viet nam|vietnam|vn)\b"``
+    — một bản sao thứ hai của cùng danh sách, và hai bản của một sự thật là
+    cách chúng lệch nhau.
+    """
+    import re as _re
+
+    surfaces = SURFACES_BY_MARKET.get(market)
+    if not surfaces:
+        raise MarketDeclarationError(
+            f"Thị trường {market!r} chưa khai cách gọi trong câu hỏi.",
+        )
+    # Dài trước: "viet nam" phải thắng "vn" khi cả hai cùng khớp được.
+    ordered = sorted(surfaces, key=len, reverse=True)
+    return r"\b(" + "|".join(_re.escape(s) for s in ordered) + r")\b"
+
+
 def check_markets_are_fully_declared() -> None:
     """Mọi thị trường của catalog phải có đơn vị tiền VÀ cách gọi.
 
@@ -92,6 +153,12 @@ def check_markets_are_fully_declared() -> None:
             missing.append(f"{market}: thiếu đơn vị tiền")
         if market not in SURFACES_BY_MARKET:
             missing.append(f"{market}: thiếu cách gọi trong câu hỏi")
+        if market not in DISPLAY_NAME_BY_MARKET:
+            missing.append(f"{market}: thiếu tên hiển thị")
+        if market not in CURRENCY_MARKERS_BY_MARKET:
+            missing.append(f"{market}: thiếu từ chỉ đơn vị tiền")
+    if DEFAULT_MARKET not in markets():
+        missing.append(f"thị trường mặc định {DEFAULT_MARKET!r} không có trong catalog")
     if missing:
         raise MarketDeclarationError(
             "Thị trường khai thiếu phần đi kèm: " + "; ".join(missing),

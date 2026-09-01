@@ -506,7 +506,9 @@ class AnalyticsTools:
             snapshots.date.astype(str) == latest_date
         ].drop_duplicates("product_listing_key")
         result = []
-        for country in ("vn", "id"):
+        from gladiators.domain.markets import markets as _markets
+
+        for country in _markets():
             group = latest.loc[latest.country_code == country]
             count = int(group.has_structured_voucher.fillna(False).astype(bool).sum())
             result.append(Evidence(

@@ -23,7 +23,15 @@ from typing import Any
 
 DASHBOARD_VERSION = "insight-dashboard.v1"
 
-COUNTRIES = ("vn", "id")
+def _countries() -> tuple[str, ...]:
+    """Đọc từ nơi khai, không giữ bản sao. Đây CHÍNH là bản sao duy nhất từng
+    tồn tại của danh sách thị trường, và nó nằm trong một file dashboard."""
+    from gladiators.domain.markets import markets
+
+    return markets()
+
+
+COUNTRIES = _countries()
 CARD_KINDS = ("top_mover", "price_move", "voucher_gap", "data_quality")
 
 # §12.4: Ask-deeper stays off until the server can confirm a preselected

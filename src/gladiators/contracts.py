@@ -7,6 +7,22 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from gladiators.external.contracts import ExternalProvenance, SourceLocator
 
 
+
+def _market_aliases() -> dict[str, str]:
+    """``cách gọi → mã thị trường``, dựng TỪ bảng khai.
+
+    Bản cũ là một dict viết cứng, lặp lại ở HAI chỗ trong file này và một lần
+    nữa ở `planner/semantic_parser._COUNTRY_SURFACES`. Ba bản của một sự thật.
+    """
+    from gladiators.domain.markets import SURFACES_BY_MARKET
+
+    return {
+        surface: market
+        for market, surfaces in SURFACES_BY_MARKET.items()
+        for surface in surfaces
+    }
+
+
 class StructuredRequest(BaseModel):
     intent: str
     entity_text: str | None = None
@@ -26,12 +42,12 @@ class StructuredRequest(BaseModel):
     def normalize_country(cls, value: str | None) -> str | None:
         if value is None: return None
         normalized = value.strip().lower()
-        return {"vietnam": "vn", "viet nam": "vn", "indonesia": "id", "indo": "id"}.get(normalized, normalized)
+        return _market_aliases().get(normalized, normalized)
 
     @field_validator("countries")
     @classmethod
     def normalize_countries(cls, values: tuple[str, ...]) -> tuple[str, ...]:
-        aliases = {"vietnam": "vn", "viet nam": "vn", "indonesia": "id", "indo": "id"}
+        aliases = _market_aliases()
         return tuple(dict.fromkeys(aliases.get(value.strip().lower(), value.strip().lower()) for value in values))
 
     @model_validator(mode="after")

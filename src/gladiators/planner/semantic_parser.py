@@ -365,10 +365,11 @@ _PERCENT_MARKERS = ("%", "phan tram", "phần trăm", "persen")
 # 5 triệu đồng" nêu cả bậc ("triệu") lẫn đơn vị ("đồng"). Chỉ nhận khi câu mang
 # CẢ HAI; thiếu một trong hai thì vẫn bỏ qua, vì đoán bậc là đoán một câu hỏi
 # khác (5 triệu, 5 nghìn và 5 đồng là ba ngưỡng cách nhau sáu bậc).
-_CURRENCY_MARKERS: dict[str, tuple[str, ...]] = {
-    "vn": ("dong", "đồng", "vnd", "vnđ"),
-    "id": ("rupiah", "idr", "rp"),
-}
+# Khai ở `domain/markets.py` cùng mã tiền tệ và cách gọi thị trường — ba thứ
+# của cùng một thị trường không nên nằm ở ba file.
+from gladiators.domain.markets import (
+    CURRENCY_MARKERS_BY_MARKET as _CURRENCY_MARKERS,
+)
 _MAGNITUDE_WORDS: tuple[tuple[str, int], ...] = (
     ("ty", 1_000_000_000), ("tỷ", 1_000_000_000), ("tỉ", 1_000_000_000),
     ("trieu", 1_000_000), ("triệu", 1_000_000), ("juta", 1_000_000),

@@ -37,32 +37,71 @@ class ExtractedEntity:
 
 def extract_countries(text: str, normalized: str) -> tuple[str, ...]:
     found: list[str] = []
-    if re.search(r"\b(viet nam|vietnam|vn)\b", normalized):
-        found.append("vn")
-    for match in re.finditer(r"\b(indonesia|indo|id)\b", normalized):
-        token = match.group(1)
-        if token == "id":
-            prefix = normalized[max(0, match.start() - 40):match.start()]
-            nearby = prefix[-24:]
-            if any(
-                re.search(rf"\b{re.escape(noun)}\s*$", nearby)
-                for nouns in _ID_NOUNS.values() for noun in nouns
-            ):
-                continue
-            market_context = any(
-                re.search(rf"\b{re.escape(ctx)}\s*$", prefix[-16:])
-                for ctx in _MARKET_CONTEXT
-            )
-            legacy_voucher_market = bool(re.search(r"\bvoucher\s*$", prefix[-16:]))
-            if not (
-                re.search(r"\(\s*id\s*\)", text, re.IGNORECASE)
-                or market_context
-                or legacy_voucher_market
-            ):
-                continue
-        found.append("id")
-        break
+    from gladiators.domain.markets import (
+        AMBIGUOUS_SURFACES, markets, surface_pattern,
+    )
+
+    # Lặp qua MỌI thị trường đã khai. Bản cũ có đúng hai nhánh viết tay, nên
+    # một thị trường thứ ba khai trong catalog sẽ KHÔNG BAO GIỜ được nhận ra từ
+    # câu hỏi — im lặng, và mọi câu về nó rơi vào "thiếu country".
+    for market in markets():
+        if not re.search(surface_pattern(market), normalized):
+            continue
+        if not (AMBIGUOUS_SURFACES & set(_SURFACES_OF(market))):
+            found.append(market)
+            continue
+        if _market_surface_is_meant(text, normalized, market):
+            found.append(market)
     return tuple(dict.fromkeys(found))
+
+
+def _SURFACES_OF(market: str) -> tuple[str, ...]:
+    from gladiators.domain.markets import SURFACES_BY_MARKET
+
+    return SURFACES_BY_MARKET.get(market, ())
+
+
+def _market_surface_is_meant(text: str, normalized: str, market: str) -> bool:
+    """Cách gọi trùng một từ thường có thật sự đang nói về thị trường không.
+
+    Luật GIỮ NGUYÊN từ bản cũ — nó là một bẫy có chủ đích, không phải một bản
+    sao của khai báo: chữ `"id"` cũng là "id" trong "mã id", "shop id",
+    "promotion id".
+    """
+    from gladiators.domain.markets import AMBIGUOUS_SURFACES
+
+    unambiguous = [s for s in _SURFACES_OF(market) if s not in AMBIGUOUS_SURFACES]
+    if unambiguous and re.search(
+        r"\b(" + "|".join(re.escape(s) for s in unambiguous) + r")\b", normalized,
+    ):
+        return True
+    for match in re.finditer(
+        r"\b(" + "|".join(
+            re.escape(s) for s in _SURFACES_OF(market) if s in AMBIGUOUS_SURFACES
+        ) + r")\b",
+        normalized,
+    ):
+        token = match.group(1)
+        prefix = normalized[max(0, match.start() - 40):match.start()]
+        # Đứng ngay sau một danh từ định danh ("mã id", "shop id") ⇒ đây là chữ
+        # "id", không phải thị trường.
+        if any(
+            re.search(rf"\b{re.escape(noun)}\s*$", prefix[-24:])
+            for nouns in _ID_NOUNS.values() for noun in nouns
+        ):
+            continue
+        market_context = any(
+            re.search(rf"\b{re.escape(ctx)}\s*$", prefix[-16:])
+            for ctx in _MARKET_CONTEXT
+        )
+        legacy_voucher_market = bool(re.search(r"\bvoucher\s*$", prefix[-16:]))
+        if (
+            re.search(rf"\(\s*{re.escape(token)}\s*\)", text, re.IGNORECASE)
+            or market_context
+            or legacy_voucher_market
+        ):
+            return True
+    return False
 
 
 def _value_is_name_shaped(text: str, value: str) -> bool:
@@ -153,7 +192,9 @@ def _grown_to_known_value(value: str, normalized: str) -> str:
     except Exception:                              # noqa: BLE001
         return value
     best = value
-    for country in ("vn", "id"):
+    from gladiators.domain.markets import markets as _markets
+
+    for country in _markets():
         for candidate in literal_value_spans(normalized, country):
             if (
                 candidate.startswith(value)
