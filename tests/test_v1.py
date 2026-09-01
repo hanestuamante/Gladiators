@@ -48,6 +48,10 @@ def test_metric_registry_covers_v2_metric_contract():
         # "count distinct instances" for listings only left "có bao nhiêu shop"
         # with no measure to bind, and it refused a question the data answers.
         "product_count", "shop_count", "brand_count", "category_count",
+        # Ngày cũng là một đơn vị đếm được: COUNT(DISTINCT date) trả lời "shop
+        # X xuất hiện trong bao nhiêu ngày", câu trước đây không có measure nào
+        # để bind.
+        "observed_day_count",
         # W11.2: đếm-theo-cờ-giảm-giá và tỷ lệ khai mẫu số của nó.
         "discounted_listing_count", "discounted_listing_rate",
         "median_monthly_sold", "median_estimated_recent_revenue",

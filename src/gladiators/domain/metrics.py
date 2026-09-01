@@ -316,6 +316,20 @@ _METRIC_SPECS = [
         formula="count distinct shop_id trong nhóm tại 1 snapshot",
         caveats=("đếm shop quan sát được trong dataset, không phải toàn bộ shop trên sàn",),
     ),
+    # Ngày cũng là một đơn vị đếm được, và câu "shop X xuất hiện trong bao
+    # nhiêu ngày" trước đây không bind measure nào nên rơi A19-CAT — dù `date`
+    # nằm ngay trong dữ liệu và đã là một chiều của catalog.
+    MetricSpec(
+        name="observed_day_count", grain="group", unit="days",
+        dedupe="one_snapshot_per_listing", traps=(), valid_aggregations=("count",),
+        source_columns=("date",), owner="data-engineering", tags=("group", "count"),
+        formula="count distinct date trong nhóm",
+        caveats=(
+            "Đếm ngày CÓ QUAN SÁT trong dataset, không phải số ngày đối tượng "
+            "thật sự hoạt động — ngày không có đợt thu không phân biệt được với "
+            "ngày đối tượng vắng mặt.",
+        ),
+    ),
     MetricSpec(
         name="brand_count", grain="group", unit="brands",
         dedupe="one_snapshot_per_listing", traps=(), valid_aggregations=("count",),

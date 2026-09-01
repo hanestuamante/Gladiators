@@ -2,9 +2,9 @@
 
 # Topic registry
 
-- topics hash: `d6f0f3c75e61b521`
+- topics hash: `f84fa00979e93301`
 - invariants hash: `b57c1e3ee6326156`
-- refs được sở hữu: 101
+- refs được sở hữu: 102
 
 | id | tên | kind | refs | relations | invariants |
 | --- | --- | --- | ---: | ---: | ---: |
@@ -13,7 +13,7 @@
 | [A3](A3.md) | GROUP_COMPARE | aspect | 0 | 0 | 2 |
 | [A4](A4.md) | DISTRIBUTION_AGG | aspect | 0 | 0 | 1 |
 | [A5](A5.md) | EXTERNAL_CONTEXT | aspect | 3 | 0 | 0 |
-| [CORE](CORE.md) | CORE | core | 21 | 1 | 3 |
+| [CORE](CORE.md) | CORE | core | 22 | 1 | 3 |
 | [T1](T1.md) | PRICING_DISCOUNT | domain | 9 | 2 | 2 |
 | [T2](T2.md) | SALES_PROXY | domain | 11 | 2 | 2 |
 | [T3](T3.md) | PROMOTION_VOUCHER | domain | 13 | 2 | 1 |

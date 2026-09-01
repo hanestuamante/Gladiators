@@ -832,7 +832,57 @@ class DeterministicSemanticParser:
         # nhất. Assumption đó chỉ được thêm khi DateRequest rỗng ở CẢ NĂM ô —
         # dòng code cũ (`if not dates`) là thứ đã sinh ra hai ca over_answer,
         # vì một ngày ngoài cửa sổ cũng làm `dates` rỗng.
-        if not dates and date_request.is_empty():
+        # Câu hỏi ĐẾM NGÀY nói về CẢ KỲ, không về một đợt thu. Mặc định "đợt
+        # thu mới nhất" là đúng cho một aggregate cross-sectional (giá trung vị
+        # hôm nào?) và SAI hẳn ở đây: đếm số ngày phân biệt bên trong một ngày
+        # luôn ra 1. Đo được: "Shop Bibica xuất hiện trong bao nhiêu ngày ở VN"
+        # trả 1, trong khi đáp án thật là 18.
+        #
+        # Không phải nới mặc định cho mọi câu — chỉ cho measure mà bản thân nó
+        # đếm ngày, vì với measure đó "một lát cắt" không phải một câu trả lời
+        # thu hẹp, nó là một câu trả lời vô nghĩa.
+        # "TỪ ngày A ĐẾN ngày B" là một CỬA SỔ, không phải hai mốc — trừ khi
+        # câu hỏi nói rõ là đang so hai mốc. Hai hình dạng đó trả lời hai câu
+        # hỏi khác nhau và cùng có đúng hai ngày trong `dates`, nên phải phân
+        # biệt bằng cụm người dùng viết ra:
+        #
+        #   "có bao nhiêu listing TỪ 1/7 ĐẾN 5/7"      → 701 (phân biệt trong cửa sổ)
+        #   "listing ngày 1/7 SO VỚI ngày 21/7"        → 581 → 672 (hai mốc)
+        #
+        # Trước đây cả hai đều ra hai mốc, nên câu thứ nhất nhận 581→680 kèm
+        # dòng "không suy diễn cho các ngày ở giữa" — thành thật, nhưng là một
+        # hình dạng khác với hình dạng được hỏi.
+        names_a_window = any(
+            cue in normalized for cue in
+            ("tu ngay", "trong khoang", "trong giai doan", "giai doan tu",
+             "khoang tu", "between", "dari tanggal")
+        ) and not any(
+            cue in normalized for cue in
+            ("so voi", "so sanh", "chenh", "thay doi", "tang hay giam",
+             "compared", "versus")
+        )
+        if names_a_window and len(dates) == 2:
+            from gladiators.domain.calendar import default_calendar
+
+            window = tuple(
+                iso for iso in default_calendar().dates
+                if dates[0] <= iso <= dates[1]
+            )
+            if len(window) > 2:
+                dates = window
+
+        counts_days = any(
+            item.ref == "derived.observed_day_count" for item in measures
+        )
+        if not dates and date_request.is_empty() and counts_days:
+            from gladiators.domain.calendar import full_window
+
+            dates = full_window()
+            assumptions.append(
+                "Câu hỏi đếm ngày nên phạm vi là toàn bộ kỳ thu thập, "
+                "không phải đợt thu mới nhất.",
+            )
+        elif not dates and date_request.is_empty():
             # W30-R2: đợt thu mới nhất đọc từ lịch của bản dữ liệu, không ghim.
             # W20-R2: assumption KHÔNG mang chữ số — verifier.scan_numbers quét
             # mọi số trong answer và đòi evidence hậu thuẫn, còn assumption đi
@@ -1190,7 +1240,14 @@ class DeterministicSemanticParser:
                             # số nhiều tiếng Việt và đã được dùng đúng nghĩa đó
                             # ở `_PLURAL_MARKERS`.
                             "nhung ", "ten cua", "ten cac", "ten san pham",
-                            "ten cac san pham", "apa saja", "nama produk")
+                            "ten cac san pham", "apa saja", "nama produk",
+                            # "có các sản phẩm gì" / "có mặt hàng gì" — cùng
+                            # một yêu cầu, cách nói thứ tư. Danh sách này vẫn
+                            # là danh sách, và nó sẽ còn trượt; ghi ở đây để
+                            # người sau biết đó là giới hạn đã biết chứ không
+                            # phải một chỗ chưa ai nghĩ tới.
+                            "san pham gi", "mat hang gi", "hang gi",
+                            "co cac san pham", "co nhung san pham")
             )
             groupable = [
                 item for item in dimensions
@@ -1324,6 +1381,40 @@ class DeterministicSemanticParser:
         )
         if aggregation_ambiguity:
             ambiguities.append(aggregation_ambiguity)
+        # "bao nhiêu phần trăm X" là CÁCH HỎI TỶ LỆ, không phải một cụm chưa
+        # hiểu. Đo được: "Tỷ lệ listing có giảm giá ở VN ngày 21/7" trả đúng
+        # 514/672, còn "Bao nhiêu phần trăm listing ở VN ngày 21/7 có giảm giá"
+        # ra `A22-ALIGN-MEASURE` — cùng một câu hỏi, cùng một năng lực đã có,
+        # khác mỗi cách nói. Bộ tách cắt "phần trăm" thành `magnitude_claim
+        # 'phan'` + `unknown_concept 'tram'` nên không binder nào nhận nó.
+        if requested_aggregation is None and any(
+            cue in normalized for cue in (
+                "bao nhieu phan tram", "phan tram", "ty le", "ti le",
+                "berapa persen", "what percent", "percentage of",
+            )
+        ):
+            # Chỉ bắn khi ref tỷ lệ THẬT SỰ tồn tại cho measure đã bind. Cue
+            # rộng làm hỏng những câu chỉ TÌNH CỜ chứa "phần trăm": đo được,
+            # dr2607:tc08 ("...làm biên lợi nhuận giảm bao nhiêu phần trăm?")
+            # mất hẳn plan `synth:measure.monthly_sold:median` vì `share` được
+            # đặt lên một measure không có phép đó. Một cue chỉ nên mở đúng
+            # phần nó có năng lực để mở.
+            from gladiators.domain.catalog import SHARE_METRIC_BY_MEASURE
+
+            swappable = [
+                item for item in measures
+                if item.ref in SHARE_METRIC_BY_MEASURE
+            ]
+            if swappable:
+                requested_aggregation = "share"
+                measures = [
+                    SemanticBinding(
+                        surface_text=item.surface_text,
+                        ref=SHARE_METRIC_BY_MEASURE[item.ref],
+                    )
+                    if item.ref in SHARE_METRIC_BY_MEASURE else item
+                    for item in measures
+                ]
         if requested_aggregation is None:
             # W11.2: alias tỷ lệ được bind ⇒ aggregation đến từ ĐỊNH NGHĨA
             # metric, không phải từ từ "tỷ lệ" trần trong câu.

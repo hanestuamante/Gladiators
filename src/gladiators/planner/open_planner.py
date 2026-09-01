@@ -120,7 +120,13 @@ def _synthesis_beats_template(request: AnalyticalRequest) -> bool:
     # W6.2: mọi template ghim MỘT snapshot; câu hỏi hai mốc đi qua chúng sẽ được
     # trả lời bằng chặng cuối, và alignment chặn bằng date_range_narrowed — một
     # lời từ chối đúng cho một plan sai, không phải một câu không trả lời được.
-    if request.time_scope and len(set(request.time_scope.dates)) == 2:
+    # `>= 2`, không phải `== 2`: lý do trong comment trên áp cho MỌI câu nhiều
+    # ngày, không riêng câu hai mốc. Đo được sau khi mở đường đếm-qua-cửa-sổ:
+    # "có bao nhiêu listing ở VN từ 1/7 đến 5/7" phân giải đúng thành 5 ngày,
+    # synthesizer dựng đúng plan window_count, rồi template
+    # `analytical:listing_count:vn:1.0` thắng và trả về số của MỘT snapshot —
+    # nhánh synthesizer thậm chí không được thử (`declined: beats_template`).
+    if request.time_scope and len(set(request.time_scope.dates)) >= 2:
         return True
     dates = tuple(request.time_scope.dates) if request.time_scope else ()
     if len(dates) == 1 and dates[0] != latest_snapshot():

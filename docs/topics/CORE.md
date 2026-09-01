@@ -1,5 +1,5 @@
 <!-- SINH TỰ ĐỘNG bởi scripts/render_topic_prompts.py — không sửa tay -->
-<!-- topics=d6f0f3c75e61b521 invariants=b57c1e3ee6326156 renderer=prompt-library.v1 -->
+<!-- topics=f84fa00979e93301 invariants=b57c1e3ee6326156 renderer=prompt-library.v1 -->
 
 # CORE — CORE
 
@@ -20,6 +20,7 @@ derived.product_count | derived_metric | listings | grain=group | agg=count | fi
 derived.shop_count | derived_metric | shops | grain=group | agg=count | filters=eq,lt,lte,gt,gte | binding=exposed_as_measure | invariant=-
 derived.brand_count | derived_metric | brands | grain=group | agg=count | filters=eq,lt,lte,gt,gte | binding=exposed_as_measure | invariant=-
 derived.category_count | derived_metric | categories | grain=group | agg=count | filters=eq,lt,lte,gt,gte | binding=exposed_as_measure | invariant=-
+derived.observed_day_count | derived_metric | days | grain=group | agg=count | filters=eq,lt,lte,gt,gte | binding=exposed_as_measure | invariant=-
 entity.product_listing | entity | dimension | grain=listing | agg=- | filters=eq,in | binding=exposed_as_dimension | invariant=-
 entity.shop | entity | dimension | grain=shop | agg=- | filters=eq,in | binding=exposed_as_dimension | invariant=-
 entity.brand | entity | dimension | grain=brand | agg=- | filters=eq,in | binding=exposed_as_dimension | invariant=-
@@ -45,4 +46,4 @@ entity.shop_category | entity | dimension | grain=shop_category | agg=- | filter
 - `INV-CURRENCY-NO-MIX` (hard) — `invariant.currency_no_mix`
 - `INV-EMPTY-RESULT-IS-VALID` (hard) — `invariant.empty_result_valid`
 
-<!-- render_budget_tokens=852 -->
+<!-- render_budget_tokens=894 -->

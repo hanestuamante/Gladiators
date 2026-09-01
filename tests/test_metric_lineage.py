@@ -21,9 +21,12 @@ from gladiators.domain.metrics import (
 )
 
 
-def test_registry_has_35_metrics_and_no_cycle():
+def test_registry_has_36_metrics_and_no_cycle():
     # 35 từ W11.2: discounted_listing_count và discounted_listing_rate.
-    assert len(METRICS) == 35
+    # 36 từ 01/09: `observed_day_count`. Ngày là một đơn vị đếm được như shop
+    # hay brand, và trước đó "shop X xuất hiện trong bao nhiêu ngày" không bind
+    # được measure nào nên rơi A19-CAT — dù `date` nằm ngay trong dữ liệu.
+    assert len(METRICS) == 36
     assert METRIC_GRAPH.cycles == ()
 
 

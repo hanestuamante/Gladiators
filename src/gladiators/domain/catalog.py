@@ -148,7 +148,7 @@ _BASE_OBJECTS = [
     _object("entity.voucher_observation", "entity", ("voucher quan sát", "voucher observation", "observasi voucher"), (), grain="listing_snapshot"),
     _object("entity.content", "entity", ("nội dung listing", "content"), (), grain="listing_snapshot"),
     _object("entity.sales_metric", "entity", ("chỉ số bán", "sales metric"), (), grain="snapshot_or_transition"),
-    _object("entity.date_snapshot", "entity", ("snapshot ngày", "date snapshot"), (), grain="snapshot"),
+    _object("entity.date_snapshot", "entity", ("snapshot ngày", "date snapshot"), (), grain="snapshot", counting_key="date"),
     _object("dim.country", "dimension", ("quốc gia", "thi truong", "country", "negara"),
             tuple(f"{t}.country_code" for t in ("products_clean.csv", "shop_info_clean.csv", "category_list_clean.csv", "product_categories_clean.csv", "category_platform_clean.csv", "product_snapshot_metrics.csv", "product_transition_metrics.csv")),
             cardinality=2, value_index=("vn", "id")),
@@ -525,6 +525,10 @@ _DERIVED_ALIASES: dict[str, tuple[str, ...]] = {
                       "số sản phẩm của shop",
                       "listing count", "how many listing", "jumlah produk", "berapa listing",
                       "berapa produk"),
+    "observed_day_count": ("số ngày quan sát", "số ngày có dữ liệu",
+                           "xuất hiện trong bao nhiêu ngày", "có mặt bao nhiêu ngày",
+                           "bao nhiêu ngày có", "observed day count",
+                           "berapa hari teramati"),
     "shop_count": ("số shop", "số cửa hàng", "bao nhiêu shop", "bao nhiêu cửa hàng",
                    "shop count", "berapa toko", "jumlah toko"),
     "brand_count": ("số thương hiệu", "bao nhiêu thương hiệu", "brand count", "jumlah merek"),
@@ -601,6 +605,7 @@ COUNT_METRIC_BY_SURFACE_REF: dict[str, str] = {
 }
 
 _COUNTS_UNIT = {
+    "observed_day_count": "entity.date_snapshot",
     "product_count": "entity.product_listing",
     "discounted_listing_count": "entity.product_listing",
     "shop_count": "entity.shop",
@@ -631,6 +636,23 @@ class CatalogError(ValueError):
 # câu "listing CỦA shop X" bị đọc thành "listing THEO TỪNG shop": một câu hỏi
 # khác, trả lời trong im lặng. Đo được: 120 listing của Richy - Chi nhánh Miền
 # Nam bị trả thành bảng đếm theo 10 shop.
+# Hỏi "bao nhiêu PHẦN TRĂM listing có X" là hỏi một TỶ LỆ, không phải hỏi giá
+# trị của X. Hai câu hỏi đó dùng chung phần lớn từ ngữ nhưng cần hai ref khác
+# nhau, và catalog đã có sẵn ref tỷ lệ cho vài điều kiện.
+#
+# Đo được: "Tỷ lệ listing có giảm giá ở VN ngày 21/7" trả đúng 514/672 (khớp
+# alias của `derived.discounted_listing_rate`), còn "Bao nhiêu phần trăm listing
+# ở VN ngày 21/7 có giảm giá" bind `measure.discount_percent` — cùng câu hỏi,
+# cùng năng lực đã có, khác mỗi cách nói — rồi hỏng vì `snapshot_stock` không
+# chứng nhận phép `share`.
+#
+# Khai tường minh chứ không suy từ tên: một quy tắc kiểu "measure X có
+# derived X_rate" sẽ tự nối những cặp chưa ai kiểm là có cùng nghĩa.
+SHARE_METRIC_BY_MEASURE: dict[str, str] = {
+    "measure.discount_percent": "derived.discounted_listing_rate",
+}
+
+
 VALUE_DIMENSION_BY_UNIT: dict[str, str] = {
     "entity.shop": "dim.shop_name",
     "entity.brand": "dim.brand",

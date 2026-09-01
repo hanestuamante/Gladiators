@@ -381,9 +381,27 @@ def _scope_issues(
         # Templates default to the latest snapshot, so "bao nhiêu listing tại VN
         # ngày 01/07" was answered with the 03/07 count (668 instead of 581) and
         # labelled observed_date=2026-07-03.
+        # Evidence tự khai là một CỬA SỔ thì kiểm cửa sổ, không kiểm một ngày.
+        # Một phép đếm phân biệt trên [01/07..05/07] trả đúng MỘT dòng; ép nó
+        # khai một ngày rồi bắt lỗi ngày đó là bắt lỗi chính cách khai, không
+        # phải bắt lỗi câu trả lời.
+        windowed = [
+            item for item in evidence if item.attrs.get("observed_window")
+        ]
+        for item in windowed:
+            start, end = (str(x) for x in item.attrs["observed_window"])
+            if start < asked_start or end > asked_end:
+                issues.append(AlignmentIssue(
+                    "date_range_narrowed",
+                    f"Evidence phủ {start}→{end}, vượt ra ngoài phạm vi "
+                    f"{asked_start}→{asked_end} đã hỏi.",
+                    tuple(digest.date_range), (start, end),
+                ))
         observed = sorted({
             str(item.attrs["observed_date"])
-            for item in evidence if item.attrs.get("observed_date")
+            for item in evidence
+            if item.attrs.get("observed_date")
+            and not item.attrs.get("observed_window")
         })
         outside = [date for date in observed if not asked_start <= date <= asked_end]
         if outside:

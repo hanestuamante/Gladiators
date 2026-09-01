@@ -884,7 +884,17 @@ class AnalyticsTools:
             ),
             dataset_version=dataset_version,
             attrs={"country": country, "observed_date": observed_date, "plan_hash": compiled.plan_hash,
-                   "proxy_only": True, **execution_attrs},
+                   "proxy_only": True,
+                   # Plan quét NHIỀU ngày rồi trả MỘT dòng (đếm phân biệt trên
+                   # cả cửa sổ) thì `observed_date` — ngày cuối của time_scope —
+                   # là một lời khai SAI: nó nói con số này quan sát tại một
+                   # ngày, trong khi nó nói về cả kỳ. A22 đọc đúng lời khai đó
+                   # rồi báo "evidence ngoài phạm vi đã hỏi", và câu trả lời
+                   # ĐÚNG bị chặn bởi một câu tự mô tả sai.
+                   **({"observed_window": [str(plan.time_scope[0]),
+                                           str(plan.time_scope[-1])]}
+                      if len(plan.time_scope) > 1 and "date" not in row else {}),
+                   **execution_attrs},
         )
         if kind not in known_kinds:
             output = {field.name: field for field in plan.requested_output_shape}
@@ -910,6 +920,13 @@ class AnalyticsTools:
                     attrs = {
                         "country": country, "observed_date": observed_date,
                         "plan_hash": compiled.plan_hash, "row_index": row_index,
+                        # Xem ghi chú ở nhánh trên: plan quét nhiều ngày rồi trả
+                        # MỘT dòng thì `observed_date` là lời khai sai, và A22
+                        # tin lời khai đó chứ không tin con số.
+                        **({"observed_window": [str(plan.time_scope[0]),
+                                                str(plan.time_scope[-1])]}
+                           if len(plan.time_scope) > 1 and "date" not in result_row
+                           else {}),
                         **execution_attrs,
                     }
                     if not evidence:

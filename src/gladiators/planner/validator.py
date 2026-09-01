@@ -254,7 +254,36 @@ def validate_plan(plan: LogicalQueryPlan) -> PlanValidationResult:
             has_single_snapshot = len(plan.time_scope) == 1 or "dim.date" in node.group_by or any(
                 p.ref == "dim.date" and p.op == "eq" for ancestor in ancestors for p in ancestor.predicates
             )
-            if not has_single_snapshot:
+            # ĐẾM PHÂN BIỆT không phải một aggregate cross-sectional. Luật trên
+            # đúng cho trung bình/trung vị: trộn nhiều snapshot vào một con số
+            # là trộn nhiều lát cắt mà không ai kiểm lại được. `COUNT(DISTINCT
+            # k)` thì ngược lại — nó tự khử trùng theo định nghĩa, và một cửa sổ
+            # nhiều ngày là ĐÚNG phạm vi câu hỏi yêu cầu:
+            #
+            #   "shop X xuất hiện trong bao nhiêu ngày"  COUNT(DISTINCT date)
+            #   "có bao nhiêu listing từ 1/7 đến 5/7"    COUNT(DISTINCT key)
+            #
+            # Hẹp có chủ đích: chỉ `count`, và chỉ khi ref là một đơn vị đếm
+            # được (`counts_unit`) — tức plan thật sự đếm KHOÁ chứ không đếm
+            # dòng. Đếm dòng qua nhiều snapshot mới là phép tính trùng, và nó
+            # vẫn bị chặn ở đây.
+            # ... và KHÔNG có Join nào phía trên. Join làm fanout, và một
+            # phép đếm sau fanout không còn tự khử trùng theo cách hàm này giả
+            # định — `test_promotion_observations_cannot_be_aggregated_across_
+            # snapshots` tồn tại đúng để chặn ca đó, và lượt nới đầu tiên của
+            # tôi đã mở nó ra.
+            #
+            # Hai ca cần mở đều là scan + filter + count thuần, không join.
+            counts_distinct_key = (
+                node.aggregation == "count"
+                and bool(node.refs)
+                and all(
+                    (CATALOG.get(ref) is not None and CATALOG[ref].counts_unit)
+                    for ref in node.refs
+                )
+                and not any(ancestor.op == "Join" for ancestor in ancestors)
+            )
+            if not has_single_snapshot and not counts_distinct_key:
                 issues.append(PlanIssue(code="temporal_mismatch", node_id=node.node_id,
                                         message="Aggregate cross-sectional phải chọn đúng một snapshot."))
 

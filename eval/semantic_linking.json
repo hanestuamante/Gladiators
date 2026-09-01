@@ -757,5 +757,22 @@
         "measure.price_before_promo"
       ]
     }
+  },
+  {
+    "id": "sl39",
+    "question": "Shop \"Bibica Official Store\" xuất hiện trong bao nhiêu ngày ở VN?",
+    "country": "vn",
+    "expected_measures": [
+      "derived.observed_day_count"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "plain",
+    "coverage": {
+      "semantic_refs": [
+        "derived.observed_day_count"
+      ]
+    }
   }
 ]

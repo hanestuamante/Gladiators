@@ -464,6 +464,78 @@ def _choose_aggregation(
 
 
 
+
+def _synthesize_window_count(
+    request, country, measure_ref, dimensions, extra, dates, decline,
+):
+    """``COUNT(DISTINCT key)`` trên MỘT cửa sổ nhiều ngày — một truy vấn, không phải nhiều.
+
+    Khác ``_synthesize_two_endpoint``: hàm kia so hai mốc và trả về ba số (đầu,
+    cuối, chênh); hàm này trả về MỘT số cho cả cửa sổ. Hai hình dạng đó trả lời
+    hai câu hỏi khác nhau, và trước đây câu thứ hai không có đường nào.
+
+    Không group theo ngày: gom theo ngày rồi cộng lại chính là phép đếm trùng
+    mà hàm này tồn tại để tránh.
+    """
+    counted_unit = CATALOG[measure_ref].counts_unit
+    needed = {counted_unit or measure_ref, *dimensions,
+              *(item.field_ref for item in extra), "dim.date"}
+    plan_edges = _plan_relations(needed, dimensions, tuple(dates), decline=decline)
+    if plan_edges is None:
+        return None
+    source = plan_edges.source
+    base = measure_ref.rsplit(".", 1)[-1]
+    output = (OutputField(name=base, type="number", semantic_ref=measure_ref),)
+
+    predicates = [
+        Predicate(ref="dim.country", op="eq", parameter="country", value=country),
+        Predicate(ref="dim.date", op="in", parameter="dates", value=list(dates)),
+    ]
+    for index, item in enumerate(extra):
+        obj = CATALOG.get(item.field_ref)
+        if obj is None or item.op not in obj.allowed_filters:
+            _decline(decline, "filter_op_forbidden")
+            return None
+        predicates.append(Predicate(
+            ref=item.field_ref, op=item.op, parameter=f"p{index}",
+            value=item.value_binding,
+        ))
+
+    # KHÔNG chiếu `dim.date`. Nó chỉ cần cho vị từ lọc, còn chiếu nó ra làm
+    # mỗi dòng mang một ngày — và tầng evidence đọc đúng cột đó rồi khai con số
+    # này "quan sát tại ngày X", trong khi nó nói về cả cửa sổ. A22 tin lời khai
+    # và chặn một câu trả lời đúng.
+    scan_refs = tuple(dict.fromkeys(
+        [counted_unit or measure_ref, *dimensions]
+    ))
+    nodes = (
+        PlanNode(node_id="n1", op="Scan", source=source, refs=scan_refs,
+                 input_grain="listing_snapshot", output_grain="listing_snapshot",
+                 expected_schema=output, expected_cardinality="<=snapshot_rows"),
+        PlanNode(node_id="n2", op="Filter", inputs=("n1",),
+                 predicates=tuple(predicates),
+                 input_grain="listing_snapshot", output_grain="listing_snapshot",
+                 expected_schema=output, expected_cardinality="<=snapshot_rows"),
+        PlanNode(node_id="n3", op="Aggregate", inputs=("n2",),
+                 refs=(measure_ref,), group_by=tuple(dimensions),
+                 aggregation="count", input_grain="listing_snapshot",
+                 output_grain="group", expected_schema=output,
+                 expected_cardinality="1" if not dimensions else "<=snapshot_rows"),
+    )
+    plan = LogicalQueryPlan(
+        plan_id=(
+            f"synth:{measure_ref}:count:{'+'.join(dimensions) or 'nogroup'}:"
+            f"none:{country}:{dates[0]}..{dates[-1]}:window:1.1"
+        ),
+        time_scope=tuple(dates), output_node="n3",
+        requested_output_shape=output, nodes=nodes,
+    )
+    return SynthesisResult(
+        plan=plan, grammar_path="window_count", aggregation="count",
+        dimensions=tuple(dimensions), relations=(),
+    )
+
+
 def _synthesize_two_endpoint(
     request: AnalyticalRequest, country: str, measure_ref: str,
     dimensions: list[str], extra, dates: list[str], decline,
@@ -659,6 +731,22 @@ def synthesize(
             sorted(dates), decline,
         )
     if len(dates) != 1:
+        # NGOẠI LỆ CÓ CƠ SỞ, không phải nới luật. Luật ngay dưới đúng cho phép
+        # gộp: lấy trung bình/trung vị qua nhiều snapshot là trộn nhiều lát cắt
+        # thành một con số không ai kiểm được. Nhưng ĐẾM PHÂN BIỆT tự khử trùng
+        # theo định nghĩa — `COUNT(DISTINCT k)` trên 5 ngày đếm mỗi k đúng một
+        # lần, đúng bằng thứ câu hỏi yêu cầu.
+        #
+        # Hai ca đo được mà nó mở ra, cả hai đều KHÔNG bẻ câu được:
+        #   "shop X xuất hiện trong bao nhiêu ngày"  → COUNT(DISTINCT date) = 18
+        #   "có bao nhiêu listing từ 1/7 đến 5/7"    → COUNT(DISTINCT key) = 701
+        # Bẻ ra rồi cộng lại cho ra 3283 — đúng số học, sai câu hỏi (f1a1258).
+        # Chúng cần MỘT truy vấn, không phải nhiều truy vấn cộng lại.
+        if aggregation == "count" and CATALOG[measure_ref].counts_unit:
+            return _synthesize_window_count(
+                request, country, measure_ref, dimensions, extra,
+                sorted(dates), decline,
+            )
         # Multi-snapshot aggregation is a decomposition question (§8.6
         # union_scope), not something to average over silently.
         _decline(decline, "date_count_unsupported")

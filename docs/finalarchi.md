@@ -1,9 +1,12 @@
 # finalarchi — Kiến trúc Gladiators sau khi thi công Spec3008
 
-> **Trạng thái: TARGET.** Tài liệu này mô tả hệ **sẽ** thành gì sau khi
-> `docs/Spec3008.md` (W16–W31) được thi công trọn vẹn trên bộ dữ liệu 20 ngày.
-> Nó **không** là bản mô tả hệ đang chạy. Chỗ nào một cơ chế đã tồn tại hôm nay,
-> tài liệu ghi rõ **[ĐANG CHẠY]**; chỗ nào Spec3008 mới thêm, ghi **[W-nn]**.
+> **Trạng thái: PHA TRỘN, và chỗ nào là chỗ nào thì phải đọc kỹ.** §1–§30 viết
+> khi Spec3008 (W16–W31) còn là TARGET — chúng mô tả hệ **sẽ** thành gì, và ghi
+> **[ĐANG CHẠY]** cho cơ chế đã có, **[W-nn]** cho cơ chế Spec3008 thêm.
+>
+> **§31–§34 thêm ngày 01/09/2026 và mô tả hệ ĐANG CHẠY**, mỗi khẳng định kèm số
+> đo được và câu lệnh sinh ra nó. Phần lớn W16–W31 nay đã thi công; nếu một mục
+> ở §1–§30 mâu thuẫn với §31–§34 thì §31–§34 mới hơn.
 >
 > Thứ tự tin cậy khi mâu thuẫn (CLAUDE.md §7):
 > **code đang chạy > test/eval thực chạy > tài liệu kiến trúc > narrative.**
@@ -14,7 +17,7 @@
 | --- | --- |
 | `docs/Archibefore2208.md` | Kiến trúc trước SolutionSpec2808 — nền lịch sử |
 | `docs/SolutionSpec2808.md` | W1–W15, đã thi công |
-| `docs/Spec3008.md` | W16–W31, **chưa** thi công — đặc tả việc phải làm |
+| `docs/Spec3008.md` | W16–W31 — phần lớn **đã** thi công (xem §31–§34) |
 | `docs/qa/raw_extra_data_provenance.md` | Mọi quyết định của bước nối bộ 20 ngày |
 | **`docs/finalarchi.md`** | **Hệ sau khi Spec3008 xong — tài liệu này** |
 
@@ -192,8 +195,20 @@ sai. Nội suy gap sang ngày lân cận là `LATEST_SNAPSHOT` mặc một cái 
 
 ## §5. Catalog
 
-**99 semantic object** ở `domain/catalog.py`. Mọi câu hỏi phải rơi vào tập này
-hoặc bị từ chối — đây là lý do bài toán hữu hạn hoá được.
+**102 semantic object / 440 alias / 36 metric** ở `domain/catalog.py` và
+`domain/metrics.py` (đo ngày 01/09/2026; con số này đổi theo mỗi lần thêm ref,
+nên đọc bằng lệnh chứ đừng tin bản in: `len(CATALOG)`, `len(METRICS)`).
+Mọi câu hỏi phải rơi vào tập này hoặc bị từ chối — đây là lý do bài toán hữu
+hạn hoá được.
+
+Hai chốt chặn LÚC IMPORT giữ tập này không tự mâu thuẫn, và cả hai đã bắt lỗi
+thật khi `derived.observed_day_count` được thêm ngày 01/09:
+
+* `CatalogError` — ref đếm một đơn vị mà đơn vị đó chưa khai `counting_key`;
+* `TopicRegistryError` — ref không thuộc topic nào.
+
+Thêm một ref mà quên một trong hai thì hệ **không khởi động được**, chứ không
+phải trả lời sai lúc chạy.
 
 ### 5.1. Cấu trúc một `CatalogObject`
 
@@ -1018,7 +1033,12 @@ chứ không gắn với *ba ngày cụ thể* — đúng lớp lỗi mà `_DATE
 answer_risk                  ≤ 0.05
 over_answer_rate             = 0.0
 sparse_aggregate_leak_rate   = 0.0     [W29]
+cross_snapshot_sum_rate      = 0.0     [W32 §31.2]
+cross_currency_compare_rate  = 0.0     [W32 §31.2]
 ```
+
+Hai điều kiện cuối thêm ngày 01/09: chúng đo **tầng gộp**, và chúng cần thiết vì
+mỗi bước con hợp lệ riêng lẻ — không lớp kiểm nào cũ nhìn thấy phép gộp.
 
 ## §30. Giới hạn đã biết của kiến trúc này
 
@@ -1045,9 +1065,218 @@ Ghi ra thay vì để người sau tự phát hiện:
 8. **Ngưỡng `COVERAGE_REFUSE = 0.50` là ranh giới của thứ nói được, không phải
    một ngưỡng thống kê.** Đừng đi tìm cơ sở thống kê cho nó; không có.
 
+Bổ sung 01/09/2026 — giới hạn tìm ra khi đo trên bộ 20 ngày:
+
+9. **Nhận ý LIỆT KÊ vẫn là một DANH SÁCH CỤM viết tay.** `"liệt kê"`,
+   `"tên của"`, `"những … nào"`, `"có các sản phẩm gì"` — bốn cách nói, bốn lần
+   thêm vào danh sách. Đã thử suy từ CẤU TRÚC ("có chiều mang tên đã bind, không
+   measure, không phép tổng hợp ⇒ đang hỏi các giá trị") và **bỏ**: nó bắn trên
+   ba câu chỉ NHẮC TỚI một chiều mang tên chứ không hỏi nó
+   (`"Shopee verified theo product"`, `"URL sản phẩm"`,
+   `"Shop nào có chiến lược voucher hiệu quả nhất"`) và biến ba lời từ chối đúng
+   thành ba bảng liệt kê. Danh sách cụm sẽ còn trượt; đây là giới hạn đã biết,
+   không phải chỗ chưa ai nghĩ tới.
+10. **Tên sản phẩm không có trong chỉ mục giá trị.** Chỉ mục chứa danh mục
+    (1732+1689), brand (30+12), shop (10+10) — không có `dim.product_name`. Nên
+    tra một sản phẩm cụ thể theo tên rơi `A22-ALIGN-ENTITY`. Thêm ~1.276 tên là
+    khả thi về kích thước; chưa làm.
+11. **Mã thị trường và đơn vị tiền RÒ RỈ vào tầng ngôn ngữ.** Đo trên
+    `src/gladiators`: `'vn'`/`'id'` viết cứng **97 lần / 25 file** (kể cả
+    `semantic_parser`, `frames`, `contracts`, `entity_extract`), tiền tệ VND/IDR
+    **79 lần / 30 file**, ngày `2026-07…` **29 lần / 14 file**. Không có danh
+    sách thị trường tập trung nào — `dim.country` đã khai `value_index=("vn",
+    "id")` mà không chỗ nào đọc nó. Tầng dữ liệu thì cách ly tốt (catalog +
+    metrics + relations + pipeline); đây là chỗ quyết định "thêm một thị trường
+    thứ ba" là một dòng khai báo hay một cuộc săn literal.
+12. **`eval/coverage_matrix.json` check-in có thể LỆCH bản dữ liệu.** Bản
+    check-in khai `162/162 = 1.0`; dựng lại trên bộ 20 ngày ra `182 yêu cầu, 13
+    thiếu` — 12 trong đó là nhóm `measure.shop_daily_*` chưa có ca kiểm nào, bị
+    che vì bộ kiểm ghim vào bộ 3 ngày (nơi bảng panel không tồn tại nên chúng
+    được xếp `not_measured` thay vì `missing`). Một artifact độ phủ dựng ở một
+    bản rồi đọc như thể nói về bản khác là đúng lớp lỗi mà chính nó tồn tại để
+    chống.
+
 ---
 
-## §31. Đọc tiếp
+## §31. **[W32]** Hai tầng LLM có ranh giới, và cả hai mặc định TẮT
+
+Thi công 31/08–01/09/2026. Chúng **không** đổi bất biến nào ở §25: LLM vẫn không
+tính số, không chọn evidence, không quyết định gate. Cái chúng đổi là **đầu vào**
+của đường tất định, và đầu ra của chúng bị kiểm lại trên tập đóng.
+
+### 31.1. Ánh xạ chữ → ref (`planner/term_resolver.py`, cờ `llm_terms`)
+
+Vấn đề nó giải: CLAUDE.md §3.1 nói *"ánh xạ chữ→ký hiệu là chỗ hỏng, không phải
+phần suy luận"*, và đo được thì đúng vậy — `mặt hàng` không map được trong khi
+`sản phẩm` map được.
+
+```
+binder tất định để lại cụm dư  →  gửi CẢ CÂU + danh sách ref ĐÓNG cho LLM
+                               →  ref trả về ∈ danh sách đã gửi ?  nhận : vứt
+```
+
+Ba luật nhận, mỗi luật sinh từ một lỗi đo được:
+
+1. **ref phải nằm trong danh sách đã gửi.** Một ref bịa không tới được plan, và
+   điều đó đúng theo cấu trúc chứ không theo lời hứa.
+2. **Cụm chỉ PHÉP TÍNH bị bỏ.** Đọc cả câu thì model ánh xạ luôn `"trung vị"` →
+   `derived.median_monthly_sold`, request thành hai measure ⇒ `A19-PLAN`. Phép
+   tính đã có đường tất định riêng.
+3. **Ánh xạ phải nói về CỤM ĐÃ HỎI** (trùng theo token, không đòi chuỗi bằng
+   nhau — bộ tách cắt cụt nên cụm đúng thường dài hơn). Thiếu luật này:
+   *"Cái xí xổn ở VN có bao nhiêu?"* — hỏi vì `xí xổn`, model bỏ qua nó, ánh xạ
+   `"bao nhiêu"` → `derived.product_count`, hệ trả **"Có 672 listing"**. Tắt LLM
+   thì câu này `clarify`. Đó là over-answer do chính tầng này mở ra.
+
+Đo trên 13 câu dùng từ ngoài catalog (deepseek): **1/13 → 10/13**. Trên bộ đề phá
+hoại 15 câu (không có cột / cột đã bỏ / vô nghĩa / mơ hồ / ngoài cửa sổ / nhân
+quả / cộng sai / zero-variance / thị trường không có): **0/15 ca lật từ chối
+thành cho phép**.
+
+### 31.2. Bẻ câu (`planner/question_split.py`, cờ `llm_plan`)
+
+LLM nhận câu hỏi và **bức tranh dữ liệu sinh từ `observation_density.json`** (số
+ngày, các cột thưa dưới 50%), trả về hai thứ: danh sách **câu hỏi con** bằng
+tiếng người, và **một** toán tử gộp trong tập đóng
+`{argmax, argmin, sum, compare, list}`.
+
+Mỗi câu con chạy lại qua chính `AgentRuntime.run` — nên nó mang nguyên gate →
+plan → compiler → verifier. Câu con chạy với cờ bẻ câu TẮT: một câu con lại được
+bẻ tiếp là một cây không có đáy.
+
+**Bốn cổng sống ở bước gộp, và ba trong bốn sinh ra từ một lỗi đã đo:**
+
+| cổng | ca đã bắt |
+| --- | --- |
+| `argmax/argmin/sum` fail-closed khi còn bước không trả lời được | doanh thu chỉ quan sát 6/20 ngày; `max` trên 20 kết quả trong đó 14 rỗng trả "21/07" — ngày dữ liệu tồn tại, không phải ngày bán chạy |
+| `sum` từ chối khi các bước hỏi ≥2 ngày | *"bao nhiêu listing từ 1/7 đến 5/7"* → 581+670+668+684+680 = **3283**, đúng số học, đủ 5 evidence id, và sai: đáp án là **701** listing phân biệt |
+| `compare` đòi mọi bước trả về **con số cùng đơn vị** | bẻ *"giá trung vị VN so với Indonesia"* thành hai câu một-thị-trường làm mất cổng `A-CROSS-CURRENCY-SCOPE`, rồi đặt 145.220 VND cạnh 79.000 IDR |
+| `compare` từ chối khi bước trả về **nhãn** | câu con bịa thêm "của shop", hệ gom nhóm và trả về TÊN shop; bước `allow`, có evidence, không trả lời câu hỏi |
+
+**Bài học kiến trúc, quan trọng hơn cả bốn cổng:** mỗi bước con **hợp lệ riêng
+lẻ**, còn phép gộp xảy ra **sau** khi tất cả đã qua verifier. Nên mọi luật của
+tầng dưới (cấm cộng qua snapshot, cấm so chéo tiền tệ) **không với tới đây** và
+phải sống lại tại đúng chỗ phép gộp được thực hiện. Đây là một lớp kiểm thứ năm,
+không phải một tính năng.
+
+---
+
+## §32. Đếm phân biệt qua CỬA SỔ — ngoại lệ có cơ sở của luật một-snapshot
+
+Ba tầng độc lập đều khoá "đúng một snapshot", và cả ba đều đúng **cho phép gộp**:
+trộn nhiều lát cắt vào một trung bình là trộn nhiều câu trả lời. Nhưng
+`COUNT(DISTINCT k)` **tự khử trùng theo định nghĩa**, nên một cửa sổ nhiều ngày
+là ĐÚNG phạm vi câu hỏi yêu cầu.
+
+Hai câu hỏi nó mở ra, cả hai **không bẻ câu được** vì chúng cần MỘT truy vấn:
+
+```
+"shop X xuất hiện trong bao nhiêu ngày"   COUNT(DISTINCT date)         → 18
+"có bao nhiêu listing từ 1/7 đến 5/7"     COUNT(DISTINCT listing_key)  → 701
+```
+
+Phải gỡ **năm** chốt, ghi ra vì mỗi chốt là một quyết định có lý do:
+
+| chốt | file | luật cũ | ngoại lệ |
+| --- | --- | --- | --- |
+| mở khoảng ngày | `semantic_parser.py` | "từ A đến B" → hai mốc | có cụm cửa sổ và KHÔNG có cụm so sánh ⇒ mở thành các đợt thu trong khoảng |
+| dựng plan | `synthesizer.py` | >2 ngày ⇒ `date_count_unsupported` | `aggregation == count` và ref có `counts_unit` ⇒ nhánh `_synthesize_window_count` |
+| validator | `validator.py` | `temporal_mismatch` | như trên, **và không có `Join` phía trên** — join làm fanout, phép đếm sau fanout không còn tự khử trùng |
+| chọn nhánh | `open_planner.py` | template thắng | `>= 2` ngày ⇒ template một-snapshot không được thử |
+| evidence | `analytics/tools.py` | `observed_date = time_scope[-1]` | plan quét nhiều ngày trả MỘT dòng ⇒ khai `observed_window`, và A22 kiểm cửa sổ thay vì kiểm một ngày |
+
+Chốt cuối là chỗ đáng nhớ nhất: câu trả lời **đúng** bị chặn bởi một **lời tự mô
+tả sai**. A22 không sai — nó tin đúng thứ evidence khai.
+
+---
+
+## §33. Bốn lỗi ÁNH XẠ ở biên, tìm bằng cách đối chiếu oracle pandas
+
+Không lỗi nào ở tầng suy luận; cả bốn ở đúng biên mà CLAUDE.md §3.1 đã chỉ.
+
+**34.1. Tên riêng bị bộ ghép alias xé nhỏ.** Quét cả 20 shop thật với câu *"có
+bao nhiêu sản phẩm của shop &lt;tên&gt; ngày 21/7"*: **13/20 → 19/20 đúng, 0
+sai**. Cả 7 ca hỏng đều có một từ catalog nằm TRONG tên riêng (`Official
+**Shop**`, `Mars Snacking **VN**`, `Perfetti Van Melle **Vietnam**`), còn 13 ca
+chạy được đều là `Official STORE` — một từ catalog không có. Tỷ lệ đúng đang phụ
+thuộc vào việc shop tự đặt tên trùng từ vựng của hệ hay không.
+
+Vá: vùng trong ngoặc kép **và** mọi giá trị ≥2 từ có thật trong chỉ mục được
+đọc NGUYÊN VĂN, trừ khỏi text mà bộ ghép alias nhìn thấy. Nguồn là **chỉ mục giá
+trị** — một sự thật về dữ liệu, không phải phỏng đoán về câu chữ.
+
+**34.2. Bảng chụp một lần gắn vào MỌI ngày.** `shop_info_clean.csv` có đúng 20
+dòng, một ngày duy nhất. Plan lọc `products` theo ngày đúng rồi `LEFT JOIN
+shop_info` **không kèm điều kiện ngày**:
+
+```
+hỏi 01/07 → 305   (panel thật: 298)
+hỏi 10/07 → 305   (panel thật: 300)
+```
+
+Vá: hai phía đều mang cột ngày thì `ON` phải khớp ngày. Khớp chứ không bỏ join —
+phía phải không có dòng cho ngày đó thì `LEFT JOIN` trả NULL, và *"không quan sát
+được"* là câu trả lời đúng, khác hẳn việc điền một con số của ngày khác.
+
+**34.3. Hai bộ đọc ngày, một cái đóng băng ở bản cũ.** `extract_date_range` —
+thứ nuôi `StructuredRequest.date_range` mà **A22 dùng làm "phạm vi người dùng đã
+hỏi"** — là `_DATE_ISO = r"2026-07-0[1-3]"` cộng một regex chỉ khớp `1/7`, `2/7`,
+`3/7`. Trên bộ 20 ngày nó **không nhìn thấy ngày nào sau 03/07**, nên *"từ 1/7
+đến 5/7"* co thành `[01/07, 01/07]` và lời từ chối nói về một phạm vi người dùng
+chưa bao giờ nêu.
+
+Bộ kiểm không bắt được vì `tests/conftest.py` ghim vào chính bộ 3 ngày, nơi hai
+bộ đọc trùng nhau. §29 của tài liệu này đã nêu `_DATE_DAY_MONTH` làm ví dụ cho
+lớp lỗi *"năng lực gắn với ba ngày cụ thể"* — nó đúng, và nó đã xảy ra. Vá bằng
+cách **xoá bản thứ hai**, đọc qua `parse_date_expressions` của lịch.
+
+**34.4. Cùng chữ, hai tập hợp.** *"số sản phẩm của shop X"* trả **95**;
+*"có bao nhiêu sản phẩm của shop X"* trả **92**. 95 là số hàng shop tự khai trên
+sàn (`shop_info.item_count`), 92 là số listing bộ dữ liệu thu được. Cách nói
+quyết định ngầm người hỏi nhận cái nào.
+
+Vá bằng cơ chế ĐÃ CÓ: đưa cụm vào alias của **cả hai** ref biến nó thành
+`alias_collision`, vốn fail-closed sẵn. Kèm hai thứ làm lời từ chối dùng được —
+nó **nêu tên cả hai cách gọi** (lấy từ chính alias trong catalog, bỏ tên máy và
+bỏ chính cụm đang mơ hồ), và `measure.shop_items` mang caveat nói rõ nó đếm tập
+nào.
+
+---
+
+## §34. Trạng thái đo — 01/09/2026
+
+| chỉ số | giá trị |
+| --- | --- |
+| `pytest -q` | **1656 passed, 1 skipped** |
+| quét 20 shop thật, `where shop = X` + đếm | **19/20 đúng, 0 sai** |
+| tên shop KHÔNG có ngoặc kép | **6/7 đúng** |
+| bộ đề phá hoại 15 câu, tắt/bật `llm_terms` | **0/15 ca lật từ chối → cho phép** |
+| ánh xạ LLM trên 13 câu ngoài catalog | **10/13** |
+| 30 DẠNG câu hỏi, đường tất định thuần | **17/30 trả lời được, 0 crash, 0 số sai** |
+| 10 ca phân tích có oracle pandas | **0 kết luận sai được rút** |
+
+Con số cuối là con số quan trọng nhất, và nó là thứ duy nhất không được phép
+tụt: mọi thất bại còn lại đều là **từ chối**, không phải số sai.
+
+### 34.1. Dạng còn từ chối, phân theo nguyên nhân
+
+**Từ chối ĐÚNG** — độ lệch chuẩn / IQR (`A19-OP`, IR không có toán tử phân tán),
+lợi nhuận (`A-MISSING-PROFIT`), nhân quả, voucher (va chạm cố ý), tương quan.
+Hai trong số này **nói sai lý do**: câu nhân quả bị báo *"chưa xác định chỉ số"*,
+câu tương quan bị báo lỗi hạ tầng.
+
+**`rating trung bình` KHÔNG phải từ chối oan** — catalog khai `rating` là thang
+**thứ bậc** với lý do viết rõ: *"trung bình sao không phải trung bình của gì
+cả"*. Trung vị chạy bình thường (4,905). Đây là một quyết định thống kê có chủ
+đích; đừng "sửa" nó.
+
+**Từ chối SAI, còn lại** — tra một sản phẩm theo tên (tên sản phẩm **không có**
+trong chỉ mục giá trị: chỉ mục chỉ chứa danh mục, brand, shop), so hai shop khi
+tắt bẻ câu.
+
+---
+
+## §35. Đọc tiếp
 
 | Câu hỏi | Đọc |
 | --- | --- |
@@ -1058,3 +1287,7 @@ Ghi ra thay vì để người sau tự phát hiện:
 | Tầng binding metadata ↔ vật lý? | `docs/design/Metadata_Model_And_Binding_Layer.md` |
 | 45 ca fail và sáu cơ chế? | `eval/reports/accuracy/ANALYSIS_2026-08-30.md` |
 | Bản đồ code? | `graphify explain <node>`, `graphify-out/GRAPH_REPORT.md` |
+| Hai cờ LLM làm gì, kiểm bằng gì? | §31 của chính tài liệu này |
+| Vì sao "từ 1/7 đến 5/7" cần MỘT truy vấn chứ không phải năm? | §32 |
+| Bốn lỗi ánh xạ ở biên, và cách tìm ra chúng? | §33 |
+| Số đo mới nhất, và dạng nào còn từ chối? | §34 |

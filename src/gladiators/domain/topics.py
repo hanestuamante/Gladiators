@@ -98,7 +98,7 @@ _CARDS: tuple[TopicCard, ...] = (
             # domain concern: if T5 owned shop_count then "bao nhiêu shop bán
             # thương hiệu X" would read as a cross-topic question.
             "derived.product_count", "derived.shop_count", "derived.brand_count",
-            "derived.category_count",
+            "derived.category_count", "derived.observed_day_count",
             "entity.product_listing", "entity.shop", "entity.brand", "entity.country",
             "entity.date_snapshot", "entity.sales_metric", "entity.content",
             "entity.promotion_id_observation", "entity.voucher_observation",
