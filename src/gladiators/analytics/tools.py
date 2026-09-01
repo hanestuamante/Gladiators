@@ -924,7 +924,12 @@ class AnalyticsTools:
             else str(plan.time_scope[-1]) if plan.time_scope
             else "unknown"
         )
-        currency = "VND" if country == "vn" else "IDR"
+        # Tra BẢNG KHAI, không đoán. Bản cũ (`"VND" if country == "vn" else
+        # "IDR"`) gán IDR cho MỌI thị trường không phải vn — kể cả một thị
+        # trường thứ ba chưa ai khai, im lặng và không lỗi.
+        from gladiators.domain.markets import currency_of
+
+        currency = currency_of(country)
         common = dict(
             source_tier="btc_dataset",
             source_locator=SourceLocator(

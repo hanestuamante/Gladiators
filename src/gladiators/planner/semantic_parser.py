@@ -143,10 +143,11 @@ def _ledger_of(
 # Cách gọi một thị trường trong ba ngôn ngữ. Country binder của parser suy country
 # từ ngoài (workflow truyền vào), nên ledger phải tự tìm span tương ứng để token
 # tên nước không bị chấm là ``unknown_concept``.
-_COUNTRY_SURFACES: dict[str, tuple[str, ...]] = {
-    "vn": ("việt nam", "viet nam", "vietnam", "vn"),
-    "id": ("indonesia", "indo", "id"),
-}
+# Cách gọi thị trường nay khai ở `domain/markets.py` cùng đơn vị tiền, để một
+# thị trường mới thiếu MỘT trong hai thứ đó là lỗi khởi động chứ không phải một
+# câu hỏi lặng lẽ không nhận ra thị trường. Tên cũ giữ nguyên: nó là API nội bộ
+# của module này và đổi tên không thêm thông tin gì.
+from gladiators.domain.markets import SURFACES_BY_MARKET as _COUNTRY_SURFACES
 
 
 def extract_date_range(normalized: str) -> list[str]:

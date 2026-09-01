@@ -697,6 +697,24 @@ def _build_catalog(objects: list[CatalogObject]) -> dict[str, CatalogObject]:
 
 CATALOG = _build_catalog(_BASE_OBJECTS)
 
+
+def _check_market_declarations() -> None:
+    """Thị trường khai thiếu đơn vị tiền/cách gọi ⇒ nổ lúc import.
+
+    Cùng khuôn với hai chốt đã có (`CatalogError` khi đơn vị đếm thiếu
+    `counting_key`, `TopicRegistryError` khi ref không thuộc topic nào): thêm
+    một thị trường mà quên phần đi kèm thì hệ KHÔNG KHỞI ĐỘNG ĐƯỢC, thay vì
+    trả lời với một nhãn tiền tệ sai.
+
+    Import trễ vì `markets` đọc ngược lại `CATALOG` ngay trên dòng này.
+    """
+    from gladiators.domain.markets import check_markets_are_fully_declared
+
+    check_markets_are_fully_declared()
+
+
+_check_market_declarations()
+
 # W1.2: kiểm VALUE_DIMENSION_BY_UNIT lúc import, theo đúng khuôn _build_catalog —
 # một ánh xạ trỏ ref không tồn tại (hoặc chiều không có cột vật lý để lọc) phải
 # fail build, không đợi tới lúc một câu hỏi cụ thể chạm vào nó.
