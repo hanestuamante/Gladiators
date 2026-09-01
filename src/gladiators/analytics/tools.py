@@ -305,6 +305,27 @@ class AnalyticsTools:
             )
             if not covers:
                 return []
+        # `.sum()` TRÊN TOÀN NaN TRẢ VỀ 0.0 — và 0 ở đây là một con số BỊA.
+        #
+        # Đo được (bnd09): listing `44863265062` có 18 dòng trên 18 ngày và
+        # `monthly_sold` quan sát được ĐÚNG MỘT lần (21/07). Mọi chặng chuyển
+        # tiếp mang `monthly_sold_delta = NaN`, nhưng `transition_metric_
+        # eligible = True`, nên chặng cuối được chọn và `.sum()` biến NaN thành
+        # 0. Câu trả lời: *"Proxy lượt bán thay đổi 0 items trong 1 ngày"* —
+        # kèm hai evidence id thật, qua verifier, qua gate.
+        #
+        # Đúng bẫy CLAUDE.md §3.1: *"thiếu dữ liệu thì gắn cờ, không điền 0.
+        # Điền 0 làm 'không đo được' trông giống hệt 'đo được và bằng phẳng'"*.
+        #
+        # Trả `[]` là đúng khuôn đã có ở hàm này (cửa sổ không phủ kín ⇒ `[]` ⇒
+        # tầng gọi ra A-NO-EVIDENCE), nên không thêm mã lỗi mới.
+        #
+        # Vì sao cổng W29 không bắt: nó nằm trong `execute_analytical_plan`, còn
+        # đây là MACRO đã chứng nhận — macro không đi qua cửa mật độ. Đó là một
+        # khoảng trống riêng, ghi ở đây thay vì để người sau tự phát hiện.
+        observed = int(legs.monthly_sold_delta.notna().sum())
+        if observed == 0:
+            return []
         first, last = legs.iloc[0], legs.iloc[-1]
         common = dict(
             source_tier="btc_dataset",
@@ -314,6 +335,10 @@ class AnalyticsTools:
                 "listing_key": listing_key,
                 "previous_date": str(first.previous_date), "date": str(last.date),
                 "legs": int(len(legs)),
+                # Bao nhiêu chặng THẬT SỰ có số. Tổng trên 3/7 chặng là một
+                # tổng nói về ba chặng, không phải về cửa sổ được hỏi — và nếu
+                # không đếm được thì hai thứ đó không phân biệt được.
+                "observed_legs": observed,
             },
         )
         return [
