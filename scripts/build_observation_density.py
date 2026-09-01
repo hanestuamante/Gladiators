@@ -51,6 +51,55 @@ SOURCES = (
 )
 
 
+
+def _measured_columns() -> frozenset[str]:
+    """Mọi cột vật lý mà một measure/derived_metric của catalog bind tới.
+
+    Bảng mật độ phải phủ đúng những cột hệ CÓ THỂ ĐƯỢC HỎI VỀ, không phải những
+    cột trùng một quy ước đặt tên.
+    """
+    import sys
+
+    sys.path.insert(0, str(ROOT / "src"))
+    from gladiators.domain.catalog import CATALOG
+
+    return frozenset(
+        column
+        for obj in CATALOG.values()
+        if obj.kind in {"measure", "derived_metric"}
+        for column in obj.physical
+    )
+
+
+_MEASURED = None
+
+
+def _is_measured(artifact: str, column: str) -> bool:
+    """Cột này có đáng đo mật độ không.
+
+    Luật cũ là `endswith("_num") or endswith("_count")` — một QUY ƯỚC ĐẶT TÊN,
+    và nó bỏ sót đúng chỗ đau nhất.
+
+    Đo được: `product_snapshot_metrics.csv.estimated_recent_revenue` không khớp
+    hậu tố nào nên KHÔNG có trong bảng mật độ. `density.mode_of` gặp cột lạ thì
+    lùi về `"panel"` — nghĩa là *quan sát mọi đợt thu* — còn `density.check` chỉ
+    gác cột `point_in_time`. Nên cổng W29 KHÔNG BAO GIỜ nhìn vào cột doanh thu,
+    trong khi nó chỉ được quan sát **5,29%** toàn bộ và **4/668 dòng** ở VN ngày
+    03/07. Câu *"cửa hàng nào có doanh thu thấp ngày 3/07"* trả về một bảng 10
+    shop kèm evidence, trong đó 8 shop không có một quan sát doanh thu nào.
+
+    Một mặc định FAIL-OPEN nằm trong một hệ fail-closed, và nó nằm đúng trên chỉ
+    số nổi bật nhất. Vá bằng cách buộc bảng mật độ phủ mọi cột catalog bind tới;
+    giữ hai hậu tố cũ để không mất cột nào đang được phủ.
+    """
+    global _MEASURED
+    if _MEASURED is None:
+        _MEASURED = _measured_columns()
+    if column.endswith("_num") or column.endswith("_count"):
+        return True
+    return f"{artifact}.{column}" in _MEASURED
+
+
 def _mode_of(by_date: dict[str, float], overall: float, entities: int, observed: int) -> str:
     """``panel`` | ``point_in_time``.
 
@@ -88,7 +137,7 @@ def build(data_dir: Path) -> dict:
         entities = int(frame[key].nunique()) if key else 0
         by_day = frame.groupby(frame["date"].astype(str))
         for column in frame.columns:
-            if not (column.endswith("_num") or column.endswith("_count")):
+            if not _is_measured(artifact, column):
                 continue
             series = frame[column]
             if series.notna().sum() == 0:
