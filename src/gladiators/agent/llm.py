@@ -584,6 +584,8 @@ class GroqLLMClient:
             "3. Tối đa `max_steps` bước. Không bẻ nếu câu đã đủ đơn giản — khi "
             "đó trả `steps` rỗng.\n"
             "4. KHÔNG tự trả lời, KHÔNG đoán số. Chỉ viết câu hỏi.\n"
+            "5. KHÔNG thêm ràng buộc câu gốc không nêu. Câu gốc không nói shop nào thì câu con cũng không được nói 'của shop' — thêm vào là hỏi một câu khác.\n"
+            "6. Dùng cách gọi RÕ NGHĨA. Đếm listing thu được thì viết 'số listing'; 'số sản phẩm của shop' mơ hồ giữa số listing và số hàng shop tự khai trên sàn, và hệ sẽ hỏi lại thay vì trả lời.\n"
             "Ví dụ:\n"
             "  hỏi: ngày nào shop X có doanh thu cao nhất tại VN\n"
             "  steps: [Doanh thu ước tính của shop X tại VN ngày 01/07 là bao "

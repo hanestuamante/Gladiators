@@ -158,10 +158,32 @@ def extract_date_range(normalized: str) -> list[str]:
     a defensible default.  Lives here rather than in ``agent.parser`` so both the
     intent parser and the plan synthesizer read dates the same way.
     """
-    dates = list(_DATE_ISO.findall(normalized))
-    dates += [f"2026-07-0{day}" for day in _DATE_DAY_MONTH.findall(normalized)]
-    ordered = sorted(dict.fromkeys(dates))
-    return [ordered[0], ordered[-1]] if ordered else []
+    # Đọc ngày bằng BỘ ĐỌC CỦA LỊCH, không bằng một regex thứ hai.
+    #
+    # Bản cũ ở đây là `_DATE_ISO = r"2026-07-0[1-3]"` cộng một regex chỉ khớp
+    # `1/7`, `2/7`, `3/7`, và nó ghép chuỗi `f"2026-07-0{day}"` — cứng tháng 7,
+    # cứng một chữ số. Nó ĐÚNG cho bộ đóng băng 3 ngày mà docstring này được
+    # viết trên đó, và trên bộ 20 ngày đang phục vụ thì nó KHÔNG NHÌN THẤY bất
+    # kỳ ngày nào sau 03/07.
+    #
+    # Hậu quả không nằm ở chỗ mất một ngày. `StructuredRequest.date_range` là
+    # thứ A22 dùng làm "phạm vi người dùng đã hỏi", nên câu "từ ngày 1/7 đến
+    # ngày 5/7" co lại thành `[01/07, 01/07]` và lời từ chối sinh ra nói
+    # *"Evidence quan sát ngày 2026-07-05 ngoài phạm vi 2026-07-01→2026-07-01
+    # đã hỏi"* — một câu nói về một phạm vi người dùng chưa bao giờ nêu.
+    #
+    # Bộ kiểm không bắt được vì `tests/conftest.py` ghim vào chính bộ 3 ngày,
+    # nơi hai bộ đọc trùng nhau. Đây đúng là lớp lỗi "hai bản của một luật là
+    # cách chúng lệch nhau" — nên cách sửa là XOÁ bản thứ hai, không vá nó.
+    from gladiators.domain.calendar import default_calendar
+
+    from .dates import parse_date_expressions
+
+    request = parse_date_expressions(normalized, default_calendar())
+    seen = sorted(dict.fromkeys(
+        request.dates + request.missing_snapshot + request.out_of_window,
+    ))
+    return [seen[0], seen[-1]] if seen else []
 
 
 def normalize(value: str) -> str:
@@ -367,11 +389,31 @@ def _currency_threshold(literal: str, raw_question: str, country: str | None) ->
         return None
     window = lowered[anchor: anchor + len(literal) + 24]
     markers = _CURRENCY_MARKERS.get(country or "", ())
-    if not markers or not any(marker in window for marker in markers):
-        return None
+    named_currency = bool(markers) and any(marker in window for marker in markers)
     for word, scale in _MAGNITUDE_WORDS:
         if word in window:
             return float(literal) * scale
+    # KHÔNG có từ chỉ độ lớn. Guard cũ trả None ở đây với lý do đúng: "trên 50"
+    # trần cạnh một measure tiền tệ là một câu hỏi khác — 50 gì, VND hay nghìn
+    # hay phần trăm? Giữ nguyên tinh thần đó, chỉ mở đúng hai chỗ mà câu hỏi
+    # KHÔNG còn mơ hồ nữa:
+    #
+    #   "giá trên 500000 đồng"  — người dùng đã nói rõ đơn vị. Không còn gì để
+    #                             đoán, và bắt họ viết "500 nghìn" mới hiểu là
+    #                             bắt họ nói lại điều đã nói.
+    #   "giá trên 500000"       — số đủ lớn thì mọi cách đọc khác đều vô nghĩa:
+    #                             phần trăm không tới 1000, và đọc nó như "500000
+    #                             nghìn" là tự nhân thêm một chữ số người dùng
+    #                             không viết.
+    #
+    # Ngưỡng 1000 giữ đúng ca mà comment cũ nêu: "trên 50" vẫn bị bỏ qua.
+    #
+    # Đo được trước khi mở: "Có bao nhiêu listing giá trên 500000 ở VN ngày
+    # 21/7" ra `A22-ALIGN-MEASURE` — parser bind `measure.price` rồi KHÔNG sinh
+    # predicate nào, nên plan mất chính điều kiện của câu hỏi. Đáp án thật: 94.
+    value = float(literal)
+    if named_currency or value >= 1000:
+        return value
     return None
 
 

@@ -142,8 +142,18 @@ def propose_steps(
         return (), None, "shape"
     steps = raw.get("steps")
     combine = raw.get("combine")
-    if not isinstance(steps, list) or not steps:
-        return (), None, "no_steps"
+    if not isinstance(steps, list):
+        return (), None, "shape"
+    if not steps:
+        # Prompt nói rõ: câu đã đủ đơn giản thì trả `steps` rỗng. Nên rỗng là
+        # một câu TRẢ LỜI, không phải một thất bại — và gọi nó là thất bại làm
+        # câu hỏi dừng lại thay vì rơi về đường thường.
+        #
+        # Đo được: "Có bao nhiêu listing ở VN từ ngày 1/7 đến ngày 5/7?" với cờ
+        # bẻ câu bật ra `steps=0, combine=None` và KHÔNG được trả lời, trong khi
+        # tắt cờ thì nó đi tới tận gate và nhận một lời từ chối nói rõ hơn.
+        # Bật một tính năng không được làm hệ trả lời KÉM hơn khi tắt.
+        return (), None, None
     if combine not in COMBINE_OPS:
         # Toán tử ngoài tập đóng KHÔNG được suy về một toán tử gần đúng: đoán
         # "maximum" là "argmax" là để một chuỗi tự do quyết định cách rút kết
@@ -204,6 +214,23 @@ def combine_results(
         #
         # Nên luật của cổng đó phải sống LẠI ở đây, tại đúng chỗ phép so được
         # thực hiện. `list` không rơi vào luật này: nó kể lại, không so.
+        # So sánh cần thứ SO ĐƯỢC. Một bước trả về nhãn ("Bibica Official
+        # Store") không phải một đại lượng, và đặt hai cái nhãn cạnh nhau dưới
+        # chữ "so sánh" là gọi một danh sách là một kết luận.
+        #
+        # Đo được: câu con do LLM bẻ ra — "Số listing của shop tại VN ngày
+        # 01/07" — bịa thêm ràng buộc "của shop" mà câu gốc không nêu, hệ đọc
+        # thành gom nhóm theo shop và trả về TÊN shop đầu tiên. Bước `allow`,
+        # có evidence, và hoàn toàn không trả lời câu hỏi.
+        labelled = [
+            step for step in results
+            if step.answered and not isinstance(step.value, (int, float))
+        ]
+        if labelled:
+            return None, (
+                f"{len(labelled)}/{len(results)} bước trả về một nhãn chứ không "
+                "phải một con số, nên không so sánh được"
+            )
         units = {step.unit for step in results if step.answered and step.unit}
         if len(units) > 1:
             return None, (
