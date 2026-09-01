@@ -593,6 +593,25 @@ def register_term_proposer(proposer) -> None:
 _QUOTED_RAW = re.compile(r'["\u201c]([^"\u201d]+)["\u201d]')
 
 
+
+def _partial_values(literal: str, dim_ref: str, country: str | None) -> list[str]:
+    """Các giá trị của ``dim_ref`` CHỨA ``literal``, để nêu ra khi hỏi lại.
+
+    Chỉ ĐỌC chỉ mục và trả về danh sách — không chọn hộ. Hai shop cùng chứa
+    "Richy" thì cả hai được nêu; chọn một là trả lời một câu hỏi khác.
+    """
+    from gladiators.agent.value_probe import _index
+
+    wanted = normalize(literal)
+    if not wanted:
+        return []
+    per_country = (_index().get(dim_ref) or {}).get(country or "") or {}
+    return sorted(
+        original for folded, original in per_country.items()
+        if wanted in folded and folded != wanted
+    )
+
+
 def _without_quoted_regions(
     normalized: str, raw: str, bound_values: tuple[str, ...] = (),
 ) -> str:
@@ -1388,6 +1407,77 @@ class DeterministicSemanticParser:
             comparison = {"mode": "descriptive_group_comparison"}
             operators.append("compare")
         ambiguities = []
+        # CỤM ĐƠN VỊ NGƯỜI DÙNG VIẾT PHẢI KHỚP CHIỀU THẬT SỰ BỊ LỌC.
+        #
+        # Đo được: `"richy"` là một brand CÓ THẬT, còn không tên shop nào bằng
+        # đúng `"richy"` (chúng là "Richy - Chi nhánh Miền Nam"/"Miền Bắc").
+        # Câu *"shop Richy ở VN bán được doanh thu bao nhiêu ngày 3/7"* ra plan
+        # lọc `dim.brand = 'Richy'` — người dùng nói SHOP, plan lọc BRAND.
+        #
+        # W18-R1 không bắt được vì nó bắt VA CHẠM (một cụm khớp ≥2 chiều), mà
+        # ở đây chỉ có ĐÚNG MỘT khớp chính xác — nó ở sai chiều. Phép kiểm phải
+        # là một phép kiểm khác: cụm đơn vị NGƯỜI DÙNG VIẾT RA nói về chiều nào.
+        #
+        # Không tự nới sang khớp một phần: "Richy" ứng với HAI shop, và chọn
+        # một là trả lời một câu hỏi khác. Hỏi lại, nêu rõ phải gõ tên đầy đủ.
+        from gladiators.domain.catalog import VALUE_DIMENSION_BY_UNIT as _UNIT_DIM
+
+        _value_dims = set(_UNIT_DIM.values())
+        _bound_dims = {
+            item.field_ref for item in filters if item.field_ref in _value_dims
+        }
+        if _bound_dims:
+            for _unit_ref, _dim_ref in _UNIT_DIM.items():
+                _obj = CATALOG.get(_unit_ref)
+                if _obj is None or _dim_ref in _bound_dims:
+                    continue
+                # ĐÒI LIỀN KỀ: cụm đơn vị phải đứng NGAY TRƯỚC giá trị bị
+                # lọc. Không có điều kiện này thì luật bắn cả khi từ "shop"
+                # xuất hiện ở chỗ khác trong câu — đo được: *"vì sao lượt bán
+                # của kẹo dẻo Chupa Chups tại shop X"* (dr2607:tc01) và
+                # *"Lượt bán của bánh quy Kinh Đô giảm"* (tc08) bị gỡ mất bộ
+                # lọc brand ĐÚNG, vì câu có nhắc tới shop ở một mệnh đề khác.
+                #
+                # "shop Richy" thì cụm đơn vị dính liền giá trị, và đó mới là
+                # câu nói "Richy là một shop".
+                _wrong = [
+                    item for item in filters if item.field_ref in _bound_dims
+                ]
+                _said = next(
+                    (alias for alias in _obj.aliases
+                     if re.search(
+                         rf"(?<![a-z]){re.escape(normalize(alias))}\s+"
+                         rf"{re.escape(normalize(str(_wrong[0].value_binding)))}"
+                         rf"(?![a-z])",
+                         normalized)),
+                    None,
+                )
+                if _said is None:
+                    continue
+                # NÊU RA các tên khớp một phần thay vì bảo người dùng tự đoán.
+                # Dữ liệu nằm ngay trong chỉ mục giá trị, và cùng khuôn với
+                # `EntityResolver.classify`: trạng thái `ambiguous_broad` mang
+                # theo top-3 "để câu hỏi được đặt lại cho người dùng". Một lời
+                # từ chối không nói ra lựa chọn nào thì cũng chỉ là ngõ cụt.
+                _near = _partial_values(str(_wrong[0].value_binding), _dim_ref, country)
+                if _near:
+                    _list = ", ".join(f'"{name}"' for name in _near[:3])
+                    _more = " …" if len(_near) > 3 else ""
+                    ambiguities.append(
+                        f'Câu hỏi nêu "{_said}" nhưng '
+                        f'"{_wrong[0].value_binding}" không phải tên {_said}. '
+                        f'Có {len(_near)} {_said} chứa cụm đó: {_list}{_more}. '
+                        "Hãy nêu đúng một trong số đó.",
+                    )
+                else:
+                    ambiguities.append(
+                        f'Câu hỏi nêu "{_said}" nhưng '
+                        f'"{_wrong[0].value_binding}" không khớp tên {_said} '
+                        "nào trong dữ liệu.",
+                    )
+                filters = [item for item in filters if item not in _wrong]
+                break
+
         if self_counting_superlative is not None:
             ambiguities.append(
                 "Câu hỏi nêu một cực trị nhưng chưa nói theo tiêu chí nào; "

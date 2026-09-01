@@ -146,7 +146,19 @@ def check(
     # phạm vi sai lệch y hệt một trung vị trên 0,7% phạm vi — thậm chí khó thấy
     # hơn, vì nó trả về một CÁI TÊN có thật thay vì một con số lạ.
     scope = tuple(filter_refs) + tuple(rank_refs)
-    if aggregation not in (None, "count", "share"):
+    # LUẬT W29-R9 — MEASURE ĐƯỢC CHIẾU RA cũng là một phát biểu về phạm vi.
+    #
+    # `count`/`share` vẫn được loại: một câu hỏi *bao nhiêu listing* là câu hỏi
+    # về LISTING, không về việc chỉ số kia đo được hay không (xem docstring).
+    # Nhưng `aggregation is None` từng bị loại CÙNG nhóm, và đó là chỗ hở:
+    # plan không gộp gì thì nó CHIẾU RA các dòng thô của chính measure đó.
+    #
+    # Đo được: "shop Richy o VN ban duoc doanh thu bao nhieu ngay 3/7" hiện hai
+    # dòng doanh thu thô, trong khi ngày 3/7 ở VN doanh thu chỉ quan sát được
+    # 4/668 dòng (0,6%). Cùng cổng này đã từ chối đúng câu "cửa hàng nào có
+    # doanh thu thấp ngày 3/07" — khác nhau chỉ ở chỗ câu kia có xếp hạng nên
+    # rơi vào `rank_refs`.
+    if aggregation not in ("count", "share"):
         scope = tuple(dict.fromkeys(scope + tuple(refs)))
     scope = tuple(dict.fromkeys(scope))
     if not scope:
