@@ -198,9 +198,34 @@ def combine_results(
         best = min(numeric, key=lambda step: step.value)
         return f"{best.question} — {best.value} [{best.evidence_id}]", None
     if combine == "sum":
-        # Phép DUY NHẤT ở đây tạo ra một con số mới. Luật cấm cộng (monthly_sold
-        # qua snapshot là tính trùng) nằm ở tầng catalog và phải giữ nguyên ở
-        # đó — dựng bản sao của nó tại đây là dựng chỗ để hai bản lệch nhau.
+        # Phép DUY NHẤT ở đây tạo ra một con số mới, nên nó là chỗ duy nhất có
+        # thể tạo ra một con số ĐÚNG SỐ HỌC mà SAI CÂU HỎI.
+        #
+        # Đo được: "Có bao nhiêu listing ở VN từ ngày 1/7 đến ngày 5/7" bẻ ra 5
+        # bước, mỗi bước trả đúng số của ngày mình (581, 670, 668, 684, 680),
+        # và `sum` ra 3283. Cộng đúng. Nhưng đáp án của chính câu hỏi đó là
+        # 701 — số listing PHÂN BIỆT trong cửa sổ. 3283 đếm mỗi listing một lần
+        # cho mỗi ngày nó xuất hiện, tức trả lời một câu hỏi không ai hỏi, kèm
+        # đủ năm evidence id để trông như đã được kiểm.
+        #
+        # Cùng luật đã có ở tầng catalog cho `monthly_sold` ("cấm cộng qua các
+        # snapshot — tính trùng"), nhưng tầng đó không với tới đây: mỗi bước là
+        # một lượt chạy hợp lệ riêng, và phép cộng xảy ra SAU khi tất cả đã qua
+        # verifier. Nên luật phải sống lại tại đúng chỗ phép cộng được thực
+        # hiện — giống hệt cổng tiền tệ ở `compare`.
+        #
+        # Chặn theo NGÀY chứ không theo measure: cộng ba shop trong CÙNG một
+        # ngày là các tập rời nhau và vẫn cộng được (đo được: 92+22+73=187).
+        spanned = _dates_spanned(step.question for step in results)
+        if len(spanned) > 1:
+            return None, (
+                "các bước hỏi " + str(len(spanned)) + " ngày khác nhau ("
+                + ", ".join(sorted(spanned)[:4])
+                + (", ..." if len(spanned) > 4 else "")
+                + "), nên cộng lại là đếm trùng cùng một đối tượng qua nhiều "
+                "đợt thu. Hỏi 'mỗi ngày bao nhiêu' hoặc 'ngày nào nhiều nhất' "
+                "để có câu trả lời theo từng ngày."
+            )
         total = sum(step.value for step in numeric)
         ids = ", ".join(step.evidence_id or "" for step in numeric)
         return f"tổng {total} trên {len(numeric)} bước [{ids}]", None
@@ -250,6 +275,27 @@ def combine_results(
         return "\n".join(lines), None
     return None, f"toán tử gộp không nhận ra: {combine}"
 
+
+
+def _dates_spanned(questions) -> set[str]:
+    """Các ngày mà một tập câu hỏi nêu ra, đọc bằng BỘ ĐỌC CỦA LỊCH.
+
+    Không viết regex ngày thứ ba. Repo này vừa mất một lớp kiểm đúng vì có hai
+    bộ đọc ngày song song và một trong hai còn đóng băng ở bản dữ liệu cũ.
+    """
+    from gladiators.domain.calendar import default_calendar
+    from gladiators.planner.semantic_parser import normalize
+
+    from .dates import parse_date_expressions
+
+    calendar = default_calendar()
+    seen: set[str] = set()
+    for question in questions:
+        request = parse_date_expressions(normalize(question), calendar)
+        seen.update(request.dates)
+        seen.update(request.missing_snapshot)
+        seen.update(request.out_of_window)
+    return seen
 
 def run_split(
     runtime,

@@ -150,3 +150,33 @@ def test_ban_mo_ta_sinh_tu_du_lieu_khong_viet_tay():
 
 def test_ban_mo_ta_vang_artifact_thi_rong_chu_khong_no():
     assert dataset_brief("khong/ton/tai.json") == {}
+
+
+def test_sum_khong_duoc_cong_qua_nhieu_ngay():
+    """Con số ĐÚNG SỐ HỌC mà SAI CÂU HỎI — lớp lỗi nguy hiểm nhất ở đây.
+
+    Đo được: "Có bao nhiêu listing ở VN từ 1/7 đến 5/7" bẻ ra 5 bước, mỗi bước
+    trả đúng số ngày mình (581, 670, 668, 684, 680), `sum` ra 3283. Cộng đúng.
+    Nhưng đáp án của chính câu đó là 701 — số listing PHÂN BIỆT trong cửa sổ.
+    3283 đếm mỗi listing một lần cho mỗi ngày nó xuất hiện, và mang đủ năm
+    evidence id để trông như đã được kiểm.
+    """
+    results = tuple(
+        _step(f"Số listing tại VN ngày 0{day}/07 là bao nhiêu?", value)
+        for day, value in enumerate((581, 670, 668, 684, 680), start=1)
+    )
+    conclusion, declined = combine_results(results, "sum")
+    assert conclusion is None
+    assert declined is not None and "đếm trùng" in declined
+
+
+def test_sum_van_cong_duoc_trong_cung_mot_ngay():
+    """Ba shop trong CÙNG một ngày là các tập rời nhau — 92+22+73=187."""
+    results = (
+        _step('Số listing của shop "Bibica Official Store" tại VN ngày 21/07?', 92),
+        _step('Số listing của shop "Kinh Do Official Store" tại VN ngày 21/07?', 22),
+        _step('Số listing của shop "Mars Snacking VN" tại VN ngày 21/07?', 73),
+    )
+    conclusion, declined = combine_results(results, "sum")
+    assert declined is None
+    assert "187" in conclusion
