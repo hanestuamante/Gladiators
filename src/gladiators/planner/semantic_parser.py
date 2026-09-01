@@ -1481,6 +1481,41 @@ class DeterministicSemanticParser:
             ranking = None
             requested_grain = "group"
             operators = [item for item in operators if item != "rank"]
+        # CHỌN-MỘT mà KHÔNG NÓI THEO TIÊU CHÍ NÀO là một câu hỏi mơ hồ, không
+        # phải một câu hỏi liệt kê.
+        #
+        # Đo được: *"cửa hàng nào có doanh thu thấp tại VN ngày 3/07"* —
+        # `"thấp"` trần không có trong bảng cực trị (bảng chỉ có `"thấp nhất"`),
+        # nên `ranking=None`, `requested_output_shape` thành `table`, và hệ trả
+        # về một BẢNG 10 shop cho câu hỏi "cửa hàng NÀO". Không lớp nào bắt:
+        # plan không bỏ chiều nào, số nào cũng có evidence — nó chỉ trả lời một
+        # hình dạng câu hỏi khác.
+        #
+        # `"thấp"` không kèm `"nhất"` mơ hồ THẬT: thấp nhất? dưới trung bình?
+        # dưới một ngưỡng? Ba câu hỏi khác nhau, và chọn hộ là trả lời một
+        # trong ba trong im lặng. Ghi ambiguity để gate hỏi lại.
+        #
+        # Hẹp có chủ đích — đủ BA điều kiện: câu có cụm CHỌN-MỘT, có từ chỉ
+        # mức trần, và KHÔNG có dấu cực trị nào. Thiếu một trong ba thì giữ
+        # nguyên hành vi. `"bao nhiêu"` bị loại tường minh vì nó chứa `"nhiêu"`
+        # nhưng là một cụm ĐẾM, không phải một mức.
+        if ranking is None and any(item.ref for item in measures):
+            selector = re.search(r"(?<![a-z])(nao|which|mana)(?![a-z])", normalized)
+            bare_degree = re.search(
+                r"(?<![a-z])(thap|cao|nhieu|it|lon|nho)(?![a-z])",
+                normalized.replace("bao nhieu", " "),
+            )
+            has_extremum = any(
+                term in normalized for term in
+                ("nhat", "highest", "lowest", "tertinggi", "terendah", "top",
+                 "maximum", "minimum")
+            )
+            if selector and bare_degree and not has_extremum:
+                ambiguities.append(
+                    f'Cụm "{bare_degree.group(1)}" chưa nói rõ theo tiêu chí '
+                    "nào — cao/thấp NHẤT, hay so với một ngưỡng?",
+                )
+
         monetary = any(item.ref in {"measure.price", "derived.estimated_recent_revenue"} for item in measures)
         if not country:
             ambiguities.append(

@@ -326,6 +326,30 @@ class AnalyticsTools:
         observed = int(legs.monthly_sold_delta.notna().sum())
         if observed == 0:
             return []
+        # CỬA MẬT ĐỘ CHO MACRO. W29 sống trong `execute_analytical_plan`, nên
+        # macro đã chứng nhận đi vòng qua nó — và `sales_decline` là macro. Đó
+        # là chỗ rò cùng loại với cột doanh thu vắng mặt khỏi bảng mật độ
+        # (3a13a7e): cả hai đều là fail-open trong một hệ fail-closed.
+        #
+        # Dùng ĐÚNG cổng đó, không viết luật thứ hai: cùng `density.check`,
+        # cùng `SparseObservationError`, nên câu trả lời ra cùng mã
+        # `A-SPARSE-OBSERVATION` và ngưỡng chỉ khai ở một nơi.
+        #
+        # Phạm vi là các ngày của chính các chặng được chọn, không phải cả kỳ —
+        # một chỉ số dày ở tháng 7 mà thưa ở cửa sổ được hỏi thì câu hỏi vẫn
+        # không trả lời được.
+        from gladiators.analytics.density import check as density_check
+
+        country = str(listing_key).split(":", 1)[0] if ":" in str(listing_key) else None
+        leg_dates = tuple(dict.fromkeys(
+            list(legs.previous_date.astype(str)) + list(legs.date.astype(str))
+        ))
+        verdict = density_check(
+            ("measure.monthly_sold",), leg_dates, country, "median",
+            str(self.repo.root),
+        )
+        if verdict is not None and verdict.action == "clarify":
+            raise SparseObservationError(verdict)
         first, last = legs.iloc[0], legs.iloc[-1]
         common = dict(
             source_tier="btc_dataset",
