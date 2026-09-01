@@ -95,17 +95,21 @@ def test_existing_plans_are_unchanged(key):
 # số sai. Ca này cross-market nên A16-CROSS-CURRENCY chặn trước khi thực thi ⇒
 # hành vi runtime KHÔNG đổi, chỉ plan đổi.
 INTENTIONALLY_LOST = {
-    "dr2607:tc32": (
-        "W18 (Spec3008 §5): 'Shop mỹ phẩm Glad2Glow' nay bind được giá trị "
-        "`dim.brand = GLAD2GLOW`. Nhưng bind ĐƯỢC một giá trị không có nghĩa "
-        "plan DIỄN ĐẠT ĐƯỢC nó: ref của predicate không nằm trên bảng nguồn, "
-        "bộ chọn quan hệ thêm một cạnh registry không khai, và plan ra "
-        "`grain_mismatch` + `fanout_risk`. Trước khi có phép kiểm này, plan hỏng "
-        "vẫn ra khỏi synthesize, vào baseline, và chỉ nổ ở compiler dưới dạng "
-        "`A19-PLAN` — một lời từ chối nói về 'kế hoạch không chạy được' thay vì "
-        "về ràng buộc mà grammar không diễn đạt nổi. Runtime KHÔNG đổi: ca này "
-        "vẫn `abstain / A-MISSING-ADS`, đúng kỳ vọng của fixture."
-    ),
+    # dr2607:tc32 ĐÃ RỜI danh sách này ngày 01/09. Lý do cũ ghi ở đây là plan
+    # ra `grain_mismatch` + `fanout_risk`, và nó đọc như một giới hạn của quan
+    # hệ. Đo lại thì không phải: node Join do synthesize dựng VIẾT CỨNG
+    # `listing_snapshot → listing_snapshot` và không khai `dedupe_policy` bao
+    # giờ, trong khi bốn cạnh left_join của registry khai bốn cặp grain KHÁC
+    # NHAU. Chỉ `belongs_to` tình cờ khớp; ba cạnh còn lại không bao giờ dựng
+    # nổi plan hợp lệ. Plan không hỏng vì dữ liệu — nó hỏng vì tự khai sai về
+    # chính cạnh nó dùng.
+    #
+    # Sau khi node Join đọc grain và dedupe TỪ REGISTRY, plan của ca này dựng
+    # được. Runtime KHÔNG đổi và đó là điểm quan trọng: nó vẫn
+    # `abstain / A-MISSING-ADS` — từ chối vì dataset không có impressions,
+    # clicks hay ad spend, tức vì ĐÚNG lý do, thay vì vì một khiếm khuyết khi
+    # dựng plan. Một lời từ chối đúng kết cục mà sai nguyên nhân vẫn là một lời
+    # từ chối sai.
     # dr2607:tc29 ĐÃ RỜI danh sách này ở W26 (Spec3008 §13). Plan của nó mất vì
     # `mean` không được chứng nhận cho `measure.discount_percent` — nhưng đó là
     # hệ quả của một bảng `valid_aggregations` gán tay giống hệt nhau cho mọi

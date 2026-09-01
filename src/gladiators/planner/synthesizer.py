@@ -864,10 +864,28 @@ def synthesize(
     for index, name in enumerate(relations):
         spec = RELATIONS[name]
         node_id = "n3" if index == 0 else f"n3_{index + 1}"
+        # Grain và dedupe ĐỌC TỪ REGISTRY, không viết cứng. Bản cũ khai
+        # `listing_snapshot → listing_snapshot` cho MỌI cạnh và không khai
+        # `dedupe_policy` bao giờ — mà validator so đúng hai thứ đó với registry
+        # (`grain_mismatch`, `fanout_risk`). Bốn cạnh left_join khai bốn cặp
+        # khác nhau, nên chỉ `belongs_to` tình cờ khớp và ba cạnh còn lại KHÔNG
+        # BAO GIỜ dựng nổi plan hợp lệ:
+        #
+        #   belongs_to            listing_snapshot → listing_snapshot        (khớp)
+        #   in_platform_category  listing_snapshot → listing_snapshot_category
+        #   in_shop_category      listing_snapshot → listing_snapshot_x_shelf
+        #   has_sales_metric      listing          → listing_snapshot_or_transition
+        #
+        # Đó là lý do thật của ba lần thử hỏng ghi trong comment W25 ("grain
+        # Join không khớp", "fanout thiếu dedupe") — không phải một giới hạn của
+        # dữ liệu, mà là plan tự khai sai về chính cạnh nó dùng.
         nodes.append(PlanNode(
             node_id=node_id, op="Join", inputs=(cursor,), relation=name,
             refs=plan_edges.refs_by_edge[name],
-            input_grain="listing_snapshot", output_grain="listing_snapshot",
+            input_grain=spec.input_grain, output_grain=spec.output_grain,
+            dedupe_policy=(
+                spec.dedupe_strategy if spec.fanout_effect != "none" else None
+            ),
             expected_schema=output, expected_cardinality="<=snapshot_rows",
         ))
         cursor = node_id

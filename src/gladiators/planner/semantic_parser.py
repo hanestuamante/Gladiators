@@ -1272,6 +1272,51 @@ class DeterministicSemanticParser:
                     surface_text=frame.marker_span.normalized, ref=frame.argument_ref,
                 ))
 
+        # ĐẶT SAU W17-R4 có chủ đích: luật đó thêm lại đơn vị phân tích
+        # (`entity.shop`) vào `dimensions`, nên nếu thay nhãn TRƯỚC nó thì
+        # đơn vị quay lại và SQL lại có hai cột `shop_name` trùng tên.
+        # "TÊN của X là gì" — người dùng hỏi NHÃN, và trước luật này hệ không
+        # hiểu điều đó: `"ten"` bị chấm `unknown_concept`, không binder nào nhận
+        # nó, và câu trả lời in ra `shop_id=108166524` — một định danh nội bộ.
+        #
+        # Con số thì đúng (337.000.000 VND, và shop đó thật sự là "Nestlé Chính
+        # hãng"), nhưng cái nhãn in kèm KHÔNG phải một quyết định về thứ được
+        # hỏi — nó là hệ quả tình cờ của việc plan chọn bảng nào:
+        # `product_snapshot_metrics` có `shop_id` mà không có `shop_name`, nên
+        # bộ chiếu nhãn lùi về khoá (W25-R1).
+        #
+        # Bind chiều mang tên làm hai việc cùng lúc, và việc thứ hai mới là
+        # việc chính: nó nói cho các tầng sau biết NGƯỜI DÙNG HỎI TÊN. Kéo theo
+        # `dim.shop_name` vào tập ref plan phải phủ, nên bộ chọn nguồn tự
+        # chuyển sang bảng CÓ cột tên (`products_clean.csv`) — đo được bằng
+        # `_plan_relations`.
+        if any(cue in normalized for cue in ("ten cua", "ten cac", "ten shop",
+                                             "ten cua hang", "ten thuong hieu",
+                                             "ten san pham", "goi la gi",
+                                             "name of", "nama")):
+            from gladiators.domain.catalog import LABEL_REF_BY_UNIT
+
+            # THAY, không THÊM. Giữ cả hai thì đơn vị (chiếu nhãn của nó) và
+            # chiều mang tên cùng ra một cột `shop_name`, SQL có hai cột trùng
+            # tên và plan chết ở thực thi (A19-EXECUTION). Gom nhóm theo NHÃN
+            # là đúng thứ câu hỏi yêu cầu — người dùng hỏi tên, không hỏi mã.
+            swapped = [
+                SemanticBinding(surface_text=item.surface_text,
+                                ref=LABEL_REF_BY_UNIT[item.ref])
+                if item.ref in LABEL_REF_BY_UNIT else item
+                for item in dimensions
+            ]
+            # Khử trùng theo ref. Câu "cửa hàng NÀO ... và tên của HÀNG đó" nêu
+            # đơn vị hai lần; sau khi thay thì có hai `dim.shop_name`, SQL ra
+            # hai cột trùng tên và plan chết ở thực thi.
+            seen_refs: set[str] = set()
+            dimensions = [
+                item for item in swapped
+                if item.ref is None or not (item.ref in seen_refs
+                                            or seen_refs.add(item.ref))
+            ]
+
+
         descending = any(term in normalized for term in ("cao nhat", "nhieu nhat", "lon nhat", "highest", "tertinggi", "top"))
         ascending = any(term in normalized for term in ("thap nhat", "it nhat", "lowest", "terendah"))
         rank_ref = next((item.ref for item in measures if item.ref), None)
