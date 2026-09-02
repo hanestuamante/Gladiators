@@ -212,9 +212,23 @@ class EntityBinding(BaseModel):
 
 class SemanticAmbiguity(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
-    kind: Literal["alias_collision"]
+    # `unit_value_mismatch` thêm ngày 02/09: câu nêu tên một ĐƠN VỊ ("shop
+    # Bibica") nhưng giá trị đó khớp một chiều KHÁC. Phải là ambiguity CÓ KIỂU,
+    # không phải một chuỗi trong `ambiguities`: gate chỉ đọc
+    # `semantic_ambiguities`, còn chuỗi tự do bị bỏ qua hoàn toàn (xem ghi chú
+    # ở `gate.py` — "Thiếu country" được bộ nhớ hội thoại lấp ở lượt sau).
+    #
+    # Đo được trước khi sửa: parser ghi đúng lời hỏi lại, gate vẫn `allow`, và
+    # "shop Bibica ở VN ngày 21/7 có bao nhiêu sản phẩm" trả **672** — toàn thị
+    # trường, không phải shop. Một lời cảnh báo không ai đọc thì không phải một
+    # lớp kiểm.
+    kind: Literal["alias_collision", "unit_value_mismatch"]
     surface: str
     candidate_refs: tuple[str, ...]
+    # Lời giải thích dựng sẵn cho `unit_value_mismatch`: các ứng viên ở đây là
+    # TÊN trong dữ liệu, không phải ref catalog, nên chúng không thuộc về
+    # `candidate_refs`.
+    message: str | None = None
 
 
 class AnalyticalPredicate(BaseModel):
@@ -592,6 +606,45 @@ def register_term_proposer(proposer) -> None:
 # ở đó là tìm một thứ đã bị xoá.
 _QUOTED_RAW = re.compile(r'["\u201c]([^"\u201d]+)["\u201d]')
 
+
+
+
+def unit_value_mismatch(
+    normalized: str, country: str | None, filters,
+) -> tuple[str, str, str, list[str]] | None:
+    """``(cụm đơn vị, giá trị bị lọc, chiều đúng, các tên khớp một phần)`` hoặc None.
+
+    Tách khỏi ``parse`` để BƯỚC SỬA dùng lại được đúng phép phát hiện này. Hai
+    bản của một luật là cách chúng lệch nhau — và ở đây cái lệch sẽ im lặng:
+    bước sửa nhắm vào một mismatch mà parser không hề thấy, hoặc ngược lại.
+    """
+    from gladiators.domain.catalog import CATALOG as _CAT
+    from gladiators.domain.catalog import VALUE_DIMENSION_BY_UNIT as _UNIT_DIM
+
+    value_dims = set(_UNIT_DIM.values())
+    bound = {item.field_ref for item in filters if item.field_ref in value_dims}
+    if not bound:
+        return None
+    for unit_ref, dim_ref in _UNIT_DIM.items():
+        obj = _CAT.get(unit_ref)
+        if obj is None or dim_ref in bound:
+            continue
+        wrong = [item for item in filters if item.field_ref in bound]
+        if not wrong:
+            continue
+        literal = str(wrong[0].value_binding)
+        said = next(
+            (alias for alias in obj.aliases
+             if re.search(
+                 rf"(?<![a-z]){re.escape(normalize(alias))}\s+"
+                 rf"{re.escape(normalize(literal))}(?![a-z])",
+                 normalized)),
+            None,
+        )
+        if said is None:
+            continue
+        return said, literal, dim_ref, _partial_values(literal, dim_ref, country)
+    return None
 
 
 def _partial_values(literal: str, dim_ref: str, country: str | None) -> list[str]:
@@ -1463,13 +1516,40 @@ class DeterministicSemanticParser:
                 if _near:
                     _list = ", ".join(f'"{name}"' for name in _near[:3])
                     _more = " …" if len(_near) > 3 else ""
+                    self._pending_ambiguities.append(SemanticAmbiguity(
+                        kind="unit_value_mismatch",
+                        surface=str(_wrong[0].value_binding),
+                        candidate_refs=(_dim_ref,),
+                        message=(
+                            f'Câu hỏi nêu "{_said}" nhưng '
+                            f'"{_wrong[0].value_binding}" không phải tên '
+                            f'{_said}. Các {_said} chứa cụm đó: {_list}{_more}. '
+                            "Hãy nêu đúng một trong số đó."
+                        ),
+                    ))
                     ambiguities.append(
                         f'Câu hỏi nêu "{_said}" nhưng '
                         f'"{_wrong[0].value_binding}" không phải tên {_said}. '
-                        f'Có {len(_near)} {_said} chứa cụm đó: {_list}{_more}. '
+                        # KHÔNG viết số đếm bằng chữ số: lời hỏi lại không
+                        # mang evidence, nên `verifier.scan_numbers` chấm "2"
+                        # trong "Có 2 shop" là một con số bịa — đo được trên
+                        # chính câu Richy, coverage=0, FAIL. Đúng bẫy
+                        # CLAUDE.md §3.1. Tên shop thì được: chúng nằm trong
+                        # `ignore_texts` vì là chữ trích từ dữ liệu.
+                        f'Các {_said} chứa cụm đó: {_list}{_more}. '
                         "Hãy nêu đúng một trong số đó.",
                     )
                 else:
+                    self._pending_ambiguities.append(SemanticAmbiguity(
+                        kind="unit_value_mismatch",
+                        surface=str(_wrong[0].value_binding),
+                        candidate_refs=(_dim_ref,),
+                        message=(
+                            f'Câu hỏi nêu "{_said}" nhưng '
+                            f'"{_wrong[0].value_binding}" không khớp tên '
+                            f"{_said} nào trong dữ liệu."
+                        ),
+                    ))
                     ambiguities.append(
                         f'Câu hỏi nêu "{_said}" nhưng '
                         f'"{_wrong[0].value_binding}" không khớp tên {_said} '

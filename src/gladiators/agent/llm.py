@@ -93,12 +93,9 @@ class LLMClient(Protocol):
     def judge(self, answer: str, rubric: str) -> dict: ...
     def critique_plan(self, question: str, plan: dict) -> dict: ...
     def resolve_terms(self, payload: dict) -> dict: ...
-    def propose_shape(self, payload: dict) -> dict:
-        # Không đề xuất gì. Một client tất định thì không suy đoán hình dạng.
-        return {"shape": None}
-
     def decompose(self, payload: dict) -> dict: ...
     def propose_shape(self, payload: dict) -> dict: ...
+    def repair_question(self, payload: dict) -> dict: ...
     def plan_analytical(self, payload: dict) -> dict: ...
     def plan_analytical_alternate(self, payload: dict) -> dict: ...
     def adjudicate_plans(self, payload: dict) -> dict: ...
@@ -636,6 +633,34 @@ class GroqLLMClient:
             "Payload: " + json.dumps(payload, ensure_ascii=False)
         )
         return json.loads(self._chat(prompt, "question_shape", Shape, role="parse"))
+
+    def repair_question(self, payload: dict) -> dict:
+        """Chọn MỘT tên trong `candidates`, hoặc null.
+
+        Danh sách ứng viên do DỮ LIỆU sinh ra, không do model nghĩ ra; model chỉ
+        chọn một phần tử, và `question_repair` kiểm lại tên đó có trong danh
+        sách đã gửi hay không.
+        """
+        from pydantic import BaseModel, ConfigDict
+
+        class Choice(BaseModel):
+            model_config = ConfigDict(extra="forbid")
+            chosen: str | None
+
+        prompt = (
+            "Người dùng hỏi về một đối tượng nhưng gõ tên KHÔNG khớp dữ liệu. "
+            "Dưới đây là các tên CÓ THẬT chứa cụm họ gõ.\n"
+            "Ràng buộc:\n"
+            "1. CHỈ được trả một chuỗi có trong `candidates`, sao chép NGUYÊN "
+            "VĂN. Không sửa chính tả, không ghép, không bịa.\n"
+            "2. Câu hỏi không đủ căn cứ để chọn giữa các ứng viên thì trả null. "
+            "Trả null là câu trả lời ĐÚNG — người dùng sẽ được hỏi lại. Đoán bừa "
+            "là trả lời về một đối tượng họ không hỏi.\n"
+            "3. Chỉ chọn khi câu hỏi có chi tiết PHÂN BIỆT được ứng viên (ví dụ "
+            "\"miền Nam\" chọn được chi nhánh Miền Nam). Cụm chung chung thì null."
+            "\nPayload: " + json.dumps(payload, ensure_ascii=False)
+        )
+        return json.loads(self._chat(prompt, "question_repair", Choice, role="parse"))
 
     def plan_analytical(self, payload: dict) -> dict:
         from gladiators.planner.query_ir import LogicalQueryPlan

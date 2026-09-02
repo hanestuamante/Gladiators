@@ -165,6 +165,11 @@ def _collision_text(item: dict) -> str:
     from gladiators.domain.catalog import CATALOG
     from gladiators.planner.spans import fold as _fold
 
+    # `unit_value_mismatch` mang sẵn lời giải thích: ứng viên của nó là TÊN
+    # trong dữ liệu, không phải ref catalog, nên phần dựng câu bên dưới (đọc
+    # alias của ref) không nói được về nó.
+    if item.get("message"):
+        return str(item["message"])
     surface = item.get("surface")
     readings = []
     for ref in item.get("candidate_refs") or ():

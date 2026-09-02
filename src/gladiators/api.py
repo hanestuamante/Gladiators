@@ -240,7 +240,28 @@ def ask(request: AskRequest) -> AgentResponse:
                 })
             # Không bẻ được, hoặc model nói "câu đã đủ đơn giản": đi tiếp đường
             # thường thay vì trả về một lời từ chối mà đường thường không có.
-        return runtime.run(request.text, session_id=request.session_id)
+        response = runtime.run(request.text, session_id=request.session_id)
+        # NẠP LẠI LỜI HỎI CHO LLM. Hệ đã biết đủ để tự sửa mà không sửa: lời
+        # clarify nêu đích danh các tên CÓ THẬT chứa cụm người dùng gõ, và chọn
+        # một trong số đó là một việc ngôn ngữ trên một TẬP ĐÓNG — đúng hình
+        # dạng W32 đã giải.
+        #
+        # Chỉ MỘT lần, và chỉ khi câu đã sửa thật sự trả lời được: câu sửa xong
+        # vẫn bị từ chối thì lời từ chối đó là câu trả lời, còn sửa vòng hai là
+        # bắt đầu một cây tìm kiếm không có đáy.
+        if (
+            request.llm_terms
+            and runtime.llm_client is not None
+            and response.gate.action == "clarify"
+        ):
+            from gladiators.planner.question_repair import repair
+
+            fix = repair(request.text, response.request.country, runtime.llm_client)
+            if fix.question:
+                retried = runtime.run(fix.question, session_id=request.session_id)
+                if retried.gate.action == "allow":
+                    return retried
+        return response
     except Exception as exc:
         raise HTTPException(status_code=500, detail={"code": "AGENT_RUNTIME_ERROR", "type": type(exc).__name__}) from exc
     finally:
