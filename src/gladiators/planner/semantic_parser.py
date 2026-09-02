@@ -257,6 +257,14 @@ class AnalyticalRanking(BaseModel):
     order_by: str
     direction: Literal["asc", "desc"] = "desc"
     top_k: int = Field(default=5, ge=1, le=10)
+    # VỊ TRÍ, không phải số lượng. `top_k` trả lời "bao nhiêu dòng"; `offset`
+    # trả lời "bắt đầu từ dòng thứ mấy" — hai câu hỏi khác nhau mà trước đây
+    # chỉ có một chỗ để trả lời. Hệ quả đo được: "shop nào có nhiều listing
+    # THỨ 2 tại VN" sinh đúng plan của "nhiều nhất", trả về shop hạng nhất, và
+    # câu văn khẳng định đó là "nhiều nhất" — số đúng cho một câu hỏi khác.
+    # Không lớp kiểm nào bắt được: gate cho phép, plan hợp lệ, verifier thấy
+    # con số có evidence. Chữ bị bỏ rơi thì không lớp nào biết là đã có chữ đó.
+    offset: int = Field(default=0, ge=0, le=98)
 
 
 class AnalyticalRequest(BaseModel):
@@ -550,6 +558,60 @@ _EXPLICIT_TOP_N = re.compile(r"\btop\s*(\d{1,2})\b")
 # subject count. Anything unmatched falls back to top_k=1, the old behaviour.
 _PLURAL_MARKERS = ("nhung ", "liet ke ", "danh sach ", "cac san pham nao", "produk apa saja")
 DEFAULT_PLURAL_TOP_K = 5
+
+
+# Vị trí xếp hạng viết bằng chữ. "nhì" chỉ có nghĩa vị trí, nên nó vào bảng
+# không cần rào; các từ còn lại trùng tên THỨ TRONG TUẦN ("thứ hai" = Monday),
+# nên `_requested_rank_offset` phải loại nghĩa đó trước khi tra bảng này.
+_RANK_WORDS = {
+    "nhi": 2, "hai": 2, "ba": 3, "tu": 4, "nam": 5,
+    "sau": 6, "bay": 7, "tam": 8, "chin": 9, "muoi": 10,
+}
+# "thứ N" / "vị trí N" (vi) và "ke-N" (id). Bắt cả dạng số lẫn dạng chữ trong
+# MỘT biểu thức, để hai dạng không lệch nhau về sau.
+#
+# Hai cụm đã bị LOẠI khỏi đây sau khi thử, và lý do đáng ghi lại vì nó là cùng
+# một lớp lỗi với chính bug mà `rank_offset` sinh ra để đóng:
+#   • `hang` + CHỮ — "cửa hàng Nam" gập thành "hang nam" và đọc thành hạng
+#     NĂM, "doanh thu hàng năm" cũng vậy. Một danh từ cực phổ biến của chính
+#     miền dữ liệu này đội lốt một số thứ tự. Dạng CHỮ SỐ ("xếp hạng 3") giữ
+#     lại ở nhánh riêng bên dưới, nhưng phải có ĐỘNG TỪ xếp hạng đứng trước
+#     ("xếp hạng 3"): "kệ hàng 3 tầng" trong một tên sản phẩm cũng là "hang 3".
+#   • `ke` trần — "liệt kê 5 shop" gập thành "liet ke 5", và "liệt kê" đã là
+#     một marker của `_PLURAL_MARKERS`; cùng một cụm sẽ vừa xin 5 dòng vừa xin
+#     dòng thứ năm. Dạng Indonesia giữ lại nhưng BẮT BUỘC có gạch nối ("ke-2"),
+#     vì đó mới là hình dạng thật của số thứ tự trong tiếng Indonesia.
+_RANK_POSITION = re.compile(
+    r"(?:\b(?:thu|vi tri|xep thu|dung thu)\s*|\bke-\s*)"
+    r"(\d{1,2}|" + "|".join(_RANK_WORDS) + r")\b"
+    r"|\b(?:xep|dung|thu) hang\s*(\d{1,2})\b",
+)
+# "ngày thứ hai" là một THỨ trong tuần, không phải hạng nhì; "doanh thu 2" là
+# một phép đo bị cắt ngang. Cả hai đều khớp biểu thức trên, nên chúng bị loại
+# bằng từ đứng ngay trước — chỗ duy nhất phân biệt được hai nghĩa.
+_NOT_A_RANK_BEFORE = ("ngay", "doanh", "vao")
+
+
+def _requested_rank_offset(normalized: str) -> int:
+    """Bỏ qua bao nhiêu dòng trước khi lấy; 0 nếu câu không nêu vị trí.
+
+    Trả về `n-1` cho "thứ n" — "thứ 2" bỏ qua đúng một dòng. Vị trí 1 ("thứ
+    nhất") trùng hành vi mặc định nên cũng ra 0, không cần nhánh riêng.
+    """
+    for match in _RANK_POSITION.finditer(normalized):
+        before = normalized[:match.start()].split()
+        if before and before[-1] in _NOT_A_RANK_BEFORE:
+            continue
+        token = match.group(1) or match.group(2)
+        position = int(token) if token.isdigit() else _RANK_WORDS[token]
+        # Không có nhánh "vị trí quá lớn thì bỏ qua". Bỏ qua nghĩa là rơi về
+        # mặc định `offset=0`, tức trả HẠNG NHẤT cho một câu hỏi về hạng khác —
+        # đúng lỗi mà hàm này sinh ra để đóng, chỉ dịch sang một khoảng số khác.
+        # Vị trí vượt số dòng có thật cho frame rỗng, và "không có hạng đó" đã
+        # có nhánh từ chối riêng.
+        if 1 <= position <= 99:
+            return position - 1
+    return 0
 
 
 def _requested_top_k(normalized: str) -> int:
@@ -1397,6 +1459,7 @@ class DeterministicSemanticParser:
         ranking = AnalyticalRanking(
             order_by=rank_ref, direction="asc" if ascending else "desc",
             top_k=_requested_top_k(normalized),
+            offset=_requested_rank_offset(normalized),
         ) if rank_ref and (descending or ascending) else None
         if ranking is None and rank_ref:
             # LUẬT W17-R4 (nửa sau): superlative ⇒ ranking. Bảng `descending`/
@@ -1413,6 +1476,7 @@ class DeterministicSemanticParser:
                     ranking = AnalyticalRanking(
                         order_by=rank_ref, direction=frame.marker.polarity,
                         top_k=_requested_top_k(normalized),
+                        offset=_requested_rank_offset(normalized),
                     )
                     break
         # "Cửa hàng nào có nhiều SẢN PHẨM nhất" counts products per shop: the
@@ -1722,6 +1786,7 @@ class DeterministicSemanticParser:
                         order_by=next(i.ref for i in measures if i.ref),
                         direction=direction,
                         top_k=_requested_top_k(normalized),
+                        offset=_requested_rank_offset(normalized),
                     )
                 elif aggregation_of(shape_resolution.shape) is not None:
                     requested_aggregation = aggregation_of(shape_resolution.shape)

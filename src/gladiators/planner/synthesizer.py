@@ -933,6 +933,7 @@ def synthesize(
         nodes.append(PlanNode(
             node_id="n5", op="Rank", inputs=(cursor,), rank_by=measure_ref,
             descending=ranking.direction == "desc", limit=ranking.top_k,
+            rank_offset=ranking.offset,
             input_grain=grain, output_grain=grain, expected_schema=output,
             expected_cardinality=f"<={ranking.top_k}",
         ))
@@ -946,6 +947,12 @@ def synthesize(
         cursor = "n5"
 
     direction = ranking.direction if ranking else "none"
+    # PLAN_ID PHẢI MÔ TẢ ĐÚNG CHÍNH NÓ (xem ghi chú `_declared_aggregation` bên
+    # dưới). Hai plan khác nhau ở vị trí xếp hạng mà mang cùng một id là hai
+    # thứ khác nhau đội một cái tên — và id này là khoá cache thực thi. Chỉ
+    # thêm đoạn khi vị trí KHÁC mặc định, nên 58 plan đã khoá giữ nguyên id.
+    if ranking and ranking.offset:
+        direction = f"{direction}#{ranking.offset + 1}"
     # PLAN PHẢI MÔ TẢ ĐÚNG CHÍNH NÓ. `aggregation` là phép mà `_choose_aggregation`
     # ĐỀ XUẤT; nó chỉ được THỰC HIỆN khi có node Aggregate. Không có node đó mà
     # plan_id vẫn ghi `median` thì mọi thứ đọc plan_id — telemetry, cache key,

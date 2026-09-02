@@ -291,6 +291,50 @@ def _binds_more_values(candidate: dict, current: dict) -> bool:
     return bound(candidate) > bound(current)
 
 
+# Vị trí xếp hạng viết BẰNG CHỮ. `verifier.scan_numbers` quét mọi chữ số trong
+# câu trả lời và đòi evidence hậu thuẫn cho từng số; "thứ 2" là một chữ số
+# không evidence nào đỡ, và đúng lớp lỗi đó đã kéo một lượt đo từ 1.0 xuống
+# 0.77 (CLAUDE.md §3.1). Chữ nói đúng chừng ấy điều mà không đi qua cửa đó.
+_RANK_UNITS = ("", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín")
+_RANK_ORDINAL_UNITS = {1: "nhất", 4: "tư"}
+
+
+def _number_in_words(number: int) -> str:
+    """1–99 bằng chữ, theo cách đọc thứ tự tiếng Việt.
+
+    Có bảng riêng vì cách đọc THỨ TỰ khác cách đọc số lượng ở đúng ba chỗ —
+    "thứ tư" (không phải "thứ bốn"), "thứ hai mươi mốt", "thứ hai mươi lăm" —
+    và một bảng đọc sai đúng ba chỗ vẫn là một câu trả lời sai ở ba vị trí.
+    """
+    if number < 10:
+        return _RANK_ORDINAL_UNITS.get(number) or _RANK_UNITS[number]
+    tens, unit = divmod(number, 10)
+    head = "mười" if tens == 1 else f"{_RANK_UNITS[tens]} mươi"
+    if not unit:
+        return head
+    # Hàng chục bằng 1 đọc khác các hàng chục còn lại ở đúng hai đơn vị: 11 là
+    # "mười một" chứ không "mười mốt", 14 là "mười bốn" chứ không "mười tư".
+    tail = {
+        1: "một" if tens == 1 else "mốt",
+        4: "bốn" if tens == 1 else "tư",
+        5: "lăm",
+    }.get(unit)
+    return f"{head} {tail or _RANK_UNITS[unit]}"
+
+
+def _rank_position_word(ranking_spec: dict) -> str:
+    """`"nhất"` hoặc `"thứ hai"`… theo đúng `offset` mà plan đã cắt.
+
+    Câu văn phải theo plan, không theo mặc định — cùng lý do nhánh sản phẩm đã
+    lấy chiều sắp xếp từ plan thay vì ghi cứng "cao nhất": một câu khẳng định
+    vị trí mà plan không cắt là một câu trả lời cho câu hỏi khác.
+    """
+    offset = int(ranking_spec.get("offset") or 0)
+    if not offset:
+        return "nhất"
+    return f"thứ {_number_in_words(offset + 1)}"
+
+
 class AgentRuntime:
     def __init__(
         self,
@@ -682,6 +726,26 @@ class AgentRuntime:
                 _ref_label(str(ref)) for ref in refs if str(ref) != "dim.country"
             )
             scope = f" theo {named}" if named else ""
+            # LÝ DO PHẢI ĐÚNG, không chỉ kết luận. Câu hỏi một vị trí xếp hạng
+            # vượt quá số nhóm có thật cũng cho frame rỗng, nhưng nói "phép lọc
+            # theo ngày không khớp dòng nào" là đổ cho một nguyên nhân KHÔNG
+            # xảy ra: phép lọc khớp đủ dòng, chỉ là không có tới hạng đó. Một
+            # lý do sai dẫn người dùng đi sửa đúng thứ không hỏng.
+            rank_offset = int(
+                ((request.analytical or {}).get("ranking") or {}).get("offset") or 0,
+            )
+            if rank_offset:
+                position = _rank_position_word({"offset": rank_offset})
+                return (
+                    f"Phạm vi đã lọc{scope} không có tới hạng {position}: số nhóm "
+                    "xếp hạng được ít hơn vị trí đã hỏi. "
+                    # Con số PHẢI ở lại. Evidence rỗng mang giá trị 0, và một
+                    # câu trả lời không claim nào trỏ vào nó để lại
+                    # `claim_binding_gaps` ⇒ cả lượt rơi A-VERIFICATION-FINAL —
+                    # đo được ngay khi bản nháp của câu này bỏ con số đi.
+                    f"Số dòng khớp ở vị trí đó: 0 [{item.evidence_id}]. "
+                    "Hãy hỏi một vị trí gần đầu hơn, hoặc hỏi danh sách xếp hạng."
+                )
             return (
                 f"Không có dòng dữ liệu nào thoả điều kiện đã lọc{scope}. "
                 f"Số dòng khớp: 0 [{item.evidence_id}]. "
@@ -860,8 +924,9 @@ class AgentRuntime:
                     # nhãn thiếu phép kiểm đó, và "shop nào có ÍT mặt hàng nhất"
                     # nhận về "Shop có NHIỀU listing nhất là …".
                     most = "nhiều" if ranking_spec.get("direction", "desc") != "asc" else "ít"
+                    position = _rank_position_word(ranking_spec)
                     result = (
-                        (f"{noun} có {most} listing nhất là {item.value} "
+                        (f"{noun} có {most} listing {position} là {item.value} "
                          f"[{item.evidence_id}], với {count.value:g} listing "
                          f"[{count.evidence_id}].")
                         if ranked else
@@ -893,7 +958,7 @@ class AgentRuntime:
                 # the maximum -- the answer contradicted the question it answered.
                 ranking = (request.analytical or {}).get("ranking") or {}
                 descending = ranking.get("direction", "desc") != "asc"
-                superlative = "cao nhất" if descending else "thấp nhất"
+                superlative = ("cao " if descending else "thấp ") + _rank_position_word(ranking)
                 measure_label = "giá" if metric.metric == "price" else "monthly_sold"
                 label = f"{measure_label} {superlative}"
                 formatted_value = f"{metric.value:.0f}" if metric.metric == "price" else f"{metric.value:g}"

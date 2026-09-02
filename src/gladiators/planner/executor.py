@@ -250,18 +250,38 @@ class QueryExecutor:
         explain = "\n".join(str(row[-1]) for row in explain_rows)
         frame = self.connection.execute(query.sql, query.parameters).fetchdf()
         rank_tie_at_cut = False
-        if query.rank_limit is not None and len(frame) > query.rank_limit:
+        offset = query.rank_offset
+        end = offset + query.rank_limit if query.rank_limit is not None else None
+        if end is not None and len(frame) > end:
             column = query.rank_column
             if column in frame.columns:
-                boundary = frame.iloc[query.rank_limit - 1][column]
-                rank_tie_at_cut = bool(frame.iloc[query.rank_limit][column] == boundary)
-            frame = frame.iloc[: query.rank_limit].reset_index(drop=True)
+                boundary = frame.iloc[end - 1][column]
+                rank_tie_at_cut = bool(frame.iloc[end][column] == boundary)
+                # BIÊN TRÊN. Chỉ có khi câu hỏi nêu một vị trí: nếu hạng nhất
+                # có hai shop hoà nhau thì "thứ 2" không xác định — nó vừa là
+                # shop hoà kia, vừa là shop đứng sau cả hai, và dữ liệu không
+                # phân định. Cùng một khái niệm với biên dưới ("lát cắt rơi
+                # giữa một dãy bằng nhau"), nên dùng lại đúng cờ đó thay vì
+                # dựng một mã từ chối thứ hai cho cùng một sự thật.
+                if offset and not rank_tie_at_cut:
+                    rank_tie_at_cut = bool(
+                        frame.iloc[offset][column] == frame.iloc[offset - 1][column],
+                    )
+            frame = frame.iloc[offset:end].reset_index(drop=True)
             if RANK_KEY_ALIAS in frame.columns and RANK_KEY_ALIAS not in query.expected_columns:
                 # W13.2: cột kỹ thuật, không thuộc hợp đồng. Bỏ SAU tie
                 # detection — bỏ trước là lấy đi đúng thứ vừa được mang theo để
                 # phát hiện hoà, và thứ tự này là bắt buộc chứ không phải sở
                 # thích: tie detection đọc frame[rank_column], mà rank_column
                 # giờ chính là RANK_KEY_ALIAS.
+                frame = frame.drop(columns=[RANK_KEY_ALIAS])
+        elif offset and end is not None:
+            # Không đủ dòng để có vị trí đã hỏi. Vẫn phải cắt: giữ nguyên frame
+            # là trả dòng HẠNG NHẤT cho một câu hỏi về hạng khác — đúng lớp lỗi
+            # mà `rank_offset` sinh ra để đóng. Frame rỗng đã có nhánh từ chối
+            # riêng (`empty_result`), và "không có hạng đó" là câu trả lời đúng.
+            frame = frame.iloc[offset:end].reset_index(drop=True)
+            if RANK_KEY_ALIAS in frame.columns and RANK_KEY_ALIAS not in query.expected_columns:
                 frame = frame.drop(columns=[RANK_KEY_ALIAS])
         if not query.ordered and len(frame) > 1:
             # A grouped result with no Rank is a set, and DuckDB returns sets in

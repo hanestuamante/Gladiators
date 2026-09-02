@@ -40,6 +40,10 @@ class CompiledQuery:
     # tie straddling the cut, then trims back to rank_limit.
     rank_column: str | None = None
     rank_limit: int | None = None
+    # Số dòng executor bỏ qua trước khi cắt `rank_limit`. SQL vẫn lấy từ dòng
+    # đầu: lát cắt của "thứ 2" có HAI biên, và biên trên chỉ nhìn được khi
+    # dòng ngay trước nó còn trong frame.
+    rank_offset: int = 0
     # W1.4: phát hiện predicate RƠI MẤT giữa plan và SQL. Mặc định 0 để không
     # phá caller cũ dựng CompiledQuery bằng tay.
     planned_predicate_count: int = 0
@@ -599,7 +603,10 @@ def _compile_node(
         # lý ở biên đó cho BinderException trên 4/84 câu.
         rank_state["ref"] = node.rank_by
         rank_state["limit"] = node.limit
-        fetch = node.limit + 1 if node.limit is not None else None
+        rank_state["offset"] = node.rank_offset
+        fetch = (
+            node.rank_offset + node.limit + 1 if node.limit is not None else None
+        )
         return _from_input(inputs[0], f"q_{node.node_id}").order_by(exp.Ordered(this=exp.column(column), desc=node.descending)).limit(fetch)
     if node.op == "Project":
         base = inputs[0].subquery(f"q_{node.node_id}")
@@ -761,6 +768,7 @@ def compile_plan(
         ordered=any(node.op == "Rank" for node in plan.nodes),
         rank_column=rank_state.get("column"),
         rank_limit=rank_state.get("limit"),
+        rank_offset=int(rank_state.get("offset") or 0),
         planned_predicate_count=planned_predicates,
         executed_predicate_count=counters["executed"],
         exclusion_predicate_refs=tuple(sorted({

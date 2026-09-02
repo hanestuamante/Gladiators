@@ -71,12 +71,21 @@ class PlanNode(BaseModel):
     # không đổi một byte — serializer dưới bỏ khoá khi None để 58 plan bị khoá
     # giữ nguyên từng byte dump (bất biến #7).
     time_scope: tuple[str, ...] | None = None
+    # Bỏ qua bao nhiêu dòng trước khi cắt `limit`. Additive, mặc định 0 ⇒ mọi
+    # plan đã khoá giữ nguyên từng byte dump (bất biến #7) nhờ serializer dưới.
+    # Không dịch thành OFFSET trong SQL: phép cắt nằm ở executor vì nó CÒN
+    # PHẢI nhìn hai hàng xóm của lát cắt để biết lát có rơi giữa một dãy bằng
+    # nhau hay không, và một OFFSET trong SQL lấy đi đúng hàng xóm đó.
+    rank_offset: int = Field(default=0, ge=0, le=98)
 
     @model_serializer(mode="wrap")
     def _drop_unset_time_scope(self, handler):
         payload = handler(self)
-        if isinstance(payload, dict) and payload.get("time_scope") is None:
-            payload.pop("time_scope", None)
+        if isinstance(payload, dict):
+            if payload.get("time_scope") is None:
+                payload.pop("time_scope", None)
+            if not payload.get("rank_offset"):
+                payload.pop("rank_offset", None)
         return payload
     predicates: tuple[Predicate, ...] = ()
     relation: str | None = None
