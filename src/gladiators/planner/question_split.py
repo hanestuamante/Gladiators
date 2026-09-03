@@ -421,7 +421,20 @@ def run_split(
             continue
         value = unit = evidence_id = metric = dataset_version = None
         if response.evidence:
-            first = response.evidence[0]
+            # "dimension" là ĐƠN VỊ ĐỆM catalog gán cho evidence NHÃN (tên
+            # shop/brand nhóm theo) — cùng quy ước `workflow.py` đã dùng để
+            # không in "dimension" ra câu trả lời. Một câu hỏi nhóm theo tên
+            # ("Số listing của thương hiệu Richy…") trả về evidence NHÃN
+            # TRƯỚC evidence ĐẾM, nên lấy `evidence[0]` vô điều kiện chọn nhầm
+            # cái tên làm `value` — sum/argmax/argmin/compare sau đó thấy một
+            # bước "trả về nhãn chứ không phải con số" dù bước đó đã trả lời
+            # đúng. Đo được: tách phrasing khỏi mẫu "mỗi ngày một bước" (fix
+            # decompose prompt) làm lộ bug này — trước đó cửa chặn double-count
+            # luôn bắn trước và che mất nó.
+            first = next(
+                (item for item in response.evidence if item.unit != "dimension"),
+                response.evidence[0],
+            )
             value, unit, evidence_id = first.value, first.unit, first.evidence_id
             metric, dataset_version = first.metric, first.dataset_version
             step_evidence.extend(response.evidence)
