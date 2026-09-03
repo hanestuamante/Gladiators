@@ -1,0 +1,2482 @@
+{
+  "schema_version": "1.0",
+  "source": {
+    "catalog_objects": 83,
+    "relation_edges": 10,
+    "ir_operators": 12,
+    "eval_cases_with_mutations": 212
+  },
+  "summary": {
+    "requirements": 162,
+    "satisfied": 162,
+    "missing": 0,
+    "coverage_ratio": 1.0,
+    "phase_4_5_acceptance_ready": true
+  },
+  "requirements": [
+    {
+      "axis": "ops",
+      "value": "Scan",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 16,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "v2q10",
+        "v2q11",
+        "mut01",
+        "mut12"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Scan",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "v2q10",
+        "v2q11",
+        "mut01",
+        "mut12"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "ResolveValue",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 5,
+      "satisfied": true,
+      "case_ids": [
+        "mut16",
+        "op_resolve_01",
+        "op_resolve_02",
+        "op_resolve_03",
+        "op_macro_temporal_01",
+        "op_macro_similarity_01"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "ResolveValue",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "mut16",
+        "op_resolve_01",
+        "op_resolve_02",
+        "op_resolve_03",
+        "op_macro_temporal_01",
+        "op_macro_similarity_01"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Filter",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 16,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "v2q10",
+        "v2q11",
+        "mut02",
+        "mut11"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Filter",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "v2q10",
+        "v2q11",
+        "mut02",
+        "mut11"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Join",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "mut03",
+        "mut04",
+        "mut05",
+        "mut21"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Join",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "mut03",
+        "mut04",
+        "mut05",
+        "mut21"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Dedupe",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "mut17",
+        "op_dedupe_01",
+        "op_dedupe_02",
+        "op_dedupe_03"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Dedupe",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "mut17",
+        "op_dedupe_01",
+        "op_dedupe_02",
+        "op_dedupe_03"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Aggregate",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 10,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "mut05",
+        "mut07",
+        "mut21"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Aggregate",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "mut05",
+        "mut07",
+        "mut21"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "DeriveMetric",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 6,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "v2q11",
+        "mut08",
+        "op_derive_01",
+        "op_derive_02",
+        "op_derive_03",
+        "op_promotion_macro"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "DeriveMetric",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "v2q11",
+        "mut08",
+        "op_derive_01",
+        "op_derive_02",
+        "op_derive_03",
+        "op_promotion_macro"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "TemporalCompare",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "mut18",
+        "op_temporal_01",
+        "op_temporal_02",
+        "op_temporal_03",
+        "op_macro_temporal_01"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "TemporalCompare",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "mut18",
+        "op_temporal_01",
+        "op_temporal_02",
+        "op_temporal_03",
+        "op_macro_temporal_01"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Rank",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 15,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "v2q10",
+        "v2q11",
+        "mut19",
+        "op_rank_negative_anchor"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Rank",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "v2q10",
+        "v2q11",
+        "mut19",
+        "op_rank_negative_anchor"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Similarity",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "mut20",
+        "op_similarity_01",
+        "op_similarity_02",
+        "op_similarity_03",
+        "op_macro_similarity_01"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Similarity",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "mut20",
+        "op_similarity_01",
+        "op_similarity_02",
+        "op_similarity_03",
+        "op_macro_similarity_01"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Project",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "mut09",
+        "mut10"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Project",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "mut09",
+        "mut10"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Union",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "mut06",
+        "op_union_01",
+        "op_union_02",
+        "op_union_03"
+      ]
+    },
+    {
+      "axis": "ops",
+      "value": "Union",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "mut06",
+        "op_union_01",
+        "op_union_02",
+        "op_union_03"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "belongs_to",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "mut04"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "observed_at",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_observed_at_vn",
+        "rel_observed_at_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "in_platform_category",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_platform_vn",
+        "rel_platform_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "in_shop_category",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "mut05",
+        "rel_shelf_vn",
+        "rel_shelf_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "in_shop_category",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "mut05",
+        "rel_shelf_vn",
+        "rel_shelf_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "has_brand",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_brand_vn",
+        "rel_brand_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "observed_promotion_id",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "mut21",
+        "rel_promotion_vn",
+        "rel_promotion_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "observed_promotion_id",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "mut21",
+        "rel_promotion_vn",
+        "rel_promotion_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "observed_structured_voucher",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_voucher_vn",
+        "rel_voucher_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "has_content",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_content_vn",
+        "rel_content_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "has_display_variation",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_variation_vn",
+        "rel_variation_id"
+      ]
+    },
+    {
+      "axis": "relations",
+      "value": "has_sales_metric",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_sales_metric_vn",
+        "rel_sales_metric_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.country",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q02"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.shop",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 5,
+      "satisfied": true,
+      "case_ids": [
+        "a19q02",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.brand",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_brand_vn",
+        "rel_brand_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.product_listing",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q04",
+        "v2q05"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.platform_category",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_platform_vn",
+        "rel_platform_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.shop_category",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_shelf_vn",
+        "rel_shelf_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.promotion_id_observation",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_promotion_vn",
+        "rel_promotion_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.voucher_observation",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_voucher_vn",
+        "rel_voucher_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.content",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_content_vn",
+        "rel_content_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.sales_metric",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_sales_metric_vn",
+        "rel_sales_metric_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "entity.date_snapshot",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_observed_at_vn",
+        "rel_observed_at_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.country",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 10,
+      "satisfied": true,
+      "case_ids": [
+        "a19q01",
+        "a19q06",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.date",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 11,
+      "satisfied": true,
+      "case_ids": [
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "rel_observed_at_vn",
+        "rel_observed_at_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.product_name",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.brand",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 5,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "a19q05",
+        "sl02",
+        "rel_brand_vn",
+        "rel_brand_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.shop_name",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.platform_category_name",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "sl31",
+        "rel_platform_vn",
+        "rel_platform_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.shop_category_name",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "sl18",
+        "rel_shelf_vn",
+        "rel_shelf_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.shop_official",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl11"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.shop_vacation",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl14"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.shop_category_parent",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl35"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.shop_category_child",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl35"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.display_variation",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "sl10",
+        "rel_variation_vn",
+        "rel_variation_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.shopee_verified",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl34"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "dim.platform_category_has_children",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl36"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.price",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "a19q03",
+        "v2q06",
+        "v2q07",
+        "v2q10",
+        "mut02"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.price_original",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl01"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.discount_percent",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl02"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.monthly_sold",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q08",
+        "v2q09"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.history_sold",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl03"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.voucher_discount",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "sl04"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.voucher_min_spend",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl05"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.voucher_start_time",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl06"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.voucher_end_time",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl06"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.rating",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "a19q05",
+        "sl07"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.rating_count",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl07"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.liked_count",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl08"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.images_count",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "sl09",
+        "rel_content_vn",
+        "rel_content_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.variation_options_count",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl10"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.vouchers_count",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl11"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_rating",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl12"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_followers",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl13"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_items",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl14"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_response_rate",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl15"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_response_time",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl15"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_rating_good",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl16"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_rating_normal",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl16"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_rating_bad",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl16"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_cancellation_rate",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl17"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "measure.shop_category_total",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl18"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.monthly_sold_delta",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "sl19",
+        "op_temporal_01"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.history_sold_delta_raw",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl20"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.history_sold_decrease_flag",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl21"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.history_sold_delta_clean",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl22"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.price_change",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "sl23",
+        "op_temporal_02"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.price_change_pct",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl23"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.discount_point_change",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl24"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.voucher_state_transition",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl25"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.rating_change",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "sl26",
+        "op_temporal_03"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.rating_count_delta",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl26"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.liked_delta",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl27"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.estimated_recent_revenue",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 7,
+      "satisfied": true,
+      "case_ids": [
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "mut07",
+        "op_derive_01",
+        "op_derive_02",
+        "rel_sales_metric_vn",
+        "rel_sales_metric_id"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.has_structured_voucher",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "v2q11",
+        "sl28",
+        "op_derive_03"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.has_voucher_label",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl28"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.has_promo",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl29"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.discount_bucket",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl29"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.median_monthly_sold",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl30"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.median_estimated_recent_revenue",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl30"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.product_count",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 6,
+      "satisfied": true,
+      "case_ids": [
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q04",
+        "v2q05"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.descriptive_gap_vs_baseline",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "op_promotion_macro"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.text_sim",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl31"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.category_overlap_depth",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl31"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.brand_match",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl32"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.price_distance",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl32"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.same_shelf_bonus",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "sl32"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.similarity_score",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "sl33",
+        "op_similarity_01",
+        "op_similarity_02",
+        "op_similarity_03"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.voucher_rate",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "v2q11"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.median_discount_ratio",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.descriptive_gap_median_sold",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10"
+      ]
+    },
+    {
+      "axis": "semantic_refs",
+      "value": "derived.voucher_profile_score",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "v2q11"
+      ]
+    },
+    {
+      "axis": "grains",
+      "value": "listing",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 9,
+      "satisfied": true,
+      "case_ids": [
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "op_dedupe_01",
+        "op_dedupe_02",
+        "op_dedupe_03"
+      ]
+    },
+    {
+      "axis": "grains",
+      "value": "listing_snapshot",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 18,
+      "satisfied": true,
+      "case_ids": [
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "v2q10",
+        "v2q11",
+        "op_dedupe_01",
+        "op_dedupe_02",
+        "op_dedupe_03"
+      ]
+    },
+    {
+      "axis": "grains",
+      "value": "shop",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 7,
+      "satisfied": true,
+      "case_ids": [
+        "a19q02",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q10",
+        "v2q11",
+        "mut04"
+      ]
+    },
+    {
+      "axis": "grains",
+      "value": "shelf",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "mut05",
+        "sl18",
+        "rel_shelf_vn",
+        "rel_shelf_id"
+      ]
+    },
+    {
+      "axis": "grains",
+      "value": "category",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "rel_platform_vn",
+        "rel_platform_id"
+      ]
+    },
+    {
+      "axis": "grains",
+      "value": "country",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q04",
+        "v2q05"
+      ]
+    },
+    {
+      "axis": "grains",
+      "value": "group",
+      "mode": "positive",
+      "minimum": 2,
+      "observed": 6,
+      "satisfied": true,
+      "case_ids": [
+        "a19q04",
+        "a19q05",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "sl02"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "1",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "bnd07"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "2",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "mut01",
+        "mut03"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "3",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "mut05"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "4",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q02",
+        "v2q03",
+        "v2q08",
+        "v2q09",
+        "mut07",
+        "sl30",
+        "rel_sales_metric_vn",
+        "rel_sales_metric_id"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "5",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q06",
+        "v2q07",
+        "mut02"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "6",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "a19q05",
+        "v2q01",
+        "mut06"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "7",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "mut04"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "8",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "bnd01",
+        "bnd03"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "9",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "v2q11",
+        "mut21",
+        "op_promotion_macro"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "10",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "bnd02",
+        "bnd04"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "11",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "bnd06"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "12",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "mut07",
+        "rel_sales_metric_vn",
+        "rel_sales_metric_id"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "13",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "a19q03",
+        "mut13",
+        "sl10",
+        "rel_variation_vn",
+        "rel_variation_id"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "14",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "bnd05"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "15",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "bnd09"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "16",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "bnd08",
+        "sl31",
+        "sl32",
+        "sl33"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "17",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "a19q02",
+        "mut14"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "18",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "a19q01",
+        "a19q06",
+        "mut15",
+        "rel_content_vn",
+        "rel_content_id"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "19",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "v2q10",
+        "mut08",
+        "mut21",
+        "sl11",
+        "sl28",
+        "sl29",
+        "op_promotion_macro",
+        "rel_promotion_vn",
+        "rel_promotion_id",
+        "rel_voucher_vn",
+        "rel_voucher_id"
+      ]
+    },
+    {
+      "axis": "traps",
+      "value": "20",
+      "mode": "adversarial",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "bnd09",
+        "v2q04",
+        "v2q05",
+        "mut12"
+      ]
+    },
+    {
+      "axis": "complexity",
+      "value": "L0",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "op_resolve_01"
+      ]
+    },
+    {
+      "axis": "complexity",
+      "value": "L1",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 17,
+      "satisfied": true,
+      "case_ids": [
+        "a19q01",
+        "a19q06",
+        "amb01",
+        "amb02",
+        "amb03",
+        "amb04",
+        "bnd01",
+        "bnd02",
+        "bnd06",
+        "bnd08",
+        "sl05",
+        "sl06",
+        "sl21",
+        "sl25",
+        "sl34",
+        "sl35",
+        "sl36"
+      ]
+    },
+    {
+      "axis": "complexity",
+      "value": "L2",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 32,
+      "satisfied": true,
+      "case_ids": [
+        "a19q02",
+        "a19q04",
+        "a19q05",
+        "bnd04",
+        "bnd05",
+        "bnd09",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "sl01",
+        "sl02",
+        "sl03",
+        "sl04",
+        "sl08",
+        "sl09",
+        "sl10",
+        "sl11",
+        "sl12",
+        "sl17",
+        "sl18",
+        "sl19",
+        "sl20",
+        "sl22",
+        "sl24",
+        "sl27",
+        "sl33"
+      ]
+    },
+    {
+      "axis": "complexity",
+      "value": "L3",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 7,
+      "satisfied": true,
+      "case_ids": [
+        "bnd07",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "sl13",
+        "sl14"
+      ]
+    },
+    {
+      "axis": "complexity",
+      "value": "L4",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 14,
+      "satisfied": true,
+      "case_ids": [
+        "a19q03",
+        "bnd03",
+        "v2q10",
+        "v2q11",
+        "sl07",
+        "sl15",
+        "sl16",
+        "sl23",
+        "sl26",
+        "sl28",
+        "sl29",
+        "sl30",
+        "sl31",
+        "sl32"
+      ]
+    },
+    {
+      "axis": "answerability",
+      "value": "C1",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 63,
+      "satisfied": true,
+      "case_ids": [
+        "a19q01",
+        "a19q02",
+        "a19q03",
+        "a19q04",
+        "a19q05",
+        "a19q06",
+        "amb01",
+        "amb02",
+        "amb03",
+        "amb04",
+        "bnd08",
+        "cq01",
+        "cq02",
+        "cq03",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q03",
+        "v2q04",
+        "v2q05",
+        "v2q06",
+        "v2q07",
+        "v2q08",
+        "v2q09",
+        "v2q10",
+        "v2q11",
+        "sl01",
+        "sl02",
+        "sl03",
+        "sl04",
+        "sl05",
+        "sl06",
+        "sl07",
+        "sl08",
+        "sl09",
+        "sl10",
+        "sl11",
+        "sl12",
+        "sl13",
+        "sl14",
+        "sl15",
+        "sl16",
+        "sl17",
+        "sl18",
+        "sl19",
+        "sl20",
+        "sl21",
+        "sl22",
+        "sl23",
+        "sl24",
+        "sl25",
+        "sl26",
+        "sl27",
+        "sl28",
+        "sl29",
+        "sl30",
+        "sl31",
+        "sl32",
+        "sl33",
+        "sl34",
+        "sl35",
+        "sl36",
+        "op_resolve_01"
+      ]
+    },
+    {
+      "axis": "answerability",
+      "value": "C2",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "bnd01"
+      ]
+    },
+    {
+      "axis": "answerability",
+      "value": "C3",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 1,
+      "satisfied": true,
+      "case_ids": [
+        "bnd02"
+      ]
+    },
+    {
+      "axis": "answerability",
+      "value": "C4",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 6,
+      "satisfied": true,
+      "case_ids": [
+        "bnd03",
+        "bnd04",
+        "bnd05",
+        "bnd06",
+        "bnd07",
+        "bnd09"
+      ]
+    },
+    {
+      "axis": "language_style",
+      "value": "vi",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 24,
+      "satisfied": true,
+      "case_ids": [
+        "a19q01",
+        "a19q02",
+        "a19q03",
+        "a19q04",
+        "a19q05",
+        "amb01",
+        "bnd01",
+        "bnd02",
+        "bnd03",
+        "bnd04",
+        "bnd05",
+        "bnd07",
+        "bnd08",
+        "bnd09",
+        "cq01",
+        "cq02",
+        "cq04",
+        "v2q01",
+        "v2q02",
+        "v2q04",
+        "v2q06",
+        "v2q08",
+        "v2q10",
+        "op_resolve_01"
+      ]
+    },
+    {
+      "axis": "language_style",
+      "value": "vi_khong_dau",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 2,
+      "satisfied": true,
+      "case_ids": [
+        "amb02",
+        "sl36"
+      ]
+    },
+    {
+      "axis": "language_style",
+      "value": "id",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 8,
+      "satisfied": true,
+      "case_ids": [
+        "a19q06",
+        "amb03",
+        "cq03",
+        "v2q03",
+        "v2q05",
+        "v2q07",
+        "v2q09",
+        "v2q11"
+      ]
+    },
+    {
+      "axis": "language_style",
+      "value": "noisy",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 26,
+      "satisfied": true,
+      "case_ids": [
+        "amb04",
+        "bnd06",
+        "sl01",
+        "sl02",
+        "sl03",
+        "sl04",
+        "sl05",
+        "sl08",
+        "sl09",
+        "sl10",
+        "sl11",
+        "sl12",
+        "sl13",
+        "sl14",
+        "sl17",
+        "sl18",
+        "sl19",
+        "sl20",
+        "sl21",
+        "sl22",
+        "sl24",
+        "sl25",
+        "sl27",
+        "sl33",
+        "sl34",
+        "sl35"
+      ]
+    },
+    {
+      "axis": "language_style",
+      "value": "compound",
+      "mode": "positive",
+      "minimum": 1,
+      "observed": 11,
+      "satisfied": true,
+      "case_ids": [
+        "sl06",
+        "sl07",
+        "sl15",
+        "sl16",
+        "sl23",
+        "sl26",
+        "sl28",
+        "sl29",
+        "sl30",
+        "sl31",
+        "sl32"
+      ]
+    },
+    {
+      "axis": "scenarios",
+      "value": "entity_ambiguity",
+      "mode": "positive",
+      "minimum": 4,
+      "observed": 4,
+      "satisfied": true,
+      "case_ids": [
+        "amb01",
+        "amb02",
+        "amb03",
+        "amb04"
+      ]
+    },
+    {
+      "axis": "scenarios",
+      "value": "empty_result",
+      "mode": "positive",
+      "minimum": 3,
+      "observed": 3,
+      "satisfied": true,
+      "case_ids": [
+        "empty01",
+        "empty02",
+        "empty03"
+      ]
+    },
+    {
+      "axis": "scenarios",
+      "value": "composite_l4",
+      "mode": "positive",
+      "minimum": 6,
+      "observed": 6,
+      "satisfied": true,
+      "case_ids": [
+        "l4c01",
+        "l4c02",
+        "l4c03",
+        "l4c04",
+        "l4c05",
+        "l4c06"
+      ]
+    },
+    {
+      "axis": "scenarios",
+      "value": "invalid_or_unsafe",
+      "mode": "positive",
+      "minimum": 10,
+      "observed": 21,
+      "satisfied": true,
+      "case_ids": [
+        "mut01",
+        "mut02",
+        "mut03",
+        "mut04",
+        "mut05",
+        "mut06",
+        "mut07",
+        "mut08",
+        "mut09",
+        "mut10",
+        "mut11",
+        "mut12",
+        "mut13",
+        "mut14",
+        "mut15",
+        "mut16",
+        "mut17",
+        "mut18",
+        "mut19",
+        "mut20",
+        "mut21"
+      ]
+    },
+    {
+      "axis": "parity",
+      "value": "legacy_certified_macros",
+      "mode": "positive",
+      "minimum": 60,
+      "observed": 60,
+      "satisfied": true,
+      "case_ids": [
+        "q01",
+        "q02",
+        "q03",
+        "q04",
+        "q05",
+        "q06",
+        "q07",
+        "q08",
+        "q09",
+        "q10",
+        "q11",
+        "q12",
+        "q13",
+        "q14",
+        "q15",
+        "q16",
+        "q17",
+        "q18",
+        "q19",
+        "q20",
+        "q21",
+        "q22",
+        "q23",
+        "q24",
+        "q25",
+        "q26",
+        "q27",
+        "q28",
+        "q29",
+        "q30",
+        "q31",
+        "q32",
+        "q33",
+        "q34",
+        "q35",
+        "q36",
+        "q37",
+        "q38",
+        "q39",
+        "q40",
+        "q41",
+        "q42",
+        "q43",
+        "q44",
+        "q45",
+        "q46",
+        "q47",
+        "q48",
+        "q49",
+        "q50",
+        "q51",
+        "q52",
+        "q53",
+        "q54",
+        "q55",
+        "q56",
+        "q57",
+        "q58",
+        "q59",
+        "q60"
+      ]
+    }
+  ]
+}

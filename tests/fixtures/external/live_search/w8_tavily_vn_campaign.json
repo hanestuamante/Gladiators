@@ -1,0 +1,22 @@
+{
+  "cache_path": "tests/fixtures/external/live_search/w8_tavily_vn_campaign.json",
+  "content_hash": "210923133bc8f52a0f831b2fd5cd2fd9d36c2847b46f79d3dd47e46ac0a0fb64",
+  "items": [
+    {
+      "published_at": null,
+      "rank": 1,
+      "score": 0.8622012,
+      "snippet": "HÀ NỘI — The first Vietnam Grand Sale in 2026 will take place from July 1-31",
+      "title": "Vietnam Grand Sale 2026 to run nationwide in July",
+      "url": "https://vietnamnews.vn/economy/1782088/vietnam-grand-sale-2026-to-run-nationwide-in-july.html"
+    }
+  ],
+  "provider": "tavily",
+  "query": {
+    "market": "vn",
+    "purpose": "campaign_context",
+    "query": "Vietnam online shopping campaign July 2026 dates",
+    "recency_days": 365
+  },
+  "retrieved_at": "2026-07-22T18:32:12.067048Z"
+}

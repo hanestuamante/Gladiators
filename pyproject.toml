@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gladiators"
+version = "1.0.0"
+requires-python = ">=3.12"
+# W3 (SolutionSpec2808 §4.2): nội dung requirements.txt, giữ nguyên ràng buộc
+# phiên bản — hai nguồn (một được cài, một được khai) là đúng khoảng trống W3
+# đóng. requirements*.txt nay trỏ về đây (-e .[dev]).
+dependencies = [
+    # Core analysis stack
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    # Agent V1 contracts and deterministic runtime
+    "pydantic>=2.8,<3",
+    "pandera[pandas]>=0.25,<1",
+    "rapidfuzz>=3.9,<4",
+    "python-dotenv>=1.0,<2",
+    "PyYAML>=6.0,<7",
+    "certifi>=2024.2",
+    # V2 typed analytical compiler/executor
+    "duckdb>=1.1,<2",
+    "sqlglot>=25,<40",
+    # Entity resolution and BGE-M3 embeddings
+    "sentence-transformers>=3.0,<6",
+    "huggingface-hub>=0.30,<2",
+    "torch>=2.4,<3",
+    # Provider adapter (credentials remain local in .env)
+    "anthropic>=0.40,<1",
+    "google-genai>=1.0,<2",
+    "groq>=0.30,<1",
+    "openai>=1.60,<2",   # DeepSeek qua endpoint tương thích OpenAI
+    # Service boundary
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.34,<1",
+    # Notebook runtime
+    "jupyter>=1.0",
+    "ipykernel>=6.29",
+]
+
+[project.optional-dependencies]
+dev = [
+    "nbformat>=5.10",
+    "nbconvert>=7.16",
+    "pytest>=8.2,<10",
+    "pytest-cov>=5,<8",
+    "scikit-learn>=1.5,<2",
+    "psutil>=6,<8",
+    # Dựng bộ slide (scripts/build_slides.py, scripts/build_proposal_deck.py)
+    "python-pptx>=1.0,<2",
+    "Pillow>=10,<13",
+    # scripts/run_insight_dashboard.py gọi trực tiếp
+    "httpx>=0.27,<1",
+    # insights/dashboard.py import trực tiếp; trước W3 nó chỉ chạy được trên
+    # máy đã cài tay — đúng lớp lỗi python-pptx/httpx mà phép kiểm này bắt.
+    "streamlit>=1.30,<2",
+]
+
+[project.scripts]
+gladiators = "gladiators.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
+# A P0 regression-lock contract that starts passing must fail loudly, never pass
+# quietly — see tests/test_p0_regression_lock.py.
+xfail_strict = true
+markers = ["p0_contract(case_id): P0 regression-lock contract from eval/p0_probes.json"]

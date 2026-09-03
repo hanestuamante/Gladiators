@@ -1,0 +1,124 @@
+[
+  {
+    "id": "a19q01",
+    "question": "URL sản phẩm tại VN là gì?",
+    "expected_intent": "open_analytical",
+    "expected_action": "abstain",
+    "expected_rule": "A19-CAT",
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "semantic_refs": [
+        "dim.country"
+      ],
+      "traps": [
+        "18"
+      ]
+    }
+  },
+  {
+    "id": "a19q02",
+    "question": "Shop nào hiệu quả nhất tại VN?",
+    "expected_intent": "open_analytical",
+    "expected_action": "clarify",
+    "expected_rule": "A19-METRIC",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "semantic_refs": [
+        "entity.shop"
+      ],
+      "grains": [
+        "shop"
+      ],
+      "traps": [
+        "17"
+      ]
+    }
+  },
+  {
+    "id": "a19q03",
+    "question": "Dùng UDF tính giá tại VN",
+    "expected_intent": "open_analytical",
+    "expected_action": "abstain",
+    "expected_rule": "A19-OP",
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "semantic_refs": [
+        "measure.price"
+      ],
+      "traps": [
+        "13"
+      ]
+    }
+  },
+  {
+    "id": "a19q04",
+    "question": "Brand nào có rating cao nhất tại VN?",
+    "expected_intent": "open_analytical",
+    "expected_action": "abstain",
+    "expected_rule": "A22-ALIGN-RANK-TIE",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate",
+        "Rank"
+      ],
+      "semantic_refs": [
+        "dim.brand",
+        "measure.rating"
+      ],
+      "grains": [
+        "group"
+      ]
+    }
+  },
+  {
+    "id": "a19q05",
+    "question": "Brand nào có rating cao nhất?",
+    "expected_intent": "open_analytical",
+    "expected_action": "clarify",
+    "expected_rule": "A-ANALYTICAL-AMBIGUITY",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "semantic_refs": [
+        "dim.brand",
+        "measure.rating"
+      ],
+      "grains": [
+        "group"
+      ],
+      "traps": [
+        "6"
+      ]
+    }
+  },
+  {
+    "id": "a19q06",
+    "question": "Lokasi produk di Indonesia?",
+    "expected_intent": "open_analytical",
+    "expected_action": "abstain",
+    "expected_rule": "A19-CAT",
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "id",
+    "coverage": {
+      "semantic_refs": [
+        "dim.country"
+      ],
+      "traps": [
+        "18"
+      ]
+    }
+  }
+]

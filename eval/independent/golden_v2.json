@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "latest_date": "2026-07-03",
+  "artifact_hash": "89a9b19ba967b8e9",
+  "results": {
+    "vn": {
+      "highest_revenue_day": {
+        "date": "2026-07-03",
+        "estimated_recent_revenue": 298219517806.0
+      },
+      "listing_count": {
+        "listing_count": 668
+      },
+      "highest_price_listing": {
+        "product_name": "Bộ 3 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 567G",
+        "price": 3033180.0
+      },
+      "highest_monthly_sold_listing": {
+        "product_name": "Combo 3 Bịch Cà phê Hòa tan NESCAFÉ CAFÉ VIỆT 35 gói Vị Mạnh đặc trưng",
+        "monthly_sold": 80000.0
+      },
+      "top_shop_by_listing_count": {
+        "shop_id": "438905996",
+        "shop_name": "Richy - Chi nhánh Miền Nam",
+        "listing_count": 120
+      }
+    },
+    "id": {
+      "highest_revenue_day": {
+        "date": "2026-07-03",
+        "estimated_recent_revenue": 29588926670.0
+      },
+      "listing_count": {
+        "listing_count": 474
+      },
+      "highest_price_listing": {
+        "product_name": "[GIVEAWAY] ZOICY Tea Tree Moisturizing Toner 100ml Facial Wash Cleanser 10ml | Essence 50ml | Hyaluronic Acid Mask",
+        "price": 9999999.0
+      },
+      "highest_monthly_sold_listing": {
+        "product_name": "[Hero] SCORA 5% Niacinamide Hydramoist Gel with Alpha Arbutin & Panthenol 45ML Mencerahkan Melembapkan Kulit",
+        "monthly_sold": 1000.0
+      },
+      "top_shop_by_listing_count": {
+        "shop_id": "809769142",
+        "shop_name": "Glad2Glow Official Store",
+        "listing_count": 220
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "cache_path": "tests/fixtures/external/live_search/w8_tavily_id_campaign.json",
+  "content_hash": "37814e418f49f4d5d18d025d14f266ee3c624016711978ee0a4da57e9766faf6",
+  "items": [
+    {
+      "published_at": null,
+      "rank": 1,
+      "score": 0.73891455,
+      "snippet": "60% of Indonesian consumers are expected to increase their online shopping budgets during Ramadan, with nearly",
+      "title": "Indonesia Ramadan 2026: Boost Mobile & CTV Marketing",
+      "url": "https://www.linkedin.com/posts/revxdsp_programmatic-ramadanmarketing-useracquisition-activity-7420036881603530752-FDEj"
+    },
+    {
+      "published_at": null,
+      "rank": 2,
+      "score": 0.72465646,
+      "snippet": "Every public holiday, payday cycle, and e-commerce peak in Indonesia, From Imlek to Harbolnas, Ramadan to",
+      "title": "Your 2026 campaign calendar, solved Every public holiday ...",
+      "url": "https://www.instagram.com/p/DRipRHQEv6Q"
+    }
+  ],
+  "provider": "tavily",
+  "query": {
+    "market": "id",
+    "purpose": "campaign_context",
+    "query": "Indonesia ecommerce shopping campaign 2026 Ramadan sale",
+    "recency_days": 365
+  },
+  "retrieved_at": "2026-07-22T18:33:33.914927Z"
+}

@@ -1,0 +1,14 @@
+[
+    {"id": "EF-13", "question": "Lịch 7.7 ở Indonesia diễn ra khi nào?", "expect": {"action": "abstain", "rule_id": "A14-LIVE", "flag": "sources.live_search.enabled"}},
+    {"id": "EF-14", "fixture": "money_record_without_currency", "expect": {"outcome": "excluded", "note": "reference path deferred"}},
+    {"id": "EF-15", "question": "Tổng revenue proxy VN so với ID bên nào cao hơn, quy ra USD?", "expect": {"action": "clarify", "rule_id": "A16-CROSS-CURRENCY"}},
+    {"id": "EF-16", "question": "Lịch 7.7 ở Indonesia diễn ra khi nào?", "fixture": "tests/fixtures/external/live_search/ef16_campaign_id.json", "expect": {"action": "allow", "tier": "external", "admission": "context_only", "sources": true}},
+    {"id": "EF-17", "fixture": "empty_provider_response", "expect": {"action": "abstain", "rule_id": "A15-EXTERNAL-UNUSABLE"}},
+    {"id": "EF-18", "fixture": "retryable_provider_failure", "expect": {"attempts": 2, "crash": false}},
+    {"id": "EF-19", "fixture": "tests/fixtures/external/live_search/ef19_injection.json", "expect": {"outcome": "quarantined", "rule_id": "A17"}},
+    {"id": "EF-20", "fixture": "hallucinated_source_span", "expect": {"outcome": "excluded", "rule_id": "A17"}},
+    {"id": "EF-21", "fixture": "shopee_denied_domain", "expect": {"outcome": "excluded_before_extraction"}},
+    {"id": "EF-22", "fixture": "quota_exhausted", "expect": {"provider_calls": 0, "rule_id": "A15-EXTERNAL-UNUSABLE"}},
+    {"id": "EF-23", "fixture": "tests/fixtures/external/live_search/ef16_campaign_id.json", "expect": {"mode": "cache_only", "runs": 3, "deterministic": true}},
+    {"id": "EF-24", "fixture": "cross_tier_claim", "expect": {"verifier_passed": false, "rule_id": "A20-TIER"}}
+]

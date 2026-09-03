@@ -1,0 +1,57 @@
+data_dir: data/processed
+artifact_dir: artifacts
+llm:
+  provider: groq
+  # Runtime lấy model thực từ env GROQ_MODEL/GROQ_PARSE_MODEL (xem GroqLLMClient);
+  # hai dòng dưới chỉ để tài liệu/script phụ, giữ khớp env để tránh nhầm.
+  model: openai/gpt-oss-120b
+  judge_model: openai/gpt-oss-120b
+  prompt_version: v1.1.0
+  timeout_ms: 30000
+  retry_attempts: 3
+  circuit_breaker_failures: 3
+  min_interval_seconds: 6.5
+  groq_min_interval_seconds: 15
+embedding:
+  model_id: BAAI/bge-m3
+  batch_size: 8
+  max_seq_length: 128
+  lexical_top_k: 20
+trace:
+  retention_days: 30
+  redact_fields: [api_key, authorization, password, token, email]
+planner:
+  ir_version: "1.0"
+  budget:
+    max_nodes: 12
+    max_depth: 6
+    max_subplans: 4
+  risk_thresholds:
+    tau1: 3
+    tau2: 6
+  enable_critic: false
+  enable_nversion: false
+sources:
+  live_search:
+    enabled: false
+    provider: tavily
+    mode: cache_only
+    max_admission: context_only
+    max_queries_per_request: 3
+    max_results_per_query: 5
+    daily_query_limit: 150
+    cache_dir: data/external_cache
+    quota_path: artifacts/external_quota.json
+    timeout_s: 10
+    total_budget_s: 25
+    demo_provenance_label: project-demo-approved-context
+  reference:
+    enabled: false
+  external:
+    enabled: false
+executor:
+  engine: duckdb
+  memory_limit: 1GB
+  threads: 2
+  timeout_s: 10
+  max_result_rows: 10000

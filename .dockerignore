@@ -1,0 +1,24 @@
+# `artifacts/` VẪN bị loại khỏi build context — nó chứa sổ ghi 43 MB, embedding
+# và trace cũ, không thứ nào thuộc về một image phục vụ.
+#
+# Nhưng loại nó ra là chưa đủ, và đó là chỗ bản trước sai: `value_index.json`
+# cũng nằm trong đó, mà thiếu nó thì vòng dò giá trị (WP-A5.1) **im lặng bỏ
+# qua** — container vẫn chạy, vẫn trả lời, và trả lời KHÁC máy phát triển mà
+# không có gì báo. Nay Dockerfile DỰNG LẠI file đó trong image và `test -s`
+# ngay sau, nên "không mang theo" khác hẳn "không có".
+.git
+.venv
+.env
+artifacts/
+data/raw
+data/raw_extended
+data/raw_snapshots
+data/versions
+data/external_cache
+data/frozen_3day
+notebooks
+eval
+docs
+graphify-out
+**/__pycache__
+**/*.pyc

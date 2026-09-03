@@ -1,0 +1,59 @@
+{
+  "_doc": [
+    "Mỗi bộ đề nói rõ nó mô tả BẢN DỮ LIỆU nào. Cùng lý lẽ với tests/conftest.py:",
+    "một phép kiểm không nói rõ nó nói về cái gì thì không phải một phép kiểm.",
+    "",
+    "Đo ngày 01/09/2026, cùng một mã nguồn, hai bản dữ liệu:",
+    "  questions      0.533 trên bộ 20 ngày  |  0.883 trên bộ 3 ngày",
+    "  questions_v2   0.455 trên bộ 20 ngày  |  1.000 trên bộ 3 ngày",
+    "Chênh lệch đó KHÔNG phải năng lực đổi — nó là bộ đề đang mô tả một bản dữ",
+    "liệu khác với bản đang chạy. Trước file này, con số 0.455 bị đọc thành 'hệ",
+    "kém đi', và nó che một over_answer_rate 0.125 thật suốt một phiên.",
+    "",
+    "'frozen_3day' = điểm HỒI QUY: expected là hằng số viết tay, chấm xem luật",
+    "  có nhất quán với chính nó không. Đổi bản dữ liệu dưới chân chúng thì",
+    "  chúng đo bản dữ liệu chứ không đo luật.",
+    "'served' = điểm NĂNG LỰC: chấm trên bản đang phục vụ, expected phải dựng",
+    "  lại mỗi lần đổi bản (oracle tính từ chính dữ liệu).",
+    "",
+    "Bộ đề mới PHẢI khai ở đây, nếu không scripts/run_evaluation.py từ chối chạy."
+  ],
+  "suites": {
+    "questions.json": "frozen_3day",
+    "questions_v2.json": "frozen_3day",
+    "questions_a19.json": "frozen_3day",
+    "questions_boundaries.json": "frozen_3day",
+    "questions_ambiguity.json": "frozen_3day",
+    "questions_counting.json": "frozen_3day",
+    "questions_critic.json": "frozen_3day",
+    "questions_schema.json": "frozen_3day",
+    "questions_multiturn.json": "served",
+    "questions_external.json": "frozen_3day",
+    "dr2607.json": "frozen_3day",
+    "p0_probes.json": "frozen_3day",
+    "semantic_linking.json": "frozen_3day",
+    "planner_mutations.json": "frozen_3day",
+    "empty_result_acceptance.json": "frozen_3day",
+    "operator_acceptance.json": "frozen_3day",
+    "l4_acceptance.json": "frozen_3day",
+    "groq_regression.json": "frozen_3day",
+    "pilot_gemini.json": "frozen_3day",
+    "judge_reliability.json": "frozen_3day",
+    "pricing.json": "frozen_3day",
+    "insight_performance.json": "served",
+    "coverage_matrix.json": "served",
+    "topic_gate.json": "served"
+  },
+  "roots": {
+    "frozen_3day": {
+      "data_dir": "data/frozen_3day",
+      "value_index": "artifacts/value_index_frozen.json",
+      "dataset_version": "27de9bff184f4f89"
+    },
+    "served": {
+      "data_dir": "data/processed",
+      "value_index": "artifacts/value_index.json",
+      "dataset_version": null
+    }
+  }
+}

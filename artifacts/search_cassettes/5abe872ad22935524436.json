@@ -1,0 +1,49 @@
+{
+  "key": "5abe872ad22935524436",
+  "query": {
+    "market": "id",
+    "purpose": "market_event",
+    "query": "Indonesia e-commerce market event July 2026",
+    "recency_days": 90
+  },
+  "recorded_at": "2026-08-27T03:53:41Z",
+  "response": {
+    "cache_path": "unpersisted",
+    "content_hash": "28111c770ad7f9626e32662df63329df1f61920efec3df5d05e1991da9141d6c",
+    "items": [
+      {
+        "published_at": null,
+        "rank": 1,
+        "score": 0.79542017,
+        "snippet": "| EQS Newswire / 18/07/2026 / 14:00 CET/CEST  JAKARTA, INDONESIA - Media OutReach Newswire - 18 July 2026 *-* *****VinFast announced the opening of 20 official e-motorcycle dealerships across Indonesia in July 2026, marking a major milestone in its strategy to expand its distribution network in Southeast Asia's largest motorcycle market. To celebrate the launch, VinFast hosted a large-scale product experience event featuring the VinFast Evo, VinFast Feliz II, and VinFast Viper, offering consumers the opportunity to experience the Company's smart e-motorcycles and comprehensive green mobility ecosystem firsthand.*****   |  | | --- | | *VinFast officially launched 20 electric motorcycle dealerships across Indonesia in July 2026.* |    The grand opening of VinFast dealers will take place from July 19 to 25, 2026, bringing VinFast's genuine products and services closer to customers across Indonesia. In addition to showcasing and selling VinFast E-motorcycles, the dealerships will offer customers opportunities to test ride the vehicles, experience the battery swapping solution and home charging options, and learn more about VinFast's attractive ownership policies.",
+        "title": "VinFast inaugurates 20 e-motorcycle dealerships in Indonesia, expanding its green mobility ecosystem nationwide - Financial Times",
+        "url": "https://markets.ft.com/data/announce/detail?dockey=600-202607180800DGAP____ASPR_____corporate_2367882_en-1"
+      },
+      {
+        "published_at": null,
+        "rank": 2,
+        "score": 0.599087,
+        "snippet": "Image 1: Asia Food Journal. The Indonesian packaging industry is projected to achieve an aggregate growth rate of 5.8–6.3% in 2026, according to the Indonesian Packaging Federation (IPF). This steady growth is driven by strong domestic consumption, particularly in the food and beverage (F&B), pharmaceutical, and healthcare sectors, alongside the rapid expansion of e-commerce and the increasing demand for safe, efficient, and sustainable packaging solutions. In Indonesia, the packaging industry continues to demonstrate strong performance, supported by growing demand from the food and beverage, pharmaceutical, cosmetics, and e-commerce sectors. In response to these developments, Krista Exhibitions Group, one of Indonesia’s leading international exhibition organizers with extensive experience in hosting national and international trade exhibitions, in collaboration with the Indonesian Packaging Federation (IPF), is organizing an international press conference entitled “Driving Innovation and Sustainability: The Future of Packaging, Processing, and Plastics in Indonesia” at the IBIS Bangkok IMPACT Hotel, Nonthaburi, Thailand.",
+        "title": "Allpack Indonesia 2026 Ibis Impact Bangkok - Asia Food Journal",
+        "url": "https://asiafoodjournal.com/allpack-indonesia-2026-ibis-impact-bangkok/"
+      },
+      {
+        "published_at": null,
+        "rank": 3,
+        "score": 0.48352703,
+        "snippet": "Human trust remains central to purchase decisions in Southeast Asia even as generative AI gains ground in product discovery, according to a report by impact.com, Cube and Dentsu. The E-commerce Influencer and Affiliate Marketing in Southeast Asia 2026 report found that consumers rated recommendations from family and friends 2.42 out of four for influence, ahead of online reviews at 2.36 and creators at 1.98. About 24% of Southeast Asian consumers use generative AI tools for shopping. Tools such as ChatGPT, Gemini and Claude are emerging as a new product discovery channel across Singapore, Indonesia, Thailand, Vietnam, Malaysia and the Philippines. The finding comes as Southeast Asia’s e-commerce sales are projected to rise nearly 15% year-on-year to $219b in 2026. Vietnam recorded the highest use of generative AI for product discovery at 34%, followed by Indonesia at 31%, whilst Singapore had the lowest at 14%. Influencer and affiliate marketing together are linked to an estimated 32% of Southeast Asia’s e-commerce sales, equivalent to around $70b in 2026.",
+        "title": "Human trust still drives purchases in SEA’s $219b market as AI rises - Asian Business Review",
+        "url": "https://asianbusinessreview.com/in-focus/trust-drives-purchases-in-southeast-asias-219b-market-ai-rises"
+      }
+    ],
+    "provider": "tavily",
+    "query": {
+      "market": "id",
+      "purpose": "market_event",
+      "query": "Indonesia e-commerce market event July 2026",
+      "recency_days": 90
+    },
+    "retrieved_at": "2026-08-27T03:53:41.036952Z"
+  },
+  "schema_version": "search-cassette.v1"
+}

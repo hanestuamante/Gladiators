@@ -1,0 +1,28 @@
+{
+  "schema_version": "topic-gate-corpus.v1",
+  "sources": [
+    "eval/questions.json",
+    "eval/questions_v2.json",
+    "eval/questions_a19.json",
+    "eval/questions_ambiguity.json",
+    "eval/questions_boundaries.json",
+    "eval/questions_counting.json",
+    "eval/questions_critic.json",
+    "eval/questions_schema.json",
+    "eval/questions_multiturn.json",
+    "eval/questions_external.json",
+    "eval/dr2607.json",
+    "eval/semantic_linking.json",
+    "eval/l4_acceptance.json",
+    "eval/empty_result_acceptance.json"
+  ],
+  "excluded": [
+    "eval/reports/**",
+    "eval/independent/**",
+    "eval/topic_gate.json",
+    "eval/coverage_matrix.json",
+    "eval/p0_probes.json"
+  ],
+  "question_count": 201,
+  "corpus_sha256": "3a5d3282aec97120bcdc879a26e5608cefb9f7d7dd53e5b02d70613ddaf0ab34"
+}

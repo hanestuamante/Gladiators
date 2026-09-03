@@ -1,0 +1,97 @@
+{
+  "schema_version": "topic-gate-report.v1",
+  "topics_hash": "716afa9b261d72ee",
+  "corpus_sha256": "3a5d3282aec97120bcdc879a26e5608cefb9f7d7dd53e5b02d70613ddaf0ab34",
+  "invariants_hash": "b57c1e3ee6326156",
+  "alias_index_hash": "55bb467b0e34eae1",
+  "corpus_size": 201,
+  "routing": {
+    "modes": {
+      "topic_scoped": 137,
+      "multi_topic": 28,
+      "unknown": 10,
+      "core_only": 26
+    },
+    "rates": {
+      "topic_scoped": 0.681592039800995,
+      "multi_topic": 0.13930348258706468,
+      "unknown": 0.04975124378109453,
+      "core_only": 0.12935323383084577
+    },
+    "domain_usage": {
+      "T1": 27,
+      "T2": 60,
+      "T3": 37,
+      "T4": 15,
+      "T5": 10,
+      "T6": 10,
+      "T7": 5,
+      "T8": 34
+    }
+  },
+  "context_tokens": {
+    "broad_slice": 3860,
+    "routed_p50": 1356,
+    "routed_p95": 1887,
+    "routed_max": 2534,
+    "routed_mean": 1296.7,
+    "note": "Token là mục tiêu phụ (§7.3) — báo cáo, không dùng để gate."
+  },
+  "checks": {
+    "topic_scoped_rate": {
+      "value": 0.681592039800995,
+      "threshold": 0.65,
+      "pass": true
+    },
+    "unknown_rate": {
+      "value": 0.04975124378109453,
+      "threshold": 0.12,
+      "pass": true
+    },
+    "topic_overflow_rate": {
+      "value": 0.0,
+      "threshold": 0.02,
+      "pass": true
+    },
+    "every_domain_reachable": {
+      "value": [],
+      "threshold": [],
+      "pass": true
+    },
+    "ownership_is_a_partition": {
+      "value": 88,
+      "threshold": 88,
+      "pass": true
+    }
+  },
+  "pending_reviewer_signoff": {
+    "required_ref_recall": "pending_oracle",
+    "required_relation_recall": "pending_oracle",
+    "plan_valid_rate_delta": "pending_oracle",
+    "false_allow_rate": "pending_oracle",
+    "false_abstain_rate": "pending_oracle",
+    "adversarial_topic_cases": "pending_oracle"
+  },
+  "unknown_examples": [
+    "Berapa laba tiap produk?",
+    "Berapa stok tersisa?",
+    "Còn bao nhiêu tồn kho?",
+    "Có bao nhiêu đơn hàng order-level tại VN?",
+    "Lịch 7.7 ở Indonesia diễn ra khi nào?",
+    "Lợi nhuận và margin tại VN là bao nhiêu?",
+    "SKU nào bán tốt nhất?",
+    "Tháng này bánh Orion Chocopie bán chậm lại, có phải do hết hàng (sold out) không?",
+    "Tỷ lệ chuyển đổi là bao nhiêu?",
+    "Varian SKU terlaris?"
+  ],
+  "automatic_checks_pass": true,
+  "gate_open": false,
+  "gate_blocked_by": [
+    "adversarial_topic_cases",
+    "false_abstain_rate",
+    "false_allow_rate",
+    "plan_valid_rate_delta",
+    "required_ref_recall",
+    "required_relation_recall"
+  ]
+}

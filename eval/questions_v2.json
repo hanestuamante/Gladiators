@@ -1,0 +1,341 @@
+[
+  {
+    "id": "v2q01",
+    "question": "Ngày nào doanh thu cao nhất?",
+    "expected_intent": "analytical_query",
+    "expected_action": "clarify",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate",
+        "Rank"
+      ],
+      "semantic_refs": [
+        "dim.date",
+        "derived.estimated_recent_revenue"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "group"
+      ],
+      "traps": [
+        "6"
+      ]
+    }
+  },
+  {
+    "id": "v2q02",
+    "question": "Ngày nào doanh thu cao nhất tại VN?",
+    "expected_intent": "analytical_query",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate",
+        "Rank"
+      ],
+      "semantic_refs": [
+        "entity.country",
+        "dim.country",
+        "dim.date",
+        "derived.estimated_recent_revenue"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "group"
+      ],
+      "traps": [
+        "4",
+        "12"
+      ]
+    }
+  },
+  {
+    "id": "v2q03",
+    "question": "Tanggal pendapatan tertinggi di Indonesia?",
+    "expected_intent": "analytical_query",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "id",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate",
+        "Rank"
+      ],
+      "semantic_refs": [
+        "dim.country",
+        "dim.date",
+        "derived.estimated_recent_revenue"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "group"
+      ],
+      "traps": [
+        "4",
+        "12"
+      ]
+    }
+  },
+  {
+    "id": "v2q04",
+    "question": "Có bao nhiêu listing tại VN?",
+    "expected_intent": "analytical_query",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate"
+      ],
+      "semantic_refs": [
+        "entity.product_listing",
+        "dim.country",
+        "dim.date",
+        "derived.product_count"
+      ],
+      "grains": [
+        "listing",
+        "listing_snapshot",
+        "country"
+      ],
+      "traps": [
+        "12",
+        "20"
+      ]
+    }
+  },
+  {
+    "id": "v2q05",
+    "question": "Berapa produk di Indonesia?",
+    "expected_intent": "analytical_query",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "id",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Aggregate"
+      ],
+      "semantic_refs": [
+        "entity.product_listing",
+        "dim.country",
+        "dim.date",
+        "derived.product_count"
+      ],
+      "grains": [
+        "listing",
+        "listing_snapshot",
+        "country"
+      ],
+      "traps": [
+        "12",
+        "20"
+      ]
+    }
+  },
+  {
+    "id": "v2q06",
+    "question": "Sản phẩm nào có giá cao nhất tại VN?",
+    "expected_intent": "analytical_query",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Rank",
+        "Project"
+      ],
+      "semantic_refs": [
+        "dim.product_name",
+        "measure.price",
+        "dim.country",
+        "dim.date"
+      ],
+      "grains": [
+        "listing",
+        "listing_snapshot"
+      ],
+      "traps": [
+        "5"
+      ]
+    }
+  },
+  {
+    "id": "v2q07",
+    "question": "Produk dengan harga tertinggi di Indonesia?",
+    "expected_intent": "analytical_query",
+    "expected_action": "abstain",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "id",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Rank",
+        "Project"
+      ],
+      "semantic_refs": [
+        "dim.product_name",
+        "measure.price",
+        "dim.country",
+        "dim.date"
+      ],
+      "grains": [
+        "listing",
+        "listing_snapshot"
+      ],
+      "traps": [
+        "5"
+      ]
+    },
+    "expected_rule": "A19-VALUE-CLASS",
+    "expected_rule_note": "W14: hai dòng giá cao nhất ở ID là [ FREE GIFT ] 999999999 và [GIVEAWAY] 9999999 — giá trị giữ chỗ, không phải mức giá. Hoà ở mép cắt là TRIỆU CHỨNG; nguyên nhân là giá trị quyết định câu trả lời chưa được phân loại. Trước W14 lý do đúng chỉ đúng do trùng hợp: nếu chỉ có MỘT dòng giữ chỗ, hệ sẽ allow nó như một mức giá thật."
+  },
+  {
+    "id": "v2q08",
+    "question": "Sản phẩm nào có lượt bán cao nhất tại VN?",
+    "expected_intent": "analytical_query",
+    "expected_action": "allow",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Rank",
+        "Project"
+      ],
+      "semantic_refs": [
+        "dim.product_name",
+        "measure.monthly_sold",
+        "dim.country",
+        "dim.date"
+      ],
+      "grains": [
+        "listing",
+        "listing_snapshot"
+      ],
+      "traps": [
+        "4"
+      ]
+    }
+  },
+  {
+    "id": "v2q09",
+    "question": "Produk dengan penjualan tertinggi di Indonesia?",
+    "expected_intent": "analytical_query",
+    "expected_action": "abstain",
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "id",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "Rank",
+        "Project"
+      ],
+      "semantic_refs": [
+        "dim.product_name",
+        "measure.monthly_sold",
+        "dim.country",
+        "dim.date"
+      ],
+      "grains": [
+        "listing",
+        "listing_snapshot"
+      ],
+      "traps": [
+        "4"
+      ]
+    },
+    "expected_rule": "A22-ALIGN-RANK-TIE"
+  },
+  {
+    "id": "v2q10",
+    "question": "Shop nào có chiến lược voucher hiệu quả nhất VN?",
+    "expected_intent": "voucher_profile_rank",
+    "expected_action": "clarify",
+    "note": "T-11 default OFF -> A19-METRIC clarify; bật GLADIATORS_ENABLE_VOUCHER_PROFILE=1 thì allow với ranking mô tả.",
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "DeriveMetric",
+        "Rank"
+      ],
+      "semantic_refs": [
+        "derived.voucher_rate",
+        "derived.median_discount_ratio",
+        "derived.descriptive_gap_median_sold",
+        "derived.voucher_profile_score",
+        "derived.has_structured_voucher",
+        "measure.voucher_discount",
+        "measure.price"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "shop"
+      ],
+      "traps": [
+        "9",
+        "19"
+      ]
+    }
+  },
+  {
+    "id": "v2q11",
+    "question": "Toko mana punya strategi voucher terbaik di Indonesia?",
+    "expected_intent": "voucher_profile_rank",
+    "expected_action": "clarify",
+    "note": "ID có 0 structured voucher; khi flag ON case này abstain A-NO-EVIDENCE thay vì bịa ranking.",
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "id",
+    "coverage": {
+      "ops": [
+        "Scan",
+        "Filter",
+        "DeriveMetric",
+        "Rank"
+      ],
+      "semantic_refs": [
+        "derived.voucher_rate",
+        "derived.voucher_profile_score",
+        "derived.has_structured_voucher"
+      ],
+      "grains": [
+        "listing_snapshot",
+        "shop"
+      ],
+      "traps": [
+        "9"
+      ]
+    }
+  }
+]

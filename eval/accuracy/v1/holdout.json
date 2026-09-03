@@ -1,0 +1,2334 @@
+[
+  {
+    "id": "acc-v1-0001",
+    "split": "holdout",
+    "language": "vi",
+    "category": "count",
+    "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_listing_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 668,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "listing_count",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0002",
+    "split": "holdout",
+    "language": "vi",
+    "category": "count",
+    "question": "Tổng số listing đang có mặt trên thị trường Việt Nam vào ngày 03/07 là bao nhiêu?",
+    "turns": null,
+    "paraphrase_group": "g_listing_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 668,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "listing_count",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0005",
+    "split": "holdout",
+    "language": "vi",
+    "category": "count",
+    "question": "Có bao nhiêu shop ở Việt Nam?",
+    "turns": null,
+    "paraphrase_group": "g_shop_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "shop_count",
+        "oracle_fact_key": "shop_count",
+        "value": 10,
+        "value_type": "integer",
+        "unit": "shops",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "shop",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "shop_count",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): câu hỏi KHÔNG nêu ngày, nên nó hỏi về **đợt thu gần nhất**; oracle ghim `date_start=2026-07-03` vì đó là đợt cuối của LỊCH bộ 3 ngày. Trên bộ 20 ngày đợt cuối là 21/07, và hệ trả đúng giá trị (10 shop) với phạm vi 21/07 — giá trị khớp, mô tả phạm vi thì không. Đây là oracle mô tả một lịch khác, không phải hệ trả sai: chấm nó ở đây sẽ tính một câu đúng vào `answer_risk`."
+  },
+  {
+    "id": "acc-v1-0006",
+    "split": "holdout",
+    "language": "vi_no_diacritic",
+    "category": "count",
+    "question": "co bao nhieu shop o viet nam?",
+    "turns": null,
+    "paraphrase_group": "g_shop_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "shop_count",
+        "oracle_fact_key": "shop_count",
+        "value": 10,
+        "value_type": "integer",
+        "unit": "shops",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "shop",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "shop_count",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): câu hỏi KHÔNG nêu ngày, nên nó hỏi về **đợt thu gần nhất**; oracle ghim `date_start=2026-07-03` vì đó là đợt cuối của LỊCH bộ 3 ngày. Trên bộ 20 ngày đợt cuối là 21/07, và hệ trả đúng giá trị (10 shop) với phạm vi 21/07 — giá trị khớp, mô tả phạm vi thì không. Đây là oracle mô tả một lịch khác, không phải hệ trả sai: chấm nó ở đây sẽ tính một câu đúng vào `answer_risk`."
+  },
+  {
+    "id": "acc-v1-0011",
+    "split": "holdout",
+    "language": "vi",
+    "category": "count",
+    "question": "Indonesia ngày 03/07 có bao nhiêu thương hiệu khác nhau?",
+    "turns": null,
+    "paraphrase_group": "g_brandcount_id",
+    "entity_text": null,
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "brand_count",
+        "oracle_fact_key": "brand_count",
+        "value": 12,
+        "value_type": "integer",
+        "unit": "brands",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "brand",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_count",
+      "params": {
+        "country": "id"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0013",
+    "split": "holdout",
+    "language": "vi",
+    "category": "filter",
+    "question": "Có bao nhiêu listing của thương hiệu Bibica tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_bibica",
+    "entity_text": "Bibica",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 96,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=Bibica"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_listing_count",
+      "params": {
+        "country": "vn",
+        "brand": "Bibica"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0014",
+    "split": "holdout",
+    "language": "vi",
+    "category": "filter",
+    "question": "Bibica đang có bao nhiêu listing ở Việt Nam vào ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_bibica",
+    "entity_text": "Bibica",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 96,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=Bibica"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_listing_count",
+      "params": {
+        "country": "vn",
+        "brand": "Bibica"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0015",
+    "split": "holdout",
+    "language": "vi",
+    "category": "filter",
+    "question": "Thương hiệu ORION có bao nhiêu listing tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_orion_vn",
+    "entity_text": "ORION",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 82,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=ORION"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_listing_count",
+      "params": {
+        "country": "vn",
+        "brand": "ORION"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0016",
+    "split": "holdout",
+    "language": "id",
+    "category": "filter",
+    "question": "Berapa banyak listing merek GLAD2GLOW di Indonesia pada 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_glad2glow_brand",
+    "entity_text": "GLAD2GLOW",
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 215,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=GLAD2GLOW"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_listing_count",
+      "params": {
+        "country": "id",
+        "brand": "GLAD2GLOW"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0017",
+    "split": "holdout",
+    "language": "vi",
+    "category": "filter",
+    "question": "Có bao nhiêu listing của shop \"Richy - Chi nhánh Miền Nam\" tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_richy_shop",
+    "entity_text": "Richy - Chi nhánh Miền Nam",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 120,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "shop=Richy - Chi nhánh Miền Nam"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "shop_listing_count",
+      "params": {
+        "country": "vn",
+        "shop_name": "Richy - Chi nhánh Miền Nam"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0018",
+    "split": "holdout",
+    "language": "vi",
+    "category": "filter",
+    "question": "Shop \"Richy - Chi nhánh Miền Nam\" bán bao nhiêu listing ở Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_richy_shop",
+    "entity_text": "Richy - Chi nhánh Miền Nam",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 120,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "shop=Richy - Chi nhánh Miền Nam"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "shop_listing_count",
+      "params": {
+        "country": "vn",
+        "shop_name": "Richy - Chi nhánh Miền Nam"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0023",
+    "split": "holdout",
+    "language": "vi",
+    "category": "filter",
+    "question": "Indonesia ngày 03/07 có bao nhiêu listing giảm giá trên 50%?",
+    "turns": null,
+    "paraphrase_group": "g_disc50_id",
+    "entity_text": null,
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 270,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "discount_percent>50"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "discount_over",
+      "params": {
+        "country": "id",
+        "threshold": 50
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): oracle của ca này tính trên BỘ ĐÓNG BĂNG 3 ngày, nơi mọi thuộc tính đều được thu mỗi đợt. Trên bộ 20 ngày các cột này chỉ có MỘT quan sát mỗi listing (`discount_percent` 5/668 tại 03/07), còn `shopee_verified` ĐỔI GRAIN từ listing sang shop — hai đại lượng khác nhau mang một cái tên, và ánh xạ cái này thành cái kia là bịa. Chấm ca này ở đó là đo KHOẢNG CÁCH GIỮA HAI BỘ DỮ LIỆU, không đo hệ. Hành vi đúng trên bộ 20 ngày là hỏi lại (W29-R7 cho ref bộ lọc), không phải trả 0."
+  },
+  {
+    "id": "acc-v1-0024",
+    "split": "holdout",
+    "language": "vi",
+    "category": "aggregate",
+    "question": "Giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?",
+    "turns": null,
+    "paraphrase_group": "g_medprice_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "median_price",
+        "oracle_fact_key": "median_price",
+        "value": 132000.0,
+        "value_type": "decimal",
+        "unit": "VND",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "absolute",
+          "value": 0.5
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "median_price",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0025",
+    "split": "holdout",
+    "language": "vi",
+    "category": "aggregate",
+    "question": "Cho tôi mức giá trung vị của các listing Việt Nam ngày 03/07.",
+    "turns": null,
+    "paraphrase_group": "g_medprice_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "median_price",
+        "oracle_fact_key": "median_price",
+        "value": 132000.0,
+        "value_type": "decimal",
+        "unit": "VND",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "absolute",
+          "value": 0.5
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "median_price",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0029",
+    "split": "holdout",
+    "language": "vi",
+    "category": "aggregate",
+    "question": "Điểm đánh giá trung vị tại Indonesia ngày 03/07 là bao nhiêu?",
+    "turns": null,
+    "paraphrase_group": "g_medrating_id",
+    "entity_text": null,
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "median_rating",
+        "oracle_fact_key": "median_rating",
+        "value": 4.901304084208852,
+        "value_type": "decimal",
+        "unit": "stars",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "absolute",
+          "value": 0.005
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "median_rating",
+      "params": {
+        "country": "id"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): oracle của ca này tính trên BỘ ĐÓNG BĂNG 3 ngày, nơi mọi thuộc tính đều được thu mỗi đợt. Trên bộ 20 ngày các cột này chỉ có MỘT quan sát mỗi listing (`discount_percent` 5/668 tại 03/07), còn `shopee_verified` ĐỔI GRAIN từ listing sang shop — hai đại lượng khác nhau mang một cái tên, và ánh xạ cái này thành cái kia là bịa. Chấm ca này ở đó là đo KHOẢNG CÁCH GIỮA HAI BỘ DỮ LIỆU, không đo hệ. Hành vi đúng trên bộ 20 ngày là hỏi lại (W29-R7 cho ref bộ lọc), không phải trả 0."
+  },
+  {
+    "id": "acc-v1-0031",
+    "split": "holdout",
+    "language": "vi",
+    "category": "aggregate",
+    "question": "Tổng số lượt thích của tất cả listing Bibica tại Việt Nam ngày 03/07 là bao nhiêu?",
+    "turns": null,
+    "paraphrase_group": "g_sumlikes_bibica",
+    "entity_text": "Bibica",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "total_likes",
+        "oracle_fact_key": "total_likes",
+        "value": 12567,
+        "value_type": "integer",
+        "unit": "likes",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=Bibica"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "sum_brand_likes",
+      "params": {
+        "country": "vn",
+        "brand": "Bibica"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): oracle của ca này tính trên BỘ ĐÓNG BĂNG 3 ngày, nơi mọi thuộc tính đều được thu mỗi đợt. Trên bộ 20 ngày các cột này chỉ có MỘT quan sát mỗi listing (`discount_percent` 5/668 tại 03/07), còn `shopee_verified` ĐỔI GRAIN từ listing sang shop — hai đại lượng khác nhau mang một cái tên, và ánh xạ cái này thành cái kia là bịa. Chấm ca này ở đó là đo KHOẢNG CÁCH GIỮA HAI BỘ DỮ LIỆU, không đo hệ. Hành vi đúng trên bộ 20 ngày là hỏi lại (W29-R7 cho ref bộ lọc), không phải trả 0."
+  },
+  {
+    "id": "acc-v1-0035",
+    "split": "holdout",
+    "language": "en",
+    "category": "ranking",
+    "question": "Which listing has the most likes in Indonesia on 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_maxlikes_id",
+    "entity_text": null,
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "max_likes",
+        "oracle_fact_key": "max_likes",
+        "value": 250790.0,
+        "value_type": "decimal",
+        "unit": "likes",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "absolute",
+          "value": 0.5
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "top_liked_listing",
+      "params": {
+        "country": "id"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): oracle của ca này tính trên BỘ ĐÓNG BĂNG 3 ngày, nơi mọi thuộc tính đều được thu mỗi đợt. Trên bộ 20 ngày các cột này chỉ có MỘT quan sát mỗi listing (`discount_percent` 5/668 tại 03/07), còn `shopee_verified` ĐỔI GRAIN từ listing sang shop — hai đại lượng khác nhau mang một cái tên, và ánh xạ cái này thành cái kia là bịa. Chấm ca này ở đó là đo KHOẢNG CÁCH GIỮA HAI BỘ DỮ LIỆU, không đo hệ. Hành vi đúng trên bộ 20 ngày là hỏi lại (W29-R7 cho ref bộ lọc), không phải trả 0."
+  },
+  {
+    "id": "acc-v1-0037",
+    "split": "holdout",
+    "language": "vi",
+    "category": "ranking",
+    "question": "Shop nào có nhiều listing nhất tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_topshop_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "shop_name",
+        "oracle_fact_key": "shop_name",
+        "value": "Richy - Chi nhánh Miền Nam",
+        "value_type": "string",
+        "unit": null,
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "shop",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 120,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "shop",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "top_shop_by_listings",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0038",
+    "split": "holdout",
+    "language": "vi",
+    "category": "ranking",
+    "question": "Cửa hàng dẫn đầu về số listing ở Việt Nam ngày 03/07 là cửa hàng nào?",
+    "turns": null,
+    "paraphrase_group": "g_topshop_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "shop_name",
+        "oracle_fact_key": "shop_name",
+        "value": "Richy - Chi nhánh Miền Nam",
+        "value_type": "string",
+        "unit": null,
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "shop",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 120,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "shop",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "top_shop_by_listings",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0043",
+    "split": "holdout",
+    "language": "vi",
+    "category": "ranking_tie",
+    "question": "Listing nào có nhiều ảnh nhất tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_imagetie_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow",
+      "clarify",
+      "abstain"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "max_images",
+        "oracle_fact_key": "max_images",
+        "value": 9,
+        "value_type": "integer",
+        "unit": "images",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "metric": "tie_count",
+        "oracle_fact_key": "tie_count",
+        "value": 76,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "max_images_tie",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [
+      "tie"
+    ]
+  },
+  {
+    "id": "acc-v1-0048",
+    "split": "holdout",
+    "language": "vi",
+    "category": "ratio",
+    "question": "Tỷ lệ listing có giảm giá tại Indonesia ngày 03/07 là bao nhiêu phần trăm?",
+    "turns": null,
+    "paraphrase_group": "g_ratio_id",
+    "entity_text": null,
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "discounted_ratio_percent",
+        "oracle_fact_key": "discounted_ratio_percent",
+        "value": 88.18565400843882,
+        "value_type": "decimal",
+        "unit": "percent",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "absolute",
+          "value": 0.05
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "discount_ratio",
+      "params": {
+        "country": "id"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): oracle của ca này tính trên BỘ ĐÓNG BĂNG 3 ngày, nơi mọi thuộc tính đều được thu mỗi đợt. Trên bộ 20 ngày các cột này chỉ có MỘT quan sát mỗi listing (`discount_percent` 5/668 tại 03/07), còn `shopee_verified` ĐỔI GRAIN từ listing sang shop — hai đại lượng khác nhau mang một cái tên, và ánh xạ cái này thành cái kia là bịa. Chấm ca này ở đó là đo KHOẢNG CÁCH GIỮA HAI BỘ DỮ LIỆU, không đo hệ. Hành vi đúng trên bộ 20 ngày là hỏi lại (W29-R7 cho ref bộ lọc), không phải trả 0."
+  },
+  {
+    "id": "acc-v1-0052",
+    "split": "holdout",
+    "language": "vi",
+    "category": "comparison",
+    "question": "Shop \"Richy - Chi nhánh Miền Nam\" hay \"Bibica Official Store\" có nhiều listing hơn tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_cmp_shops_vn",
+    "entity_text": "Richy - Chi nhánh Miền Nam",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "count_a",
+        "oracle_fact_key": "count_a",
+        "value": 120,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "shop=Richy - Chi nhánh Miền Nam"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "metric": "count_b",
+        "oracle_fact_key": "count_b",
+        "value": 96,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "shop=Bibica Official Store"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      },
+      {
+        "metric": "winner",
+        "oracle_fact_key": "winner",
+        "value": "Richy - Chi nhánh Miền Nam",
+        "value_type": "string",
+        "unit": null,
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "compare_two_shops",
+      "params": {
+        "country": "vn",
+        "shop_a": "Richy - Chi nhánh Miền Nam",
+        "shop_b": "Bibica Official Store"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0053",
+    "split": "holdout",
+    "language": "vi",
+    "category": "comparison",
+    "question": "GLAD2GLOW và Cyeecare, thương hiệu nào nhiều listing hơn tại Indonesia ngày 03/07, và hơn kém cụ thể ra sao?",
+    "turns": null,
+    "paraphrase_group": "g_cmp_brands_id",
+    "entity_text": "GLAD2GLOW",
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 215,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=GLAD2GLOW"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_listing_count",
+      "params": {
+        "country": "id",
+        "brand": "GLAD2GLOW"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0056",
+    "split": "holdout",
+    "language": "vi",
+    "category": "entity",
+    "question": "Sản phẩm \"Thùng Sữa lúa mạch Nestle MILO ít đường (48 Hộp x 180ml)\" có bao nhiêu lượt đánh giá tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_item_ratingcount",
+    "entity_text": "Thùng Sữa lúa mạch Nestle MILO ít đường (48 Hộp x 180ml)",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "rating_count",
+        "oracle_fact_key": "rating_count",
+        "value": 29689,
+        "value_type": "integer",
+        "unit": "ratings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "item_rating_count",
+      "params": {
+        "country": "vn",
+        "item_id": 2260506115
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): oracle của ca này tính trên BỘ ĐÓNG BĂNG 3 ngày, nơi mọi thuộc tính đều được thu mỗi đợt. Trên bộ 20 ngày các cột này chỉ có MỘT quan sát mỗi listing (`discount_percent` 5/668 tại 03/07), còn `shopee_verified` ĐỔI GRAIN từ listing sang shop — hai đại lượng khác nhau mang một cái tên, và ánh xạ cái này thành cái kia là bịa. Chấm ca này ở đó là đo KHOẢNG CÁCH GIỮA HAI BỘ DỮ LIỆU, không đo hệ. Hành vi đúng trên bộ 20 ngày là hỏi lại (W29-R7 cho ref bộ lọc), không phải trả 0."
+  },
+  {
+    "id": "acc-v1-0057",
+    "split": "holdout",
+    "language": "vi",
+    "category": "empty_result",
+    "question": "Có bao nhiêu listing của Bibica tại shop \"Richy - Chi nhánh Miền Nam\" ở Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_empty_brandshop",
+    "entity_text": "Bibica",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 0,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=Bibica",
+          "shop=Richy - Chi nhánh Miền Nam"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_at_shop_count",
+      "params": {
+        "country": "vn",
+        "brand": "Bibica",
+        "shop_name": "Richy - Chi nhánh Miền Nam"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0058",
+    "split": "holdout",
+    "language": "vi",
+    "category": "empty_result",
+    "question": "Thương hiệu ORION có bao nhiêu listing tại Indonesia ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_empty_orion_id",
+    "entity_text": "ORION",
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 0,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=ORION"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_listing_count",
+      "params": {
+        "country": "id",
+        "brand": "ORION"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0059",
+    "split": "holdout",
+    "language": "vi",
+    "category": "empty_result",
+    "question": "Có bao nhiêu listing giá trên 5 triệu đồng tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_empty_price5m",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 0,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "price>5000000"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "price_over",
+      "params": {
+        "country": "vn",
+        "threshold": 5000000
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0060",
+    "split": "holdout",
+    "language": "vi",
+    "category": "empty_result",
+    "question": "Thương hiệu Cyeecare có bao nhiêu listing tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_empty_cyeecare_vn",
+    "entity_text": "Cyeecare",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 0,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=Cyeecare"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_listing_count",
+      "params": {
+        "country": "vn",
+        "brand": "Cyeecare"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0061",
+    "split": "holdout",
+    "language": "vi",
+    "category": "empty_result",
+    "question": "Shop \"ghaniskin\" có bao nhiêu listing tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_empty_ghaniskin_vn",
+    "entity_text": "ghaniskin",
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 0,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "shop=ghaniskin"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "shop_listing_count",
+      "params": {
+        "country": "vn",
+        "shop_name": "ghaniskin"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0062",
+    "split": "holdout",
+    "language": "vi",
+    "category": "filter",
+    "question": "Có bao nhiêu listing có voucher có cấu trúc tại Việt Nam ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_voucher_structured_vn",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 577,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "structured_voucher=true"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "structured_voucher_count",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0063",
+    "split": "holdout",
+    "language": "vi",
+    "category": "filter",
+    "question": "Có bao nhiêu listing có nhãn voucher hiển thị tại Indonesia ngày 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_voucher_label_id",
+    "entity_text": null,
+    "country": "id",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 210,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "voucher_label>=1"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "voucher_label_count",
+      "params": {
+        "country": "id"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0064",
+    "split": "holdout",
+    "language": "vi",
+    "category": "multi_turn",
+    "question": null,
+    "turns": [
+      {
+        "question": "Có bao nhiêu shop ở Việt Nam?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Còn ở Indonesia thì sao?",
+        "expected_action": "allow",
+        "scored": true
+      }
+    ],
+    "paraphrase_group": "g_mt_shops",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "shop_count",
+        "oracle_fact_key": "shop_count",
+        "value": 10,
+        "value_type": "integer",
+        "unit": "shops",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "shop",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "shop_count",
+      "params": {
+        "country": "id"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [],
+    "oracle_dataset": "frozen_3day",
+    "oracle_scope_note": "W-ACC-1 (Spec3008 §20.1): câu hỏi KHÔNG nêu ngày, nên nó hỏi về **đợt thu gần nhất**; oracle ghim `date_start=2026-07-03` vì đó là đợt cuối của LỊCH bộ 3 ngày. Trên bộ 20 ngày đợt cuối là 21/07, và hệ trả đúng giá trị (10 shop) với phạm vi 21/07 — giá trị khớp, mô tả phạm vi thì không. Đây là oracle mô tả một lịch khác, không phải hệ trả sai: chấm nó ở đây sẽ tính một câu đúng vào `answer_risk`."
+  },
+  {
+    "id": "acc-v1-0065",
+    "split": "holdout",
+    "language": "vi",
+    "category": "multi_turn",
+    "question": null,
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+        "expected_action": "allow"
+      },
+      {
+        "question": "Trong số đó, bao nhiêu listing thuộc thương hiệu Bibica?",
+        "expected_action": "allow",
+        "scored": true
+      }
+    ],
+    "paraphrase_group": "g_mt_bibica",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "directly_answerable",
+    "expected_action": "allow",
+    "accepted_actions": [
+      "allow"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 96,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "brand=Bibica"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "brand_listing_count",
+      "params": {
+        "country": "vn",
+        "brand": "Bibica"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0066",
+    "split": "holdout",
+    "language": "vi",
+    "category": "count",
+    "question": "Có bao nhiêu listing ngày 03/07?",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing ngày 03/07?",
+        "expected_action": "clarify"
+      },
+      {
+        "question": "Tại Việt Nam.",
+        "expected_action": "allow",
+        "scored": true
+      }
+    ],
+    "paraphrase_group": "g_cl_country",
+    "entity_text": null,
+    "country": null,
+    "answerability": "needs_clarification",
+    "expected_action": "clarify",
+    "accepted_actions": [
+      "clarify"
+    ],
+    "expected_clarification_slots": [
+      "country"
+    ],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 668,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "listing_count",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0067",
+    "split": "holdout",
+    "language": "en",
+    "category": "count",
+    "question": "How many products are listed on 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_cl_country",
+    "entity_text": null,
+    "country": null,
+    "answerability": "needs_clarification",
+    "expected_action": "clarify",
+    "accepted_actions": [
+      "clarify"
+    ],
+    "expected_clarification_slots": [
+      "country"
+    ],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0070",
+    "split": "holdout",
+    "language": "vi",
+    "category": "ambiguous_term",
+    "question": "Có bao nhiêu listing có voucher tại Indonesia ngày 03/07?",
+    "turns": [
+      {
+        "question": "Có bao nhiêu listing có voucher tại Indonesia ngày 03/07?",
+        "expected_action": "clarify"
+      },
+      {
+        "question": "Tính theo nhãn voucher hiển thị trên listing.",
+        "expected_action": "allow",
+        "scored": true
+      }
+    ],
+    "paraphrase_group": "g_cl_voucher_id",
+    "entity_text": null,
+    "country": "id",
+    "answerability": "needs_clarification",
+    "expected_action": "clarify",
+    "accepted_actions": [
+      "clarify"
+    ],
+    "expected_clarification_slots": [
+      "voucher_definition"
+    ],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 210,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [
+          "voucher_label>=1"
+        ],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "voucher_label_count",
+      "params": {
+        "country": "id"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [
+      "two_voucher_concepts:0_vs_210"
+    ]
+  },
+  {
+    "id": "acc-v1-0071",
+    "split": "holdout",
+    "language": "vi",
+    "category": "ambiguous_metric",
+    "question": "Shop nào lớn nhất tại Việt Nam?",
+    "turns": [
+      {
+        "question": "Shop nào lớn nhất tại Việt Nam?",
+        "expected_action": "clarify"
+      },
+      {
+        "question": "Theo số listing đang bán ngày 03/07.",
+        "expected_action": "allow",
+        "scored": true
+      }
+    ],
+    "paraphrase_group": "g_cl_bestshop",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "needs_clarification",
+    "expected_action": "clarify",
+    "accepted_actions": [
+      "clarify"
+    ],
+    "expected_clarification_slots": [
+      "ranking_metric"
+    ],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "shop_name",
+        "oracle_fact_key": "shop_name",
+        "value": "Richy - Chi nhánh Miền Nam",
+        "value_type": "string",
+        "unit": null,
+        "country": "vn",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "shop",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "top_shop_by_listings",
+      "params": {
+        "country": "vn"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0072",
+    "split": "holdout",
+    "language": "vi",
+    "category": "ambiguous_metric",
+    "question": "Sản phẩm tốt nhất tại Việt Nam là gì?",
+    "turns": null,
+    "paraphrase_group": "g_cl_bestproduct",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "needs_clarification",
+    "expected_action": "clarify",
+    "accepted_actions": [
+      "clarify"
+    ],
+    "expected_clarification_slots": [
+      "ranking_metric"
+    ],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0074",
+    "split": "holdout",
+    "language": "vi",
+    "category": "undefined_threshold",
+    "question": "Bao nhiêu sản phẩm bán chạy tại Việt Nam?",
+    "turns": null,
+    "paraphrase_group": "g_cl_banchay",
+    "entity_text": null,
+    "country": "vn",
+    "answerability": "needs_clarification",
+    "expected_action": "clarify",
+    "accepted_actions": [
+      "clarify"
+    ],
+    "expected_clarification_slots": [
+      "definition_threshold"
+    ],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0077",
+    "split": "holdout",
+    "language": "id",
+    "category": "count",
+    "question": "Berapa banyak produk?",
+    "turns": [
+      {
+        "question": "Berapa banyak produk?",
+        "expected_action": "clarify"
+      },
+      {
+        "question": "Di Indonesia, pada tanggal 03/07.",
+        "expected_action": "allow",
+        "scored": true
+      }
+    ],
+    "paraphrase_group": "g_cl_berapa",
+    "entity_text": null,
+    "country": null,
+    "answerability": "needs_clarification",
+    "expected_action": "clarify",
+    "accepted_actions": [
+      "clarify"
+    ],
+    "expected_clarification_slots": [
+      "country"
+    ],
+    "expected_refusal_reason_class": null,
+    "expected_facts": [
+      {
+        "metric": "listing_count",
+        "oracle_fact_key": "listing_count",
+        "value": 474,
+        "value_type": "integer",
+        "unit": "listings",
+        "country": "id",
+        "date_start": "2026-07-03",
+        "date_end": "2026-07-03",
+        "grain": "listing",
+        "group": null,
+        "filters": [],
+        "tolerance": {
+          "kind": "exact",
+          "value": 0
+        }
+      }
+    ],
+    "forbidden_values": [],
+    "oracle": {
+      "oracle_id": "listing_count",
+      "params": {
+        "country": "id"
+      },
+      "artifact_hash": "c4e1db3a04807e4c",
+      "reproduction_ref": "eval/accuracy/v1/oracle.py"
+    },
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0081",
+    "split": "holdout",
+    "language": "vi",
+    "category": "missing_field",
+    "question": "Lợi nhuận của shop Richy - Chi nhánh Miền Nam trong tháng 7 là bao nhiêu?",
+    "turns": null,
+    "paraphrase_group": "g_u_profit",
+    "entity_text": null,
+    "country": null,
+    "answerability": "unanswerable",
+    "expected_action": "abstain",
+    "accepted_actions": [
+      "abstain",
+      "clarify"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": "missing_field",
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0082",
+    "split": "holdout",
+    "language": "id",
+    "category": "missing_field",
+    "question": "Berapa laba merek GLAD2GLOW bulan Juli?",
+    "turns": null,
+    "paraphrase_group": "g_u_profit",
+    "entity_text": null,
+    "country": null,
+    "answerability": "unanswerable",
+    "expected_action": "abstain",
+    "accepted_actions": [
+      "abstain",
+      "clarify"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": "missing_field",
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0086",
+    "split": "holdout",
+    "language": "vi",
+    "category": "missing_grain",
+    "question": "Ngày 03/07 có bao nhiêu đơn hàng được đặt tại Việt Nam?",
+    "turns": null,
+    "paraphrase_group": "g_u_orders",
+    "entity_text": null,
+    "country": null,
+    "answerability": "unanswerable",
+    "expected_action": "abstain",
+    "accepted_actions": [
+      "abstain",
+      "clarify"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": "missing_grain",
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0087",
+    "split": "holdout",
+    "language": "vi",
+    "category": "forecast",
+    "question": "Dự báo doanh số tuần sau của GLAD2GLOW tại Indonesia?",
+    "turns": null,
+    "paraphrase_group": "g_u_forecast",
+    "entity_text": null,
+    "country": null,
+    "answerability": "unanswerable",
+    "expected_action": "abstain",
+    "accepted_actions": [
+      "abstain",
+      "clarify"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": "forecast_unsupported",
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0088",
+    "split": "holdout",
+    "language": "en",
+    "category": "forecast",
+    "question": "Predict next week's total sales for Vietnam.",
+    "turns": null,
+    "paraphrase_group": "g_u_forecast",
+    "entity_text": null,
+    "country": null,
+    "answerability": "unanswerable",
+    "expected_action": "abstain",
+    "accepted_actions": [
+      "abstain",
+      "clarify"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": "forecast_unsupported",
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0096",
+    "split": "holdout",
+    "language": "vi",
+    "category": "missing_grain",
+    "question": "Doanh thu theo từng giờ trong ngày 03/07 tại Việt Nam?",
+    "turns": null,
+    "paraphrase_group": "g_u_hourly",
+    "entity_text": null,
+    "country": null,
+    "answerability": "unanswerable",
+    "expected_action": "abstain",
+    "accepted_actions": [
+      "abstain",
+      "clarify"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": "missing_grain",
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": []
+  },
+  {
+    "id": "acc-v1-0097",
+    "split": "holdout",
+    "language": "vi",
+    "category": "false_premise",
+    "question": "Vì sao số listing tại Indonesia tăng mạnh từ 01/07 đến 03/07?",
+    "turns": null,
+    "paraphrase_group": "g_u_false_premise",
+    "entity_text": null,
+    "country": null,
+    "answerability": "unanswerable",
+    "expected_action": "abstain",
+    "accepted_actions": [
+      "abstain",
+      "clarify"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": "false_premise",
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [
+      "truth:474->474_flat"
+    ]
+  },
+  {
+    "id": "acc-v1-0098",
+    "split": "holdout",
+    "language": "vi",
+    "category": "false_premise",
+    "question": "Vì sao Việt Nam mất một nửa số listing trong tuần đầu tháng 7?",
+    "turns": null,
+    "paraphrase_group": "g_u_false_premise",
+    "entity_text": null,
+    "country": null,
+    "answerability": "unanswerable",
+    "expected_action": "abstain",
+    "accepted_actions": [
+      "abstain",
+      "clarify"
+    ],
+    "expected_clarification_slots": [],
+    "expected_refusal_reason_class": "false_premise",
+    "expected_facts": [],
+    "forbidden_values": [],
+    "oracle": null,
+    "annotation_status": "adjudicated",
+    "author_read_source_code_before_seal": true,
+    "tags": [
+      "truth:581->668_grew"
+    ]
+  }
+]

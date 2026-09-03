@@ -1,0 +1,93 @@
+{
+  "schema_version": "metamorphic-report.v2",
+  "suite": "eval/independent/answerable_manual.json",
+  "provider": "offline",
+  "measured_on": "2026-08-29",
+  "cases": 46,
+  "checks": 322,
+  "totals": {
+    "pass": 176,
+    "fail": 0,
+    "skip": 146,
+    "suspect": 0
+  },
+  "metamorphic_consistency_rate": 1.0,
+  "not_measured_relations": [
+    "MR-3",
+    "MR-8"
+  ],
+  "by_relation": {
+    "MR-1": {
+      "pass": 28,
+      "fail": 0,
+      "skip": 18,
+      "suspect": 0,
+      "rate": 1.0,
+      "applicable": 28,
+      "min_applicable": 1,
+      "status": "measured"
+    },
+    "MR-3": {
+      "pass": 0,
+      "fail": 0,
+      "skip": 46,
+      "suspect": 0,
+      "rate": null,
+      "applicable": 0,
+      "min_applicable": 10,
+      "status": "not_measured"
+    },
+    "MR-4": {
+      "pass": 46,
+      "fail": 0,
+      "skip": 0,
+      "suspect": 0,
+      "rate": 1.0,
+      "applicable": 46,
+      "min_applicable": 1,
+      "status": "measured"
+    },
+    "MR-5": {
+      "pass": 46,
+      "fail": 0,
+      "skip": 0,
+      "suspect": 0,
+      "rate": 1.0,
+      "applicable": 46,
+      "min_applicable": 1,
+      "status": "measured"
+    },
+    "MR-6": {
+      "pass": 22,
+      "fail": 0,
+      "skip": 24,
+      "suspect": 0,
+      "rate": 1.0,
+      "applicable": 22,
+      "min_applicable": 1,
+      "status": "measured"
+    },
+    "MR-7": {
+      "pass": 34,
+      "fail": 0,
+      "skip": 12,
+      "suspect": 0,
+      "rate": 1.0,
+      "applicable": 34,
+      "min_applicable": 1,
+      "status": "measured"
+    },
+    "MR-8": {
+      "pass": 0,
+      "fail": 0,
+      "skip": 46,
+      "suspect": 0,
+      "rate": null,
+      "applicable": 0,
+      "min_applicable": 10,
+      "status": "not_measured"
+    }
+  },
+  "failures": [],
+  "suspects": []
+}

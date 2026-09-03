@@ -1,0 +1,1028 @@
+[
+  {
+    "id": "ans001",
+    "question": "Có bao nhiêu listing tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_count_listing_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 668
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans002",
+    "question": "Ngày 03/07 ở Việt Nam có bao nhiêu sản phẩm?",
+    "paraphrase_group": "g_count_listing_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 668
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans003",
+    "question": "Có bao nhiêu listing tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_count_listing_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 474
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans004",
+    "question": "Ngày 03/07 ở Indonesia có bao nhiêu sản phẩm?",
+    "paraphrase_group": "g_count_listing_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 474
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans005",
+    "question": "Có bao nhiêu shop ở Việt Nam?",
+    "paraphrase_group": "g_count_shop_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "shop_count": 10
+    },
+    "oracle_snippet": "P[P.country_code=='vn'].shop_id.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans006",
+    "question": "Việt Nam có bao nhiêu cửa hàng?",
+    "paraphrase_group": "g_count_shop_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "shop_count": 10
+    },
+    "oracle_snippet": "P[P.country_code=='vn'].shop_id.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans007",
+    "question": "Có bao nhiêu shop ở Indonesia?",
+    "paraphrase_group": "g_count_shop_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "shop_count": 10
+    },
+    "oracle_snippet": "P[P.country_code=='id'].shop_id.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans008",
+    "question": "Indonesia có bao nhiêu cửa hàng?",
+    "paraphrase_group": "g_count_shop_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "shop_count": 10
+    },
+    "oracle_snippet": "P[P.country_code=='id'].shop_id.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans009",
+    "question": "Có bao nhiêu listing đã xác minh tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_flag_shopee_verified_bool_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 0
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').shopee_verified_bool.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans010",
+    "question": "Có bao nhiêu listing đã xác minh tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_flag_shopee_verified_bool_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 0
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').shopee_verified_bool.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans011",
+    "question": "Có bao nhiêu listing là quảng cáo tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_flag_is_ad_bool_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 0
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').is_ad_bool.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans012",
+    "question": "Có bao nhiêu listing là quảng cáo tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_flag_is_ad_bool_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 0
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').is_ad_bool.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans013",
+    "question": "Có bao nhiêu listing đã hết hàng tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_flag_is_sold_out_bool_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 0
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').is_sold_out_bool.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans014",
+    "question": "Có bao nhiêu listing đã hết hàng tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_flag_is_sold_out_bool_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 0
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').is_sold_out_bool.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans015",
+    "question": "Có bao nhiêu listing có voucher tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_voucher_vn",
+    "answerable": true,
+    "expected_action": "clarify",
+    "expected_value": null,
+    "oracle_snippet": "S[(S.country_code=='vn')&(S.date=='2026-07-03')].drop_duplicates('product_listing_key').has_structured_voucher.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true,
+    "expected_note": "W8.3: cụm 'có voucher' chỉ hai khái niệm khác nhau; oracle cũ đo has_structured_voucher trong khi câu hỏi không nói rõ"
+  },
+  {
+    "id": "ans016",
+    "question": "Có bao nhiêu listing có voucher có cấu trúc tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_voucher_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 577
+    },
+    "oracle_snippet": "S[(S.country_code=='vn')&(S.date=='2026-07-03')].drop_duplicates('product_listing_key').has_structured_voucher.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans017",
+    "question": "Có bao nhiêu listing có nhãn voucher tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_voucher_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 351
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').vouchers_count.gt(0).sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans018",
+    "question": "Có bao nhiêu listing có voucher tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_voucher_id",
+    "answerable": true,
+    "expected_action": "clarify",
+    "expected_value": null,
+    "oracle_snippet": "S[(S.country_code=='id')&(S.date=='2026-07-03')].drop_duplicates('product_listing_key').has_structured_voucher.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true,
+    "expected_note": "W8.3: cụm 'có voucher' chỉ hai khái niệm khác nhau; oracle cũ đo has_structured_voucher trong khi câu hỏi không nói rõ"
+  },
+  {
+    "id": "ans019",
+    "question": "Có bao nhiêu listing có voucher có cấu trúc tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_voucher_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 0
+    },
+    "oracle_snippet": "S[(S.country_code=='id')&(S.date=='2026-07-03')].drop_duplicates('product_listing_key').has_structured_voucher.sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans020",
+    "question": "Có bao nhiêu listing có nhãn voucher tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_voucher_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 179
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').vouchers_count.gt(0).sum()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans021",
+    "question": "Số listing tại Việt Nam thay đổi thế nào từ 01/07 đến 03/07?",
+    "paraphrase_group": "g_delta_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "delta": 87
+    },
+    "oracle_snippet": "P[P.country_code=='vn'] nunique theo ngày, lấy hiệu hai mốc",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans022",
+    "question": "Số listing tại Indonesia thay đổi thế nào từ 01/07 đến 03/07?",
+    "paraphrase_group": "g_delta_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "delta": 0
+    },
+    "oracle_snippet": "P[P.country_code=='id'] nunique theo ngày, lấy hiệu hai mốc",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans023",
+    "question": "Ngày 01/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-01_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 581
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-01')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans024",
+    "question": "Ngày 01/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-01_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 474
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-01')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans025",
+    "question": "Ngày 02/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-02_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 670
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-02')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans026",
+    "question": "Ngày 02/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-02_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 474
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-02')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans027",
+    "question": "Ngày 03/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-03_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 668
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans028",
+    "question": "Ngày 03/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-03_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 474
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans029",
+    "question": "Ngày 04/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-04_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 684
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-04')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans030",
+    "question": "Ngày 04/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-04_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 473
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-04')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans031",
+    "question": "Ngày 05/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-05_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 680
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-05')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans032",
+    "question": "Ngày 05/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-05_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 473
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-05')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans033",
+    "question": "Ngày 06/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-06_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 587
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-06')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans034",
+    "question": "Ngày 06/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-06_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 470
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-06')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans035",
+    "question": "Ngày 07/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-07_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 686
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-07')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans036",
+    "question": "Ngày 07/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-07_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 472
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-07')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans037",
+    "question": "Ngày 08/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-08_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 668
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-08')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans038",
+    "question": "Ngày 08/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-08_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 484
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-08')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans039",
+    "question": "Ngày 09/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-09_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 664
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-09')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans040",
+    "question": "Ngày 09/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-09_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 420
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-09')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans041",
+    "question": "Ngày 10/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-10_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 657
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-10')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans042",
+    "question": "Ngày 10/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-10_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 491
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-10')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans043",
+    "question": "Ngày 11/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-11_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 680
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-11')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans044",
+    "question": "Ngày 11/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-11_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 488
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-11')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans045",
+    "question": "Ngày 13/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-13_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 672
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-13')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans046",
+    "question": "Ngày 13/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-13_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 489
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-13')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans047",
+    "question": "Ngày 14/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-14_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 660
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-14')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans048",
+    "question": "Ngày 14/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-14_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 491
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-14')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans049",
+    "question": "Ngày 15/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-15_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 672
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-15')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans050",
+    "question": "Ngày 15/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-15_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 490
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-15')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans051",
+    "question": "Ngày 16/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-16_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 655
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-16')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans052",
+    "question": "Ngày 16/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-16_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 485
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-16')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans053",
+    "question": "Ngày 17/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-17_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 571
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-17')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans054",
+    "question": "Ngày 17/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-17_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 484
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-17')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans055",
+    "question": "Ngày 18/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-18_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 666
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-18')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans056",
+    "question": "Ngày 18/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-18_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 484
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-18')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans057",
+    "question": "Ngày 19/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-19_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 666
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-19')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans058",
+    "question": "Ngày 19/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-19_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 491
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-19')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans059",
+    "question": "Ngày 20/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-20_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 661
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-20')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans060",
+    "question": "Ngày 20/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-20_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 486
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-20')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans061",
+    "question": "Ngày 21/07 tại Việt Nam có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-21_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 672
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-21')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans062",
+    "question": "Ngày 21/07 tại Indonesia có bao nhiêu listing?",
+    "paraphrase_group": "g_day_2026-07-21_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 482
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-21')].drop_duplicates('product_listing_key').shape[0]",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans063",
+    "question": "Có bao nhiêu thương hiệu tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_brand_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "brand_count": 30
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').brand.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans064",
+    "question": "Việt Nam ngày 03/07 có bao nhiêu brand khác nhau?",
+    "paraphrase_group": "g_brand_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "brand_count": 30
+    },
+    "oracle_snippet": "P[(P.country_code=='vn')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').brand.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans065",
+    "question": "Có bao nhiêu thương hiệu tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_brand_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "brand_count": 12
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').brand.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans066",
+    "question": "Indonesia ngày 03/07 có bao nhiêu brand khác nhau?",
+    "paraphrase_group": "g_brand_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "brand_count": 12
+    },
+    "oracle_snippet": "P[(P.country_code=='id')&(P.date=='2026-07-03')].drop_duplicates('product_listing_key').brand.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans067",
+    "question": "Có bao nhiêu shop chính hãng ở Việt Nam?",
+    "paraphrase_group": "g_official_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "shop_count": 7
+    },
+    "oracle_snippet": "SH[(SH.country_code=='vn')&(SH.is_official_shop_bool)].shop_id.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans068",
+    "question": "Có bao nhiêu listing của shop chính hãng tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_official_vn_listing",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 465
+    },
+    "oracle_snippet": "P latest ∩ shop_id thuộc tập official",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans069",
+    "question": "Có bao nhiêu shop chính hãng ở Indonesia?",
+    "paraphrase_group": "g_official_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "shop_count": 9
+    },
+    "oracle_snippet": "SH[(SH.country_code=='id')&(SH.is_official_shop_bool)].shop_id.nunique()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans070",
+    "question": "Có bao nhiêu listing của shop chính hãng tại Indonesia ngày 03/07?",
+    "paraphrase_group": "g_official_id_listing",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "listing_count": 471
+    },
+    "oracle_snippet": "P latest ∩ shop_id thuộc tập official",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans071",
+    "question": "Giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?",
+    "paraphrase_group": "g_median_price_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "median_price": 132000.0
+    },
+    "oracle_snippet": "P latest, loại sentinel 999999999, .price_num.median()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans072",
+    "question": "Điểm đánh giá trung vị tại Việt Nam ngày 03/07 là bao nhiêu?",
+    "paraphrase_group": "g_median_rating_vn",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "median_rating": 4.93
+    },
+    "oracle_snippet": "P latest .rating_num.median()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans073",
+    "question": "Giá trung vị tại Indonesia ngày 03/07 là bao nhiêu?",
+    "paraphrase_group": "g_median_price_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "median_price": 78900.0
+    },
+    "oracle_snippet": "P latest, loại sentinel 999999999, .price_num.median()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans074",
+    "question": "Điểm đánh giá trung vị tại Indonesia ngày 03/07 là bao nhiêu?",
+    "paraphrase_group": "g_median_rating_id",
+    "answerable": true,
+    "expected_action": "allow",
+    "expected_value": {
+      "median_rating": 4.915
+    },
+    "oracle_snippet": "P latest .rating_num.median()",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans075",
+    "question": "Lợi nhuận ròng của từng shop tại Việt Nam là bao nhiêu?",
+    "paraphrase_group": "g_no_075",
+    "answerable": false,
+    "expected_action": "abstain",
+    "expected_value": null,
+    "oracle_snippet": "không tính được từ data/processed/*.csv",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans076",
+    "question": "Chi phí quảng cáo trên mỗi đơn tại Indonesia là bao nhiêu?",
+    "paraphrase_group": "g_no_076",
+    "answerable": false,
+    "expected_action": "abstain",
+    "expected_value": null,
+    "oracle_snippet": "không tính được từ data/processed/*.csv",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans077",
+    "question": "Tỷ lệ chuyển đổi của listing tại Việt Nam ngày 03/07?",
+    "paraphrase_group": "g_no_077",
+    "answerable": false,
+    "expected_action": "abstain",
+    "expected_value": null,
+    "oracle_snippet": "không tính được từ data/processed/*.csv",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans078",
+    "question": "Tồn kho còn lại của từng sản phẩm tại Việt Nam?",
+    "paraphrase_group": "g_no_078",
+    "answerable": false,
+    "expected_action": "abstain",
+    "expected_value": null,
+    "oracle_snippet": "không tính được từ data/processed/*.csv",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans079",
+    "question": "Dự báo doanh số tuần sau tại Indonesia?",
+    "paraphrase_group": "g_no_079",
+    "answerable": false,
+    "expected_action": "abstain",
+    "expected_value": null,
+    "oracle_snippet": "không tính được từ data/processed/*.csv",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  },
+  {
+    "id": "ans080",
+    "question": "Giá của đối thủ ngoài sàn cho sản phẩm này là bao nhiêu?",
+    "paraphrase_group": "g_no_080",
+    "answerable": false,
+    "expected_action": "abstain",
+    "expected_value": null,
+    "oracle_snippet": "không tính được từ data/processed/*.csv",
+    "author": "scripts/build_question_bank.py",
+    "author_read_source_code": true
+  }
+]

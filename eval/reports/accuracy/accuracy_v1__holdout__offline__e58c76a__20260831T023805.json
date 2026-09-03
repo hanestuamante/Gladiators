@@ -1,0 +1,1245 @@
+{
+ "schema_version": "accuracy-report.v1",
+ "active_dataset": "extended",
+ "oracle_out_of_scope": [
+  "acc-v1-0023",
+  "acc-v1-0029",
+  "acc-v1-0031",
+  "acc-v1-0035",
+  "acc-v1-0048",
+  "acc-v1-0056"
+ ],
+ "suite": "eval/accuracy/v1/holdout.json",
+ "suite_status": "provisional_contaminated",
+ "annotation_status": "adjudicated",
+ "split": "holdout",
+ "execution_mode": "offline_deterministic",
+ "runs": 1,
+ "scorer_version": "accuracy-scorer.v1",
+ "git_commit": "e58c76a",
+ "worktree_dirty": true,
+ "dataset_hashes": {
+  "products_clean.csv": "c4e1db3a04807e4cece5aea1327767d9ede1ea006fd12d4f65a7993fc914d390",
+  "product_snapshot_metrics.csv": "e71ca60488fa5bdb03544d3483937e633b974e70b71c69556157cce9660e35be",
+  "shop_info_clean.csv": "9c72a533e1554f38db97cd4fd1b3edfb35bbd50d1a6b01512a9699a28ca83b16"
+ },
+ "holdout_sha256": "72cda19b96bb0b2f24c2891ee5d1e01ffdd86cf56749be126ae4bd75f3fc8007",
+ "dev_sha256": "d2eee1dc2b318ddb43c72f15ed1a0a75ba5b6c8da04b88c10c4b68a0d4e59ba4",
+ "cases": 42,
+ "metrics": {
+  "strict_e2e_accuracy": {
+   "point": 0.5238,
+   "n": 42,
+   "k": 22,
+   "wilson95": [
+    0.3772,
+    0.6664
+   ]
+  },
+  "correct_answer_coverage": {
+   "point": 0.3704,
+   "n": 27,
+   "k": 10,
+   "wilson95": [
+    0.2153,
+    0.5577
+   ]
+  },
+  "answerable_coverage": {
+   "point": 0.4815,
+   "n": 27,
+   "k": 13,
+   "wilson95": [
+    0.3074,
+    0.6601
+   ]
+  },
+  "answer_risk": {
+   "point": 0.2667,
+   "n": 15,
+   "k": 4,
+   "wilson95": [
+    0.109,
+    0.5195
+   ]
+  },
+  "over_refusal_rate": {
+   "point": 0.4815,
+   "n": 27,
+   "k": 13,
+   "wilson95": [
+    0.3074,
+    0.6601
+   ]
+  },
+  "over_answer_rate": {
+   "point": 0.0,
+   "n": 8,
+   "k": 0,
+   "wilson95": [
+    0.0,
+    0.3244
+   ]
+  },
+  "refusal_precision": {
+   "point": 0.4815,
+   "n": 27,
+   "k": 13,
+   "wilson95": [
+    0.3074,
+    0.6601
+   ]
+  },
+  "refusal_recall": {
+   "point": 1.0,
+   "n": 8,
+   "k": 8,
+   "wilson95": [
+    0.6756,
+    1.0
+   ]
+  },
+  "refusal_reason_accuracy": {
+   "point": 1.0,
+   "n": 8,
+   "k": 8,
+   "wilson95": [
+    0.6756,
+    1.0
+   ]
+  },
+  "clarification_precision": {
+   "point": 0.4286,
+   "n": 7,
+   "k": 3,
+   "wilson95": [
+    0.1582,
+    0.7495
+   ]
+  },
+  "clarification_recovery_rate": {
+   "point": 0.25,
+   "n": 4,
+   "k": 1,
+   "wilson95": [
+    0.0456,
+    0.6994
+   ]
+  },
+  "paraphrase_action_consistency": {
+   "point": 0.8,
+   "n": 10,
+   "k": 8,
+   "wilson95": [
+    0.4902,
+    0.9433
+   ]
+  },
+  "paraphrase_value_consistency": {
+   "point": 0.7,
+   "n": 10,
+   "k": 7,
+   "wilson95": [
+    0.3968,
+    0.8922
+   ]
+  },
+  "action_stability_rate": {
+   "point": 1.0,
+   "n": 42,
+   "k": 42,
+   "wilson95": [
+    0.9162,
+    1.0
+   ]
+  },
+  "crash_rate": {
+   "point": 0.0,
+   "n": 42,
+   "k": 0,
+   "wilson95": [
+    -0.0,
+    0.0838
+   ]
+  },
+  "unscoreable_count": 0
+ },
+ "latency_s": {
+  "p50": 0.55,
+  "p95": 0.779
+ },
+ "failures": [
+  {
+   "id": "acc-v1-0002",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-AGGREGATION",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0005",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "shop_count: evidence đúng tên nhưng sai country/date scope"
+   ]
+  },
+  {
+   "id": "acc-v1-0006",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "shop_count: evidence đúng tên nhưng sai country/date scope"
+   ]
+  },
+  {
+   "id": "acc-v1-0013",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0015",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0016",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0052",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-ENTITY",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0053",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0057",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0058",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0059",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0060",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0061",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0063",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0064",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "shop_count: evidence đúng tên nhưng sai country/date scope"
+   ]
+  },
+  {
+   "id": "acc-v1-0065",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0066",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-DATE",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0070",
+   "answerability": "needs_clarification",
+   "action": "abstain",
+   "rule_id": "A-VOUCHER-ID",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0071",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-ANALYTICAL-AMBIGUITY",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']",
+    "lượt 'Shop nào lớn nhất tại Việt Nam…' ra abstain ≠ clarify"
+   ]
+  },
+  {
+   "id": "acc-v1-0074",
+   "answerability": "needs_clarification",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "action allow ∉ accepted ['clarify']"
+   ]
+  }
+ ],
+ "per_case": [
+  {
+   "id": "acc-v1-0001",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 1.248,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0002",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-AGGREGATION",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.55,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0005",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "shop_count: evidence đúng tên nhưng sai country/date scope"
+   ],
+   "crash": false,
+   "latency_s": 0.655,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0006",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "shop_count: evidence đúng tên nhưng sai country/date scope"
+   ],
+   "crash": false,
+   "latency_s": 0.046,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0011",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.604,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0013",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.588,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0014",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.726,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0015",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.577,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0016",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.633,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0017",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.683,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0018",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.075,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0024",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.557,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0025",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.036,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0037",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.571,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0038",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.047,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0043",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.653,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0052",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-ENTITY",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.079,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0053",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.065,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0057",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.552,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0058",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.07,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0059",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.131,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0060",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.084,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0061",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VALUE-NOT-FOUND",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.076,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0062",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.046,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0063",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-PLAN",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.059,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0064",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "shop_count: evidence đúng tên nhưng sai country/date scope"
+   ],
+   "crash": false,
+   "latency_s": 0.607,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0065",
+   "split": "holdout",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.6599999999999999,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0066",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-DATE",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.7789999999999999,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0067",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-MISSING-SLOT",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.015,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0070",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "abstain",
+   "rule_id": "A-VOUCHER-ID",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.193,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0071",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-ANALYTICAL-AMBIGUITY",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']",
+    "lượt 'Shop nào lớn nhất tại Việt Nam…' ra abstain ≠ clarify"
+   ],
+   "crash": false,
+   "latency_s": 0.829,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0072",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A19-METRIC",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.096,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0074",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action allow ∉ accepted ['clarify']"
+   ],
+   "crash": false,
+   "latency_s": 0.661,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0077",
+   "split": "holdout",
+   "answerability": "needs_clarification",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.749,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0081",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-PROFIT",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_field",
+   "latency_s": 0.024,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0082",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-PROFIT",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_field",
+   "latency_s": 0.01,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0086",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-ORDERS",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_grain",
+   "latency_s": 0.015,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0087",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-FORECAST",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "forecast_unsupported",
+   "latency_s": 0.019,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0088",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-FORECAST",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "forecast_unsupported",
+   "latency_s": 0.743,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0096",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-HOURLY",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_grain",
+   "latency_s": 0.099,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0097",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-PREMISE",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "false_premise",
+   "latency_s": 0.75,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0098",
+   "split": "holdout",
+   "answerability": "unanswerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-PREMISE",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "false_premise",
+   "latency_s": 0.159,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  }
+ ]
+}

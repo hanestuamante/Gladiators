@@ -1,0 +1,49 @@
+# Blueprint cho Render. Đọc kèm `Dockerfile` — file này chỉ nói CHẠY THẾ NÀO,
+# còn cái gì đi vào image thì Dockerfile quyết.
+services:
+  - type: web
+    name: gladiators
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    # Đo được trên chính image này, chạy với `--memory 512m`: 255 MiB sau một
+    # lượt quét 30 câu, tức còn một nửa dư địa của gói free. Con số đó chỉ đúng
+    # chừng nào torch còn nằm ngoài `requirements-serve.txt`.
+    healthCheckPath: /flow
+    envVars:
+      # `offline` là mặc định AN TOÀN KHI KHỞI ĐỘNG, không phải cấu hình demo.
+      # Thiếu nó thì blueprint apply xong sẽ crash ngay ở boot vì
+      # `DeepSeekLLMClient` raise khi không thấy key — nên giá trị này chỉ để
+      # container lên được trước khi ai đó nhập secret.
+      #
+      # ĐỔI SANG `deepseek` TRONG DASHBOARD sau khi nhập key, nếu không demo
+      # trả lời được rất ít. Bản nháp đầu của file này ghi rằng người dùng "bật
+      # LLM theo từng câu bằng hai ô tick" — SAI. Hai ô tick chỉ chi phối ánh
+      # xạ từ vựng và bẻ câu; `open_planner` cần provider cho MỌI câu nằm
+      # ngoài macro đã chứng nhận, và không có nó thì nó raise thẳng
+      # "Không có semantic planner provider".
+      #
+      # Đo trên cùng 30 câu, cùng image:
+      #   offline                       11/30   ← kể cả "Shop nào có nhiều
+      #                                           listing nhất tại VN?", một
+      #                                           chip mẫu của chính trang
+      #   deepseek, không tick gì       15/30
+      #   deepseek + ánh xạ + bẻ câu    23/30
+      - key: GLADIATORS_LLM_PROVIDER
+        value: offline
+      - key: GLADIATORS_DATA_DIR
+        value: /app/data/processed
+      # THIẾU FILE NÀY LÀ MẤT MỘT LỚP KIỂM TRONG IM LẶNG, không phải một tối ưu.
+      # Đo được: cùng image, chỉ trỏ biến này vào một đường dẫn không tồn tại,
+      # 5/30 câu đổi đáp án — và hai trong số đó chuyển từ `clarify` sang
+      # `allow` kèm danh sách cả thị trường cho câu hỏi về MỘT shop. Đó là
+      # over-answer, thứ phải bằng 0 ở mọi mốc.
+      - key: GLADIATORS_VALUE_INDEX
+        value: /app/artifacts/value_index.json
+      # Khoá provider KHÔNG đặt ở đây. Chúng thuộc dashboard (Environment →
+      # Secret), vì blueprint này nằm trong git. Bộ tối thiểu để demo chạy đủ:
+      #   GLADIATORS_LLM_PROVIDER = deepseek     (ghi đè giá trị trên)
+      #   DEEPSEEK_API_KEY        = <secret>
+      #   DEEPSEEK_MODEL          = deepseek-v4-flash
+      # `DEEPSEEK_MIN_INTERVAL_SECONDS` để trống — DeepSeek không có trần
+      # phút như Groq, và đặt nhầm nó thành 15 làm mỗi câu chờ thêm 15 s.

@@ -1,0 +1,49 @@
+{
+  "key": "6014c16302a9a96afef4",
+  "query": {
+    "market": "id",
+    "purpose": "campaign_context",
+    "query": "Shopee Indonesia kampanye 8.8 2026",
+    "recency_days": 90
+  },
+  "recorded_at": "2026-08-27T03:53:45Z",
+  "response": {
+    "cache_path": "unpersisted",
+    "content_hash": "b5b33a4da3cbd3c8b48dcbf1787692461b5f5cb9ea56ad528a197a53cb8ed5ee",
+    "items": [
+      {
+        "published_at": null,
+        "rank": 1,
+        "score": 0.16418147,
+        "snippet": "+ How to Start an Ecommerce Business. # How Foreign Brands Sell in Indonesia. The United Nations lists Indonesia as the fourth most populous country in 2026. DataReportal, an aggregator of global internet statistics, reports China’s 2025 internet users at 1.3 billion (92% penetration), India at 1.0 billion (68%), the United States at 323.9 million (94%), and Indonesia at 230.4 million (80%). In short, Indonesia’s internet penetration is relatively large, but its retail sales are comparatively small, suggesting the country is poised for online growth. Foreign brands in Indonesia typically start with marketplaces and eventually diversify with local distributors and branded ecommerce sites. Online consumers shop mostly on local marketplaces, with Shopee Indonesia, Tokopedia, and Lazada capturing 76% of online sales per Asialink, an Australia-based consultancy. In Indonesia, foreign brands can sell cross-border, on marketplaces, or through local distributors. Foreign ecommerce brands in Indonesia commonly adopt an omnichannel strategy with local distributors securing market access, while marketplaces and social channels capture high-volume demand.",
+        "title": "How Foreign Brands Sell in Indonesia - Practical Ecommerce",
+        "url": "https://www.practicalecommerce.com/how-foreign-brands-sell-in-indonesia"
+      },
+      {
+        "published_at": null,
+        "rank": 2,
+        "score": 0.06309461,
+        "snippet": "REO, Indonesia (AP) — Thousands of people are still waiting for aid after a powerful earthquake in Indonesia. People inspect a class room at an earthquake-damaged school in Reo, East Nusa Tenggara province, Indonesia, Monday, Aug. 17, 2026. People take shelter in makeshift tent amid fears of aftershocks, following an earthquake in Reo, East Nusa Tenggara province, Indonesia, Monday, Aug. 17, 2026. A man checks his phone near a building collapsed due to an earthquake, in Reok, East Nusa Tenggara province, Indonesia, Sunday, Aug. 16, 2026. A woman looks out from at a temporary shelter for earthquake survivors in Reo, East Nusa Tenggara province, Indonesia, Monday, Aug. 17, 2026. People stay in a makeshift tent amid fears of aftershocks, following an earthquake in Lembor, East Nusa Tenggara province, Indonesia, Sunday, Aug. 16, 2026. A man walks past a building that collapsed during an earthquake in Reo, East Nusa Tenggara province, Indonesia, Monday, Aug. 17, 2026.",
+        "title": "People await aid after powerful earthquake in Indonesia, in photos - AP News",
+        "url": "https://apnews.com/photo-gallery/people-await-aid-after-powerful-earthquake-indonesia-photos-3696677a5dc54d5ab4dc52ff05e9b6fb"
+      },
+      {
+        "published_at": null,
+        "rank": 3,
+        "score": 0.058544792,
+        "snippet": "Komaruddin, a waste picker, looks for recyclable items in a pile of garbage at the Bantargebang landfill on the outskirts of Jakarta, Indonesia, Monday, July 6, 2026. Waste pickers look for recyclable items in a pile of garbage at the Bantargebang landfill on the outskirts of Jakarta, Indonesia, Monday, July 6, 2026. Nur Wencih, a waste picker, walks past at the Bantargebang landfill on the outskirts of Jakarta, Indonesia, Monday, July 6, 2026. Nur Wencih, a waste picker, sorts recyclable items of her boarding house near the Bantargebang landfill on the outskirts of Jakarta, Indonesia, Monday, July 6, 2026. A waste picker drinks water from a plastic bag as she looks for recyclable items in a pile of garbage at the Bantargebang landfill on the outskirts of Jakarta, Indonesia, Monday, July 6, 2026. Waste pickers take a rest near at the Bantargebang landfill on the outskirts of Jakarta, Indonesia, Monday, July 6, 2026.",
+        "title": "As Indonesia cuts methane emissions, life atop a mountain of garbage begins to change - The Sun Chronicle",
+        "url": "https://www.thesunchronicle.com/news/nation_world/as-indonesia-cuts-methane-emissions-life-atop-a-mountain-of-garbage-begins-to-change/article_627a6ebb-3a07-5103-9891-e593438661f8.html"
+      }
+    ],
+    "provider": "tavily",
+    "query": {
+      "market": "id",
+      "purpose": "campaign_context",
+      "query": "Shopee Indonesia kampanye 8.8 2026",
+      "recency_days": 90
+    },
+    "retrieved_at": "2026-08-27T03:53:45.892301Z"
+  },
+  "schema_version": "search-cassette.v1"
+}

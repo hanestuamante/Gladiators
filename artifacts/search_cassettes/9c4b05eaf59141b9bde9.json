@@ -1,0 +1,49 @@
+{
+  "key": "9c4b05eaf59141b9bde9",
+  "query": {
+    "market": "vn",
+    "purpose": "campaign_context",
+    "query": "Shopee 8.8 sale campaign Vietnam 2026",
+    "recency_days": 90
+  },
+  "recorded_at": "2026-08-27T03:53:43Z",
+  "response": {
+    "cache_path": "unpersisted",
+    "content_hash": "3b89c2c226810697c1e74950004a7bda00e74d0c24e02c6f3bc5a9e31ee5f14c",
+    "items": [
+      {
+        "published_at": null,
+        "rank": 1,
+        "score": 0.161863,
+        "snippet": "# BOSS Coffee unveils ‘BOSS MODE: ON’ campaign to support Vietnam’s everyday workforce. Our **What’s NEXT in Marketing 2026 Conference Series** returns to the Philippines, Singapore, Hong Kong, Indonesia, Malaysia—and for the first time in Thailand! **Vietnam –** BOSS Coffee and Dentsu Creative Vietnam have launched ‘BOSS MODE: ON’, a campaign for the brand’s new energy drink that celebrates the blue-collar workers who keep everyday life moving. According to BOSS Coffee, the campaign reflects the combination of physical stamina, mental focus, and confidence needed by many workers managing demanding schedules and everyday responsibilities. Related Tags   Marketing Campaign Social Dentsu Vietnam BOSS Coffee Suntory PepsiCo. Suntory BOSS Coffee fuels ambition in new campaign with It’s Friday. Out of these cookies, the cookies that are categorized as necessary are stored on your browser as they are essential for the working of basic functionalities of the website.",
+        "title": "BOSS Coffee unveils ‘BOSS MODE: ON’ campaign to support Vietnam’s everyday workforce - marketech apac",
+        "url": "https://marketech-apac.com/boss-coffee-unveils-boss-mode-on-campaign-to-support-vietnams-everyday-workforce/"
+      },
+      {
+        "published_at": null,
+        "rank": 2,
+        "score": 0.082173064,
+        "snippet": "Test Your News I.Q. 2026 Elections Election Results Election calendar White House Congress Supreme Court The latest AP-NORC polls Ground Game. This photo released by Humane World for Animals Viet Nam shows cats in cages that were seized by the police in Ho Chi Minh City, Vietnam, on June 15, 2026. This photo released by Humane World for Animals Viet Nam shows cats that were seized by the police in Ho Chi Minh City, Vietnam, on June 15, 2026. HANOI, Vietnam (AP) — Police in Vietnam seized more than 400 cats in a major bust of a cat meat crime ring in Ho Chi Minh City, according to animal welfare groups and local media reports. This operation is “a sobering reminder of the enormous scale of Viet Nam’s cat meat trade,” Karanvir Kukreja, who leads a campaign against dog and cat meat consumption for the international nonprofit Humane World for Animals, said in a statement.",
+        "title": "Police rescue hundreds of cats from being eaten in Vietnam with bust of major animal theft ring - AP News",
+        "url": "https://apnews.com/article/vietnam-cats-animal-theft-rescue-police-arrests-ca0ce50281dbb5a624abf5cc95355e0f"
+      },
+      {
+        "published_at": null,
+        "rank": 3,
+        "score": 0.078197904,
+        "snippet": "Meet verified fashion suppliers and manufacturers at Source Fashion London | Register Now. Source innovative home textile products and trends at Intertextile Shanghai Home Textiles 2026 | Explore More. # | Vietnam's $15.1 bn textile test: 2026 growth is about share, not size. * Vietnam's textile and garment exports remained resilient at $\\*\\*\\*\\*.\\*\\* billion in January–May 2026 despite a challenging global market. * The country continues to gain market share in the US, reflecting its manufacturing reliability and competitiveness. Vietnam is not in a classic export boom. The January -May \\*\\*\\*\\* textile and garment figure is nearly flat, while yarn exports rose \\*.\\* per cent to $\\*.\\*\\* billion, or about &#\\*\\*\\*\\*;\\*\\*,\\*\\*\\* crore. Together, textile-garment exports excluding fibre plus yarn stood near $\\*\\*.\\*\\* billion in the first five months. That matters because the sector is aiming for about $\\*\\* billion in \\*\\*\\*\\*, roughly &#\\*\\*\\*\\*;\\*.\\*\\* lakh crore after a \\*\\*\\*\\* base near $\\*\\* billion. Sign in to access PRIME. Register to read this Prime news for FREE.",
+        "title": "| Vietnam's $15.1 bn textile test: 2026 growth is about share, not size - Fibre2Fashion",
+        "url": "https://www.fibre2fashion.com/news/textile-news/vietnam-s-15-1-bn-textile-test-2026-growth-is-about-share-not-size-310872-newsdetails.htm"
+      }
+    ],
+    "provider": "tavily",
+    "query": {
+      "market": "vn",
+      "purpose": "campaign_context",
+      "query": "Shopee 8.8 sale campaign Vietnam 2026",
+      "recency_days": 90
+    },
+    "retrieved_at": "2026-08-27T03:53:43.845022Z"
+  },
+  "schema_version": "search-cassette.v1"
+}

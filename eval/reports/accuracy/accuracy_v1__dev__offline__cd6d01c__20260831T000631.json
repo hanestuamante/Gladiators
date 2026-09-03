@@ -1,0 +1,1350 @@
+{
+ "schema_version": "accuracy-report.v1",
+ "suite": "eval/accuracy/v1/dev.json",
+ "suite_status": "provisional_contaminated",
+ "annotation_status": "adjudicated",
+ "split": "dev",
+ "execution_mode": "offline_deterministic",
+ "runs": 1,
+ "scorer_version": "accuracy-scorer.v1",
+ "git_commit": "cd6d01c",
+ "worktree_dirty": true,
+ "dataset_hashes": {
+  "products_clean.csv": "c4e1db3a04807e4cece5aea1327767d9ede1ea006fd12d4f65a7993fc914d390",
+  "product_snapshot_metrics.csv": "e71ca60488fa5bdb03544d3483937e633b974e70b71c69556157cce9660e35be",
+  "shop_info_clean.csv": "9c72a533e1554f38db97cd4fd1b3edfb35bbd50d1a6b01512a9699a28ca83b16"
+ },
+ "holdout_sha256": "243dd77b1fd0954b9da6d86544e4fecf52dad9cb5c994ecf94f4f3169ddbeba0",
+ "dev_sha256": "33625025ad5465e711107d4f235579f007b60b618a85ccd5fca1e5e0fffab29a",
+ "cases": 52,
+ "metrics": {
+  "strict_e2e_accuracy": {
+   "point": 0.7692,
+   "n": 52,
+   "k": 40,
+   "wilson95": [
+    0.6387,
+    0.8628
+   ]
+  },
+  "correct_answer_coverage": {
+   "point": 0.7188,
+   "n": 32,
+   "k": 23,
+   "wilson95": [
+    0.5463,
+    0.8444
+   ]
+  },
+  "answerable_coverage": {
+   "point": 0.75,
+   "n": 32,
+   "k": 24,
+   "wilson95": [
+    0.5789,
+    0.8675
+   ]
+  },
+  "answer_risk": {
+   "point": 0.04,
+   "n": 25,
+   "k": 1,
+   "wilson95": [
+    0.0071,
+    0.1954
+   ]
+  },
+  "over_refusal_rate": {
+   "point": 0.1875,
+   "n": 32,
+   "k": 6,
+   "wilson95": [
+    0.0889,
+    0.3531
+   ]
+  },
+  "over_answer_rate": {
+   "point": 0.0,
+   "n": 12,
+   "k": 0,
+   "wilson95": [
+    0.0,
+    0.2425
+   ]
+  },
+  "refusal_precision": {
+   "point": 0.7037,
+   "n": 27,
+   "k": 19,
+   "wilson95": [
+    0.5152,
+    0.8415
+   ]
+  },
+  "refusal_recall": {
+   "point": 1.0,
+   "n": 12,
+   "k": 12,
+   "wilson95": [
+    0.7575,
+    1.0
+   ]
+  },
+  "refusal_reason_accuracy": {
+   "point": 0.6667,
+   "n": 12,
+   "k": 8,
+   "wilson95": [
+    0.3906,
+    0.8619
+   ]
+  },
+  "clarification_precision": {
+   "point": 0.875,
+   "n": 8,
+   "k": 7,
+   "wilson95": [
+    0.5291,
+    0.9776
+   ]
+  },
+  "clarification_recovery_rate": {
+   "point": 1.0,
+   "n": 1,
+   "k": 1,
+   "wilson95": [
+    0.2065,
+    1.0
+   ]
+  },
+  "paraphrase_action_consistency": {
+   "point": 0.8,
+   "n": 10,
+   "k": 8,
+   "wilson95": [
+    0.4902,
+    0.9433
+   ]
+  },
+  "paraphrase_value_consistency": {
+   "point": 0.7,
+   "n": 10,
+   "k": 7,
+   "wilson95": [
+    0.3968,
+    0.8922
+   ]
+  },
+  "action_stability_rate": {
+   "point": 1.0,
+   "n": 52,
+   "k": 52,
+   "wilson95": [
+    0.9312,
+    1.0
+   ]
+  },
+  "crash_rate": {
+   "point": 0.0,
+   "n": 52,
+   "k": 0,
+   "wilson95": [
+    0.0,
+    0.0688
+   ]
+  },
+  "unscoreable_count": 0
+ },
+ "latency_s": {
+  "p50": 0.148,
+  "p95": 0.215
+ },
+ "failures": [
+  {
+   "id": "acc-v1-0004",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-SNAPSHOT-SCOPE",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0007",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0008",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0030",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-AGGREGATION",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0040",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "reasons": [
+    "brand: giá trị chuỗi không xuất hiện trong answer"
+   ]
+  },
+  {
+   "id": "acc-v1-0041",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VERIFICATION-FINAL",
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0047",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ]
+  },
+  {
+   "id": "acc-v1-0076",
+   "answerability": "needs_clarification",
+   "action": "abstain",
+   "rule_id": "A19-AGGREGATION",
+   "reasons": [
+    "action abstain ∉ accepted ['clarify']"
+   ]
+  },
+  {
+   "id": "acc-v1-0084",
+   "answerability": "unanswerable",
+   "action": "clarify",
+   "rule_id": "A-MISSING-SLOT",
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A-MISSING-SLOT→None ≠ missing_field"
+   ]
+  },
+  {
+   "id": "acc-v1-0090",
+   "answerability": "unanswerable",
+   "action": "clarify",
+   "rule_id": "A-UNBOUND-CONSTRAINT",
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A-UNBOUND-CONSTRAINT→None ≠ cross_currency"
+   ]
+  },
+  {
+   "id": "acc-v1-0093",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-NPS",
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A-MISSING-NPS→None ≠ missing_field"
+   ]
+  },
+  {
+   "id": "acc-v1-0094",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-HEADCOUNT",
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A-MISSING-HEADCOUNT→None ≠ missing_field"
+   ]
+  }
+ ],
+ "per_case": [
+  {
+   "id": "acc-v1-0003",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.376,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0004",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-SNAPSHOT-SCOPE",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.016,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0007",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.148,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0008",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.016,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0009",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.154,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0010",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.023,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0012",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.147,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0019",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.197,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0020",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.151,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0021",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.024,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0022",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.158,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0026",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.161,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0027",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.028,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0028",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.153,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0030",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-AGGREGATION",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.166,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0032",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.169,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0033",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.181,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0034",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.15,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0036",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.153,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0039",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.16,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0040",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "brand: giá trị chuỗi không xuất hiện trong answer"
+   ],
+   "crash": false,
+   "latency_s": 0.155,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0041",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A-VERIFICATION-FINAL",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.187,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0042",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.159,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0044",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-EXECUTION",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.179,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0045",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "abstain",
+   "rule_id": "A19-VALUE-CLASS",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.222,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0046",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.158,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0047",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "clarify",
+   "rule_id": "A22-ALIGN-MEASURE",
+   "expected_action": "allow",
+   "strict_pass": false,
+   "reasons": [
+    "action clarify ∉ accepted ['allow']"
+   ],
+   "crash": false,
+   "latency_s": 0.05,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0049",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.155,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0050",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.024,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0051",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.174,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0054",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.163,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0055",
+   "split": "dev",
+   "answerability": "directly_answerable",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "allow",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.157,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0068",
+   "split": "dev",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-MISSING-SLOT",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.037,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0069",
+   "split": "dev",
+   "answerability": "needs_clarification",
+   "action": "allow",
+   "rule_id": "A-ALLOW",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.07100000000000001,
+   "run": 1,
+   "actions_by_run": [
+    "allow"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "allow"
+  },
+  {
+   "id": "acc-v1-0073",
+   "split": "dev",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-ANALYTICAL-AMBIGUITY",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.206,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0075",
+   "split": "dev",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A16-CROSS-CURRENCY",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.115,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0076",
+   "split": "dev",
+   "answerability": "needs_clarification",
+   "action": "abstain",
+   "rule_id": "A19-AGGREGATION",
+   "expected_action": "clarify",
+   "strict_pass": false,
+   "reasons": [
+    "action abstain ∉ accepted ['clarify']"
+   ],
+   "crash": false,
+   "latency_s": 0.042,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0078",
+   "split": "dev",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.015,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0079",
+   "split": "dev",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A19-CAT",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.043,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0080",
+   "split": "dev",
+   "answerability": "needs_clarification",
+   "action": "clarify",
+   "rule_id": "A-MISSING-SLOT",
+   "expected_action": "clarify",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "latency_s": 0.068,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0083",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-INVENTORY",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_field",
+   "latency_s": 0.008,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0084",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "clarify",
+   "rule_id": "A-MISSING-SLOT",
+   "expected_action": "abstain",
+   "strict_pass": false,
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A-MISSING-SLOT→None ≠ missing_field"
+   ],
+   "crash": false,
+   "refusal_class": null,
+   "latency_s": 0.039,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0085",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-CONVERSION",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_field",
+   "latency_s": 0.007,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0089",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "clarify",
+   "rule_id": "A16-CROSS-CURRENCY",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "cross_currency",
+   "latency_s": 0.068,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0090",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "clarify",
+   "rule_id": "A-UNBOUND-CONSTRAINT",
+   "expected_action": "abstain",
+   "strict_pass": false,
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A-UNBOUND-CONSTRAINT→None ≠ cross_currency"
+   ],
+   "crash": false,
+   "refusal_class": null,
+   "latency_s": 0.215,
+   "run": 1,
+   "actions_by_run": [
+    "clarify"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "clarify"
+  },
+  {
+   "id": "acc-v1-0091",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-SNAPSHOT-SCOPE",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "date_out_of_range",
+   "latency_s": 0.043,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0092",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-SNAPSHOT-SCOPE",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "date_out_of_range",
+   "latency_s": 0.038,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0093",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-NPS",
+   "expected_action": "abstain",
+   "strict_pass": false,
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A-MISSING-NPS→None ≠ missing_field"
+   ],
+   "crash": false,
+   "refusal_class": null,
+   "latency_s": 0.04,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0094",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-HEADCOUNT",
+   "expected_action": "abstain",
+   "strict_pass": false,
+   "reasons": [
+    "đúng action nhưng sai nhóm lý do: A-MISSING-HEADCOUNT→None ≠ missing_field"
+   ],
+   "crash": false,
+   "refusal_class": null,
+   "latency_s": 0.042,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": false,
+   "pass_any_run": false,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0095",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-SKU",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_grain",
+   "latency_s": 0.007,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0099",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A14-EXT",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "external_data",
+   "latency_s": 0.007,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  },
+  {
+   "id": "acc-v1-0100",
+   "split": "dev",
+   "answerability": "unanswerable",
+   "action": "abstain",
+   "rule_id": "A-MISSING-ADS",
+   "expected_action": "abstain",
+   "strict_pass": true,
+   "reasons": [],
+   "crash": false,
+   "refusal_class": "missing_field",
+   "latency_s": 0.007,
+   "run": 1,
+   "actions_by_run": [
+    "abstain"
+   ],
+   "action_stable": true,
+   "pass_all_runs": true,
+   "pass_any_run": true,
+   "majority_action": "abstain"
+  }
+ ]
+}

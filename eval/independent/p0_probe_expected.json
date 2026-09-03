@@ -1,0 +1,239 @@
+[
+  {
+    "case_id": "p0_tc34_window",
+    "metric": "asked_window_vs_answered_leg",
+    "value": {
+      "item_id": "24710759163",
+      "asked_window": [
+        "2026-07-01",
+        "2026-07-03"
+      ],
+      "monthly_sold_by_date": {
+        "2026-07-01": 193.0,
+        "2026-07-02": 306.0,
+        "2026-07-03": 204.0
+      },
+      "window_delta": 11.0,
+      "answered_window": [
+        "2026-07-02",
+        "2026-07-03"
+      ],
+      "answered_delta": -102.0,
+      "transitions": [
+        {
+          "previous_date": "2026-07-01",
+          "date": "2026-07-02",
+          "days_since_previous": 1,
+          "transition_metric_eligible": true,
+          "monthly_sold_delta": 113.0,
+          "source_file": "data/raw/country_code=vn/dataset=products/shop_id=1145316676/products.csv",
+          "source_row": 101
+        },
+        {
+          "previous_date": "2026-07-02",
+          "date": "2026-07-03",
+          "days_since_previous": 1,
+          "transition_metric_eligible": true,
+          "monthly_sold_delta": -102.0,
+          "source_file": "data/raw/country_code=vn/dataset=products/shop_id=1145316676/products.csv",
+          "source_row": 181
+        }
+      ]
+    },
+    "unit": "items",
+    "grain": "transition",
+    "scope": "item_id=24710759163, 2026-07-01..2026-07-03",
+    "method_note": "Corrects dr2607_tc34: item 24710759163 has all three snapshot dates and two eligible transitions, so the DR premise of a missing 02/07 snapshot is false. The real defect is date-window narrowing - the asked 2-day window has delta +11 but the runtime reports the last 1-day leg (-102), inverting the sign."
+  },
+  {
+    "case_id": "p0_tc23_voucher_latest",
+    "metric": "structured_voucher_listings_latest",
+    "value": {
+      "snapshot_date": "2026-07-03",
+      "counts": {
+        "id": 0,
+        "vn": 577
+      }
+    },
+    "unit": "listings",
+    "grain": "listing",
+    "scope": "date=2026-07-03, deduped by product_listing_key",
+    "method_note": "Cross-reference dr2607_tc23: that record's {'id': 0, 'vn': 1580} counts has_structured_voucher rows across all three snapshots. This record pins the latest-snapshot deduped listing denotation the runtime actually answers with. Neither supersedes the other; they answer different scopes."
+  },
+  {
+    "case_id": "p0_scope_listing_count",
+    "metric": "listing_count_by_country_latest",
+    "value": {
+      "snapshot_date": "2026-07-03",
+      "counts": {
+        "id": 474,
+        "vn": 668
+      },
+      "total": 1142
+    },
+    "unit": "listings",
+    "grain": "listing",
+    "scope": "date=2026-07-03, deduped by product_listing_key",
+    "method_note": "Cross-reference eval/independent/golden_v2.json results.{vn,id}.listing_count. A multi-country question must cover both keys; answering one and reporting 'Phạm vi: Thị trường VN' drops half the asked scope."
+  },
+  {
+    "case_id": "p0_plurality_top_prices",
+    "metric": "top_price_listings_vn_latest",
+    "value": {
+      "snapshot_date": "2026-07-03",
+      "candidates": [
+        {
+          "item_id": "42232012026",
+          "product_name": "Bộ 3 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 567G",
+          "price_num": 3033180.0
+        },
+        {
+          "item_id": "47312804000",
+          "product_name": "Bộ 4 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 284G",
+          "price_num": 2395712.0
+        },
+        {
+          "item_id": "45712795019",
+          "product_name": "Bộ 2 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 567G",
+          "price_num": 2044260.0
+        },
+        {
+          "item_id": "56109950507",
+          "product_name": "Bộ 3 Sữa Bột NESTLÉ BOOST OPTIMUM Singapore Bổ Sung Dinh Dưỡng Cho Người Lớn Tuổi 800G",
+          "price_num": 1849920.0
+        },
+        {
+          "item_id": "45212804072",
+          "product_name": "Bộ 3 Collagen Thủy Phân Dạng Bột NESTLÉ VITAL PROTEINS Mỹ Hỗ Trợ Làm Đẹp Da,Móng,Tóc 284G",
+          "price_num": 1832864.0
+        }
+      ]
+    },
+    "unit": "listings",
+    "grain": "listing",
+    "scope": "country=vn, date=2026-07-03, top 5 by price_num",
+    "method_note": "At least five distinct listings exist, so collapsing a plural question to top_k=1 is a shape decision the runtime makes, not a data limitation."
+  },
+  {
+    "case_id": "p0_gap_item_42955556831",
+    "metric": "snapshot_gap_transition",
+    "value": {
+      "item_id": "42955556831",
+      "transitions": [
+        {
+          "previous_date": "2026-07-01",
+          "date": "2026-07-03",
+          "days_since_previous": 2,
+          "transition_metric_eligible": false,
+          "stock_status": "not_comparable_snapshot_gap",
+          "source_file": "data/raw/country_code=vn/dataset=products/shop_id=108166524/products.csv",
+          "source_row": 171
+        }
+      ],
+      "snapshots": [
+        {
+          "date": "2026-07-01",
+          "monthly_sold_value_num": 4000.0,
+          "history_sold_value_num": 4000.0,
+          "snapshot_gap_flag": true,
+          "source_file": "data/raw/country_code=vn/dataset=products/shop_id=108166524/products.csv",
+          "source_row": 18
+        },
+        {
+          "date": "2026-07-03",
+          "monthly_sold_value_num": 4000.0,
+          "history_sold_value_num": 5000.0,
+          "snapshot_gap_flag": true,
+          "source_file": "data/raw/country_code=vn/dataset=products/shop_id=108166524/products.csv",
+          "source_row": 171
+        }
+      ]
+    },
+    "unit": "profile",
+    "grain": "transition",
+    "scope": "item_id=42955556831",
+    "method_note": "transition_metric_eligible is False because days_since_previous=2 (02/07 is absent). monthly_sold is flat 4000 -> 4000 across the gap while history_sold moves 4000 -> 5000, so a naive 'compute it anyway' change returns delta 0, a plausible-looking wrong answer. The guard rail must forbid emitting a monthly_sold_delta at all, not merely forbid a non-zero one."
+  },
+  {
+    "case_id": "p0_grouping_official_shop",
+    "metric": "listing_count_by_shop_flag_latest",
+    "value": {
+      "snapshot_date": "2026-07-03",
+      "vn_all_listings": 668,
+      "vn_official_shop_listings": 465,
+      "vn_official_shops": 7
+    },
+    "unit": "listings",
+    "grain": "listing",
+    "scope": "country=vn, date=2026-07-03",
+    "method_note": "The dropped-dimension answer returned the unfiltered 668 for a question whose true answer is 465 -- a 203-listing overcount, not a rounding difference. Three differently-scoped questions all returned the same 668, which is what makes this a silent wrong answer rather than an imprecise one."
+  },
+  {
+    "case_id": "p0_date_point_vn",
+    "metric": "listing_count_and_max_price_by_date",
+    "value": {
+      "country": "vn",
+      "by_date": {
+        "2026-07-01": {
+          "listing_count": 581,
+          "max_price": 2959200.0
+        },
+        "2026-07-02": {
+          "listing_count": 670,
+          "max_price": 3033180.0
+        },
+        "2026-07-03": {
+          "listing_count": 668,
+          "max_price": 3033180.0
+        }
+      }
+    },
+    "unit": "profile",
+    "grain": "listing",
+    "scope": "country=vn, each snapshot date",
+    "method_note": "Every snapshot has a different answer: 581/670/668 listings and a max price of 2,959,200 on 01/07 versus 3,033,180 later. Substituting the latest snapshot for a named date is therefore a wrong answer (87 listings off), not a defensible default."
+  },
+  {
+    "case_id": "p0_rank_direction_vn",
+    "metric": "price_extremes_vn_latest",
+    "value": {
+      "snapshot_date": "2026-07-03",
+      "min_price": 1000.0,
+      "max_price": 3033180.0,
+      "min_price_product": "[Tặng quà đơn từ 129k]Bánh Richy KARO trứng tươi chà bông (Gà/ Phô Mai/ Sữa), HSD 45-90 ngày"
+    },
+    "unit": "local_currency",
+    "grain": "listing",
+    "scope": "country=vn, date=2026-07-03",
+    "method_note": "The ascending answer differs from the descending one by roughly 3000x (1,000 versus 3,033,180), and the answer sentence still read 'Listing có giá cao nhất là', so the output contradicted the question it answered."
+  },
+  {
+    "case_id": "p0_tc19_sentinel_ref",
+    "metric": "price_sentinel_policy_pending",
+    "value": {
+      "see": "dr2607_tc19",
+      "dr1_status": "pending",
+      "observed": [
+        {
+          "date": "2026-07-01",
+          "price_num": 410000.0,
+          "price_sentinel_flag": false
+        },
+        {
+          "date": "2026-07-02",
+          "price_num": 400890.0,
+          "price_sentinel_flag": false
+        },
+        {
+          "date": "2026-07-03",
+          "price_num": 400890.0,
+          "price_sentinel_flag": false
+        }
+      ]
+    },
+    "unit": "profile",
+    "grain": "listing_snapshot",
+    "scope": "item_id=56061511146",
+    "method_note": "price_sentinel_flag is False for all three snapshots, but the listing is named 'Quà tặng không bán' (not-for-sale gift). Whether its 410000 price may anchor a ±20% competitor comparison is a data-owner decision that is still pending, so this record pins no expected answer - only that allow is forbidden meanwhile."
+  }
+]

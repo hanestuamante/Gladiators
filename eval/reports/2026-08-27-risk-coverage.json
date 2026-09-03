@@ -1,0 +1,59 @@
+{
+  "suite": "eval/independent/answerable_manual.json",
+  "provider": "offline",
+  "measured_on": "2026-08-27",
+  "points": [
+    {
+      "id": "L0",
+      "label": "mặc định hiện tại",
+      "release": true,
+      "labelled_cases": 44,
+      "coverage": 0.4545,
+      "risk": 0.0,
+      "over_refusal_rate": 0.4737,
+      "over_answer_rate": 0.0,
+      "answered": 20,
+      "wrong": 0
+    },
+    {
+      "id": "L1",
+      "label": "− A13 trả lời từng phần",
+      "release": false,
+      "labelled_cases": 44,
+      "coverage": 0.4545,
+      "risk": 0.0,
+      "over_refusal_rate": 0.4737,
+      "over_answer_rate": 0.0,
+      "answered": 20,
+      "wrong": 0
+    },
+    {
+      "id": "L2",
+      "label": "− A13 − A5 ba vòng lặp",
+      "release": false,
+      "labelled_cases": 44,
+      "coverage": 0.4545,
+      "risk": 0.0,
+      "over_refusal_rate": 0.4737,
+      "over_answer_rate": 0.0,
+      "answered": 20,
+      "wrong": 0
+    },
+    {
+      "id": "L3",
+      "label": "− gate − verifier (chỉ để vẽ đường cong)",
+      "release": false,
+      "labelled_cases": 44,
+      "coverage": 0.5,
+      "risk": 0.0909,
+      "over_refusal_rate": 0.4211,
+      "over_answer_rate": 0.0,
+      "answered": 22,
+      "wrong": 2
+    }
+  ],
+  "aurc": 0.0454,
+  "release_point": "L0",
+  "note": "L3 tắt verifier và CHỈ để vẽ đường cong — không bao giờ là cấu hình phát hành (B4-R1). Mọi điểm dùng cùng một bộ đề và cùng một oracle (B4-R2).",
+  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 460 300\" font-family=\"system-ui,sans-serif\"><rect width=\"460\" height=\"300\" fill=\"#fff\"/><line x1=\"46\" y1=\"254\" x2=\"414\" y2=\"254\" stroke=\"#333\"/><line x1=\"46\" y1=\"46\" x2=\"46\" y2=\"254\" stroke=\"#333\"/><text x=\"230.0\" y=\"288\" font-size=\"12\" text-anchor=\"middle\">Độ phủ (coverage) →</text><text x=\"14\" y=\"150.0\" font-size=\"12\" text-anchor=\"middle\" transform=\"rotate(-90 14 150.0)\">Rủi ro (risk) →</text><path d=\"M213.3,254.0 L213.3,254.0 L213.3,254.0 L230.0,235.1\" fill=\"none\" stroke=\"#666\" stroke-dasharray=\"4 3\"/><circle cx=\"213.3\" cy=\"254.0\" r=\"5\" fill=\"#1a7f37\"/><text x=\"213.3\" y=\"243.0\" font-size=\"11\" text-anchor=\"middle\">L0</text><circle cx=\"213.3\" cy=\"254.0\" r=\"5\" fill=\"#b42318\"/><text x=\"213.3\" y=\"243.0\" font-size=\"11\" text-anchor=\"middle\">L1</text><circle cx=\"213.3\" cy=\"254.0\" r=\"5\" fill=\"#b42318\"/><text x=\"213.3\" y=\"243.0\" font-size=\"11\" text-anchor=\"middle\">L2</text><circle cx=\"230.0\" cy=\"235.1\" r=\"5\" fill=\"#b42318\"/><text x=\"230.0\" y=\"224.1\" font-size=\"11\" text-anchor=\"middle\">L3</text><text x=\"414\" y=\"24\" font-size=\"11\" text-anchor=\"end\">AURC = 0.0454</text><text x=\"414\" y=\"38\" font-size=\"11\" text-anchor=\"end\" fill=\"#b42318\">đỏ = KHÔNG phải cấu hình phát hành</text></svg>"
+}

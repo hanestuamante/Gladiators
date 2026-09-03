@@ -1,0 +1,778 @@
+[
+  {
+    "id": "sl01",
+    "question": "Price original cao nhất tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.price_original"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.price_original"
+      ]
+    }
+  },
+  {
+    "id": "sl02",
+    "question": "Discount percent theo brand tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.discount_percent"
+    ],
+    "expected_dimensions": [
+      "dim.brand"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.discount_percent",
+        "dim.brand"
+      ],
+      "grains": [
+        "group"
+      ]
+    }
+  },
+  {
+    "id": "sl03",
+    "question": "History sold theo date tại Indonesia",
+    "country": "id",
+    "expected_measures": [
+      "measure.history_sold"
+    ],
+    "expected_dimensions": [
+      "dim.date"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.history_sold"
+      ]
+    }
+  },
+  {
+    "id": "sl04",
+    "question": "Voucher discount theo brand tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.voucher_discount"
+    ],
+    "expected_dimensions": [
+      "dim.brand"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.voucher_discount"
+      ]
+    }
+  },
+  {
+    "id": "sl05",
+    "question": "Voucher min spend tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.voucher_min_spend"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.voucher_min_spend"
+      ]
+    }
+  },
+  {
+    "id": "sl06",
+    "question": "Voucher start time và voucher end time tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.voucher_start_time",
+      "measure.voucher_end_time"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "measure.voucher_start_time",
+        "measure.voucher_end_time"
+      ]
+    }
+  },
+  {
+    "id": "sl07",
+    "question": "Rating count và rating theo brand tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.rating_count",
+      "measure.rating"
+    ],
+    "expected_dimensions": [
+      "dim.brand"
+    ],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "measure.rating_count",
+        "measure.rating"
+      ]
+    }
+  },
+  {
+    "id": "sl08",
+    "question": "Liked count cao nhất tại Indonesia",
+    "country": "id",
+    "expected_measures": [
+      "measure.liked_count"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.liked_count"
+      ]
+    }
+  },
+  {
+    "id": "sl09",
+    "question": "Images count theo brand tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.images_count"
+    ],
+    "expected_dimensions": [
+      "dim.brand"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.images_count"
+      ]
+    }
+  },
+  {
+    "id": "sl10",
+    "question": "Variation options count theo display variation tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.variation_options_count"
+    ],
+    "expected_dimensions": [
+      "dim.display_variation"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.variation_options_count",
+        "dim.display_variation"
+      ],
+      "traps": [
+        "13"
+      ]
+    }
+  },
+  {
+    "id": "sl11",
+    "question": "Vouchers count theo official shop tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.vouchers_count"
+    ],
+    "expected_dimensions": [
+      "dim.shop_official"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.vouchers_count",
+        "dim.shop_official"
+      ],
+      "traps": [
+        "19"
+      ]
+    }
+  },
+  {
+    "id": "sl12",
+    "question": "Shop rating cao nhất tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.shop_rating"
+    ],
+    "expected_dimensions": [
+      "entity.shop"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.shop_rating"
+      ]
+    }
+  },
+  {
+    "id": "sl13",
+    "question": "Shop followers theo official shop tại Indonesia",
+    "country": "id",
+    "expected_measures": [
+      "measure.shop_followers"
+    ],
+    "expected_dimensions": [
+      "dim.shop_official",
+      "entity.shop"
+    ],
+    "complexity_level": "L3",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.shop_followers"
+      ]
+    }
+  },
+  {
+    "id": "sl14",
+    "question": "Shop items theo vacation tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.shop_items"
+    ],
+    "expected_dimensions": [
+      "dim.shop_vacation",
+      "entity.shop"
+    ],
+    "complexity_level": "L3",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.shop_items",
+        "dim.shop_vacation"
+      ]
+    }
+  },
+  {
+    "id": "sl15",
+    "question": "Shop response rate và shop response time tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.shop_response_rate",
+      "measure.shop_response_time"
+    ],
+    "expected_dimensions": [
+      "entity.shop"
+    ],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "measure.shop_response_rate",
+        "measure.shop_response_time"
+      ]
+    }
+  },
+  {
+    "id": "sl16",
+    "question": "Shop rating good, shop rating normal và shop rating bad tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.shop_rating_good",
+      "measure.shop_rating_normal",
+      "measure.shop_rating_bad"
+    ],
+    "expected_dimensions": [
+      "entity.shop"
+    ],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "measure.shop_rating_good",
+        "measure.shop_rating_normal",
+        "measure.shop_rating_bad"
+      ]
+    }
+  },
+  {
+    "id": "sl17",
+    "question": "Shop cancellation rate tại Indonesia",
+    "country": "id",
+    "expected_measures": [
+      "measure.shop_cancellation_rate"
+    ],
+    "expected_dimensions": [
+      "entity.shop"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.shop_cancellation_rate"
+      ]
+    }
+  },
+  {
+    "id": "sl18",
+    "question": "Shop category total theo shop shelf tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.shop_category_total"
+    ],
+    "expected_dimensions": [
+      "dim.shop_category_name"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.shop_category_total",
+        "dim.shop_category_name"
+      ],
+      "grains": [
+        "shelf"
+      ]
+    }
+  },
+  {
+    "id": "sl19",
+    "question": "Monthly sold delta theo date tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.monthly_sold_delta"
+    ],
+    "expected_dimensions": [
+      "dim.date"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "derived.monthly_sold_delta"
+      ]
+    }
+  },
+  {
+    "id": "sl20",
+    "question": "History sold delta raw theo date tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.history_sold_delta_raw"
+    ],
+    "expected_dimensions": [
+      "dim.date"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "derived.history_sold_delta_raw"
+      ]
+    }
+  },
+  {
+    "id": "sl21",
+    "question": "History sold decrease flag tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.history_sold_decrease_flag"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "derived.history_sold_decrease_flag"
+      ]
+    }
+  },
+  {
+    "id": "sl22",
+    "question": "History sold delta clean theo date tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.history_sold_delta_clean"
+    ],
+    "expected_dimensions": [
+      "dim.date"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "derived.history_sold_delta_clean"
+      ]
+    }
+  },
+  {
+    "id": "sl23",
+    "question": "Price change và price change pct tại Indonesia",
+    "country": "id",
+    "expected_measures": [
+      "derived.price_change",
+      "derived.price_change_pct"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "derived.price_change",
+        "derived.price_change_pct"
+      ]
+    }
+  },
+  {
+    "id": "sl24",
+    "question": "Discount point change theo date tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.discount_point_change"
+    ],
+    "expected_dimensions": [
+      "dim.date"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "derived.discount_point_change"
+      ]
+    }
+  },
+  {
+    "id": "sl25",
+    "question": "Voucher state transition tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.voucher_state_transition"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "derived.voucher_state_transition"
+      ]
+    }
+  },
+  {
+    "id": "sl26",
+    "question": "Rating change và rating count delta tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.rating_change",
+      "derived.rating_count_delta"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "derived.rating_change",
+        "derived.rating_count_delta"
+      ]
+    }
+  },
+  {
+    "id": "sl27",
+    "question": "Liked delta theo date tại Indonesia",
+    "country": "id",
+    "expected_measures": [
+      "derived.liked_delta"
+    ],
+    "expected_dimensions": [
+      "dim.date"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "derived.liked_delta"
+      ]
+    }
+  },
+  {
+    "id": "sl28",
+    "question": "Has structured voucher và has voucher label tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.has_structured_voucher",
+      "derived.has_voucher_label"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "derived.has_structured_voucher",
+        "derived.has_voucher_label"
+      ],
+      "traps": [
+        "19"
+      ]
+    }
+  },
+  {
+    "id": "sl29",
+    "question": "Has promo theo discount bucket tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.has_promo",
+      "derived.discount_bucket"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "derived.has_promo",
+        "derived.discount_bucket"
+      ],
+      "traps": [
+        "19"
+      ]
+    }
+  },
+  {
+    "id": "sl30",
+    "question": "Median monthly sold và median estimated recent revenue tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.median_monthly_sold",
+      "derived.median_estimated_recent_revenue"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "derived.median_monthly_sold",
+        "derived.median_estimated_recent_revenue"
+      ],
+      "traps": [
+        "4"
+      ]
+    }
+  },
+  {
+    "id": "sl31",
+    "question": "Text sim và category overlap depth theo platform category tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.text_sim",
+      "derived.category_overlap_depth"
+    ],
+    "expected_dimensions": [
+      "dim.platform_category_name"
+    ],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "derived.text_sim",
+        "derived.category_overlap_depth",
+        "dim.platform_category_name"
+      ],
+      "traps": [
+        "16"
+      ]
+    }
+  },
+  {
+    "id": "sl32",
+    "question": "Brand match, price distance và same shelf bonus tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.brand_match",
+      "derived.price_distance",
+      "derived.same_shelf_bonus"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L4",
+    "answerability_class": "C1",
+    "language_style": "compound",
+    "coverage": {
+      "semantic_refs": [
+        "derived.brand_match",
+        "derived.price_distance",
+        "derived.same_shelf_bonus"
+      ],
+      "traps": [
+        "16"
+      ]
+    }
+  },
+  {
+    "id": "sl33",
+    "question": "Similarity score theo brand tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "derived.similarity_score"
+    ],
+    "expected_dimensions": [
+      "dim.brand"
+    ],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "derived.similarity_score"
+      ],
+      "traps": [
+        "16"
+      ]
+    }
+  },
+  {
+    "id": "sl34",
+    "question": "Shopee verified theo product tại VN",
+    "country": "vn",
+    "expected_measures": [],
+    "expected_dimensions": [
+      "dim.shopee_verified",
+      "dim.product_name"
+    ],
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "dim.shopee_verified"
+      ]
+    }
+  },
+  {
+    "id": "sl35",
+    "question": "Parent shelf và child shelf tại VN",
+    "country": "vn",
+    "expected_measures": [],
+    "expected_dimensions": [
+      "dim.shop_category_parent",
+      "dim.shop_category_child"
+    ],
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "dim.shop_category_parent",
+        "dim.shop_category_child"
+      ]
+    }
+  },
+  {
+    "id": "sl36",
+    "question": "Danh muc co nhanh con tại VN",
+    "country": "vn",
+    "expected_measures": [],
+    "expected_dimensions": [
+      "dim.platform_category_has_children"
+    ],
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "vi_khong_dau",
+    "coverage": {
+      "semantic_refs": [
+        "dim.platform_category_has_children"
+      ]
+    }
+  },
+  {
+    "id": "sl37",
+    "question": "Giá của sản phẩm mã 2260506115 tại VN ngày 03/07 là bao nhiêu?",
+    "country": "vn",
+    "expected_measures": [
+      "measure.price"
+    ],
+    "expected_dimensions": [
+      "dim.date"
+    ],
+    "complexity_level": "L1",
+    "answerability_class": "C1",
+    "language_style": "vi",
+    "coverage": {
+      "semantic_refs": [
+        "measure.price",
+        "dim.item_id",
+        "dim.date"
+      ]
+    }
+  },
+  {
+    "id": "sl38",
+    "question": "Giá trước khuyến mãi cao nhất tại VN",
+    "country": "vn",
+    "expected_measures": [
+      "measure.price_before_promo"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "noisy",
+    "coverage": {
+      "semantic_refs": [
+        "measure.price_before_promo"
+      ]
+    }
+  },
+  {
+    "id": "sl39",
+    "question": "Shop \"Bibica Official Store\" xuất hiện trong bao nhiêu ngày ở VN?",
+    "country": "vn",
+    "expected_measures": [
+      "derived.observed_day_count"
+    ],
+    "expected_dimensions": [],
+    "complexity_level": "L2",
+    "answerability_class": "C1",
+    "language_style": "plain",
+    "coverage": {
+      "semantic_refs": [
+        "derived.observed_day_count"
+      ]
+    }
+  }
+]

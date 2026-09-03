@@ -1,0 +1,150 @@
+{
+  "generated_at": "2026-08-30T18:26:10+00:00",
+  "input_file_count": 102,
+  "rows": {
+    "products": 22695,
+    "shop_info": 20,
+    "category_list": 168,
+    "product_categories": 28469,
+    "category_platform": 4482,
+    "shop_stats": 396
+  },
+  "metric_rows": {
+    "snapshot": 22695,
+    "transition": 21419
+  },
+  "key_checks": {
+    "products": {
+      "key": [
+        "country_code",
+        "shop_id",
+        "item_id",
+        "date"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "shop_info": {
+      "key": [
+        "country_code",
+        "shop_id"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "category_list": {
+      "key": [
+        "country_code",
+        "shop_id",
+        "shop_category_id",
+        "date"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "product_categories": {
+      "key": [
+        "country_code",
+        "shop_id",
+        "item_id",
+        "category_id",
+        "date"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "category_platform": {
+      "key": [
+        "country_code",
+        "category_id"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "shop_stats": {
+      "key": [
+        "country_code",
+        "shop_id",
+        "date"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    }
+  },
+  "snapshot_checks": {
+    "dates": [
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03",
+      "2026-07-04",
+      "2026-07-05",
+      "2026-07-06",
+      "2026-07-07",
+      "2026-07-08",
+      "2026-07-09",
+      "2026-07-10",
+      "2026-07-11",
+      "2026-07-13",
+      "2026-07-14",
+      "2026-07-15",
+      "2026-07-16",
+      "2026-07-17",
+      "2026-07-18",
+      "2026-07-19",
+      "2026-07-20",
+      "2026-07-21"
+    ],
+    "rows_by_date": {
+      "2026-07-01": 1055,
+      "2026-07-02": 1144,
+      "2026-07-03": 1142,
+      "2026-07-04": 1157,
+      "2026-07-05": 1153,
+      "2026-07-06": 1057,
+      "2026-07-07": 1158,
+      "2026-07-08": 1152,
+      "2026-07-09": 1084,
+      "2026-07-10": 1148,
+      "2026-07-11": 1168,
+      "2026-07-13": 1161,
+      "2026-07-14": 1151,
+      "2026-07-15": 1162,
+      "2026-07-16": 1140,
+      "2026-07-17": 1055,
+      "2026-07-18": 1150,
+      "2026-07-19": 1157,
+      "2026-07-20": 1147,
+      "2026-07-21": 1154
+    },
+    "listing_count": 1276,
+    "balanced_panel_cells": 25520,
+    "observed_cells": 22695,
+    "missing_cells": 2825,
+    "internal_gap_listings": 1188,
+    "edge_incomplete_listings": 88
+  },
+  "numeric_conversion_error_count": 0,
+  "issue_counts": {
+    "warning:EDGE_SNAPSHOT_MISSING": 88,
+    "warning:INTERNAL_SNAPSHOT_GAP": 1188,
+    "warning:MISSING_DISCOUNT_INCONSISTENT_PRICE": 18496,
+    "warning:ORPHAN_CATEGORY_MAPPING_PRODUCT": 7,
+    "warning:ORPHAN_CATEGORY_MAPPING_SHELF": 27032,
+    "warning:PRICE_SENTINEL": 23
+  },
+  "severity_counts": {
+    "warning": 46834
+  },
+  "status": "passed_with_warnings",
+  "outputs": [
+    "products_clean.csv",
+    "shop_info_clean.csv",
+    "category_list_clean.csv",
+    "product_categories_clean.csv",
+    "category_platform_clean.csv",
+    "shop_stats_clean.csv",
+    "product_snapshot_metrics.csv",
+    "product_transition_metrics.csv",
+    "data_quality_issues.csv"
+  ]
+}

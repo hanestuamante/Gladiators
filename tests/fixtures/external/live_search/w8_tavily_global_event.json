@@ -1,0 +1,22 @@
+{
+  "cache_path": "tests/fixtures/external/live_search/w8_tavily_global_event.json",
+  "content_hash": "1c74065ea58ed369e1c92565853a3122a5bed938157cb1ecf5ac2c28f7c949b4",
+  "items": [
+    {
+      "published_at": null,
+      "rank": 1,
+      "score": 0.36772484,
+      "snippet": "Malaysia’s e-commerce market is projected to grow 9.4% to $37.8b (MYR161.8b) in 2026, driven",
+      "title": "Online shopping boom drives Malaysia e-commerce growth momentum - Asian Business Review",
+      "url": "https://asianbusinessreview.com/news/online-shopping-boom-drives-malaysia-e-commerce-growth-momentum"
+    }
+  ],
+  "provider": "tavily",
+  "query": {
+    "market": "global",
+    "purpose": "market_event",
+    "query": "Southeast Asia ecommerce shopping festival 2026 campaign event",
+    "recency_days": 365
+  },
+  "retrieved_at": "2026-07-22T18:32:59.957270Z"
+}

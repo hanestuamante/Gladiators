@@ -1,0 +1,63 @@
+name: V1 offline checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e .[dev]
+
+      # W3 (SolutionSpec2808 §4.3): artifacts/ gitignored, và value_index.json
+      # là artifact BẮT BUỘC cho vòng dò giá trị — thiếu nó thì
+      # value_probe._index() trả rỗng và một lớp kiểm biến mất TRONG IM LẶNG,
+      # eval vẫn xanh. Ba lệnh dựng chạy offline, TRƯỚC pytest.
+      - name: Dựng artifact bắt buộc (W3)
+        run: |
+          PYTHONPATH=src python scripts/build_value_index.py
+          PYTHONPATH=src python scripts/build_question_bank.py
+          PYTHONPATH=src python scripts/build_multiturn_suite.py
+
+      - run: python -m pytest -q
+      - run: PYTHONPATH=src python scripts/run_evaluation.py --runs 3 --provider offline
+
+      # W15.2: questions_critic khai expected_action từ ngày đầu nhưng không ai
+      # chấm — ba ca allow của nó bị CẢ HAI cấu hình phát hành chặn cho tới W7.
+      # Sau W7 nó là 4/4 và trở thành CỔNG; đặt nó làm cổng trước W7 là ghim một
+      # cổng đỏ vào CI và dạy mọi người bỏ qua CI.
+      - name: Suite critic được chấm như một cổng (W15.2)
+        run: PYTHONPATH=src python scripts/run_evaluation.py --suite eval/questions_critic.json --runs 3 --provider offline
+
+      # W15.1: suite multiturn có hợp đồng riêng (chuỗi lượt chung session_id,
+      # lượt sau khai HAI kỳ vọng) — harness chấm cả nhánh có và không có bộ
+      # nhớ, kèm leak probe giữa các ca. Thoát khác 0 khi bất kỳ lượt nào lệch.
+      - name: Suite multiturn được chấm cả hai nhánh (W15.1)
+        run: PYTHONPATH=src python scripts/run_multiturn.py
+
+      # Benchmark accuracy v1 (TC_formulation): oracle verify + contract +
+      # mutation chạy trong pytest ở trên; ở đây chạy DEV benchmark offline —
+      # cổng là "harness chạy trọn và phát report", KHÔNG phải một ngưỡng điểm:
+      # một baseline xấu là kết quả hợp lệ (§15). Holdout KHÔNG chạy trong CI
+      # thường — chỉ ở release evaluation (job tách riêng, §11).
+      - name: Oracle benchmark accuracy tái tính khớp fixture
+        run: python eval/accuracy/v1/oracle.py --verify
+      - name: Dev accuracy benchmark (offline, report-only)
+        run: PYTHONPATH=src python scripts/run_accuracy_benchmark.py --split dev --runs 1
+
+      # Bước làm sạch dữ liệu chạy TRONG CI, không phải chỉ chạy được trong CI.
+      # Nó dựng lại data/processed từ data/raw rồi so schema + giá trị với bản
+      # đang commit. Trước đây bước này nằm trong một notebook phải bấm Run All,
+      # nên "notebook vẫn chạy đúng" là một niềm tin chứ không phải một phép đo —
+      # và không ai ngoài người viết kiểm lại được.
+      #
+      # Thoát khác 0 khi lệch, nên một thay đổi làm pipeline sinh ra dữ liệu khác
+      # sẽ đỏ ở PR chứ không lộ ra lúc ai đó chạy tay vài tuần sau.
+      - name: Pipeline dựng lại được dữ liệu đang commit
+        run: PYTHONPATH=src python scripts/build_dataset.py --verify-against data/processed

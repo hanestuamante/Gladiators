@@ -5,3 +5,33 @@ __pycache__/
 .venv/
 venv/
 env/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# Release proof packs are regenerable: `python scripts/build_release_proof.py`
+# rebuilds artifacts/release/<run_id>/ from committed inputs (eval/p0_probes.json,
+# eval/independent/p0_probe_expected.json, tests/). Traces inside are large, so the
+# pack stays out of git and is attached to the release instead.
+artifacts/
+graphify-out/
+# Bản dữ liệu đã publish và đợt raw đã nhận: là ĐẦU RA dựng lại được, không phải
+# nguồn. data/processed/ vẫn commit và vẫn là mặc định, nên clone sạch chạy ngay.
+#   dựng lại: scripts/build_dataset.py --publish · scripts/ingest_raw.py
+data/versions/
+data/raw_snapshots/
+data/CURRENT
+data/external_cache/
+models/cache/
+data/image-cache/
+
+# Output tạm của các lần chạy eval thăm dò; artifact chính thức nằm ở eval/reports/.
+scratch/
+
+# Layout raw canonical sinh từ raw_extra_data/ bằng extract_adapter.adapt_extract.
+# KHÔNG commit: nó là dẫn xuất, và đã chứng minh dựng lại trùng khít từng byte
+# (điểm bất động — dựng lại từ chính bản đã phát hành cho cùng kết quả). Lệnh ở
+# docs/qa/raw_extra_data_provenance.md.
+data/raw_extended/

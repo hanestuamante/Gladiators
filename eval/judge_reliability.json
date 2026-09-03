@@ -1,0 +1,12 @@
+[
+  {"id":"j01","answer":"Có evidence đầy đủ.","rubric":"1 nếu có câu trả lời","human_score":1},
+  {"id":"j02","answer":"Không thể trả lời vì thiếu dữ liệu.","rubric":"1 nếu có câu trả lời","human_score":1},
+  {"id":"j03","answer":"Kết quả có giới hạn rõ ràng.","rubric":"1 nếu có câu trả lời","human_score":1},
+  {"id":"j04","answer":"Cần làm rõ listing.","rubric":"1 nếu có câu trả lời","human_score":1},
+  {"id":"j05","answer":"Proxy giảm và không khẳng định nhân quả.","rubric":"1 nếu có câu trả lời","human_score":1},
+  {"id":"j06","answer":"Voucher chỉ là quan sát.","rubric":"1 nếu có câu trả lời","human_score":1},
+  {"id":"j07","answer":"Không tự tính metric.","rubric":"1 nếu có câu trả lời","human_score":1},
+  {"id":"j08","answer":"Có citation nội bộ.","rubric":"1 nếu có câu trả lời","human_score":1},
+  {"id":"j09","answer":"","rubric":"1 nếu có câu trả lời, 0 nếu rỗng","human_score":0},
+  {"id":"j10","answer":"   ","rubric":"1 nếu có câu trả lời, 0 nếu rỗng","human_score":0}
+]

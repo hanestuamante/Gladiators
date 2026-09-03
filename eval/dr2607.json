@@ -1,0 +1,656 @@
+[
+  {
+    "id": "tc01",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Cho tôi biết vì sao lượt bán của kẹo dẻo Chupa Chups tại shop Perfetti Van Melle Vietnam lại giảm trong những ngày qua?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "provider_required",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc02",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Lượt bán sản phẩm kem dưỡng Glad2Glow Niacinamide (ID) dạo này có vẻ chậm lại, có phải do thay đổi giá không?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "provider_required",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc03",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tại sao tổng lượt bán lũy kế (history sold) của một số sản phẩm Nestlé lại bị tụt xuống vậy?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc04",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Có phải việc shop cắt mã voucher đã trực tiếp gây ra việc giảm doanh số của Bánh Socola Pie Oreo Vị Dâu không?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc05",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tháng này bánh Orion Chocopie bán chậm lại, có phải do hết hàng (sold out) không?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc06",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Với đà giảm doanh số như 3 ngày qua của sản phẩm Hộp bánh Cá Marine Boy Orion Vị Gà Bơ Sốt Tỏi, dự đoán tuần sau lượng bán của sản phẩm này sẽ giảm thêm bao nhiêu?",
+    "legacy_expected_intent": null,
+    "expected_action": "abstain",
+    "allowed_rule_ids": [
+      "A-MISSING-FORECAST",
+      "A19-OP"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L4",
+    "answerability_class": "C4"
+  },
+  {
+    "id": "tc07",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Vì sao doanh số sữa giảm?",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc08",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Lượt bán của bánh quy Kinh Đô giảm, điều này làm biên lợi nhuận (profit margin) của shop giảm bao nhiêu phần trăm?",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A-AMBIGUOUS"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1+C4"
+  },
+  {
+    "id": "tc09",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Sản phẩm Combo 2 Hộp Bánh Quy Dinh Dưỡng AFC Vị Rau/Lúa Mì/Gà Sả Tắc 172g đang thuộc 2 danh mục (category ID 100629 và 100787). Hãy tính tổng doanh số giảm của sản phẩm này trên cả 2 danh mục đó cộng lại.",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc10",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tôi thấy lượng bán hiển thị (monthly sold) của sản phẩm Hộp Bánh Bống Bang Family Pack 20 Gói (580g) giảm từ 351 xuống 350, có phải ngày hôm qua không ai mua hàng không?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc11",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tìm cho tôi top 5 sản phẩm tương tự với bánh quy Kenju Richy 192g để xem đối thủ đang bán giá bao nhiêu?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc12",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Có sản phẩm nào bán ở Indo là đối thủ cạnh tranh trực tiếp của serum Glad2Glow không?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc13",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Sản phẩm sữa Milo bán ở VN có sản phẩm nào tương đương bên thị trường Indonesia không, giá bên nào rẻ hơn?",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A16-CROSS-CURRENCY"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C2"
+  },
+  {
+    "id": "tc14",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tìm các sản phẩm kẹo có bao bì màu đỏ hoặc thiết kế giống với gói kẹo Alpenliebe hương dâu này.",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1+C4"
+  },
+  {
+    "id": "tc15",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Hãy tìm các sản phẩm tương tự nằm trong cùng kệ '18VCX+SSCBundle[1.7]' với sản phẩm Combo 2 Hộp Bánh Quy Dinh Dưỡng AFC Vị Lúa Mì 172g của shop Kinh Do Official Store.",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc16",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tìm cho tôi đối thủ cạnh tranh của bánh quy.",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc17",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Sản phẩm mã 25078119874 và 25178062720 của shop Orion VN Official Store có cùng thương hiệu ORION, cùng danh mục (catid 100629) và cùng chiến dịch khuyến mãi (seller_flag), tên sản phẩm cũng có cấu trúc tương tự. Liệu đây có chắc chắn là cùng một sản phẩm bị đăng tách ra để tránh so sánh giá không?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc18",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tìm cho tôi các sản phẩm tương tự có bán kích cỡ 'Hộp 279g' giống y hệt như biến thể của sản phẩm Bánh quy Richy KenJu giòn kem dẻo hương vị Nhật (mã 21658340202).",
+    "legacy_expected_intent": null,
+    "expected_action": "abstain",
+    "allowed_rule_ids": [
+      "A-MISSING-SKU"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L1",
+    "answerability_class": "C4"
+  },
+  {
+    "id": "tc19",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tìm các đối thủ cạnh tranh có cùng mức giá ± 20% với sản phẩm mã 56061511146 – Quà tặng không bán (Quạt mini cầm tay).",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "needs_human_policy_oracle",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc20",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tìm sản phẩm tương đương cho mã ID 111222333444.",
+    "legacy_expected_intent": null,
+    "expected_action": "abstain",
+    "allowed_rule_ids": [
+      "A-ENTITY-NOT-FOUND"
+    ],
+    "forbidden_rule_ids": [
+      "A19-CAT"
+    ],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc21",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tại thị trường Việt Nam, nhóm sản phẩm có áp dụng cả voucher và giảm giá trực tiếp (promo) có mang lại doanh thu ước tính tốt hơn nhóm không có khuyến mãi nào không?",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A22-ALIGN-QUALIFIER"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc22",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Hãy phân tích hiệu quả của nhóm sản phẩm chỉ áp dụng mã giảm giá (voucher) nhưng không có chương trình giảm giá trực tiếp (promo) trên toàn sàn ở Việt Nam.",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A22-ALIGN-QUALIFIER"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc23",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Mã giảm giá (voucher) mang lại hiệu quả chuyển đổi tốt hơn ở thị trường Việt Nam hay thị trường Indonesia?",
+    "legacy_expected_intent": null,
+    "expected_action": "allow",
+    "allowed_rule_ids": [
+      "A22-ALIGN-SUBREQUEST"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1+C4"
+  },
+  {
+    "id": "tc24",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tính giúp tôi trung bình doanh thu ước tính (average revenue) của các sản phẩm có chạy chương trình khuyến mãi để xem shop thu về bao nhiêu ở Việt Nam.",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A22-ALIGN-QUALIFIER"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc25",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Chương trình giảm giá 50% đã giúp các shop tăng bao nhiêu % tỷ lệ chốt đơn (conversion rate) so với lúc không giảm giá?",
+    "legacy_expected_intent": null,
+    "expected_action": "allow",
+    "allowed_rule_ids": [
+      "A22-ALIGN-SUBREQUEST"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1+C4"
+  },
+  {
+    "id": "tc26",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Chiến dịch marketing có mã promotion ID '473502013010049' đã mang lại tổng doanh thu bao nhiêu cho nền tảng?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc27",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Để tính doanh thu thực nhận của nhóm có mã giảm giá, hệ thống có lấy giá bán (price) trừ đi giá trị mã giảm giá (voucher_discount) không?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L1",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc28",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Mức giảm giá nào (discount bucket) đang tối ưu hóa được lợi nhuận (profit margin) tốt nhất cho các shop FMCG tại Việt Nam?",
+    "legacy_expected_intent": null,
+    "expected_action": "abstain",
+    "allowed_rule_ids": [
+      "A-MISSING-PROFIT"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C4"
+  },
+  {
+    "id": "tc29",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Trung bình mỗi sản phẩm tại Indonesia được giảm giá bao nhiêu tiền so với các sản phẩm tại Việt Nam?",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A16-CROSS-CURRENCY",
+      "A22-ALIGN-MEASURE",
+      "A22-ALIGN-COUNTRY"
+    ],
+    "forbidden_rule_ids": [
+      "A-ALLOW"
+    ],
+    "forbidden_analytical_kind": "listing_count",
+    "expected_semantic_refs": [
+      "measure.voucher_discount",
+      "dim.country"
+    ],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C2"
+  },
+  {
+    "id": "tc30",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Chương trình khuyến mãi có mã '0' (promotion_id = 0) đang áp dụng cho bao nhiêu sản phẩm ở Việt Nam?",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A22-ALIGN-QUALIFIER"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc31",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Hãy so sánh doanh số của các sản phẩm FMCG trong tháng 6/2026 và dự báo cho tháng 8/2026.",
+    "legacy_expected_intent": null,
+    "expected_action": "allow",
+    "allowed_rule_ids": [
+      "A22-ALIGN-SUBREQUEST"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L4",
+    "answerability_class": "C1+C4"
+  },
+  {
+    "id": "tc32",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Shop mỹ phẩm Glad2Glow đang chạy quảng cáo (ads) cho những sản phẩm nào, hiệu quả doanh thu từ quảng cáo là bao nhiêu?",
+    "legacy_expected_intent": null,
+    "expected_action": "abstain",
+    "allowed_rule_ids": [
+      "A-MISSING-ADS"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C4"
+  },
+  {
+    "id": "tc33",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Trong sản phẩm Combo 5 Bánh Quy Oreo Với Kem Vị Dâu/Vani/Sôcôla (mã 25211554425) có 3 biến thể: Dâu, Vani, Sôcôla. Hãy cho tôi biết biến thể (vị) nào đang mang lại doanh thu cao nhất?",
+    "legacy_expected_intent": null,
+    "expected_action": "abstain",
+    "allowed_rule_ids": [
+      "A-MISSING-SKU"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C4"
+  },
+  {
+    "id": "tc34",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tính mức giảm doanh số (sales delta) của sản phẩm Collagen Thủy Phân NESTLÉ VITAL PROTEINS 284G (mã 24710759163) từ ngày 01/07 đến ngày 03/07.",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": "eval/independent/p0_probe_expected.json#p0_tc34_window",
+    "status": "executable_red_date_window_narrowing",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc35",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Phân tích doanh số của điện thoại iPhone 15 Pro Max tại shop Apple Official Store.",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L2",
+    "answerability_class": "C1+C3"
+  },
+  {
+    "id": "tc36",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tổng doanh thu ước tính của cả thị trường Việt Nam và Indonesia cộng lại trong 3 ngày qua là bao nhiêu?",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A16-CROSS-CURRENCY"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C2"
+  },
+  {
+    "id": "tc37",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Shop Orion VN hiện tại đang còn tồn kho bao nhiêu thùng bánh Chocopie trong kho?",
+    "legacy_expected_intent": null,
+    "expected_action": "abstain",
+    "allowed_rule_ids": [
+      "A-MISSING-INVENTORY"
+    ],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L1",
+    "answerability_class": "C4"
+  },
+  {
+    "id": "tc38",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Điểm đánh giá (rating) tăng từ 4.85 lên 4.88 có phải là lý do chính khiến sản phẩm Sữa Bột NESTLÉ NUTREN JUNIOR 800G (mã 26663401389) bán được nhiều hơn ở Việt Nam trong ngày 03/07 không?",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "provider_required",
+    "complexity_level": "L2",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc39",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tổng số lượng sản phẩm bán ra của sản phẩm Sữa Bột NESTLÉ NUTREN JUNIOR 800G (mã 26663401389) trong 3 ngày vừa qua ở Việt Nam là bao nhiêu? Hãy cộng lượt bán hàng tháng (monthly_sold) của 3 ngày lại.",
+    "legacy_expected_intent": null,
+    "expected_action": "clarify",
+    "allowed_rule_ids": [
+      "A22-ALIGN-MEASURE",
+      "A19-AGGREGATION"
+    ],
+    "forbidden_rule_ids": [
+      "A-ALLOW"
+    ],
+    "forbidden_analytical_kind": "listing_count",
+    "expected_semantic_refs": [
+      "measure.monthly_sold",
+      "entity.listing"
+    ],
+    "oracle_ref": null,
+    "status": "executable",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  },
+  {
+    "id": "tc40",
+    "source": "docs/qa/DR TASK 1407.md",
+    "question": "Tính tổng doanh thu ước tính của tất cả các kệ hàng nội bộ (category_list) của shop Nestlé, sau đó cộng lại xem tổng shop thu được bao nhiêu.",
+    "legacy_expected_intent": null,
+    "expected_action": null,
+    "allowed_rule_ids": [],
+    "forbidden_rule_ids": [],
+    "forbidden_analytical_kind": null,
+    "expected_semantic_refs": [],
+    "oracle_ref": null,
+    "status": "provider_required",
+    "complexity_level": "L3",
+    "answerability_class": "C1"
+  }
+]

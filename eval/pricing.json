@@ -1,0 +1,22 @@
+{
+  "_note": "B10-R1: đơn giá là DỮ LIỆU CÓ NGÀY, không phải hằng số trong code. Một con số hard-code không có as_of sẽ âm thầm sai sau lần đổi giá đầu tiên, và không ai biết nó sai từ lúc nào. Provider không có mục ở đây thì báo cáo in n/a chứ KHÔNG đoán (B10-R2).",
+  "_source": "Đơn giá niêm yết công khai của provider tại thời điểm as_of. Cần cập nhật tay khi provider đổi giá.",
+  "gemini": {
+    "prompt_usd_per_1m": 1.5,
+    "output_usd_per_1m": 9.0,
+    "as_of": "2026-08-27",
+    "note": "Giữ đúng con số đã hard-code trong run_evaluation.py trước WP-B10, để báo cáo cũ và mới so được với nhau."
+  },
+  "deepseek": {
+    "prompt_usd_per_1m": null,
+    "output_usd_per_1m": null,
+    "as_of": null,
+    "note": "CHƯA có đơn giá được xác nhận. null ⇒ báo cáo in n/a. Điền số vào đây chỉ khi đã tra trang giá chính thức, và ghi as_of."
+  },
+  "offline": {
+    "prompt_usd_per_1m": 0.0,
+    "output_usd_per_1m": 0.0,
+    "as_of": "2026-08-27",
+    "note": "Không gọi mạng nên chi phí API bằng 0 theo định nghĩa, không phải theo ước lượng."
+  }
+}

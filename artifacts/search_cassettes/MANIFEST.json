@@ -1,0 +1,73 @@
+{
+  "schema_version": "search-cassette-manifest.v1",
+  "provider": "tavily",
+  "max_results": 3,
+  "cassettes": [
+    {
+      "key": "0d6bc87c27b16fda2e9e",
+      "market": "vn",
+      "purpose": "market_event",
+      "query": "Vietnam e-commerce market event July 2026",
+      "results": 3,
+      "recorded_at": "2026-08-01T22:59:55",
+      "sha256_16": "7bd07be2888aa627",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "key": "107b04f0c77251a151e6",
+      "market": "id",
+      "purpose": "campaign_context",
+      "query": "Shopee Indonesia promo 7.7 2026",
+      "results": 3,
+      "recorded_at": "2026-08-01T22:59:53",
+      "sha256_16": "899d11e173bee24d",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "key": "5abe872ad22935524436",
+      "market": "id",
+      "purpose": "market_event",
+      "query": "Indonesia e-commerce market event July 2026",
+      "results": 3,
+      "recorded_at": "2026-08-27T03:53:41",
+      "sha256_16": "eba64e26f16ac62e",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "key": "6014c16302a9a96afef4",
+      "market": "id",
+      "purpose": "campaign_context",
+      "query": "Shopee Indonesia kampanye 8.8 2026",
+      "results": 3,
+      "recorded_at": "2026-08-27T03:53:45",
+      "sha256_16": "e4cc0a3c2e18478d",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "key": "9c4b05eaf59141b9bde9",
+      "market": "vn",
+      "purpose": "campaign_context",
+      "query": "Shopee 8.8 sale campaign Vietnam 2026",
+      "results": 3,
+      "recorded_at": "2026-08-27T03:53:43",
+      "sha256_16": "a13be814a3293e6c",
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    {
+      "key": "f548f1b0da90f83a99e5",
+      "market": "vn",
+      "purpose": "campaign_context",
+      "query": "Shopee 7.7 sale campaign Vietnam 2026",
+      "results": 2,
+      "recorded_at": "2026-08-01T22:59:51",
+      "sha256_16": "fa9595ba45f5ebc9",
+      "reviewed_by": null,
+      "reviewed_at": null
+    }
+  ]
+}

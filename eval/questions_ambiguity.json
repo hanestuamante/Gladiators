@@ -1,0 +1,6 @@
+[
+  {"id":"amb01","question":"Tìm sản phẩm tương tự \"serum\"","expected_intent":"similar_product","expected_action":"clarify","complexity_level":"L1","answerability_class":"C1","language_style":"vi","coverage":{"scenarios":["entity_ambiguity"]}},
+  {"id":"amb02","question":"Tìm sản phẩm tương tự \"kem\"","expected_intent":"similar_product","expected_action":"clarify","complexity_level":"L1","answerability_class":"C1","language_style":"vi_khong_dau","coverage":{"scenarios":["entity_ambiguity"]}},
+  {"id":"amb03","question":"Cari produk mirip \"sữa\"","expected_intent":"similar_product","expected_action":"clarify","complexity_level":"L1","answerability_class":"C1","language_style":"id","coverage":{"scenarios":["entity_ambiguity"]}},
+  {"id":"amb04","question":"Tìm listing giống \"mask\"","expected_intent":"similar_product","expected_action":"clarify","complexity_level":"L1","answerability_class":"C1","language_style":"noisy","coverage":{"scenarios":["entity_ambiguity"]}}
+]

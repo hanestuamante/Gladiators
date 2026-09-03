@@ -1,0 +1,29 @@
+{
+  "suite": "eval/questions.json",
+  "provider": "offline",
+  "cases": 60,
+  "measured": 60,
+  "crashes": 0,
+  "p50_seconds": 0.0803,
+  "p95_seconds": 0.212,
+  "llm_calls_critical_p95": 0.0,
+  "stage_p95_ms": {
+    "parse": 8.044,
+    "route": 0.0,
+    "entity": 0.0,
+    "gate": 0.135,
+    "plan": 0.173,
+    "execute": 202.809,
+    "generate": 0.132,
+    "verify": 0.702,
+    "gate_out": 73.327
+  },
+  "plan_cache_hit_rate": null,
+  "llm_cache_hit_rate": null,
+  "budget": {
+    "p50_seconds": 8.0,
+    "p95_seconds": 15.0,
+    "max_llm_calls_critical": 2
+  },
+  "within_budget": true
+}

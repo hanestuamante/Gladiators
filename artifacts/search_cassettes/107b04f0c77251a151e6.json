@@ -1,0 +1,49 @@
+{
+  "key": "107b04f0c77251a151e6",
+  "query": {
+    "market": "id",
+    "purpose": "campaign_context",
+    "query": "Shopee Indonesia promo 7.7 2026",
+    "recency_days": 90
+  },
+  "recorded_at": "2026-08-01T22:59:53Z",
+  "response": {
+    "cache_path": "unpersisted",
+    "content_hash": "47b91c03863f13710272253d2793b6239261dcc34efba41b555564cd10a4723a",
+    "items": [
+      {
+        "published_at": null,
+        "rank": 1,
+        "score": 0.8449346,
+        "snippet": "Shopee menghadirkan kampanye Shopee 7.7 Great Mid Year Sale yang berlangsung pada 25 Juni hingga mencapai puncaknya pada 7 Juli 2026.",
+        "title": "Shopee Gelar Kampanye 7.7 Great Mid Year Sale, Hadirkan Promo hingga 7 Juli",
+        "url": "https://swa.co.id/read/474225/shopee-gelar-kampanye-77-great-mid-year-sale-hadirkan-promo-hingga-7-juli"
+      },
+      {
+        "published_at": null,
+        "rank": 2,
+        "score": 0.82761955,
+        "snippet": "Shopee pun resmi menghadirkan kampanye Shopee 7.7 Great Mid Year Sale dari 25 Juni hingga puncaknya pada Juli 2026.",
+        "title": "Sambut Momentum Tengah Tahun, Shopee 7.7 Great Mid Year Sale Siap Manjakan Kamu",
+        "url": "https://www.marketeers.com/sambut-momentum-tengah-tahun-shopee-7-7-great-mid-year-sale-siap-manjakan-kamu"
+      },
+      {
+        "published_at": null,
+        "rank": 3,
+        "score": 0.5874941,
+        "snippet": "Grid.ID - Memasuki pertengahan tahun, banyak masyarakat mulai bersiap menghadapi berbagai agenda baru. Ada yang memanfaatkan libur sekolah",
+        "title": "Sambut Momentum Tengah Tahun, Shopee 7.7 Great Mid Year Sale Hadirkan Beragam Promo untuk Penuhi Kebutuhan",
+        "url": "https://www.grid.id/read/044391263/sambut-momentum-tengah-tahun-shopee-77-great-mid-year-sale-hadirkan-beragam-promo-untuk-penuhi-kebutuhan"
+      }
+    ],
+    "provider": "tavily",
+    "query": {
+      "market": "id",
+      "purpose": "campaign_context",
+      "query": "Shopee Indonesia promo 7.7 2026",
+      "recency_days": 90
+    },
+    "retrieved_at": "2026-08-01T22:59:53.819881Z"
+  },
+  "schema_version": "search-cassette.v1"
+}

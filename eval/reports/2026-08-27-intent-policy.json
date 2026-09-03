@@ -1,0 +1,108 @@
+{
+  "suite": "eval/independent/answerable_manual.json",
+  "provider": "deepseek",
+  "measured_on": "2026-08-27",
+  "cases": 44,
+  "results": {
+    "P-A": {
+      "labelled_cases": 44,
+      "coverage": 0.4545,
+      "risk": 0.0,
+      "over_refusal_rate": 0.4737,
+      "over_answer_rate": 0.0,
+      "p95_seconds": 50.171981,
+      "p50_seconds": 22.985939,
+      "answered": 20,
+      "wrong": 0,
+      "policy_reasons": {
+        "P-A": 43,
+        "?": 1
+      },
+      "llm_label_taken": 0,
+      "llm_telemetry": {
+        "provider": "deepseek+groq",
+        "primary": {
+          "api_calls": 76,
+          "cache_hits": 16,
+          "failures": 0,
+          "latency_seconds": 305.0486123999972,
+          "prompt_tokens": 101883,
+          "output_tokens": 25441,
+          "total_tokens": 127324,
+          "error_counts": {},
+          "empty_retries": 41,
+          "mean_latency_seconds": 4.01379753157891
+        },
+        "fallback": {
+          "api_calls": 25,
+          "cache_hits": 1,
+          "failures": 8,
+          "latency_seconds": 27.95294550000017,
+          "prompt_tokens": 12379,
+          "output_tokens": 1545,
+          "total_tokens": 13924,
+          "error_counts": {
+            "RateLimitError:429": 8
+          },
+          "mean_latency_seconds": 0.8470589545454597
+        },
+        "fallback_calls": {
+          "parse_intent": 25,
+          "_last_reason": "Groq trả response rỗng.",
+          "generate": 1,
+          "plan_analytical": 8
+        }
+      }
+    },
+    "P-B": {
+      "labelled_cases": 44,
+      "coverage": 0.4545,
+      "risk": 0.0,
+      "over_refusal_rate": 0.4737,
+      "over_answer_rate": 0.0,
+      "p95_seconds": 30.014543,
+      "p50_seconds": 18.248669999999997,
+      "answered": 20,
+      "wrong": 0,
+      "policy_reasons": {
+        "no_change": 28,
+        "llm_label_not_served": 6,
+        "deterministic_open": 10
+      },
+      "llm_label_taken": 10,
+      "llm_telemetry": {
+        "provider": "deepseek+groq",
+        "primary": {
+          "api_calls": 83,
+          "cache_hits": 16,
+          "failures": 0,
+          "latency_seconds": 434.67348019999827,
+          "prompt_tokens": 107380,
+          "output_tokens": 32454,
+          "total_tokens": 139834,
+          "error_counts": {},
+          "empty_retries": 29,
+          "mean_latency_seconds": 5.23702988192769
+        },
+        "fallback": {
+          "api_calls": 18,
+          "cache_hits": 0,
+          "failures": 0,
+          "latency_seconds": 14.847529700004088,
+          "prompt_tokens": 8480,
+          "output_tokens": 1035,
+          "total_tokens": 9515,
+          "error_counts": {},
+          "mean_latency_seconds": 0.8248627611113383
+        },
+        "fallback_calls": {
+          "parse_intent": 18,
+          "_last_reason": "Groq trả response rỗng."
+        }
+      }
+    }
+  },
+  "default_policy": "P-A",
+  "recommend_switch_to_p_b": false,
+  "recommendation_reason": "KHÔNG đủ điều kiện đổi mặc định. A11-R3 đòi P-B phải THẮNG, không phải hoà: cần độ phủ tăng VÀ rủi ro không tăng VÀ p95 trong ngân sách. Giữ P-A."
+}

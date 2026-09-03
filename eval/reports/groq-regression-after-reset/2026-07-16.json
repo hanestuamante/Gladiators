@@ -1,0 +1,61 @@
+{
+  "metrics": {
+    "mode": "full",
+    "provider": "groq",
+    "cases": 6,
+    "completed_cases": 1,
+    "runs": 1,
+    "stop_reason": "groq_quota_429",
+    "end_to_end_accuracy": 0.0,
+    "pass_pow_runs": 0.0,
+    "trajectory_accuracy": 1.0,
+    "evidence_accuracy": 1.0,
+    "citation_recall": 1.0,
+    "citation_precision": 1.0,
+    "verifier_pass_rate": 1.0,
+    "verifier_mutation_detection": 1.0,
+    "parse_fallback_rate": 1.0,
+    "generation_fallback_rate": 1.0,
+    "abstention_precision": 0.0,
+    "abstention_recall": 0.0,
+    "abstention_f1": 0.0,
+    "crash_rate": 0.0,
+    "failures": {
+      "q14": 1
+    },
+    "llm_telemetry": {
+      "api_calls": 0,
+      "cache_hits": 0,
+      "failures": 4,
+      "latency_seconds": 1.2002239569919766,
+      "prompt_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "error_counts": {
+        "RateLimitError:429": 4
+      },
+      "mean_latency_seconds": 0.30005598924799415
+    }
+  },
+  "rows": [
+    {
+      "id": "q14",
+      "run": 1,
+      "intent": "similar_product",
+      "action": "allow",
+      "trace_id": "f8fad364488a",
+      "parse_fallback": true,
+      "generation_fallback": true,
+      "intent_action": true,
+      "entity": true,
+      "trajectory": true,
+      "evidence": true,
+      "citation_recall": 1.0,
+      "citation_precision": 1.0,
+      "verifier": true,
+      "mutation_detected": true,
+      "llm_path": false,
+      "passed": false
+    }
+  ]
+}

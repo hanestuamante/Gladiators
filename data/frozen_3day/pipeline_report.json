@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-07-14T08:02:12+00:00",
+  "input_file_count": 82,
+  "rows": {
+    "products": 3341,
+    "shop_info": 20,
+    "category_list": 491,
+    "product_categories": 4054,
+    "category_platform": 4482
+  },
+  "metric_rows": {
+    "snapshot": 3341,
+    "transition": 2184
+  },
+  "key_checks": {
+    "products": {
+      "key": [
+        "country_code",
+        "shop_id",
+        "item_id",
+        "date"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "shop_info": {
+      "key": [
+        "country_code",
+        "shop_id"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "category_list": {
+      "key": [
+        "country_code",
+        "shop_id",
+        "shop_category_id",
+        "date"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "product_categories": {
+      "key": [
+        "country_code",
+        "shop_id",
+        "item_id",
+        "category_id",
+        "date"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    },
+    "category_platform": {
+      "key": [
+        "country_code",
+        "category_id"
+      ],
+      "missing_key_rows": 0,
+      "duplicate_key_rows": 0
+    }
+  },
+  "snapshot_checks": {
+    "dates": [
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03"
+    ],
+    "rows_by_date": {
+      "2026-07-01": 1055,
+      "2026-07-02": 1144,
+      "2026-07-03": 1142
+    },
+    "listing_count": 1157,
+    "balanced_panel_cells": 3471,
+    "observed_cells": 3341,
+    "missing_cells": 130,
+    "internal_gap_listings": 5,
+    "edge_incomplete_listings": 113
+  },
+  "numeric_conversion_error_count": 0,
+  "issue_counts": {
+    "warning:EDGE_SNAPSHOT_MISSING": 113,
+    "warning:EXACT_DUPLICATE_REMOVED": 30,
+    "warning:HISTORY_SOLD_DECREASE": 88,
+    "warning:INTERNAL_SNAPSHOT_GAP": 5,
+    "warning:ORPHAN_CATEGORY_MAPPING_PRODUCT": 5,
+    "warning:PRICE_SENTINEL": 3
+  },
+  "severity_counts": {
+    "warning": 244
+  },
+  "status": "passed_with_warnings",
+  "outputs": [
+    "products_clean.csv",
+    "shop_info_clean.csv",
+    "category_list_clean.csv",
+    "product_categories_clean.csv",
+    "category_platform_clean.csv",
+    "product_snapshot_metrics.csv",
+    "product_transition_metrics.csv",
+    "data_quality_issues.csv"
+  ]
+}
