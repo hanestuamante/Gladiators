@@ -146,7 +146,8 @@ async function run(text){
   let data,res;
   try{
     const llm=document.querySelector('#llmterms').checked;
-    res=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,llm_terms:llm})});
+    const plan=document.querySelector('#llmplan').checked;
+    res=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,llm_terms:llm,llm_plan:plan})});
     data=await res.json();
   }catch(err){
     setNode('parser','danger','fetch lỗi: '+esc(err.message));return;
