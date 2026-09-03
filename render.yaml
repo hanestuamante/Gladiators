@@ -1,0 +1,30 @@
+# Blueprint cho Render. Đọc kèm `Dockerfile` — file này chỉ nói CHẠY THẾ NÀO,
+# còn cái gì đi vào image thì Dockerfile quyết.
+services:
+  - type: web
+    name: gladiators
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    # Đo được trên chính image này, chạy với `--memory 512m`: 255 MiB sau một
+    # lượt quét 30 câu, tức còn một nửa dư địa của gói free. Con số đó chỉ đúng
+    # chừng nào torch còn nằm ngoài `requirements-serve.txt`.
+    healthCheckPath: /flow
+    envVars:
+      # Đường tất định là mặc định phát hành. Bật provider ở đây sẽ khiến MỌI
+      # lượt đi qua LLM và chờ bộ hãm nhịp — đo trên máy phát triển: 16–32 s
+      # mỗi câu so với 0,2 s. Người dùng bật LLM theo TỪNG CÂU bằng hai ô tick
+      # trên trang, và đường đó chỉ cần key khi thật sự được tick.
+      - key: GLADIATORS_LLM_PROVIDER
+        value: offline
+      - key: GLADIATORS_DATA_DIR
+        value: /app/data/processed
+      # THIẾU FILE NÀY LÀ MẤT MỘT LỚP KIỂM TRONG IM LẶNG, không phải một tối ưu.
+      # Đo được: cùng image, chỉ trỏ biến này vào một đường dẫn không tồn tại,
+      # 5/30 câu đổi đáp án — và hai trong số đó chuyển từ `clarify` sang
+      # `allow` kèm danh sách cả thị trường cho câu hỏi về MỘT shop. Đó là
+      # over-answer, thứ phải bằng 0 ở mọi mốc.
+      - key: GLADIATORS_VALUE_INDEX
+        value: /app/artifacts/value_index.json
+      # Khoá provider KHÔNG đặt ở đây. Chúng thuộc dashboard (Environment →
+      # Secret), vì blueprint này nằm trong git.

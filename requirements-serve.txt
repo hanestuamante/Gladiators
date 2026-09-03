@@ -1,0 +1,43 @@
+# Đúng những gì ĐƯỜNG PHỤC VỤ import, không phải toàn bộ pyproject.
+#
+# Vì sao có file thứ hai này (và vì sao nó KHÔNG mâu thuẫn với W3 "nguồn thật là
+# pyproject"): pyproject khai môi trường PHÁT TRIỂN — nó có torch, jupyter,
+# matplotlib, ba SDK provider chưa dùng tới. Cài nguyên bộ đó vào image serve
+# kéo theo ~2 GB torch bản CUDA cho một tiến trình chưa bao giờ gọi tới nó, và
+# free tier 512 MB chết ngay lúc pip.
+#
+# Cơ sở để cắt là ĐO, không phải đoán: `.venv` trên máy phát triển KHÔNG có
+# torch, và 1734 test + demo vẫn xanh — BGE-M3 nạp lười với local_files_only,
+# chưa lượt nào chạm tới. Bốn SDK provider (anthropic, google-genai, groq,
+# openai) cũng import trong thân hàm; chỉ giữ hai cái .env thật sự dùng.
+#
+# `tests/test_serve_requirements.py` khoá lại điều này: nó đọc import cấp module
+# của cả `src/gladiators` và bắt lỗi nếu có tên nào rơi ra ngoài danh sách dưới.
+# Không có phép kiểm đó thì lần thêm import tới sẽ chỉ nổ trên Render.
+
+# Biên dịch vụ
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+
+# Hợp đồng có kiểu
+pydantic==2.13.4
+pandera[pandas]==0.32.1        # import CẤP MODULE ở data/contracts.py
+
+# Phân tích + compiler/executor
+pandas==3.0.3
+numpy==2.5.1
+duckdb==1.5.4
+sqlglot==30.13.0
+rapidfuzz==3.14.5
+
+# Hạ tầng
+python-dotenv==1.2.2
+PyYAML==6.0.3
+certifi==2026.6.17             # import CẤP MODULE ở external/search_provider.py
+
+# Provider đang cấu hình trong .env: DeepSeek đi qua endpoint tương thích
+# OpenAI, Groq là fallback transport. anthropic/google-genai/huggingface-hub
+# nạp lười và KHÔNG có ở đây — chọn một provider ngoài hai cái này trên Render
+# sẽ báo ImportError ngay, đúng hơn là im lặng đổi đường.
+openai==1.109.1
+groq==1.5.0
