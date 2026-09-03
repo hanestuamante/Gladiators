@@ -11,10 +11,24 @@ services:
     # chừng nào torch còn nằm ngoài `requirements-serve.txt`.
     healthCheckPath: /flow
     envVars:
-      # Đường tất định là mặc định phát hành. Bật provider ở đây sẽ khiến MỌI
-      # lượt đi qua LLM và chờ bộ hãm nhịp — đo trên máy phát triển: 16–32 s
-      # mỗi câu so với 0,2 s. Người dùng bật LLM theo TỪNG CÂU bằng hai ô tick
-      # trên trang, và đường đó chỉ cần key khi thật sự được tick.
+      # `offline` là mặc định AN TOÀN KHI KHỞI ĐỘNG, không phải cấu hình demo.
+      # Thiếu nó thì blueprint apply xong sẽ crash ngay ở boot vì
+      # `DeepSeekLLMClient` raise khi không thấy key — nên giá trị này chỉ để
+      # container lên được trước khi ai đó nhập secret.
+      #
+      # ĐỔI SANG `deepseek` TRONG DASHBOARD sau khi nhập key, nếu không demo
+      # trả lời được rất ít. Bản nháp đầu của file này ghi rằng người dùng "bật
+      # LLM theo từng câu bằng hai ô tick" — SAI. Hai ô tick chỉ chi phối ánh
+      # xạ từ vựng và bẻ câu; `open_planner` cần provider cho MỌI câu nằm
+      # ngoài macro đã chứng nhận, và không có nó thì nó raise thẳng
+      # "Không có semantic planner provider".
+      #
+      # Đo trên cùng 30 câu, cùng image:
+      #   offline                       11/30   ← kể cả "Shop nào có nhiều
+      #                                           listing nhất tại VN?", một
+      #                                           chip mẫu của chính trang
+      #   deepseek, không tick gì       15/30
+      #   deepseek + ánh xạ + bẻ câu    23/30
       - key: GLADIATORS_LLM_PROVIDER
         value: offline
       - key: GLADIATORS_DATA_DIR
@@ -27,4 +41,9 @@ services:
       - key: GLADIATORS_VALUE_INDEX
         value: /app/artifacts/value_index.json
       # Khoá provider KHÔNG đặt ở đây. Chúng thuộc dashboard (Environment →
-      # Secret), vì blueprint này nằm trong git.
+      # Secret), vì blueprint này nằm trong git. Bộ tối thiểu để demo chạy đủ:
+      #   GLADIATORS_LLM_PROVIDER = deepseek     (ghi đè giá trị trên)
+      #   DEEPSEEK_API_KEY        = <secret>
+      #   DEEPSEEK_MODEL          = deepseek-v4-flash
+      # `DEEPSEEK_MIN_INTERVAL_SECONDS` để trống — DeepSeek không có trần
+      # phút như Groq, và đặt nhầm nó thành 15 làm mỗi câu chờ thêm 15 s.
