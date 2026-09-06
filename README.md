@@ -17,6 +17,11 @@ Research/
   research.md         Research questions, hypotheses, and insight roadmap
   research.ipynb      Charts and EDA notebook
 
+Agent/
+  agent_workflow.md    Local Agent workflow and tool contracts
+  mvp_app.py           Local Product Knowledge MVP
+  evaluation.md        Evaluation contract and regression checks
+
 Documentation.md      Dataset context, table definitions, and relationships
 requirements.txt      Runtime dependencies
 requirements-dev.txt  Optional notebook/dev dependencies
@@ -159,3 +164,19 @@ Ignored files include:
 - local virtual environments.
 
 Do not commit downloaded product images unless there is a deliberate data-storage plan. If image analysis is added later, prefer a separate cache/download script and document whether images should be versioned.
+
+## Local MVP
+
+Run the deterministic local question-answering MVP:
+
+```bash
+python3 Agent/mvp_app.py
+```
+
+Open:
+
+```text
+http://127.0.0.1:8765
+```
+
+The MVP supports product lookup, short-term sales comparison, baseline similar-product search, promotion-group comparison, category relation lookup, evidence, and limitations. It does not require an LLM API key or MCP server.
